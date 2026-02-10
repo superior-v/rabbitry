@@ -2,8 +2,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
+import '../models/breed.dart';
 import '../models/transaction.dart' as finance_model;
 import 'dart:convert';
+import 'settings_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -24,7 +26,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 7, // ✅ Added scheduled_tasks table for synchronized tasks
+      version: 9,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -74,7 +76,11 @@ class DatabaseService {
         butcherYield REAL,
         butcherCost REAL,
         deathCause TEXT,
-        cullReason TEXT
+        cullReason TEXT,
+        customPalpationDay INTEGER,
+        customNestBoxDay INTEGER,
+        customGestationDay INTEGER,
+        customWeanWeek INTEGER
       )
     ''');
 
@@ -199,6 +205,13 @@ class DatabaseService {
         updatedAt TEXT NOT NULL
       )
     ''');
+    await db.execute('''
+  CREATE TABLE breeds(
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    genetics TEXT
+  )
+''');
 
     print('✅ Database created successfully with all tables');
   }
@@ -339,6 +352,35 @@ class DatabaseService {
         print('⚠️ scheduled_tasks table may already exist: $e');
       }
     }
+
+    if (oldVersion < 8) {
+      // Add per-rabbit custom pipeline settings columns
+      try {
+        await db.execute('ALTER TABLE rabbits ADD COLUMN customPalpationDay INTEGER');
+        await db.execute('ALTER TABLE rabbits ADD COLUMN customNestBoxDay INTEGER');
+        await db.execute('ALTER TABLE rabbits ADD COLUMN customGestationDay INTEGER');
+        await db.execute('ALTER TABLE rabbits ADD COLUMN customWeanWeek INTEGER');
+        print('✅ Added custom pipeline columns to rabbits');
+      } catch (e) {
+        print('⚠️ Custom pipeline columns may already exist: $e');
+      }
+    }
+
+    if (oldVersion < 9) {
+      // Add breeds table for breed library with genetics
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS breeds(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            genetics TEXT
+          )
+        ''');
+        print('✅ Added breeds table');
+      } catch (e) {
+        print('⚠️ breeds table may already exist: $e');
+      }
+    }
   }
 
   // ==================== RABBIT CRUD ====================
@@ -464,16 +506,28 @@ class DatabaseService {
 
   Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays) async {
     final db = await database;
-    final palpationDate = breedDate.add(Duration(days: 14));
+    final settings = SettingsService.instance;
+    final palpationDate = breedDate.add(Duration(days: settings.palpationDays));
+    final nestBoxDate = breedDate.add(Duration(days: settings.nestBoxDays));
     final dueDate = breedDate.add(Duration(days: gestationDays));
+
+    // Determine initial status based on pipeline settings
+    RabbitStatus initialStatus;
+    if (settings.palpationEnabled) {
+      initialStatus = RabbitStatus.palpateDue;
+    } else if (settings.nestBoxEnabled) {
+      initialStatus = RabbitStatus.pregnant;
+    } else {
+      initialStatus = RabbitStatus.pregnant;
+    }
 
     await db.update(
       'rabbits',
       {
-        'status': RabbitStatus.palpateDue.toString(),
+        'status': initialStatus.toString(),
         'lastBreedDate': breedDate.toIso8601String(),
         'lastBreedBuckId': buckId,
-        'palpationDate': palpationDate.toIso8601String(),
+        'palpationDate': settings.palpationEnabled ? palpationDate.toIso8601String() : null,
         'dueDate': dueDate.toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),
       },
@@ -483,22 +537,51 @@ class DatabaseService {
       ],
     );
 
-    await insertTask({
-      'id': 'task_palp_${DateTime.now().millisecondsSinceEpoch}',
-      'rabbitId': doeId,
-      'title': 'Palpation Check',
-      'description': 'Day 14 pregnancy check',
-      'taskType': 'palpation',
-      'dueDate': palpationDate.toIso8601String(),
-      'completed': 0,
-      'createdAt': DateTime.now().toIso8601String(),
-    });
+    // Create tasks based on pipeline settings
+    if (settings.palpationEnabled) {
+      // Palpation is enabled - create palpation task
+      await insertTask({
+        'id': 'task_palp_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doeId,
+        'title': 'Palpation Check',
+        'description': 'Day ${settings.palpationDays} pregnancy check',
+        'taskType': 'palpation',
+        'dueDate': palpationDate.toIso8601String(),
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    } else if (settings.nestBoxEnabled) {
+      // Skip palpation, go directly to nest box
+      await insertTask({
+        'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doeId,
+        'title': 'Add Nest Box',
+        'description': 'Prepare for kindling',
+        'taskType': 'nestbox',
+        'dueDate': nestBoxDate.toIso8601String(),
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    } else {
+      // Skip both palpation and nest box, go directly to kindle
+      await insertTask({
+        'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doeId,
+        'title': 'Expected Kindle',
+        'description': 'Due date for birth',
+        'taskType': 'kindle',
+        'dueDate': dueDate.toIso8601String(),
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    }
 
     print('✅ Logged breeding for doe $doeId with buck $buckId');
   }
 
   Future<void> confirmPregnancy(String doeId, bool isPregnant, int gestationDays) async {
     final db = await database;
+    final settings = SettingsService.instance;
     final rabbit = await getRabbit(doeId);
     if (rabbit == null) return;
 
@@ -518,16 +601,19 @@ class DatabaseService {
         ],
       );
 
-      await insertTask({
-        'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
-        'rabbitId': doeId,
-        'title': 'Add Nest Box',
-        'description': 'Prepare for kindling',
-        'taskType': 'nestbox',
-        'dueDate': nestBoxDate.toIso8601String(),
-        'completed': 0,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
+      // Create tasks based on pipeline settings
+      if (settings.nestBoxEnabled) {
+        await insertTask({
+          'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
+          'rabbitId': doeId,
+          'title': 'Add Nest Box',
+          'description': 'Prepare for kindling',
+          'taskType': 'nestbox',
+          'dueDate': nestBoxDate.toIso8601String(),
+          'completed': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      }
 
       await insertTask({
         'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch + 1}',
@@ -561,7 +647,7 @@ class DatabaseService {
     print('✅ Confirmed pregnancy for $doeId: $isPregnant');
   }
 
-  Future<void> logBirth(String doeId, int totalBorn, int aliveBorn, DateTime kindleDate, int weaningWeeks) async {
+  Future<void> logBirth(String doeId, int totalBorn, int aliveBorn, DateTime kindleDate, int weaningWeeks, {String? litterId, List<Map<String, dynamic>>? kits}) async {
     final db = await database;
     final rabbit = await getRabbit(doeId);
     if (rabbit == null) return;
@@ -583,13 +669,28 @@ class DatabaseService {
       ],
     );
 
-    final litterId = 'L-${DateTime.now().millisecondsSinceEpoch}';
+    // ✅ Use custom litter ID if provided, otherwise generate sequential one
+    final finalLitterId = litterId ?? await _generateNextLitterId();
+
+    // ✅ Get buck name if available
+    String buckName = '';
+    if (rabbit.lastBreedBuckId != null) {
+      final buck = await getRabbit(rabbit.lastBreedBuckId!);
+      buckName = buck?.name ?? '';
+    }
+
+    // ✅ Encode kits to JSON string
+    String kitsJson = '[]';
+    if (kits != null && kits.isNotEmpty) {
+      kitsJson = jsonEncode(kits);
+    }
+
     await insertLitter({
-      'id': litterId,
+      'id': finalLitterId,
       'doeId': doeId,
       'doeName': rabbit.name,
       'buckId': rabbit.lastBreedBuckId ?? '',
-      'buckName': '',
+      'buckName': buckName,
       'breedDate': rabbit.lastBreedDate?.toIso8601String() ?? kindleDate.toIso8601String(),
       'kindleDate': kindleDate.toIso8601String(),
       'dob': kindleDate.toIso8601String(),
@@ -604,7 +705,7 @@ class DatabaseService {
       'breed': rabbit.breed,
       'sire': rabbit.lastBreedBuckId ?? '',
       'dam': rabbit.id,
-      'kits': '[]',
+      'kits': kitsJson,
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
@@ -612,7 +713,7 @@ class DatabaseService {
     await insertTask({
       'id': 'task_wean_${DateTime.now().millisecondsSinceEpoch}',
       'rabbitId': doeId,
-      'litterId': litterId,
+      'litterId': finalLitterId,
       'title': 'Wean Litter',
       'description': '$aliveBorn kits ready for weaning',
       'taskType': 'wean',
@@ -621,7 +722,35 @@ class DatabaseService {
       'createdAt': DateTime.now().toIso8601String(),
     });
 
-    print('✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn');
+    print('✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn (Litter ID: $finalLitterId)');
+  }
+
+  /// Generate next sequential litter ID (L-001, L-002, etc.)
+  Future<String> _generateNextLitterId() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT id FROM litters 
+      WHERE id LIKE 'L-%' 
+      ORDER BY id DESC 
+      LIMIT 1
+    ''');
+
+    int nextNumber = 1;
+    if (result.isNotEmpty) {
+      final lastId = result.first['id'] as String;
+      // Extract number from L-XXX format
+      final numberPart = lastId.replaceAll(RegExp(r'[^0-9]'), '');
+      if (numberPart.isNotEmpty) {
+        nextNumber = int.parse(numberPart) + 1;
+      }
+    }
+
+    return 'L-${nextNumber.toString().padLeft(3, '0')}';
+  }
+
+  /// Get next suggested litter ID for UI
+  Future<String> getNextLitterId() async {
+    return await _generateNextLitterId();
   }
 
   Future<void> weanLitter(String doeId, int weanedCount, int restingDays) async {
@@ -870,6 +999,54 @@ class DatabaseService {
       ],
     );
     print('✅ Promoted $rabbitId to breeder');
+  }
+
+  /// Promotes a kit from a litter to a full rabbit (active breeder)
+  /// Creates a new rabbit entry and updates the kit status
+  Future<Rabbit?> promoteKitToBreeder(Litter litter, Kit kit, {String? customName, String? customId}) async {
+    final db = await database;
+
+    // Generate a new rabbit ID
+    final newRabbitId = customId ?? '${kit.sex == 'M' ? 'B' : 'D'}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final rabbitName = customName ?? 'Kit ${kit.id}';
+
+    // Determine rabbit type based on sex
+    final rabbitType = kit.sex == 'M' ? RabbitType.buck : RabbitType.doe;
+
+    // Create the new rabbit
+    final newRabbit = Rabbit(
+      id: newRabbitId,
+      name: rabbitName,
+      type: rabbitType,
+      status: RabbitStatus.open, // Active breeder - ready for breeding
+      breed: litter.breed,
+      location: litter.location,
+      cage: litter.cage,
+      dateOfBirth: litter.dob,
+      color: kit.color,
+      weight: kit.weight,
+      sireId: litter.buckId,
+      damId: litter.doeId,
+      origin: 'Homebred',
+      notes: 'Promoted from litter ${litter.id}',
+    );
+
+    // Insert the new rabbit
+    await insertRabbit(newRabbit);
+
+    // Update the kit status to 'Promoted'
+    final updatedKits = litter.kits.map((k) {
+      if (k.id == kit.id) {
+        return k.copyWith(status: 'Promoted');
+      }
+      return k;
+    }).toList();
+
+    final updatedLitter = litter.copyWith(kits: updatedKits);
+    await updateLitter(updatedLitter);
+
+    print('✅ Promoted kit ${kit.id} from litter ${litter.id} to breeder $newRabbitId');
+    return newRabbit;
   }
 
   // ==================== MOVE CAGE ====================
@@ -1466,6 +1643,86 @@ class DatabaseService {
       id
     ]);
     print('🗑️ Deleted barn: $id');
+  }
+
+  // ==================== BREEDS CRUD ====================
+
+  /// Ensure breeds table exists (safety net for cached DB connections)
+  Future<void> _ensureBreedsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS breeds(
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        genetics TEXT
+      )
+    ''');
+  }
+
+  Future<void> insertBreed(Breed breed) async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    await db.insert('breeds', breed.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    print('✅ Inserted breed: ${breed.name}');
+  }
+
+  Future<List<Breed>> getAllBreeds() async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    final List<Map<String, dynamic>> maps = await db.query('breeds', orderBy: 'name ASC');
+    return List.generate(maps.length, (i) => Breed.fromMap(maps[i]));
+  }
+
+  Future<Breed?> getBreedByName(String name) async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    final List<Map<String, dynamic>> maps = await db.query(
+      'breeds',
+      where: 'name = ?',
+      whereArgs: [
+        name
+      ],
+    );
+    if (maps.isEmpty) return null;
+    return Breed.fromMap(maps.first);
+  }
+
+  Future<void> updateBreed(Breed breed) async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    await db.update(
+      'breeds',
+      breed.toMap(),
+      where: 'id = ?',
+      whereArgs: [
+        breed.id
+      ],
+    );
+    print('✅ Updated breed: ${breed.name}');
+  }
+
+  Future<void> deleteBreed(String id) async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    await db.delete('breeds', where: 'id = ?', whereArgs: [
+      id
+    ]);
+    print('🗑️ Deleted breed: $id');
+  }
+
+  /// Update genetics on all rabbits that have the given breed name
+  Future<void> updateGeneticsForBreed(String breedName, String genetics) async {
+    final db = await database;
+    await db.update(
+      'rabbits',
+      {
+        'genetics': genetics
+      },
+      where: 'breed = ?',
+      whereArgs: [
+        breedName
+      ],
+    );
+    print('✅ Updated genetics for all rabbits with breed: $breedName');
   }
 
   // ==================== TRANSACTIONS (FINANCE) ====================

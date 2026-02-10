@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
 import '../models/barn.dart';
+import '../models/litter.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/rabbit_card.dart';
 import 'dart:io';
 import 'rabbit_detail_screen.dart';
@@ -25,10 +27,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   bool _isBarnEditMode = false;
 
   final DatabaseService _db = DatabaseService();
+  final SettingsService _settings = SettingsService.instance;
 
   List<Rabbit> _allRabbits = [];
   List<Rabbit> _archivedList = [];
   List<Barn> _barns = [];
+  List<Map<String, dynamic>> _growOutKits = []; // Kits in grow-out phase
   bool _isLoading = true;
 
   @override
@@ -64,8 +68,23 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
       final barnsData = await _db.getAllBarns();
+      final litters = await _db.getLitters();
 
-      print('📊 Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived');
+      // Extract grow-out kits from litters
+      final growOutKits = <Map<String, dynamic>>[];
+      for (final litter in litters) {
+        for (final kit in litter.kits) {
+          if (kit.status == 'GrowOut' || kit.status == 'Weaned') {
+            growOutKits.add({
+              'kit': kit,
+              'litter': litter,
+              'age': DateTime.now().difference(litter.dob).inDays,
+            });
+          }
+        }
+      }
+
+      print('📊 Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived, ${growOutKits.length} grow-out kits');
 
       for (var rabbit in rabbits) {
         final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
@@ -86,6 +105,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             _allRabbits = reloadedRabbits;
             _archivedList = reloadedArchived;
             _barns = reloadedBarns.map((b) => Barn.fromMap(b)).toList();
+            _growOutKits = growOutKits;
             _isLoading = false;
           });
         }
@@ -95,6 +115,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             _allRabbits = rabbits;
             _archivedList = archivedRabbits;
             _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+            _growOutKits = growOutKits;
             _isLoading = false;
           });
         }
@@ -111,6 +132,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           _allRabbits = [];
           _archivedList = [];
           _barns = [];
+          _growOutKits = [];
         });
       }
     }
@@ -531,7 +553,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           ),
         ],
       ),
-      floatingActionButton: _tabController.index != 2
+      floatingActionButton: _tabController.index < 2
           ? FloatingActionButton(
               heroTag: 'herd_fab',
               onPressed: () async {
@@ -575,9 +597,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       ),
       child: Row(
         children: [
-          _buildSingleTab('Does', PhosphorIconsRegular.genderFemale, 0, const Color(0xFF9C6ADE)), // Purple
-          _buildSingleTab('Bucks', PhosphorIconsRegular.genderMale, 1, const Color(0xFF2E7BB5)), // Blue
-          _buildSingleTab('Archive', PhosphorIconsRegular.archive, 2, const Color(0xFF787774)), // Gray
+          _buildSingleTab('Does', PhosphorIconsRegular.genderFemale, 0, const Color(0xFF9C6ADE)),
+          _buildSingleTab('Bucks', PhosphorIconsRegular.genderMale, 1, const Color(0xFF2E7BB5)),
+
+          // ❌ DELETE THIS LINE:
+          // _buildSingleTab('Grow-out', PhosphorIconsRegular.plant, 2, const Color(0xFF0F7B6C)),
+
+          // ✅ UPDATE THIS LINE (Change index 3 -> 2):
+          _buildSingleTab('Archive', PhosphorIconsRegular.archive, 2, const Color(0xFF787774)),
         ],
       ),
     );
@@ -833,6 +860,258 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         },
       ),
     );
+  }
+
+  Widget _buildGrowOutList() {
+    List<Map<String, dynamic>> filtered = _growOutKits.where((data) {
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final kit = data['kit'] as Kit;
+        if (!kit.id.toLowerCase().contains(query)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(PhosphorIcons.plant(PhosphorIconsStyle.duotone), size: 64, color: const Color(0xFFE9E9E7)),
+            const SizedBox(height: 16),
+            const Text(
+              'No kits in grow-out phase',
+              style: TextStyle(
+                color: Color(0xFF787774),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Kits will appear here after weaning',
+              style: TextStyle(
+                color: Color(0xFF787774),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) => _buildGrowOutCard(filtered[index]),
+    );
+  }
+
+  Widget _buildGrowOutCard(Map<String, dynamic> data) {
+    final kit = data['kit'] as Kit;
+    final litter = data['litter'] as Litter;
+    final age = data['age'] as int;
+    final sexualMaturityAge = _settings.sexualMaturityAge;
+    final daysToMaturity = sexualMaturityAge - age;
+    final progressToMaturity = (age / sexualMaturityAge).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F7B6C).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    kit.sex == 'male' ? PhosphorIconsRegular.genderMale : PhosphorIconsRegular.genderFemale,
+                    color: kit.sex == 'male' ? const Color(0xFF2E7BB5) : const Color(0xFF9C6ADE),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kit #${kit.id}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        'From: ${litter.doeName}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF787774),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: daysToMaturity <= 0 ? const Color(0xFF0F7B6C).withOpacity(0.1) : const Color(0xFFF5A623).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    daysToMaturity <= 0 ? 'Ready' : '$daysToMaturity days',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: daysToMaturity <= 0 ? const Color(0xFF0F7B6C) : const Color(0xFFF5A623),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Age: $age days',
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progressToMaturity,
+                          minHeight: 6,
+                          backgroundColor: const Color(0xFFE9E9E7),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            daysToMaturity <= 0 ? const Color(0xFF0F7B6C) : const Color(0xFFF5A623),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (daysToMaturity <= 0)
+                  TextButton(
+                    onPressed: () => _promoteToBreeder(kit, litter),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      backgroundColor: const Color(0xFF0F7B6C),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Promote',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _promoteToBreeder(Kit kit, Litter litter) async {
+    final nameController = TextEditingController(text: 'Kit #${kit.id}');
+    final idController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Promote to Breeder'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Promote Kit #${kit.id} to an active breeder?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: idController,
+              decoration: const InputDecoration(
+                labelText: 'ID/Ear Tag (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F7B6C),
+            ),
+            child: const Text('Promote', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _db.promoteKitToBreeder(
+          litter,
+          kit,
+          customName: nameController.text.isNotEmpty ? nameController.text : null,
+          customId: idController.text.isNotEmpty ? idController.text : null,
+        );
+        await _refreshData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${nameController.text} promoted to breeder!'),
+              backgroundColor: const Color(0xFF0F7B6C),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error promoting kit: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildArchivedList() {

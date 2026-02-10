@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/settings_service.dart'; // ✅ ADD THIS
 import '../services/database_service.dart'; // ✅ ADD THIS for scheduled tasks
+import '../models/breed.dart';
 import 'package:image_picker/image_picker.dart'; // ✅ ADD THIS
 import 'package:permission_handler/permission_handler.dart'; // ✅ ADD THIS
 import 'dart:io'; // ✅ ADD THIS
@@ -56,16 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   int matureAge = 16;
 
   // Checkboxes for automation
-  List<Map<String, String>> breeds = [
-    {
-      'name': 'Rex',
-      'genotype': 'aa B- C- D- E-'
-    },
-    {
-      'name': 'New Zealand White',
-      'genotype': '-- -- cc -- --'
-    },
-  ];
+  List<Breed> breeds = [];
 
   List<Map<String, String>> healthIssues = [
     {
@@ -207,6 +199,22 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       // ✅ Load scheduled tasks from database
       final loadedTasks = await _db.getAllScheduledTasks();
 
+      // ✅ Load breeds from database
+      var loadedBreeds = await _db.getAllBreeds();
+      // Seed DB from SettingsService defaults if empty
+      if (loadedBreeds.isEmpty) {
+        final settingsBreeds = _settings.breeds;
+        for (final sb in settingsBreeds) {
+          final breed = Breed(
+            id: DateTime.now().millisecondsSinceEpoch.toString() + '_${sb['name']}',
+            name: sb['name'] ?? '',
+            genetics: (sb['genotype'] ?? '').split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList(),
+          );
+          await _db.insertBreed(breed);
+        }
+        loadedBreeds = await _db.getAllBreeds();
+      }
+
       setState(() {
         // Farm Profile
         _farmNameController.text = _settings.farmName;
@@ -229,11 +237,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         quarantineDays = _settings.quarantineDays;
         matureAge = _settings.matureAge;
 
+        // Pipeline Toggles
+        palpationEnabled = _settings.palpationEnabled;
+        nestBoxEnabled = _settings.nestBoxEnabled;
+        weaningEnabled = _settings.weaningEnabled;
+        growOutEnabled = _settings.growOutEnabled;
+
         // Notifications
         pushNotifications = _settings.notificationsEnabled;
 
         // ✅ Scheduled tasks from database
         scheduledTasks = loadedTasks;
+
+        // ✅ Breeds from database
+        breeds = loadedBreeds;
 
         _isLoading = false;
       });
@@ -267,6 +284,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _settings.setRestingDays(restingDays);
       await _settings.setQuarantineDays(quarantineDays);
       await _settings.setMatureAge(matureAge);
+
+      // Pipeline Toggles
+      await _settings.setPalpationEnabled(palpationEnabled);
+      await _settings.setNestBoxEnabled(nestBoxEnabled);
+      await _settings.setWeaningEnabled(weaningEnabled);
+      await _settings.setGrowOutEnabled(growOutEnabled);
 
       // Notifications
       await _settings.setNotificationsEnabled(pushNotifications);
@@ -874,8 +897,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Palpation Check',
                 hasToggle: true,
                 toggleValue: palpationEnabled,
-                onToggle: (val) => setState(() => palpationEnabled = val),
-                dayValue: 14,
+                onToggle: (val) {
+                  setState(() => palpationEnabled = val);
+                },
+                dayValue: palpationDays,
+                onDayChanged: (val) => setState(() => palpationDays = val),
                 autoTask: true,
                 actions: [
                   {
@@ -892,20 +918,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Nest Box',
                 hasToggle: true,
                 toggleValue: nestBoxEnabled,
-                onToggle: (val) => setState(() => nestBoxEnabled = val),
-                dayValue: 28,
+                onToggle: (val) {
+                  setState(() => nestBoxEnabled = val);
+                },
+                dayValue: nestBoxDays,
+                onDayChanged: (val) => setState(() => nestBoxDays = val),
                 autoTask: true,
                 actions: [
                   {
                     'tag': 'Action',
-                    'desc': 'Create Check Kits (Day 31)'
+                    'desc': 'Create Check Kits (Day $gestationDays)'
                   },
                 ],
               ),
               _buildPipelineStep(
                 'Kindle (Birth)',
-                dayLabel: 'DAY 31',
-                dayValue: 31,
+                dayLabel: 'DAY $gestationDays',
+                dayValue: gestationDays,
+                onDayChanged: (val) => setState(() => gestationDays = val),
                 showScheduleDay: true,
                 actions: [
                   {
@@ -918,8 +948,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Weaning',
                 hasToggle: true,
                 toggleValue: weaningEnabled,
-                onToggle: (val) => setState(() => weaningEnabled = val),
-                dayValue: 8,
+                onToggle: (val) {
+                  setState(() => weaningEnabled = val);
+                },
+                dayValue: weanAge,
+                onDayChanged: (val) => setState(() => weanAge = val),
                 dayUnit: 'weeks',
                 autoTask: true,
                 actions: [
@@ -937,7 +970,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Grow-out Phase',
                 hasToggle: true,
                 toggleValue: growOutEnabled,
-                onToggle: (val) => setState(() => growOutEnabled = val),
+                onToggle: (val) {
+                  setState(() => growOutEnabled = val);
+                },
                 dayValue: 12,
                 dayUnit: 'weeks',
                 extraToggle: {
@@ -947,9 +982,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
               _buildPipelineStep(
                 'Sexual Maturity',
-                dayLabel: '6 MO',
-                dayValue: 6,
-                dayUnit: 'months',
+                dayLabel: '$matureAge WK',
+                dayValue: matureAge,
+                onDayChanged: (val) => setState(() => matureAge = val),
+                dayUnit: 'weeks',
                 showScheduleDay: true,
                 actions: [
                   {
@@ -957,7 +993,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     'desc': 'Promote to Active Breeder'
                   },
                 ],
-                isLast: true, // ⬅️ ADD THIS for the last step
+                isLast: true,
               ),
             ],
           ),
@@ -1175,8 +1211,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           [
             ...breeds
                 .map((breed) => _buildBreedItemWithInput(
-                      breed['name']!,
-                      breed['genotype']!,
+                      breed,
                     ))
                 .toList(),
             _buildAddButton('Add Breed', _addBreed),
@@ -1448,6 +1483,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     bool? toggleValue,
     Function(bool)? onToggle,
     int? dayValue,
+    Function(int)? onDayChanged,
     String dayUnit = 'days',
     bool autoTask = false,
     bool showScheduleDay = false,
@@ -1463,7 +1499,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline dot ⬅️ UPDATED DESIGN
           Container(
             width: 12,
             height: 12,
@@ -1489,7 +1524,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         color: Color(0xFF1E293B),
                       ),
                     ),
-                    if (dayLabel != null)
+                    if (dayLabel != null && !hasToggle)
                       Text(
                         dayLabel,
                         style: TextStyle(
@@ -1509,8 +1544,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ),
                   ],
                 ),
-
-                // ADD description text ⬅️ NEW
                 if (title == 'Breeding')
                   Padding(
                     padding: EdgeInsets.only(top: 4),
@@ -1522,7 +1555,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ),
                     ),
                   ),
-
                 if (dayValue != null || autoTask || extraToggle != null) ...[
                   SizedBox(height: 12),
                   Container(
@@ -1556,14 +1588,36 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       border: Border.all(color: Color(0xFFE2E8F0)),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text(
-                                      dayValue.toString(),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: Color(0xFF1E293B),
-                                      ),
-                                    ),
+                                    child: onDayChanged != null
+                                        ? TextField(
+                                            controller: TextEditingController(text: dayValue.toString()),
+                                            textAlign: TextAlign.center,
+                                            keyboardType: TextInputType.number,
+                                            decoration: InputDecoration(
+                                              border: InputBorder.none,
+                                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                              isDense: true,
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFF1E293B),
+                                            ),
+                                            onChanged: (val) {
+                                              final parsed = int.tryParse(val);
+                                              if (parsed != null && parsed > 0) {
+                                                onDayChanged(parsed);
+                                              }
+                                            },
+                                          )
+                                        : Text(
+                                            dayValue.toString(),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Color(0xFF1E293B),
+                                            ),
+                                          ),
                                   ),
                                   if (dayUnit != 'days') ...[
                                     SizedBox(width: 8),
@@ -1631,7 +1685,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ),
                   ),
                 ],
-
                 if (actions != null && actions.isNotEmpty) ...[
                   SizedBox(height: 12),
                   Column(
@@ -2242,7 +2295,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildBreedItemWithInput(String name, String genotype) {
+  Widget _buildBreedItemWithInput(Breed breed) {
+    final genotypeController = TextEditingController(text: breed.genetics.join(', '));
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2255,7 +2309,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                name,
+                breed.name,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -2268,14 +2322,36 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   size: 20,
                   color: Color(0xFF94A3B8),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Delete $name - Coming soon'),
-                      backgroundColor: Color(0xFF0F7B6C),
-                      behavior: SnackBarBehavior.floating,
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text('Delete Breed'),
+                      content: Text('Remove "${breed.name}" from breed library?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text('Delete', style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
                     ),
                   );
+                  if (confirm == true) {
+                    await _db.deleteBreed(breed.id);
+                    await _settings.removeBreed(breed.name);
+                    final refreshed = await _db.getAllBreeds();
+                    setState(() => breeds = refreshed);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${breed.name} removed'),
+                          backgroundColor: Color(0xFF0F7B6C),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
                 },
                 padding: EdgeInsets.zero,
                 constraints: BoxConstraints(),
@@ -2302,14 +2378,42 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     border: Border.all(color: Color(0xFFE2E8F0)),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    genotype,
+                  child: TextField(
+                    controller: genotypeController,
                     style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFF64748B),
                       fontFamily: 'monospace',
                     ),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      hintText: 'e.g. aa B- C- D- E-',
+                    ),
+                    onSubmitted: (value) async {
+                      final updatedBreed = Breed(
+                        id: breed.id,
+                        name: breed.name,
+                        genetics: value.split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList(),
+                      );
+                      await _db.updateBreed(updatedBreed);
+                      // Also update genetics on all rabbits with this breed
+                      await _db.updateGeneticsForBreed(breed.name, value.trim());
+                      // Sync to SettingsService
+                      await _syncBreedsToSettings();
+                      final refreshed = await _db.getAllBreeds();
+                      setState(() => breeds = refreshed);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Genotype updated for ${breed.name}'),
+                            backgroundColor: Color(0xFF0F7B6C),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ),
               ),
@@ -2940,13 +3044,87 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   void _addBreed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Add breed - Coming soon'),
-        backgroundColor: Color(0xFF0F7B6C),
-        behavior: SnackBarBehavior.floating,
+    final nameController = TextEditingController();
+    final genotypeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Add Breed', style: TextStyle(fontWeight: FontWeight.w600)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Breed Name',
+                hintText: 'e.g. Holland Lop',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: genotypeController,
+              decoration: InputDecoration(
+                labelText: 'Genotype Template',
+                hintText: 'e.g. aa B- C- D- E-',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              style: TextStyle(fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) return;
+              final newBreed = Breed(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: nameController.text.trim(),
+                genetics: genotypeController.text.split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList(),
+              );
+              await _db.insertBreed(newBreed);
+              // Also sync to SettingsService for quick_info_card compatibility
+              await _settings.addBreed(newBreed.name, genotypeController.text.trim());
+              final refreshed = await _db.getAllBreeds();
+              setState(() => breeds = refreshed);
+              Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${newBreed.name} added to breed library'),
+                    backgroundColor: Color(0xFF0F7B6C),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF0F7B6C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
+  }
+
+  /// Sync all DB breeds to SettingsService so quick_info_card can access them
+  Future<void> _syncBreedsToSettings() async {
+    final allBreeds = await _db.getAllBreeds();
+    final breedMaps = allBreeds
+        .map((b) => {
+              'name': b.name,
+              'genotype': b.genetics.join(', ')
+            })
+        .toList();
+    await _settings.setBreeds(breedMaps);
   }
 
   void _addHealthIssue() {

@@ -39,38 +39,47 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
   // ✅ ADD THIS METHOD
   Future<void> _loadLitters() async {
-    print('🔄 Loading litters...');
     setState(() => _isLoading = true);
 
     try {
-      final loadedLitters = await _db.getLitters();
-      print('📦 Database returned ${loadedLitters.length} litters');
+      print('🔄 Loading litters...');
 
-      setState(() {
-        litters = loadedLitters;
-        _isLoading = false;
-      });
+      // First clear old broken data and reinitialize
+      final existingLitters = await _db.getLitters();
 
-      print('✅ Updated state: ${litters.length} litters, loading: $_isLoading');
-    } catch (e) {
+      // Check if data is broken (missing dob/location)
+      bool hasBrokenData = existingLitters.any((l) => l.location == 'Unknown' || l.cage == 'N/A' || l.kits.isEmpty);
+
+      if (existingLitters.isEmpty || hasBrokenData) {
+        print('📦 No valid litters found, initializing sample data...');
+        await _db.clearAllLitters();
+        await _initializeSampleData();
+      } else {
+        print('📦 Database returned ${existingLitters.length} valid litters');
+        setState(() {
+          litters = existingLitters;
+          _isLoading = false;
+        });
+        print('✅ Updated state: ${litters.length} litters, loading: false');
+      }
+    } catch (e, stackTrace) {
       print('❌ Error loading litters: $e');
-      setState(() => _isLoading = false);
+      print('Stack trace: $stackTrace');
+      // Fallback to sample data
+      await _db.clearAllLitters();
+      await _initializeSampleData();
     }
   }
 
   // ✅ ADD THIS METHOD
 
   Future<void> _refreshLitters() async {
-    print('🔄 Refreshing litters...');
     try {
       final loadedLitters = await _db.getLitters();
-      print('📦 Loaded ${loadedLitters.length} litters');
-
       setState(() {
         litters = loadedLitters;
       });
-
-      print('✅ State updated with ${litters.length} litters');
+      print('🔄 Refreshed: ${litters.length} litters');
     } catch (e) {
       print('❌ Error refreshing litters: $e');
     }
@@ -107,48 +116,29 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 // Add this method around line 62 (after _refreshLitters)
 
   Future<void> _initializeSampleData() async {
-    setState(() => _isLoading = true);
-
     try {
-      // ✅ Clear existing broken data
-      await _db.clearAllLitters();
-      print('🗑️ Cleared existing litters');
-
-      // Check if we already have data
-      final existingLitters = await _db.getLitters();
-
-      if (existingLitters.isNotEmpty) {
-        setState(() {
-          litters = existingLitters;
-          _isLoading = false;
-        });
-        return;
-      }
-
       print('📦 Creating sample litters...');
 
-      // Create sample litters with ALL required fields
       final sampleLitters = [
         Litter(
           id: 'L-101',
-          doeId: 'D001',
+          doeId: 'D-101',
           doeName: 'Luna',
-          buckId: 'B001',
+          buckId: 'B-01',
           buckName: 'Thumper',
           breedDate: DateTime.now().subtract(const Duration(days: 45)),
           kindleDate: DateTime.now().subtract(const Duration(days: 14)),
-          dob: DateTime.now().subtract(const Duration(days: 14)), // ✅ Required
-          location: 'Maternity Row', // ✅ Required
-          cage: '0.5', // ✅ Required
-          breed: 'New Zealand White', // ✅ Required
-          status: 'Nursing', // ✅ Required
-          sire: 'Thumper', // ✅ Required
-          dam: 'Luna', // ✅ Required
+          dob: DateTime.now().subtract(const Duration(days: 14)),
+          location: 'Maternity Row',
+          cage: 'A-02',
+          breed: 'New Zealand White',
+          status: 'Nursing',
+          sire: 'Thumper',
+          dam: 'Luna',
           totalKits: 8,
           aliveKits: 8,
           deadKits: 0,
           kits: [
-            // ✅ Required
             Kit(id: '1', sex: 'M', color: 'White', weight: 0.5, status: 'Nursing'),
             Kit(id: '2', sex: 'F', color: 'White', weight: 0.4, status: 'Nursing'),
             Kit(id: '3', sex: 'M', color: 'White', weight: 0.6, status: 'Nursing'),
@@ -161,15 +151,15 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ),
         Litter(
           id: 'L-102',
-          doeId: 'D002',
+          doeId: 'D-102',
           doeName: 'Snowball',
-          buckId: 'B001',
+          buckId: 'B-01',
           buckName: 'Roger',
           breedDate: DateTime.now().subtract(const Duration(days: 60)),
           kindleDate: DateTime.now().subtract(const Duration(days: 28)),
           dob: DateTime.now().subtract(const Duration(days: 28)),
           location: 'Nursery 1',
-          cage: '2.1',
+          cage: 'B-03',
           breed: 'Californian',
           status: 'Weaned',
           sire: 'Roger',
@@ -189,9 +179,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ),
         Litter(
           id: 'L-103',
-          doeId: 'D003',
+          doeId: 'D-103',
           doeName: 'Bella',
-          buckId: 'B002',
+          buckId: 'B-02',
           buckName: 'Buck',
           breedDate: DateTime.now().subtract(const Duration(days: 90)),
           kindleDate: DateTime.now().subtract(const Duration(days: 56)),
@@ -218,22 +208,27 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
       print('💾 Saving ${sampleLitters.length} litters to database...');
 
-      // Save to database
       for (var litter in sampleLitters) {
         await _db.updateLitter(litter);
-        print('  ✅ Saved: ${litter.id} - ${litter.doeName} (${litter.kits.length} kits)');
+        print('  ✅ Saved: ${litter.id} - ${litter.dam} x ${litter.sire} (${litter.kits.length} kits)');
       }
 
-      print('✅ Sample litters initialized and saved');
+      print('✅ Sample litters saved, reloading...');
 
       // Reload from database to verify
-      final reloadedLitters = await _db.getLitters();
-      print('🔄 Reloaded ${reloadedLitters.length} litters from database');
+      final reloaded = await _db.getLitters();
+      print('🔄 Reloaded ${reloaded.length} litters from database');
+
+      for (var l in reloaded) {
+        print('  📋 ${l.id}: dob=${l.dob}, loc=${l.location}, kits=${l.kits.length}');
+      }
 
       setState(() {
-        litters = reloadedLitters;
+        litters = reloaded;
         _isLoading = false;
       });
+
+      print('✅ State updated: ${litters.length} litters loaded');
     } catch (e, stackTrace) {
       print('❌ Error initializing sample data: $e');
       print('Stack trace: $stackTrace');
@@ -973,7 +968,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center, // Aligns items vertically
+                            spacing: 4, // Horizontal gap between items
+                            runSpacing: 4, // Vertical gap if it wraps to a new line
                             children: [
                               Text(
                                 litter.id,
@@ -2227,52 +2225,125 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   }
 
   void _promoteKitToMature(Litter litter, Kit kit) {
+    final TextEditingController nameController = TextEditingController(text: 'Kit ${kit.id}');
+    final TextEditingController idController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Promote to Mature'),
-        content: Text('Promote kit ${kit.id} to mature breeding stock?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Promote to Active Breeder'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will create a new rabbit entry as an active breeder.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Rabbit Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: idController,
+              decoration: InputDecoration(
+                labelText: 'Rabbit ID (optional)',
+                hintText: 'Auto-generated if empty',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFFE0F2F1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFF0F7B6C)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sex: ${kit.sex == 'M' ? 'Male (Buck)' : 'Female (Doe)'}\nColor: ${kit.color}\nWeight: ${kit.weight} lbs',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              // ✅ ADD async
               Navigator.pop(context);
 
-              // ✅ Use copyWith instead of direct mutation
-              final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-              if (litterIndex != -1) {
-                final updatedKits = litters[litterIndex].kits.map((k) {
-                  if (k.id == kit.id) {
-                    return k.copyWith(status: 'Mature');
-                  }
-                  return k;
-                }).toList();
-
-                final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
-
-                // ✅ Save to database
-                await _db.updateLitter(updatedLitter);
-
-                // ✅ Reload from database
-                await _refreshLitters();
-              }
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Kit promoted to mature'),
-                    backgroundColor: Color(0xFF0F7B6C),
-                    behavior: SnackBarBehavior.floating,
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
                   ),
+                ),
+              );
+
+              try {
+                // Promote kit to breeder using database service
+                final newRabbit = await _db.promoteKitToBreeder(
+                  litter,
+                  kit,
+                  customName: nameController.text.isNotEmpty ? nameController.text : null,
+                  customId: idController.text.isNotEmpty ? idController.text : null,
                 );
+
+                // Reload litters
+                await _refreshLitters();
+
+                // Close loading
+                if (mounted) {
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Kit promoted to breeder: ${newRabbit?.name ?? "Unknown"}'),
+                      backgroundColor: const Color(0xFF0F7B6C),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF0F7B6C)),
-            child: const Text('Promote'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F7B6C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Promote', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -3817,7 +3888,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   'Wean Kit',
                   true,
                   () async {
-                    Navigator.pop(context);
+                    // ❌ DELETE OR COMMENT OUT THIS LINE:
+                    // Navigator.pop(context);
+
+                    // ✅ The _buildMenuItem wrapper already pops the context,
+                    // so we just run the logic directly:
+
                     final litterIndex = litters.indexWhere((l) => l.id == litter.id);
                     if (litterIndex != -1) {
                       final updatedKits = litters[litterIndex].kits.map((k) {
@@ -3849,29 +3925,57 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   'Grow Out',
                   true,
                   () async {
-                    Navigator.pop(context);
-                    final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-                    if (litterIndex != -1) {
-                      final updatedKits = litters[litterIndex].kits.map((k) {
-                        if (k.id == kit.id) {
-                          return k.copyWith(status: 'GrowOut');
-                        }
-                        return k;
-                      }).toList();
-
-                      final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
-                      await _db.updateLitter(updatedLitter);
-                      await _refreshLitters();
-                    }
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Kit moved to grow out'),
-                          backgroundColor: Color(0xFF0F7B6C),
-                          behavior: SnackBarBehavior.floating,
+                    // ✅ ADD: Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
                         ),
-                      );
+                      ),
+                    );
+
+                    try {
+                      final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+                      if (litterIndex != -1) {
+                        final updatedKits = litters[litterIndex].kits.map((k) {
+                          if (k.id == kit.id) {
+                            return k.copyWith(status: 'GrowOut');
+                          }
+                          return k;
+                        }).toList();
+
+                        final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+                        await _db.updateLitter(updatedLitter);
+                        await _refreshLitters();
+                      }
+
+                      // ✅ Close loading dialog
+                      if (mounted) {
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Kit moved to grow out'),
+                            backgroundColor: Color(0xFF0F7B6C),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // ✅ Handle errors
+                      print('❌ Error updating kit: $e');
+                      if (mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
@@ -3880,8 +3984,58 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   Icons.star,
                   'Promote to Mature',
                   true,
-                  () {
-                    _promoteKitToMature(litter, kit);
+                  () async {
+                    // ✅ Show loading
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
+                        ),
+                      ),
+                    );
+
+                    try {
+                      final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+                      if (litterIndex != -1) {
+                        final updatedKits = litters[litterIndex].kits.map((k) {
+                          if (k.id == kit.id) {
+                            return k.copyWith(status: 'Mature');
+                          }
+                          return k;
+                        }).toList();
+
+                        final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+                        await _db.updateLitter(updatedLitter);
+                        await _refreshLitters();
+                      }
+
+                      // ✅ Close loading
+                      if (mounted) {
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Kit promoted to mature'),
+                            backgroundColor: Color(0xFF0F7B6C),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      print('❌ Error promoting kit: $e');
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
                   },
                 ),
               _buildMenuItem(
@@ -4604,11 +4758,33 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
   bool _isLoading = true;
   bool _isSaving = false;
 
+  // Kit details: list of {sex, color} for each alive kit
+  List<Map<String, String>> _kitDetails = [];
+
+  // Available options for kit sex and color
+  final List<String> _sexOptions = [
+    'U',
+    'M',
+    'F'
+  ];
+  final List<String> _colorOptions = [
+    'Unknown',
+    'Black',
+    'White',
+    'Brown',
+    'Gray',
+    'Spotted',
+    'Tan',
+    'Agouti',
+    'Broken',
+    'Other',
+  ];
+
   @override
   void initState() {
     super.initState();
     _loadRabbits();
-    _generateLitterId();
+    _loadNextLitterId();
   }
 
   Future<void> _loadRabbits() async {
@@ -4628,9 +4804,37 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     }
   }
 
-  void _generateLitterId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    _litterIdController.text = 'L-${timestamp.toString().substring(7)}';
+  Future<void> _loadNextLitterId() async {
+    try {
+      final nextId = await _db.getNextLitterId();
+      if (mounted) {
+        setState(() {
+          _litterIdController.text = nextId;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading next litter ID: $e');
+      // Fallback to timestamp-based ID
+      _litterIdController.text = 'L-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    }
+  }
+
+  void _updateKitDetailsList() {
+    final aliveKits = int.tryParse(_aliveKitsController.text) ?? 0;
+
+    if (aliveKits > _kitDetails.length) {
+      // Add new kit entries
+      for (int i = _kitDetails.length; i < aliveKits; i++) {
+        _kitDetails.add({
+          'sex': 'U',
+          'color': 'Unknown'
+        });
+      }
+    } else if (aliveKits < _kitDetails.length) {
+      // Remove extra kit entries
+      _kitDetails = _kitDetails.sublist(0, aliveKits);
+    }
+    setState(() {});
   }
 
   @override
@@ -4690,10 +4894,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _litterIdController,
-                        readOnly: true,
                         decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xFFF7F7F5),
+                          hintText: 'e.g., L-001',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
@@ -4702,7 +4904,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
+                        validator: (value) => value?.isEmpty ?? true ? 'Litter ID is required' : null,
                       ),
                       const SizedBox(height: 20),
 
@@ -4924,6 +5132,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           setState(() {
                             _aliveKitsController.text = (total - dead).toString();
                           });
+                          _updateKitDetailsList();
                         },
                       ),
                       const SizedBox(height: 20),
@@ -4941,6 +5150,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           setState(() {
                             _aliveKitsController.text = (total - dead).toString();
                           });
+                          _updateKitDetailsList();
                         },
                       ),
                       const SizedBox(height: 20),
@@ -4964,7 +5174,30 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+
+                      // Kit Details Section
+                      if (_kitDetails.isNotEmpty) ...[
+                        _buildSectionLabel('KIT DETAILS'),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F7F5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE9E9E7)),
+                          ),
+                          child: Column(
+                            children: [
+                              for (int i = 0; i < _kitDetails.length; i++) ...[
+                                if (i > 0) const Divider(height: 16),
+                                _buildKitDetailRow(i),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
 
                       // Info box
                       Container(
@@ -4979,7 +5212,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Individual kits can be added after creating the litter',
+                                'Set sex and color for each kit. You can update details later.',
                                 style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C)),
                               ),
                             ),
@@ -5085,6 +5318,94 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
+  Widget _buildKitDetailRow(int index) {
+    final kitNum = index + 1;
+    return Row(
+      children: [
+        // Kit number label
+        SizedBox(
+          width: 50,
+          child: Text(
+            'Kit $kitNum',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF37352F),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Sex dropdown
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _kitDetails[index]['sex'],
+            decoration: InputDecoration(
+              labelText: 'Sex',
+              labelStyle: const TextStyle(fontSize: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              ),
+            ),
+            items: _sexOptions.map((sex) {
+              String label;
+              switch (sex) {
+                case 'M':
+                  label = 'Male';
+                  break;
+                case 'F':
+                  label = 'Female';
+                  break;
+                default:
+                  label = 'Unknown';
+              }
+              return DropdownMenuItem(value: sex, child: Text(label, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _kitDetails[index]['sex'] = value ?? 'U';
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Color dropdown
+        Expanded(
+          flex: 1,
+          child: DropdownButtonFormField<String>(
+            value: _kitDetails[index]['color'],
+            decoration: InputDecoration(
+              labelText: 'Color',
+              labelStyle: const TextStyle(fontSize: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              ),
+            ),
+            items: _colorOptions.map((color) {
+              return DropdownMenuItem(value: color, child: Text(color, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _kitDetails[index]['color'] = value ?? 'Unknown';
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _saveLitter() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -5098,12 +5419,18 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       final deadKits = int.parse(_deadKitsController.text);
       final aliveKits = totalKits - deadKits;
 
-      // Create generic kits
+      // Create kits with collected details
       final kits = List.generate(aliveKits, (index) {
+        final details = index < _kitDetails.length
+            ? _kitDetails[index]
+            : {
+                'sex': 'U',
+                'color': 'Unknown'
+              };
         return Kit(
           id: '${index + 1}',
-          sex: 'U', // Unknown
-          color: 'Unknown',
+          sex: details['sex'] ?? 'U',
+          color: details['color'] ?? 'Unknown',
           weight: 0.0,
           status: 'Nursing',
         );

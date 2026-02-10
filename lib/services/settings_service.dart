@@ -26,6 +26,15 @@ class SettingsService {
   int get quarantineDays => _prefs?.getInt('quarantineDays') ?? _defaultQuarantineDays;
   int get matureAge => _prefs?.getInt('matureAge') ?? _defaultMatureAge;
 
+  // Pipeline toggle settings
+  bool get palpationEnabled => _prefs?.getBool('palpationEnabled') ?? true;
+  bool get nestBoxEnabled => _prefs?.getBool('nestBoxEnabled') ?? true;
+  bool get weaningEnabled => _prefs?.getBool('weaningEnabled') ?? true;
+  bool get growOutEnabled => _prefs?.getBool('growOutEnabled') ?? true;
+  bool get trackWeightsEnabled => _prefs?.getBool('trackWeightsEnabled') ?? true;
+  int get growOutDuration => _prefs?.getInt('growOutDuration') ?? 12; // weeks
+  int get sexualMaturityAge => _prefs?.getInt('sexualMaturityAge') ?? 6; // months
+
   // App settings
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MM/dd/yyyy';
@@ -134,6 +143,35 @@ class SettingsService {
     await _prefs?.setInt('matureAge', weeks);
   }
 
+  // Setters for pipeline toggles
+  Future<void> setPalpationEnabled(bool enabled) async {
+    await _prefs?.setBool('palpationEnabled', enabled);
+  }
+
+  Future<void> setNestBoxEnabled(bool enabled) async {
+    await _prefs?.setBool('nestBoxEnabled', enabled);
+  }
+
+  Future<void> setWeaningEnabled(bool enabled) async {
+    await _prefs?.setBool('weaningEnabled', enabled);
+  }
+
+  Future<void> setGrowOutEnabled(bool enabled) async {
+    await _prefs?.setBool('growOutEnabled', enabled);
+  }
+
+  Future<void> setTrackWeightsEnabled(bool enabled) async {
+    await _prefs?.setBool('trackWeightsEnabled', enabled);
+  }
+
+  Future<void> setGrowOutDuration(int weeks) async {
+    await _prefs?.setInt('growOutDuration', weeks);
+  }
+
+  Future<void> setSexualMaturityAge(int months) async {
+    await _prefs?.setInt('sexualMaturityAge', months);
+  }
+
   // Setters for app settings
   Future<void> setWeightUnit(String unit) async {
     await _prefs?.setString('weightUnit', unit);
@@ -187,6 +225,14 @@ class SettingsService {
     await setRestingDays(_defaultRestingDays);
     await setQuarantineDays(_defaultQuarantineDays);
     await setMatureAge(_defaultMatureAge);
+    // Reset pipeline toggles
+    await setPalpationEnabled(true);
+    await setNestBoxEnabled(true);
+    await setWeaningEnabled(true);
+    await setGrowOutEnabled(true);
+    await setTrackWeightsEnabled(true);
+    await setGrowOutDuration(12);
+    await setSexualMaturityAge(6);
   }
 
   // Get all settings as map (for backup/export)
@@ -199,6 +245,13 @@ class SettingsService {
       'restingDays': restingDays,
       'quarantineDays': quarantineDays,
       'matureAge': matureAge,
+      'palpationEnabled': palpationEnabled,
+      'nestBoxEnabled': nestBoxEnabled,
+      'weaningEnabled': weaningEnabled,
+      'growOutEnabled': growOutEnabled,
+      'trackWeightsEnabled': trackWeightsEnabled,
+      'growOutDuration': growOutDuration,
+      'sexualMaturityAge': sexualMaturityAge,
       'weightUnit': weightUnit,
       'dateFormat': dateFormat,
       'darkMode': darkMode,
@@ -221,6 +274,14 @@ class SettingsService {
     if (settings['restingDays'] != null) await setRestingDays(settings['restingDays']);
     if (settings['quarantineDays'] != null) await setQuarantineDays(settings['quarantineDays']);
     if (settings['matureAge'] != null) await setMatureAge(settings['matureAge']);
+    // Pipeline toggles
+    if (settings['palpationEnabled'] != null) await setPalpationEnabled(settings['palpationEnabled']);
+    if (settings['nestBoxEnabled'] != null) await setNestBoxEnabled(settings['nestBoxEnabled']);
+    if (settings['weaningEnabled'] != null) await setWeaningEnabled(settings['weaningEnabled']);
+    if (settings['growOutEnabled'] != null) await setGrowOutEnabled(settings['growOutEnabled']);
+    if (settings['trackWeightsEnabled'] != null) await setTrackWeightsEnabled(settings['trackWeightsEnabled']);
+    if (settings['growOutDuration'] != null) await setGrowOutDuration(settings['growOutDuration']);
+    if (settings['sexualMaturityAge'] != null) await setSexualMaturityAge(settings['sexualMaturityAge']);
     if (settings['weightUnit'] != null) await setWeightUnit(settings['weightUnit']);
     if (settings['dateFormat'] != null) await setDateFormat(settings['dateFormat']);
     if (settings['darkMode'] != null) await setDarkMode(settings['darkMode']);

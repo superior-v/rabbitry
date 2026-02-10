@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
+import '../services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GeneticsCard extends StatefulWidget {
@@ -13,6 +14,7 @@ class GeneticsCard extends StatefulWidget {
 }
 
 class _GeneticsCardState extends State<GeneticsCard> {
+  // Default genetics map — will be overwritten from rabbit data
   Map<String, String> genetics = {
     'A': 'Aa',
     'B': 'Bb',
@@ -24,6 +26,18 @@ class _GeneticsCardState extends State<GeneticsCard> {
     'W': 'ww',
   };
 
+  // Map of known locus keys for matching
+  static const List<String> _locusKeys = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'En',
+    'V',
+    'W'
+  ];
+
   bool isBroken = false;
   bool isViennaMarked = false;
   bool isViennaCarrier = false;
@@ -31,7 +45,52 @@ class _GeneticsCardState extends State<GeneticsCard> {
   @override
   void initState() {
     super.initState();
+    _parseRabbitGenetics();
     _loadCheckboxState();
+  }
+
+  @override
+  void didUpdateWidget(covariant GeneticsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rabbit.genetics != widget.rabbit.genetics) {
+      _parseRabbitGenetics();
+    }
+  }
+
+  /// Parse the rabbit's genetics string and populate the map
+  void _parseRabbitGenetics() {
+    final raw = widget.rabbit.genetics;
+    if (raw == null || raw.trim().isEmpty) return;
+
+    // Split by spaces or commas
+    final parts = raw.split(RegExp(r'[,\s]+')).where((p) => p.isNotEmpty).toList();
+
+    // Try to match each part to a locus
+    final newGenetics = Map<String, String>.from(genetics);
+    for (final part in parts) {
+      final lower = part.toLowerCase();
+      // Match by first letter to known locus keys
+      if (lower.startsWith('en')) {
+        newGenetics['En'] = part;
+      } else {
+        for (final key in _locusKeys) {
+          if (key == 'En') continue;
+          if (lower.startsWith(key.toLowerCase()) && part.length <= 3) {
+            newGenetics[key] = part;
+            break;
+          }
+        }
+      }
+    }
+
+    setState(() => genetics = newGenetics);
+  }
+
+  /// Save genetics back to rabbit in DB
+  Future<void> _saveGeneticsToRabbit() async {
+    final geneticsString = genetics.values.join(' ');
+    final updated = widget.rabbit.copyWith(genetics: geneticsString);
+    await DatabaseService().updateRabbit(updated);
   }
 
   // Load checkbox states from SharedPreferences
@@ -252,6 +311,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
         setState(() {
           genetics[locus] = value;
         });
+        _saveGeneticsToRabbit();
         Navigator.pop(context);
       },
       child: Container(

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
+import '../models/breed.dart';
 import '../services/database_service.dart';
 
 class AddRabbitScreen extends StatefulWidget {
@@ -30,6 +31,21 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   DateTime? _dateOfBirth;
   String? _profileImagePath; // ✅ ADD THIS
   bool _isSaving = false;
+  List<Breed> _availableBreeds = [];
+  String? _autoGenetics;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBreeds();
+  }
+
+  Future<void> _loadBreeds() async {
+    final breeds = await _db.getAllBreeds();
+    if (mounted) {
+      setState(() => _availableBreeds = breeds);
+    }
+  }
 
   @override
   void dispose() {
@@ -123,13 +139,40 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Breed
-            _buildTextField(
-              controller: _breedController,
-              label: 'Breed *',
-              icon: Icons.category,
-              hint: 'e.g., New Zealand White',
+            // Breed - Dropdown from DB with fallback to free text
+            const Text(
+              'Breed *',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
+            const SizedBox(height: 8),
+            _buildBreedSelector(),
+            // Show auto-filled genetics if available
+            if (_autoGenetics != null && _autoGenetics!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F7F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF0F7B6C).withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.science_outlined, size: 16, color: Color(0xFF0F7B6C)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Genotype: $_autoGenetics',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF0F7B6C),
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Status
@@ -460,6 +503,53 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
+  Widget _buildBreedSelector() {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        final breedNames = _availableBreeds.map((b) => b.name).toList();
+        if (textEditingValue.text.isEmpty) return breedNames;
+        return breedNames.where(
+          (name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+        );
+      },
+      initialValue: TextEditingValue(text: _breedController.text),
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        // Keep _breedController in sync
+        controller.addListener(() {
+          _breedController.text = controller.text;
+        });
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            hintText: 'e.g., New Zealand White',
+            prefixIcon: const Icon(Icons.category, color: Color(0xFF787774)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+            ),
+          ),
+        );
+      },
+      onSelected: (String breedName) {
+        _breedController.text = breedName;
+        // Auto-fill genetics from matched breed
+        final matched = _availableBreeds.where((b) => b.name == breedName);
+        if (matched.isNotEmpty) {
+          setState(() => _autoGenetics = matched.first.genetics.join(', '));
+        }
+      },
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -634,6 +724,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         dateOfBirth: _dateOfBirth,
         color: _colorController.text.isEmpty ? null : _colorController.text,
         weight: _weightController.text.isEmpty ? null : double.tryParse(_weightController.text),
+        genetics: _autoGenetics,
         photos: _profileImagePath != null
             ? [
                 _profileImagePath!

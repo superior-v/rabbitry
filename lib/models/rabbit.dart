@@ -127,6 +127,12 @@ class Rabbit {
   // For CULL status
   final String? cullReason;
 
+  // Per-rabbit custom pipeline settings (null = use global defaults)
+  int? customPalpationDay;
+  int? customNestBoxDay;
+  int? customGestationDay;
+  int? customWeanWeek;
+
   Rabbit({
     required this.id,
     required this.name,
@@ -169,6 +175,10 @@ class Rabbit {
     this.butcherCost,
     this.deathCause,
     this.cullReason,
+    this.customPalpationDay,
+    this.customNestBoxDay,
+    this.customGestationDay,
+    this.customWeanWeek,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -380,6 +390,10 @@ class Rabbit {
       'butcherCost': butcherCost,
       'deathCause': deathCause,
       'cullReason': cullReason,
+      'customPalpationDay': customPalpationDay,
+      'customNestBoxDay': customNestBoxDay,
+      'customGestationDay': customGestationDay,
+      'customWeanWeek': customWeanWeek,
     };
   }
 
@@ -437,6 +451,10 @@ class Rabbit {
       butcherCost: map['butcherCost']?.toDouble(),
       deathCause: map['deathCause'],
       cullReason: map['cullReason'],
+      customPalpationDay: map['customPalpationDay'] as int?,
+      customNestBoxDay: map['customNestBoxDay'] as int?,
+      customGestationDay: map['customGestationDay'] as int?,
+      customWeanWeek: map['customWeanWeek'] as int?,
     );
   }
 
@@ -478,6 +496,10 @@ class Rabbit {
     double? butcherCost,
     String? deathCause,
     String? cullReason,
+    int? customPalpationDay,
+    int? customNestBoxDay,
+    int? customGestationDay,
+    int? customWeanWeek,
   }) {
     return Rabbit(
       id: id,
@@ -521,6 +543,10 @@ class Rabbit {
       butcherCost: butcherCost ?? this.butcherCost,
       deathCause: deathCause ?? this.deathCause,
       cullReason: cullReason ?? this.cullReason,
+      customPalpationDay: customPalpationDay ?? this.customPalpationDay,
+      customNestBoxDay: customNestBoxDay ?? this.customNestBoxDay,
+      customGestationDay: customGestationDay ?? this.customGestationDay,
+      customWeanWeek: customWeanWeek ?? this.customWeanWeek,
     );
   }
 }

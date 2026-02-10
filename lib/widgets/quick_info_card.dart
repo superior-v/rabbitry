@@ -523,12 +523,30 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
 
   String? _selectedLocation;
 
-  // Breed Selector - loads breeds from settings and populates genetics
+  // Breed Selector - loads breeds from database and populates genetics
   void _showBreedSelector(BuildContext context) async {
-    await SettingsService.instance.init();
-    final breedsList = SettingsService.instance.breeds;
-    String? selectedBreed = _currentRabbit.breed;
+    final dbBreeds = await DatabaseService().getAllBreeds();
+    // Convert to maps for lookup
+    final breedsList = dbBreeds
+        .map((b) => {
+              'name': b.name,
+              'genotype': b.genetics.join(', ')
+            })
+        .toList();
+    // Fallback to SettingsService if DB is empty
+    if (breedsList.isEmpty) {
+      await SettingsService.instance.init();
+      breedsList.addAll(SettingsService.instance.breeds);
+    }
+
+    final breedController = TextEditingController(text: _currentRabbit.breed);
     String? selectedGenotype;
+
+    // Check if current breed has genetics in the library
+    final currentMatch = breedsList.where((b) => b['name'] == _currentRabbit.breed);
+    if (currentMatch.isNotEmpty && (currentMatch.first['genotype'] ?? '').isNotEmpty) {
+      selectedGenotype = currentMatch.first['genotype'];
+    }
 
     showDialog(
       context: context,
@@ -583,7 +601,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Select Breed',
+                    'Enter or Select Breed',
                     style: TextStyle(
                       fontSize: 11,
                       color: Color(0xFF787774),
@@ -591,46 +609,96 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE0E0E0)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        hint: const Text(
-                          'Select breed from settings...',
-                          style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-                        ),
-                        value: selectedBreed,
-                        icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF37352F)),
+                  // Autocomplete with free text input
+                  Autocomplete<String>(
+                    initialValue: breedController.value,
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      final breedNames = breedsList.map((b) => b['name'] ?? '').toList();
+                      if (textEditingValue.text.isEmpty) return breedNames;
+                      return breedNames.where(
+                        (name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+                      );
+                    },
+                    fieldViewBuilder: (ctx, controller, focusNode, onSubmitted) {
+                      // Listen for typed text changes
+                      controller.addListener(() {
+                        breedController.text = controller.text;
+                        // Check if typed text matches a breed in library
+                        final match = breedsList.where(
+                          (b) => (b['name'] ?? '').toLowerCase() == controller.text.toLowerCase(),
+                        );
+                        if (match.isNotEmpty && (match.first['genotype'] ?? '').isNotEmpty) {
+                          if (selectedGenotype != match.first['genotype']) {
+                            setState(() => selectedGenotype = match.first['genotype']);
+                          }
+                        } else {
+                          if (selectedGenotype != null) {
+                            setState(() => selectedGenotype = null);
+                          }
+                        }
+                      });
+                      return TextField(
+                        controller: controller,
+                        focusNode: focusNode,
                         style: const TextStyle(fontSize: 14, color: Color(0xFF37352F)),
-                        items: breedsList.map((breed) {
-                          return DropdownMenuItem(
-                            value: breed['name'],
-                            child: Text(breed['name'] ?? ''),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedBreed = value;
-                            // Find and set genotype based on selected breed
-                            final breedData = breedsList.firstWhere(
-                              (b) => b['name'] == value,
-                              orElse: () => {
-                                'name': '',
-                                'genotype': ''
-                              },
-                            );
-                            selectedGenotype = breedData['genotype'];
-                          });
+                        decoration: InputDecoration(
+                          hintText: 'Type breed name...',
+                          hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          ),
+                          suffixIcon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF37352F)),
+                        ),
+                      );
+                    },
+                    onSelected: (String value) {
+                      breedController.text = value;
+                      final match = breedsList.firstWhere(
+                        (b) => b['name'] == value,
+                        orElse: () => {
+                          'name': '',
+                          'genotype': ''
                         },
-                      ),
-                    ),
+                      );
+                      setState(() => selectedGenotype = (match['genotype'] ?? '').isNotEmpty ? match['genotype'] : null);
+                    },
+                    optionsViewBuilder: (ctx, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(8),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 260),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (ctx, index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(option, style: const TextStyle(fontSize: 14)),
+                                  onTap: () => onSelected(option),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  // Show genotype when breed is selected
+                  // Show genotype when breed is selected from library
                   if (selectedGenotype != null && selectedGenotype!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
@@ -686,13 +754,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: selectedBreed == null
+                        onPressed: breedController.text.trim().isEmpty
                             ? null
                             : () async {
-                                // Update rabbit breed and genetics
+                                final breedName = breedController.text.trim();
+                                // Update rabbit breed and genetics (only override genetics if breed has a template)
                                 final updatedRabbit = _currentRabbit.copyWith(
-                                  breed: selectedBreed,
-                                  genetics: selectedGenotype,
+                                  breed: breedName,
+                                  genetics: selectedGenotype ?? _currentRabbit.genetics,
                                 );
                                 await DatabaseService().updateRabbit(updatedRabbit);
                                 Navigator.pop(context);
@@ -703,7 +772,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Breed updated to $selectedBreed'),
+                                      content: Text('Breed updated to $breedName'),
                                       backgroundColor: const Color(0xFF0F7B6C),
                                       behavior: SnackBarBehavior.floating,
                                     ),
