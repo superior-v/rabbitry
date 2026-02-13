@@ -61,13 +61,13 @@ class _StatsCardsState extends State<StatsCards> {
   Widget _buildPerformanceGrid() {
     return Row(
       children: [
-        Expanded(child: _buildPerformanceBox('90.5%', 'Survival', const Color(0xFF6B9E78))),
+        Expanded(child: _buildPerformanceBox('--', 'Survival', const Color(0xFF6B9E78))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('8.4', 'Avg Litter', const Color(0xFF0F7B6C))),
+        Expanded(child: _buildPerformanceBox('--', 'Avg Litter', const Color(0xFF0F7B6C))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('31d', 'Avg Gest.', const Color(0xFF5B8AD0))),
+        Expanded(child: _buildPerformanceBox('--', 'Avg Gest.', const Color(0xFF5B8AD0))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('8w', 'Avg Wean', const Color(0xFF9C6ADE))),
+        Expanded(child: _buildPerformanceBox('--', 'Avg Wean', const Color(0xFF9C6ADE))),
       ],
     );
   }
@@ -258,42 +258,8 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   List<BarChartGroupData> _getBarData() {
-    switch (_selectedTimeRange) {
-      case 'W':
-        return [
-          _buildBarGroup(0, 9.4),
-          _buildBarGroup(1, 9.5),
-          _buildBarGroup(2, 9.4),
-          _buildBarGroup(3, 9.6),
-          _buildBarGroup(4, 9.5),
-          _buildBarGroup(5, 9.7),
-          _buildBarGroup(6, 9.5),
-        ];
-      case 'M':
-        return [
-          _buildBarGroup(0, 8.0),
-          _buildBarGroup(1, 8.3),
-          _buildBarGroup(2, 8.5),
-          _buildBarGroup(3, 8.6),
-          _buildBarGroup(4, 9.0),
-          _buildBarGroup(5, 9.3),
-          _buildBarGroup(6, 9.5),
-          _buildBarGroup(7, 10.0),
-          _buildBarGroup(8, 10.5),
-        ];
-      case 'Y':
-        return [
-          _buildBarGroup(0, 5.0),
-          _buildBarGroup(1, 6.5),
-          _buildBarGroup(2, 7.8),
-          _buildBarGroup(3, 8.5),
-          _buildBarGroup(4, 9.2),
-          _buildBarGroup(5, 9.8),
-          _buildBarGroup(6, 10.5),
-        ];
-      default:
-        return [];
-    }
+    // TODO: Load weight data from database
+    return [];
   }
 
   BarChartGroupData _buildBarGroup(int x, double y) {
@@ -358,13 +324,13 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildOutcomeRow('Sold', 28, const Color(0xFF0F7B6C), 0.65),
+          _buildOutcomeRow('Sold', 0, const Color(0xFF0F7B6C), 0),
           const SizedBox(height: 12),
-          _buildOutcomeRow('Breeder', 8, const Color(0xFF5B8AD0), 0.19),
+          _buildOutcomeRow('Breeder', 0, const Color(0xFF5B8AD0), 0),
           const SizedBox(height: 12),
-          _buildOutcomeRow('Butchered', 4, const Color(0xFF9C6ADE), 0.09),
+          _buildOutcomeRow('Butchered', 0, const Color(0xFF9C6ADE), 0),
           const SizedBox(height: 12),
-          _buildOutcomeRow('Died', 2, const Color(0xFFCB8347), 0.05),
+          _buildOutcomeRow('Died', 0, const Color(0xFFCB8347), 0),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -384,7 +350,7 @@ class _StatsCardsState extends State<StatsCards> {
                   ),
                 ),
                 const Text(
-                  '42',
+                  '0',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -474,13 +440,16 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildLitterBar('L-105', 8, 0.88, 'Nursing', const Color(0xFF5B8AD0)),
-          const SizedBox(height: 12),
-          _buildLitterBar('L-098', 7, 0.77, 'Weaned', const Color(0xFF6B9E78)),
-          const SizedBox(height: 12),
-          _buildLitterBar('L-091', 6, 0.66, 'Grow-out', const Color(0xFF9C6ADE)),
-          const SizedBox(height: 12),
-          _buildLitterBar('L-085', 9, 1.0, 'Mature', const Color(0xFF0F7B6C)),
+          // TODO: Load litter data from database
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'No litter data available',
+                style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -604,15 +573,15 @@ class _StatsCardsState extends State<StatsCards> {
           Row(
             children: [
               Expanded(
-                child: _buildFinancialBox('+\$450', 'INCOME', const Color(0xFF6B9E78)),
+                child: _buildFinancialBox('\$0', 'INCOME', const Color(0xFF6B9E78)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFinancialBox('-\$125', 'EXPENSES', const Color(0xFFCB8347)),
+                child: _buildFinancialBox('\$0', 'EXPENSES', const Color(0xFFCB8347)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFinancialBox('+\$325', 'NET', const Color(0xFF0F7B6C)),
+                child: _buildFinancialBox('\$0', 'NET', const Color(0xFF0F7B6C)),
               ),
             ],
           ),
@@ -627,11 +596,15 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildTransactionItem('Jan 15', 'Feed Allocation', 'Monthly pellet cost', '-\$12.50', const Color(0xFFCB8347)),
-          const Divider(height: 24, color: Color(0xFFF7F7F5)),
-          _buildTransactionItem('Jan 10', 'Medication', 'Pen G for sniffles', '-\$8.00', const Color(0xFFCB8347)),
-          const Divider(height: 24, color: Color(0xFFF7F7F5)),
-          _buildTransactionItem('Dec 20', 'Sale (3x)', 'Sold to Happy Homestead', '+\$135.00', const Color(0xFF6B9E78)),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No transactions yet',
+                style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(

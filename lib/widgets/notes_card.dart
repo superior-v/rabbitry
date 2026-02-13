@@ -11,12 +11,13 @@ class NotesCard extends StatefulWidget {
 }
 
 class _NotesCardState extends State<NotesCard> {
-  final TextEditingController _notesController = TextEditingController(
-    text: '2025-01-20: Luna continues to be an excellent producer. '
-        'Shows good temperament during handling. Recommend for breeding '
-        'program continuation.\n\n2024-06-15: Recovered quickly from minor '
-        'respiratory issue.\n\n2025-01-10: Bred with Thumper for 6th litter.',
-  );
+  late final TextEditingController _notesController;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController = TextEditingController(text: widget.rabbit.notes ?? '');
+  }
 
   bool _isEditing = false;
 
@@ -70,32 +71,28 @@ class _NotesCardState extends State<NotesCard> {
             padding: EdgeInsets.all(16),
             child: _isEditing
                 ? TextField(
-              controller: _notesController,
-              maxLines: 10,
-              decoration: InputDecoration(
-                hintText: 'Add notes about this rabbit...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
-                ),
-              ),
-            )
+                    controller: _notesController,
+                    maxLines: 10,
+                    decoration: InputDecoration(
+                      hintText: 'Add notes about this rabbit...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                      ),
+                    ),
+                  )
                 : Text(
-              _notesController.text.isEmpty
-                  ? 'No notes yet. Tap Edit to add notes.'
-                  : _notesController.text,
-              style: TextStyle(
-                fontSize: 14,
-                color: _notesController.text.isEmpty
-                    ? Color(0xFF9B9A97)
-                    : Color(0xFF37352F),
-                height: 1.5,
-              ),
-            ),
+                    _notesController.text.isEmpty ? 'No notes yet. Tap Edit to add notes.' : _notesController.text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _notesController.text.isEmpty ? Color(0xFF9B9A97) : Color(0xFF37352F),
+                      height: 1.5,
+                    ),
+                  ),
           ),
         ],
       ),

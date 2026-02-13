@@ -24,16 +24,27 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
   DateTime _breedDate = DateTime.now();
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isCustomTimeline = false;
+
+  // Timeline days (loaded from settings, editable by user)
+  int _palpationDays = 14;
+  int _nestBoxDays = 28;
+  int _gestationDays = 31;
 
   @override
   void initState() {
     super.initState();
-    _loadBucks();
+    _loadData();
   }
 
-  Future<void> _loadBucks() async {
+  Future<void> _loadData() async {
+    await SettingsService.instance.init();
+    final settings = SettingsService.instance;
     final bucks = await _db.getAvailableBucks();
     setState(() {
+      _palpationDays = settings.palpationDays;
+      _nestBoxDays = settings.nestBoxDays;
+      _gestationDays = settings.gestationDays;
       _bucks = bucks;
       _isLoading = false;
     });
@@ -175,30 +186,108 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Timeline',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Timeline',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF787774),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _isCustomTimeline = !_isCustomTimeline);
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _isCustomTimeline ? Color(0xFF0F7B6C).withOpacity(0.1) : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isCustomTimeline ? Icons.check_circle : Icons.edit,
+                                  size: 14,
+                                  color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  _isCustomTimeline ? 'Custom' : 'Edit',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 12),
-                    _buildTimelineItem(
-                      'Palpation',
-                      _breedDate.add(Duration(days: 14)),
-                      Icons.touch_app,
-                    ),
-                    _buildTimelineItem(
-                      'Nest Box',
-                      _breedDate.add(Duration(days: 28)),
-                      Icons.home,
-                    ),
-                    _buildTimelineItem(
-                      'Due Date',
-                      _breedDate.add(Duration(days: 31)),
-                      Icons.child_friendly,
-                    ),
+                    if (_isCustomTimeline) ...[
+                      _buildEditableTimelineRow(
+                        'Palpation',
+                        Icons.touch_app,
+                        _palpationDays,
+                        _breedDate.add(Duration(days: _palpationDays)),
+                        (val) => setState(() => _palpationDays = val),
+                      ),
+                      _buildEditableTimelineRow(
+                        'Nest Box',
+                        Icons.home,
+                        _nestBoxDays,
+                        _breedDate.add(Duration(days: _nestBoxDays)),
+                        (val) => setState(() => _nestBoxDays = val),
+                      ),
+                      _buildEditableTimelineRow(
+                        'Due Date',
+                        Icons.child_friendly,
+                        _gestationDays,
+                        _breedDate.add(Duration(days: _gestationDays)),
+                        (val) => setState(() => _gestationDays = val),
+                      ),
+                      SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () async {
+                          await SettingsService.instance.init();
+                          setState(() {
+                            _palpationDays = SettingsService.instance.palpationDays;
+                            _nestBoxDays = SettingsService.instance.nestBoxDays;
+                            _gestationDays = SettingsService.instance.gestationDays;
+                          });
+                        },
+                        child: Text(
+                          'Reset to defaults',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ] else ...[
+                      _buildTimelineItem(
+                        'Palpation',
+                        _breedDate.add(Duration(days: _palpationDays)),
+                        Icons.touch_app,
+                      ),
+                      _buildTimelineItem(
+                        'Nest Box',
+                        _breedDate.add(Duration(days: _nestBoxDays)),
+                        Icons.home,
+                      ),
+                      _buildTimelineItem(
+                        'Due Date',
+                        _breedDate.add(Duration(days: _gestationDays)),
+                        Icons.child_friendly,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -239,6 +328,70 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEditableTimelineRow(
+    String label,
+    IconData icon,
+    int days,
+    DateTime date,
+    ValueChanged<int> onChanged,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Color(0xFF0F7B6C)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+            ),
+          ),
+          // Day stepper
+          GestureDetector(
+            onTap: () {
+              if (days > 1) onChanged(days - 1);
+            },
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Color(0xFFE9E9E7)),
+              ),
+              child: Icon(Icons.remove, size: 14, color: Color(0xFF787774)),
+            ),
+          ),
+          Container(
+            width: 40,
+            alignment: Alignment.center,
+            child: Text(
+              '$days d',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F7B6C)),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => onChanged(days + 1),
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Color(0xFFE9E9E7)),
+              ),
+              child: Icon(Icons.add, size: 14, color: Color(0xFF787774)),
+            ),
+          ),
+          SizedBox(width: 8),
+          Text(
+            '${date.day}/${date.month}/${date.year}',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black54),
+          ),
+        ],
       ),
     );
   }
@@ -285,14 +438,13 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
     setState(() => _isSaving = true);
 
     try {
-      await SettingsService.instance.init();
-      final gestationDays = SettingsService.instance.gestationDays;
-
       await _db.logBreeding(
         widget.doe.id,
         _selectedBuck!.id,
         _breedDate,
-        gestationDays,
+        _gestationDays,
+        customPalpationDays: _palpationDays,
+        customNestBoxDays: _nestBoxDays,
       );
 
       // Call callback FIRST to trigger parent refresh

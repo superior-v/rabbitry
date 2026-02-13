@@ -43,134 +43,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
   }
 
   void _loadPedigreeData() {
-    // Sample data - replace with actual data from your database
     _rabbit = PedigreeRabbit(
-      id: 'D-101',
-      name: 'Luna',
-      breed: 'Rex',
-      color: 'Castor',
-      weight: '9.5 lbs',
-      registrationNumber: 'REX-2024-001',
-      sex: 'Doe',
+      id: widget.rabbitId,
+      name: 'Unknown',
+      breed: 'Unknown',
+      color: 'Unknown',
+      sex: 'Unknown',
       generation: 0,
-      sire: PedigreeRabbit(
-        id: 'B-05',
-        name: 'Thunder',
-        breed: 'Rex',
-        color: 'Castor',
-        registrationNumber: 'REX-2023-045',
-        sex: 'Buck',
-        generation: 1,
-        sire: PedigreeRabbit(
-          id: 'B-01',
-          name: 'Champion Max',
-          breed: 'Rex',
-          color: 'Castor',
-          registrationNumber: 'REX-2022-012',
-          sex: 'Buck',
-          generation: 2,
-          sire: PedigreeRabbit(
-            id: 'GS-01',
-            name: 'Grand Sire',
-            breed: 'Rex',
-            color: 'Castor',
-            sex: 'Buck',
-            generation: 3,
-          ),
-          dam: PedigreeRabbit(
-            id: 'GD-01',
-            name: 'Grand Dam',
-            breed: 'Rex',
-            color: 'Castor',
-            sex: 'Doe',
-            generation: 3,
-          ),
-        ),
-        dam: PedigreeRabbit(
-          id: 'D-12',
-          name: 'Lady Belle',
-          breed: 'Rex',
-          color: 'Castor',
-          registrationNumber: 'REX-2022-089',
-          sex: 'Doe',
-          generation: 2,
-          sire: PedigreeRabbit(
-            id: 'GS-02',
-            name: 'Noble Knight',
-            breed: 'Rex',
-            color: 'Black',
-            sex: 'Buck',
-            generation: 3,
-          ),
-          dam: PedigreeRabbit(
-            id: 'GD-02',
-            name: 'Sweet Pea',
-            breed: 'Rex',
-            color: 'Castor',
-            sex: 'Doe',
-            generation: 3,
-          ),
-        ),
-      ),
-      dam: PedigreeRabbit(
-        id: 'D-08',
-        name: 'Ruby',
-        breed: 'Rex',
-        color: 'Broken Castor',
-        registrationNumber: 'REX-2023-067',
-        sex: 'Doe',
-        generation: 1,
-        sire: PedigreeRabbit(
-          id: 'B-03',
-          name: 'Duke',
-          breed: 'Rex',
-          color: 'Black',
-          registrationNumber: 'REX-2021-156',
-          sex: 'Buck',
-          generation: 2,
-          sire: PedigreeRabbit(
-            id: 'GS-03',
-            name: 'King Arthur',
-            breed: 'Rex',
-            color: 'Black',
-            sex: 'Buck',
-            generation: 3,
-          ),
-          dam: PedigreeRabbit(
-            id: 'GD-03',
-            name: 'Queen Anne',
-            breed: 'Rex',
-            color: 'Black',
-            sex: 'Doe',
-            generation: 3,
-          ),
-        ),
-        dam: PedigreeRabbit(
-          id: 'D-15',
-          name: 'Pearl',
-          breed: 'Rex',
-          color: 'Broken Castor',
-          registrationNumber: 'REX-2022-134',
-          sex: 'Doe',
-          generation: 2,
-          sire: PedigreeRabbit(
-            id: 'GS-04',
-            name: 'Silver Fox',
-            breed: 'Rex',
-            color: 'Castor',
-            sex: 'Buck',
-            generation: 3,
-          ),
-          dam: PedigreeRabbit(
-            id: 'GD-04',
-            name: 'Diamond',
-            breed: 'Rex',
-            color: 'Broken Castor',
-            sex: 'Doe',
-            generation: 3,
-          ),
-        ),
-      ),
     );
   }
 
@@ -211,9 +90,27 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               if (value == 3) _exportPDF();
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 1, child: Row(children: [Icon(Icons.share, size: 18), SizedBox(width: 8), Text('Share')])),
-              PopupMenuItem(value: 2, child: Row(children: [Icon(Icons.print, size: 18), SizedBox(width: 8), Text('Print')])),
-              PopupMenuItem(value: 3, child: Row(children: [Icon(Icons.picture_as_pdf, size: 18), SizedBox(width: 8), Text('Export PDF')])),
+              PopupMenuItem(
+                  value: 1,
+                  child: Row(children: [
+                    Icon(Icons.share, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share')
+                  ])),
+              PopupMenuItem(
+                  value: 2,
+                  child: Row(children: [
+                    Icon(Icons.print, size: 18),
+                    SizedBox(width: 8),
+                    Text('Print')
+                  ])),
+              PopupMenuItem(
+                  value: 3,
+                  child: Row(children: [
+                    Icon(Icons.picture_as_pdf, size: 18),
+                    SizedBox(width: 8),
+                    Text('Export PDF')
+                  ])),
             ],
           ),
         ],
@@ -294,7 +191,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0F7B6C), Color(0xFF14B8A6)],
+          colors: [
+            Color(0xFF0F7B6C),
+            Color(0xFF14B8A6)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -325,17 +225,17 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                         border: Border.all(color: Colors.white, width: 2),
                         image: _rabbit.profileImage != null
                             ? DecorationImage(
-                          image: FileImage(File(_rabbit.profileImage!)),
-                          fit: BoxFit.cover,
-                        )
+                                image: FileImage(File(_rabbit.profileImage!)),
+                                fit: BoxFit.cover,
+                              )
                             : null,
                       ),
                       child: _rabbit.profileImage == null
                           ? Icon(
-                        _rabbit.sex == 'Buck' ? Icons.male : Icons.female,
-                        color: Colors.white,
-                        size: 36,
-                      )
+                              _rabbit.sex == 'Buck' ? Icons.male : Icons.female,
+                              color: Colors.white,
+                              size: 36,
+                            )
                           : null,
                     ),
                     Positioned(
@@ -392,8 +292,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           _buildSubjectInfoRow('Breed', _rabbit.breed ?? '-'),
           _buildSubjectInfoRow('Color', _rabbit.color ?? '-'),
           _buildSubjectInfoRow('Weight', _rabbit.weight ?? '-'),
-          if (_rabbit.registrationNumber != null)
-            _buildSubjectInfoRow('Registration', _rabbit.registrationNumber!),
+          if (_rabbit.registrationNumber != null) _buildSubjectInfoRow('Registration', _rabbit.registrationNumber!),
         ],
       ),
     );
@@ -545,19 +444,17 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           color: isEmpty ? Color(0xFFF7F7F5) : Colors.white,
           borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
           border: Border.all(
-            color: isSubject
-                ? Color(0xFF0F7B6C)
-                : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
+            color: isSubject ? Color(0xFF0F7B6C) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
             width: isSubject ? 2 : 1,
           ),
           boxShadow: isSubject
               ? [
-            BoxShadow(
-              color: Color(0xFF0F7B6C).withOpacity(0.2),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ]
+                  BoxShadow(
+                    color: Color(0xFF0F7B6C).withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ]
               : null,
         ),
         child: ClipRRect(
@@ -577,34 +474,24 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                             height: isCompact ? 36 : (isSubject ? 50 : 45),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isEmpty
-                                  ? Color(0xFFE9E9E7)
-                                  : (rabbit.sex == 'Buck'
-                                  ? Color(0xFFEBF8FF)
-                                  : Color(0xFFF3E8FF)),
+                              color: isEmpty ? Color(0xFFE9E9E7) : (rabbit.sex == 'Buck' ? Color(0xFFEBF8FF) : Color(0xFFF3E8FF)),
                               border: Border.all(
-                                color: isEmpty
-                                    ? Color(0xFFE9E9E7)
-                                    : (rabbit.sex == 'Buck'
-                                    ? Color(0xFF2E7BB5)
-                                    : Color(0xFF9C6ADE)),
+                                color: isEmpty ? Color(0xFFE9E9E7) : (rabbit.sex == 'Buck' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE)),
                                 width: 2,
                               ),
                               image: !isEmpty && rabbit.profileImage != null
                                   ? DecorationImage(
-                                image: FileImage(File(rabbit.profileImage!)),
-                                fit: BoxFit.cover,
-                              )
+                                      image: FileImage(File(rabbit.profileImage!)),
+                                      fit: BoxFit.cover,
+                                    )
                                   : null,
                             ),
                             child: !isEmpty && rabbit.profileImage == null
                                 ? Icon(
-                              rabbit.sex == 'Buck' ? Icons.male : Icons.female,
-                              size: isCompact ? 18 : (isSubject ? 24 : 22),
-                              color: rabbit.sex == 'Buck'
-                                  ? Color(0xFF2E7BB5)
-                                  : Color(0xFF9C6ADE),
-                            )
+                                    rabbit.sex == 'Buck' ? Icons.male : Icons.female,
+                                    size: isCompact ? 18 : (isSubject ? 24 : 22),
+                                    color: rabbit.sex == 'Buck' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
+                                  )
                                 : null,
                           ),
                           if (_isEditing && !isEmpty)
@@ -641,9 +528,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               margin: EdgeInsets.only(bottom: 2),
                               decoration: BoxDecoration(
-                                color: label == 'SIRE'
-                                    ? Color(0xFFEBF8FF)
-                                    : Color(0xFFF3E8FF),
+                                color: label == 'SIRE' ? Color(0xFFEBF8FF) : Color(0xFFF3E8FF),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -651,9 +536,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                                 style: TextStyle(
                                   fontSize: 8,
                                   fontWeight: FontWeight.w700,
-                                  color: label == 'SIRE'
-                                      ? Color(0xFF2E7BB5)
-                                      : Color(0xFF9C6ADE),
+                                  color: label == 'SIRE' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
                                   letterSpacing: 0.5,
                                   height: 1.2,
                                 ),
@@ -828,6 +711,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       ),
     );
   }
+
   Widget _buildPhotoOption({
     required IconData icon,
     required String label,
@@ -919,6 +803,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       );
     }
   }
+
   void _updateRabbitProfileImage(PedigreeRabbit rabbit, String? imagePath) {
     setState(() {
       rabbit.updateProfileImage(imagePath);
@@ -1187,7 +1072,6 @@ class TreeConnectorPainter extends CustomPainter {
       canvas.drawLine(Offset(size.width / 2, parent1Y), Offset(size.width / 2, parent2Y), paint);
       canvas.drawLine(Offset(size.width / 2, parent1Y), Offset(size.width, parent1Y), paint);
       canvas.drawLine(Offset(size.width / 2, parent2Y), Offset(size.width, parent2Y), paint);
-
     } else if (connections == 4) {
       final positions = [
         size.height * 0.125,
@@ -1209,7 +1093,6 @@ class TreeConnectorPainter extends CustomPainter {
       for (var y in positions) {
         canvas.drawLine(Offset(size.width / 2, y), Offset(size.width, y), paint);
       }
-
     } else if (connections == 8) {
       final positions = List.generate(8, (i) => size.height * ((i + 0.5) / 8));
 

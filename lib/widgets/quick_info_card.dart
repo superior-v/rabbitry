@@ -69,7 +69,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
             await _showWeightModal(context);
             await _refreshRabbitData();
           }, showInfoIcon: true),
-          _buildStaticInfoRow('Born', 'Mar 15, 2024'),
+          _buildStaticInfoRow('Born', _currentRabbit.dateOfBirth != null ? '${_formatDate(_currentRabbit.dateOfBirth!)}' : 'Not set'),
           _buildStaticInfoRow('Age', _calculateAge()),
           _buildEditableInfoRow(context, 'Origin', _currentRabbit.origin ?? 'Not set', () => _showOriginSelector(context)),
         ],
@@ -144,7 +144,33 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   }
 
   String _calculateAge() {
-    return '10m 12d';
+    if (_currentRabbit.dateOfBirth == null) return 'Unknown';
+    final now = DateTime.now();
+    final dob = _currentRabbit.dateOfBirth!;
+    final months = (now.year - dob.year) * 12 + now.month - dob.month;
+    final days = now.day - dob.day;
+    if (months > 0) {
+      return '${months}m ${days.abs()}d';
+    }
+    return '${now.difference(dob).inDays}d';
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   // Replace the entire _showCageSelector method with this:
@@ -1282,24 +1308,6 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Widget _buildWeightEntry(String weight, String date) {

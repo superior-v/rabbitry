@@ -161,7 +161,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _showNewScheduleDialog(context);
   }
 
-  void _showNewScheduleDialog(BuildContext context) {
+  void _showNewScheduleDialog(BuildContext context) async {
     // State variables for the modal
     String selectedCategory = 'Operations';
     String? selectedTask;
@@ -170,56 +170,36 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     bool isCustomTask = false;
     TextEditingController customTaskController = TextEditingController();
 
-    // Mock data for multi-select
+    // ✅ Load task directory items from database
+    final DatabaseService _db = DatabaseService();
+    List<Map<String, dynamic>> taskDirectoryItems = [];
+    try {
+      taskDirectoryItems = await _db.getAllTaskDirectoryItems();
+    } catch (e) {
+      print('Error loading task directory: $e');
+    }
+
+    // ✅ Load entity data from database
     List<Map<String, String>> linkedEntities = [];
     final Map<String, List<Map<String, String>>> entityData = {
-      'rabbit': [
-        {
-          'id': 'r1',
-          'name': 'Luna',
-          'code': 'D-101'
-        },
-        {
-          'id': 'r2',
-          'name': 'Thumper',
-          'code': 'B-02'
-        },
-        {
-          'id': 'r3',
-          'name': 'Snowball',
-          'code': 'D-112'
-        },
-        {
-          'id': 'r4',
-          'name': 'Ginger',
-          'code': 'D-108'
-        },
-      ],
-      'litter': [
-        {
-          'id': 'l1',
-          'name': 'L-101',
-          'desc': 'Luna x Thumper'
-        },
-        {
-          'id': 'l2',
-          'name': 'L-102',
-          'desc': 'Ginger x Shadow'
-        },
-      ],
-      'kit': [
-        {
-          'id': 'k1',
-          'name': 'Kit #1',
-          'desc': 'From L-101'
-        },
-        {
-          'id': 'k2',
-          'name': 'Kit #2',
-          'desc': 'From L-101'
-        },
-      ]
+      'rabbit': [],
+      'litter': [],
+      'kit': [],
     };
+
+    // ✅ Load all rabbits from database
+    try {
+      final allRabbits = await _db.getAllRabbits();
+      entityData['rabbit'] = allRabbits.map((rabbit) {
+        return {
+          'id': rabbit.id,
+          'name': rabbit.name,
+          'code': rabbit.cage ?? rabbit.location ?? 'No cage',
+        };
+      }).toList();
+    } catch (e) {
+      print('Error loading rabbits: $e');
+    }
 
     showDialog(
       context: context,
@@ -227,39 +207,46 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // Task Options Logic
-            List<String> currentTaskOptions = [];
-            if (selectedCategory == 'Operations')
-              currentTaskOptions = [
-                'Clean Trays',
-                'Top Off Feed',
-                'Check Water',
-                'Deep Clean'
-              ];
-            else if (selectedCategory == 'Health')
-              currentTaskOptions = [
-                'Nail Trim',
-                'Health Check',
-                'Weighing',
-                'Ear Check'
-              ];
-            else if (selectedCategory == 'Butchering')
-              currentTaskOptions = [
-                'Schedule Butcher',
-                'Prep Equipment',
-                'Process'
-              ];
-            else if (selectedCategory == 'Pregnancy')
-              currentTaskOptions = [
-                'Palpation',
-                'Add Nest Box',
-                'Check for Kindle'
-              ];
-            else
-              currentTaskOptions = [
-                'Inventory Check',
-                'General Maintenance'
-              ];
+            // Task Options Logic: use task directory items, fallback to defaults
+            List<String> directoryTasks = taskDirectoryItems.where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase()).map((t) => t['name'] as String).toList();
+
+            List<String> currentTaskOptions;
+            if (directoryTasks.isNotEmpty) {
+              currentTaskOptions = directoryTasks;
+            } else {
+              // Fallback defaults when no directory items exist for category
+              if (selectedCategory == 'Operations')
+                currentTaskOptions = [
+                  'Clean Trays',
+                  'Top Off Feed',
+                  'Check Water',
+                  'Deep Clean'
+                ];
+              else if (selectedCategory == 'Health')
+                currentTaskOptions = [
+                  'Nail Trim',
+                  'Health Check',
+                  'Weighing',
+                  'Ear Check'
+                ];
+              else if (selectedCategory == 'Butchering')
+                currentTaskOptions = [
+                  'Schedule Butcher',
+                  'Prep Equipment',
+                  'Process'
+                ];
+              else if (selectedCategory == 'Pregnancy')
+                currentTaskOptions = [
+                  'Palpation',
+                  'Add Nest Box',
+                  'Check for Kindle'
+                ];
+              else
+                currentTaskOptions = [
+                  'Inventory Check',
+                  'General Maintenance'
+                ];
+            }
 
             // Helper to build a Radio Chip
             Widget buildRadioChip(String label, String value) {
@@ -659,6 +646,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
   String _breedFilter = 'All';
   String _searchQuery = ''; // ✅ Search query
   Set<String> _completedTasks = {};
+  Set<int> _ignoredTasks = {};
   Set<String> _expandedGroups = {};
 
   // ✅ Database scheduled tasks
@@ -683,6 +671,60 @@ class _HomeTabContentState extends State<HomeTabContent> {
         _upcomingTasks = upcoming;
       });
     }
+  }
+
+  /// Handle task completion via checkbox
+  Future<void> _handleTaskComplete(Map<String, dynamic> task) async {
+    final taskId = task['id'] as int?;
+    if (taskId == null) return;
+
+    final frequency = task['frequency']?.toString() ?? 'Once';
+
+    if (frequency == 'Once') {
+      // One-time task: delete from DB
+      await _db.deleteScheduledTask(taskId);
+    } else {
+      // Recurring task: reschedule to next due date
+      final currentDue = DateTime.tryParse(task['dueDate'] ?? '') ?? DateTime.now();
+      final nextDue = _getNextDueDate(frequency, currentDue);
+      await _db.updateScheduledTaskDueDate(taskId, nextDue.toIso8601String());
+    }
+
+    // Reload tasks
+    await _loadScheduledTasks();
+  }
+
+  /// Calculate next due date based on frequency
+  DateTime _getNextDueDate(String frequency, DateTime currentDue) {
+    switch (frequency) {
+      case 'Daily':
+        return currentDue.add(Duration(days: 1));
+      case 'Weekly':
+        return currentDue.add(Duration(days: 7));
+      case 'Bi-Weekly':
+        return currentDue.add(Duration(days: 14));
+      case 'Monthly':
+        return DateTime(currentDue.year, currentDue.month + 1, currentDue.day);
+      case 'Quarterly':
+        return DateTime(currentDue.year, currentDue.month + 3, currentDue.day);
+      case 'Semi-Annually':
+        return DateTime(currentDue.year, currentDue.month + 6, currentDue.day);
+      case 'Annually':
+        return DateTime(currentDue.year + 1, currentDue.month, currentDue.day);
+      default:
+        return currentDue.add(Duration(days: 7));
+    }
+  }
+
+  /// Toggle ignore state for a task
+  void _handleTaskIgnore(int taskId) {
+    setState(() {
+      if (_ignoredTasks.contains(taskId)) {
+        _ignoredTasks.remove(taskId);
+      } else {
+        _ignoredTasks.add(taskId);
+      }
+    });
   }
 
   /// Handle task tap - show appropriate modal based on taskType
@@ -1067,7 +1109,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
           children: [
             _buildStatBox(
               'Tasks Due',
-              '14',
+              '${_getFilteredTodayTasksCount()}',
               Color(
                 0xFF0F7B6C,
               ),
@@ -1077,7 +1119,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Active Litters',
-              '5',
+              '0',
               Colors.black87,
             ),
             SizedBox(
@@ -1085,7 +1127,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Breeders',
-              '22',
+              '0',
               Colors.black87,
             ),
             SizedBox(
@@ -1093,7 +1135,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Grow-outs',
-              '38',
+              '0',
               Colors.black87,
             ),
           ],
@@ -1374,269 +1416,108 @@ class _HomeTabContentState extends State<HomeTabContent> {
     );
   }
 
-  // Helper method to get filtered TODAY tasks
+  // Helper method to get filtered TODAY tasks with grouping
   List<Widget> _getFilteredTodayTasks() {
-    List<Widget> tasks = [];
-
-    // Palpation Checks Group (Rex breed) - Category: Mating → Reproduction
-    if (_shouldShowCategory('Mating')) {
-      List<Map<String, String>> palpationTasks = [
-        {
-          'name': 'Luna',
-          'breed': 'Rex',
-          'location': 'Cage 12'
-        },
-        {
-          'name': 'Star',
-          'breed': 'Rex',
-          'location': 'Cage 14'
-        },
-        {
-          'name': 'Ginger',
-          'breed': 'NZ White',
-          'location': 'Cage 15'
-        },
-      ];
-
-      List<Map<String, String>> filteredPalpation = palpationTasks.where((task) => _shouldShowBreed(task['breed']) && _matchesSearch('Palpation Checks ${task['name']}', task['breed'], task['location'])).toList();
-
-      if (filteredPalpation.isNotEmpty) {
-        tasks.add(
-          _buildGroupTask(
-            title: 'Palpation Checks',
-            count: filteredPalpation.length,
-            category: 'Mating',
-            categoryColor: Color(0xFFF6F0FF),
-            categoryTextColor: Color(0xFF6931B6),
-            icon: Icons.favorite_outline,
-            date: 'Today',
-            isOverdue: false,
-            subTasks: filteredPalpation,
-            taskType: 'palpation',
-          ),
-        );
-        tasks.add(SizedBox(height: 12));
-      }
-    }
-
-    // Check Sore Hocks (Silver Fox) - Category: Medical → Health
-    if (_shouldShowCategory('Medical') && _shouldShowBreed('Silver Fox') && _matchesSearch('Check Sore Hocks: Buck #42', 'Silver Fox', 'Cage 02')) {
-      tasks.add(
-        _buildSingleTask(
-          title: 'Check Sore Hocks: Buck #42',
-          category: 'Medical',
-          categoryColor: Color(0xFFFFEBEB),
-          categoryTextColor: Color(0xFFBF360C),
-          icon: Icons.medical_services_outlined,
-          breed: 'Silver Fox',
-          location: 'Cage 02',
-          date: 'Today',
-          isOverdue: false,
-          taskType: 'operations',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
-    }
-
-    // Sanitize Row A (no breed) - Category: Housing → Operations
-    if (_shouldShowCategory('Housing') && _breedFilter == 'All' && _matchesSearch('Sanitize: Row A Trays', null, 'Row A')) {
-      tasks.add(
-        _buildSingleTask(
-          title: 'Sanitize: Row A Trays',
-          category: 'Housing',
-          categoryColor: Color(
-            0xFFE3F2FD,
-          ),
-          categoryTextColor: Color(
-            0xFF0D47A1,
-          ),
-          icon: Icons.cleaning_services_outlined,
-          breed: null,
-          location: 'Row A',
-          date: 'Today',
-          isOverdue: false,
-          taskType: 'operations',
-        ),
-      );
-      tasks.add(
-        SizedBox(
-          height: 12,
-        ),
-      );
-    }
-
-    // L-202 Weights (Rex) - Category: Weight → Health
-    if (_shouldShowCategory('Weight')) {
-      List<Map<String, String>> weightTasks = [
-        {
-          'name': 'Kit #1 (Black)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-        {
-          'name': 'Kit #2 (Broken)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-        {
-          'name': 'Kit #3 (Castor)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-      ];
-
-      List<Map<String, String>> filteredWeights = weightTasks.where((task) => _shouldShowBreed(task['breed']) && _matchesSearch('L-202 Weights ${task['name']}', task['breed'], task['location'])).toList();
-
-      if (filteredWeights.isNotEmpty) {
-        tasks.add(
-          _buildGroupTask(
-            title: 'L-202 Weights',
-            count: filteredWeights.length,
-            category: 'Weight',
-            categoryColor: Color(0xFFFFEBEB),
-            categoryTextColor: Color(0xFFBF360C),
-            icon: Icons.monitor_weight_outlined,
-            date: 'Today',
-            isOverdue: false,
-            subTasks: filteredWeights,
-            taskType: 'weight',
-          ),
-        );
-        tasks.add(SizedBox(height: 12));
-      }
-    }
-
-    // ✅ Add scheduled tasks from database (Today/Overdue)
+    // Collect filtered tasks
+    List<Map<String, dynamic>> filtered = [];
     for (var task in _todayTasks) {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
-      final taskLocation = task['linkType'] == 'unlinked' ? 'Unlinked' : '${task['linkType']}';
-
-      // Apply all filters
+      final taskLocation = _getTaskLocation(task);
       if (!_shouldShowCategory(taskCategory)) continue;
       if (!_matchesSearch(taskName, null, taskLocation)) continue;
-
-      tasks.add(
-        _buildSingleTask(
-          title: taskName,
-          category: taskCategory,
-          categoryColor: _getCategoryColor(task['category']),
-          categoryTextColor: _getCategoryTextColor(task['category']),
-          icon: _getCategoryIcon(task['category']),
-          breed: null, // Scheduled tasks don't have breed
-          location: taskLocation,
-          date: 'Today',
-          isOverdue: _isTaskOverdue(task['dueDate']),
-          taskType: 'scheduled',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
+      filtered.add(task);
     }
 
-    // Remove last spacing if tasks exist
-    if (tasks.isNotEmpty && tasks.last is SizedBox) {
-      tasks.removeLast();
-    }
-
-    return tasks;
+    return _buildGroupedTaskWidgets(filtered, isToday: true);
   }
 
   List<Widget> _getFilteredUpcomingTasks() {
-    List<Widget> tasks = [];
-
-    // Nest Box Prep (NZ White) - Category: Kindling → Reproduction
-    if (_shouldShowCategory('Kindling') && _shouldShowBreed('NZ White') && _matchesSearch('Nest Box Prep: Bella', 'NZ White', 'Row A')) {
-      tasks.add(
-        _buildSingleTask(
-          title: 'Nest Box Prep: Bella',
-          category: 'Kindling',
-          categoryColor: Color(0xFFF6F0FF),
-          categoryTextColor: Color(0xFF6931B6),
-          icon: Icons.child_care_outlined,
-          breed: 'NZ White',
-          location: 'Row A',
-          date: 'Jan 23',
-          isOverdue: false,
-          taskType: 'nesting',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
-    }
-
-    // Wean Litter (Mix) - Category: Weaning → Reproduction
-    if (_shouldShowCategory('Weaning') && _shouldShowBreed('Mix') && _matchesSearch('Wean Litter: L-204', 'Mix', 'Cage 05')) {
-      tasks.add(
-        _buildSingleTask(
-          title: 'Wean Litter: L-204',
-          category: 'Weaning',
-          categoryColor: Color(0xFFF6F0FF),
-          categoryTextColor: Color(0xFF6931B6),
-          icon: Icons.group_outlined,
-          breed: 'Mix',
-          location: 'Cage 05',
-          date: 'Jan 25',
-          isOverdue: false,
-          taskType: 'wean',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
-    }
-
-    // Deworming (Dutch) - Category: Medical → Health
-    if (_shouldShowCategory('Medical') && _shouldShowBreed('Dutch') && _matchesSearch('Mass Deworming', 'Dutch', 'Whole Herd')) {
-      tasks.add(
-        _buildSingleTask(
-          title: 'Mass Deworming',
-          category: 'Medical',
-          categoryColor: Color(0xFFFFEBEB),
-          categoryTextColor: Color(0xFFBF360C),
-          icon: Icons.medical_services_outlined,
-          breed: 'Dutch',
-          location: 'Whole Herd',
-          date: 'Jan 27',
-          isOverdue: false,
-          taskType: 'operations',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
-    }
-
-    // ✅ Add scheduled tasks from database (Upcoming)
+    // Collect filtered tasks
+    List<Map<String, dynamic>> filtered = [];
     for (var task in _upcomingTasks) {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
-      final taskLocation = task['linkType'] == 'unlinked' ? 'Unlinked' : '${task['linkType']}';
-
-      // Apply all filters
+      final taskLocation = _getTaskLocation(task);
       if (!_shouldShowCategory(taskCategory)) continue;
       if (!_matchesSearch(taskName, null, taskLocation)) continue;
+      filtered.add(task);
+    }
 
-      final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
-      final dateStr = dueDate != null ? _formatDueDate(dueDate) : 'Upcoming';
+    return _buildGroupedTaskWidgets(filtered, isToday: false);
+  }
 
-      tasks.add(
-        _buildSingleTask(
-          title: taskName,
+  /// Group tasks by name and build widgets — groups with >1 task become accordions
+  List<Widget> _buildGroupedTaskWidgets(List<Map<String, dynamic>> tasks, {required bool isToday}) {
+    List<Widget> widgets = [];
+
+    // Group tasks by name
+    final Map<String, List<Map<String, dynamic>>> groups = {};
+    for (var task in tasks) {
+      final name = task['name'] ?? task['task'] ?? 'Task';
+      groups.putIfAbsent(name, () => []);
+      groups[name]!.add(task);
+    }
+
+    for (var entry in groups.entries) {
+      final groupName = entry.key;
+      final groupTasks = entry.value;
+      final firstTask = groupTasks.first;
+      final taskCategory = firstTask['category'] ?? 'Operations';
+
+      if (groupTasks.length == 1) {
+        // Single task — also check if it has multiple linked entities
+        final entities = firstTask['linkedEntities'];
+        final entityCount = (entities is List) ? entities.length : 0;
+
+        if (entityCount > 1) {
+          // Single DB row with multiple entities → expand into group
+          widgets.add(_buildGroupTaskFromEntities(
+            task: firstTask,
+            isToday: isToday,
+          ));
+        } else {
+          // Truly single task
+          final taskLocation = _getTaskLocation(firstTask);
+          final dueDate = DateTime.tryParse(firstTask['dueDate'] ?? '');
+          final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
+
+          widgets.add(_buildSingleTask(
+            title: groupName,
+            category: taskCategory,
+            categoryColor: _getCategoryColor(taskCategory),
+            categoryTextColor: _getCategoryTextColor(taskCategory),
+            icon: _getCategoryIcon(taskCategory),
+            breed: null,
+            location: taskLocation,
+            date: dateStr,
+            isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false,
+            taskType: 'scheduled',
+            task: firstTask,
+          ));
+        }
+      } else {
+        // Multiple tasks with same name → group accordion
+        final dueDate = DateTime.tryParse(firstTask['dueDate'] ?? '');
+        final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
+
+        widgets.add(_buildGroupTaskFromMultiple(
+          title: groupName,
           category: taskCategory,
-          categoryColor: _getCategoryColor(task['category']),
-          categoryTextColor: _getCategoryTextColor(task['category']),
-          icon: _getCategoryIcon(task['category']),
-          breed: null,
-          location: task['linkType'] == 'unlinked' ? 'Unlinked' : '${task['linkType']}',
           date: dateStr,
-          isOverdue: false,
-          taskType: 'scheduled',
-        ),
-      );
-      tasks.add(SizedBox(height: 12));
+          isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false,
+          tasks: groupTasks,
+        ));
+      }
+      widgets.add(SizedBox(height: 12));
     }
 
-    // Remove last spacing if tasks exist
-    if (tasks.isNotEmpty && tasks.last is SizedBox) {
-      tasks.removeLast();
+    // Remove last spacing
+    if (widgets.isNotEmpty && widgets.last is SizedBox) {
+      widgets.removeLast();
     }
 
-    return tasks;
+    return widgets;
   }
 
   // ✅ Helper: Format due date for display
@@ -1656,6 +1537,19 @@ class _HomeTabContentState extends State<HomeTabContent> {
       'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}';
+  }
+
+  // ✅ Helper: Get display location from task's linked entities
+  String _getTaskLocation(Map<String, dynamic> task) {
+    if (task['linkType'] == 'unlinked') return 'Unlinked';
+    final entities = task['linkedEntities'];
+    if (entities is List && entities.isNotEmpty) {
+      final names = entities.map((e) => e is Map ? e['name']?.toString() : null).where((n) => n != null && n.isNotEmpty).toList();
+      if (names.isNotEmpty) return names.join(', ');
+    }
+    // Fallback: capitalize linkType if no entity names available
+    final lt = task['linkType']?.toString() ?? '';
+    return lt.isEmpty ? 'Unlinked' : lt[0].toUpperCase() + lt.substring(1);
   }
 
   // ✅ Helper: Check if task is overdue
@@ -1733,65 +1627,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
   int _getFilteredTodayTasksCount() {
     int count = 0;
 
-    // Palpation - Category: Mating → Reproduction
-    if (_shouldShowCategory('Mating')) {
-      List<Map<String, String>> palpationTasks = [
-        {
-          'name': 'Luna',
-          'breed': 'Rex',
-          'location': 'Cage 12'
-        },
-        {
-          'name': 'Star',
-          'breed': 'Rex',
-          'location': 'Cage 14'
-        },
-        {
-          'name': 'Ginger',
-          'breed': 'NZ White',
-          'location': 'Cage 15'
-        },
-      ];
-      count += palpationTasks.where((task) => _shouldShowBreed(task['breed']) && _matchesSearch('Palpation Checks ${task['name']}', task['breed'], task['location'])).length;
-    }
-
-    // Sore hocks - Category: Medical → Health
-    if (_shouldShowCategory('Medical') && _shouldShowBreed('Silver Fox') && _matchesSearch('Check Sore Hocks: Buck #42', 'Silver Fox', 'Cage 02')) {
-      count++;
-    }
-
-    // Sanitize - Category: Housing → Operations
-    if (_shouldShowCategory('Housing') && _breedFilter == 'All' && _matchesSearch('Sanitize: Row A Trays', null, 'Row A')) {
-      count++;
-    }
-
-    // Weights - Category: Weight → Health
-    if (_shouldShowCategory('Weight')) {
-      List<Map<String, String>> weightTasks = [
-        {
-          'name': 'Kit #1 (Black)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-        {
-          'name': 'Kit #2 (Broken)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-        {
-          'name': 'Kit #3 (Castor)',
-          'breed': 'Rex',
-          'location': 'Cage 20'
-        },
-      ];
-      count += weightTasks.where((task) => _shouldShowBreed(task['breed']) && _matchesSearch('L-202 Weights ${task['name']}', task['breed'], task['location'])).length;
-    }
-
-    // Database tasks
+    // Database tasks only
     for (var task in _todayTasks) {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
-      final taskLocation = task['linkType'] == 'unlinked' ? 'Unlinked' : '${task['linkType']}';
+      final taskLocation = _getTaskLocation(task);
 
       if (_shouldShowCategory(taskCategory) && _matchesSearch(taskName, null, taskLocation)) {
         count++;
@@ -1805,26 +1645,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
   int _getFilteredUpcomingTasksCount() {
     int count = 0;
 
-    // Nest Box - Category: Kindling → Reproduction
-    if (_shouldShowCategory('Kindling') && _shouldShowBreed('NZ White') && _matchesSearch('Nest Box Prep: Bella', 'NZ White', 'Row A')) {
-      count++;
-    }
-
-    // Wean - Category: Weaning → Reproduction
-    if (_shouldShowCategory('Weaning') && _shouldShowBreed('Mix') && _matchesSearch('Wean Litter: L-204', 'Mix', 'Cage 05')) {
-      count++;
-    }
-
-    // Deworming - Category: Medical → Health
-    if (_shouldShowCategory('Medical') && _shouldShowBreed('Dutch') && _matchesSearch('Mass Deworming', 'Dutch', 'Whole Herd')) {
-      count++;
-    }
-
-    // Database tasks
+    // Database tasks only
     for (var task in _upcomingTasks) {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
-      final taskLocation = task['linkType'] == 'unlinked' ? 'Unlinked' : '${task['linkType']}';
+      final taskLocation = _getTaskLocation(task);
 
       if (_shouldShowCategory(taskCategory) && _matchesSearch(taskName, null, taskLocation)) {
         count++;
@@ -1901,417 +1726,101 @@ class _HomeTabContentState extends State<HomeTabContent> {
     required bool isOverdue,
     String? taskType,
     String? rabbitId,
+    Map<String, dynamic>? task,
   }) {
-    final taskId = '$title-$location'; // Unique ID for each task
-    final isCompleted = _completedTasks.contains(
-      taskId,
-    );
+    final dbId = task?['id'] as int?;
+    final taskId = '$title-$location';
+    final isCompleted = _completedTasks.contains(taskId);
+    final isIgnored = dbId != null && _ignoredTasks.contains(dbId);
 
-    return GestureDetector(
-      onTap: () => _handleTaskTap(taskType, rabbitId, title),
-      child: Container(
-        padding: EdgeInsets.all(
-          14,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            color: Color(
-              0xFFE9E9E7,
-            ),
+    return Opacity(
+      opacity: isIgnored ? 0.5 : 1.0,
+      child: GestureDetector(
+        onTap: isIgnored ? null : () => _handleTaskTap(taskType, rabbitId, title),
+        child: Container(
+          padding: EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Color(0xFFE9E9E7)),
+            borderRadius: BorderRadius.circular(12),
           ),
-          borderRadius: BorderRadius.circular(
-            12,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Interactive Checkbox - UPDATED
-            GestureDetector(
-              onTap: () {
-                setState(
-                  () {
-                    if (isCompleted) {
-                      _completedTasks.remove(
-                        taskId,
-                      );
-                    } else {
-                      _completedTasks.add(
-                        taskId,
-                      );
-                    }
-                  },
-                );
-              },
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: isCompleted
-                      ? Color(
-                          0xFF0F7B6C,
-                        )
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isCompleted
-                        ? Color(
-                            0xFF0F7B6C,
-                          )
-                        : Color(
-                            0xFFE9E9E7,
-                          ),
-                    width: 2,
+          child: Row(
+            children: [
+              // Checkbox
+              GestureDetector(
+                onTap: isIgnored
+                    ? null
+                    : () {
+                        if (isCompleted) {
+                          setState(() => _completedTasks.remove(taskId));
+                        } else {
+                          setState(() => _completedTasks.add(taskId));
+                          // Persist to DB after brief visual feedback
+                          if (task != null) {
+                            Future.delayed(Duration(milliseconds: 400), () {
+                              _handleTaskComplete(task);
+                            });
+                          }
+                        }
+                      },
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
+                    border: Border.all(
+                      color: isCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  borderRadius: BorderRadius.circular(
-                    6,
-                  ),
+                  child: isCompleted ? Icon(Icons.check, size: 16, color: Colors.white) : null,
                 ),
-                child: isCompleted
-                    ? Icon(
-                        Icons.check,
-                        size: 16,
-                        color: Colors.white,
-                      )
-                    : null,
               ),
-            ),
-            SizedBox(
-              width: 16,
-            ),
+              SizedBox(width: 16),
 
-            // Content - Add strikethrough when completed
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: isCompleted
-                                ? Color(
-                                    0xFF9B9A97,
-                                  )
-                                : Colors.black87,
-                            decoration: isCompleted ? TextDecoration.lineThrough : null,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        date,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isOverdue
-                              ? Color(
-                                  0xFFD44C47,
-                                )
-                              : Color(
-                                  0xFF787774,
-                                ),
-                          fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 6,
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: categoryColor,
-                          borderRadius: BorderRadius.circular(
-                            4,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              icon,
-                              size: 12,
-                              color: categoryTextColor,
-                            ),
-                            SizedBox(
-                              width: 4,
-                            ),
-                            Text(
-                              category,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: categoryTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (breed != null) ...[
-                        SizedBox(
-                          width: 6,
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(
-                              0xFFEEEEEE,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              4,
-                            ),
-                          ),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
                           child: Text(
-                            breed,
+                            title,
                             style: TextStyle(
-                              fontSize: 11,
-                              color: Color(
-                                0xFF666666,
-                              ),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: (isCompleted || isIgnored) ? Color(0xFF9B9A97) : Colors.black87,
+                              decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
                             ),
+                          ),
+                        ),
+                        Text(
+                          date,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isOverdue ? Color(0xFFD44C47) : Color(0xFF787774),
+                            fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
                       ],
-                      SizedBox(
-                        width: 6,
-                      ),
-                      Text(
-                        '• $location',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(
-                            0xFF787774,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Action Icons
-            SizedBox(
-              width: 12,
-            ),
-            Icon(
-              Icons.block,
-              size: 20,
-              color: Color(
-                0xFF9B9A97,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGroupTask({
-    required String title,
-    required int count,
-    required String category,
-    required Color categoryColor,
-    required Color categoryTextColor,
-    required IconData icon,
-    required String date,
-    required bool isOverdue,
-    required List<Map<String, String>> subTasks,
-    String? taskType,
-  }) {
-    // Filter subtasks based on breed
-    final filteredSubTasks = subTasks.where(
-      (
-        task,
-      ) {
-        if (_breedFilter == 'All') return true;
-        return task['breed'] == _breedFilter;
-      },
-    ).toList();
-
-    // Don't show group if no tasks match filter
-    if (filteredSubTasks.isEmpty) return SizedBox.shrink();
-
-    final groupId = '$title-group';
-    final isGroupCompleted = _completedTasks.contains(
-      groupId,
-    );
-    final isExpanded = _expandedGroups.contains(
-      groupId,
-    );
-    final actualCount = filteredSubTasks.length; // Use filtered count
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: Color(
-            0xFFE9E9E7,
-          ),
-        ),
-        borderRadius: BorderRadius.circular(
-          12,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Main Group Header
-          InkWell(
-            onTap: () {
-              setState(
-                () {
-                  if (isExpanded) {
-                    _expandedGroups.remove(
-                      groupId,
-                    );
-                  } else {
-                    _expandedGroups.add(
-                      groupId,
-                    );
-                  }
-                },
-              );
-            },
-            child: Padding(
-              padding: EdgeInsets.all(
-                14,
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(
-                        () {
-                          if (isGroupCompleted) {
-                            _completedTasks.remove(
-                              groupId,
-                            );
-                            for (var task in filteredSubTasks) {
-                              _completedTasks.remove(
-                                '${task['name']}-${task['location']}',
-                              );
-                            }
-                          } else {
-                            _completedTasks.add(
-                              groupId,
-                            );
-                            for (var task in filteredSubTasks) {
-                              _completedTasks.add(
-                                '${task['name']}-${task['location']}',
-                              );
-                            }
-                          }
-                        },
-                      );
-                    },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: isGroupCompleted
-                            ? Color(
-                                0xFF0F7B6C,
-                              )
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: isGroupCompleted
-                              ? Color(
-                                  0xFF0F7B6C,
-                                )
-                              : Color(
-                                  0xFFE9E9E7,
-                                ),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                          6,
-                        ),
-                      ),
-                      child: isGroupCompleted
-                          ? Icon(
-                              Icons.check,
-                              size: 16,
-                              color: Colors.white,
-                            )
-                          : null,
                     ),
-                  ),
-                  SizedBox(
-                    width: 16,
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(height: 6),
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '$title ($actualCount)', // Show filtered count
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isGroupCompleted
-                                      ? Color(
-                                          0xFF9B9A97,
-                                        )
-                                      : Colors.black87,
-                                  decoration: isGroupCompleted ? TextDecoration.lineThrough : null,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              date,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isOverdue
-                                    ? Color(
-                                        0xFFD44C47,
-                                      )
-                                    : Color(
-                                        0xFF787774,
-                                      ),
-                                fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 6,
-                        ),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: categoryColor,
-                            borderRadius: BorderRadius.circular(
-                              4,
-                            ),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                icon,
-                                size: 12,
-                                color: categoryTextColor,
-                              ),
-                              SizedBox(
-                                width: 4,
-                              ),
+                              Icon(icon, size: 12, color: categoryTextColor),
+                              SizedBox(width: 4),
                               Text(
                                 category,
                                 style: TextStyle(
@@ -2323,236 +1832,473 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Icon(
-                    Icons.block,
-                    size: 20,
-                    color: Color(
-                      0xFF9B9A97,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 8,
-                  ),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: Duration(
-                      milliseconds: 200,
-                    ),
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 24,
-                      color: Color(
-                        0xFF9B9A97,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Subtasks - use filteredSubTasks
-          AnimatedCrossFade(
-            firstChild: SizedBox.shrink(),
-            secondChild: Container(
-              decoration: BoxDecoration(
-                color: Color(
-                  0xFFFAFAFA,
-                ),
-                border: Border(
-                  top: BorderSide(
-                    color: Color(
-                      0xFFE9E9E7,
-                    ),
-                  ),
-                ),
-              ),
-              child: Column(
-                children: filteredSubTasks.map(
-                  (
-                    task,
-                  ) {
-                    final subTaskId = '${task['name']}-${task['location']}';
-                    final isSubCompleted = _completedTasks.contains(
-                      subTaskId,
-                    );
-
-                    return GestureDetector(
-                      onTap: () => _handleTaskTap(taskType, task['rabbitId'], task['name'] ?? ''),
-                      child: Container(
-                        padding: EdgeInsets.all(
-                          10,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Color(
-                                0xFFE9E9E7,
-                              ),
+                        if (breed != null) ...[
+                          SizedBox(width: 6),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFEEEEEE),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              breed,
+                              style: TextStyle(fontSize: 11, color: Color(0xFF666666)),
                             ),
                           ),
+                        ],
+                        SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '• $location',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Ignore / Undo button
+              SizedBox(width: 8),
+              GestureDetector(
+                onTap: dbId != null ? () => _handleTaskIgnore(dbId) : null,
+                child: Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    isIgnored ? Icons.undo : Icons.block,
+                    size: 20,
+                    color: isIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build group task from multiple DB rows with the same task name
+  Widget _buildGroupTaskFromMultiple({
+    required String title,
+    required String category,
+    required String date,
+    required bool isOverdue,
+    required List<Map<String, dynamic>> tasks,
+  }) {
+    final categoryColor = _getCategoryColor(category);
+    final categoryTextColor = _getCategoryTextColor(category);
+    final icon = _getCategoryIcon(category);
+    final groupId = '$title-group';
+    final isExpanded = _expandedGroups.contains(groupId);
+    final allIgnored = tasks.every((t) => _ignoredTasks.contains(t['id'] as int?));
+
+    // Build subtask info from each DB task row
+    final subTasks = tasks.map((t) {
+      final entities = t['linkedEntities'];
+      String name = 'Unknown';
+      String loc = '';
+      if (entities is List && entities.isNotEmpty) {
+        final first = entities.first;
+        if (first is Map) {
+          name = first['name']?.toString() ?? 'Unknown';
+          loc = first['cage']?.toString() ?? first['barn']?.toString() ?? '';
+        }
+      }
+      return {
+        'dbId': t['id'] as int?,
+        'name': name,
+        'location': loc.isNotEmpty ? loc : _getTaskLocation(t),
+        'task': t,
+      };
+    }).toList();
+
+    return _buildGroupContainer(
+      title: title,
+      count: tasks.length,
+      category: category,
+      categoryColor: categoryColor,
+      categoryTextColor: categoryTextColor,
+      icon: icon,
+      date: date,
+      isOverdue: isOverdue,
+      groupId: groupId,
+      isExpanded: isExpanded,
+      allIgnored: allIgnored,
+      subTasks: subTasks,
+      onGroupIgnore: () {
+        setState(() {
+          if (allIgnored) {
+            for (var t in tasks) {
+              final id = t['id'] as int?;
+              if (id != null) _ignoredTasks.remove(id);
+            }
+          } else {
+            for (var t in tasks) {
+              final id = t['id'] as int?;
+              if (id != null) _ignoredTasks.add(id);
+            }
+          }
+        });
+      },
+      onGroupComplete: () {
+        final groupTaskId = '$title-group';
+        final isGroupCompleted = _completedTasks.contains(groupTaskId);
+        setState(() {
+          if (isGroupCompleted) {
+            _completedTasks.remove(groupTaskId);
+            for (var sub in subTasks) {
+              _completedTasks.remove('${sub['name']}-${sub['location']}');
+            }
+          } else {
+            _completedTasks.add(groupTaskId);
+            for (var sub in subTasks) {
+              _completedTasks.add('${sub['name']}-${sub['location']}');
+            }
+            // Persist to DB after visual feedback
+            Future.delayed(Duration(milliseconds: 400), () async {
+              for (var t in tasks) {
+                await _handleTaskComplete(t);
+              }
+            });
+          }
+        });
+      },
+    );
+  }
+
+  /// Build group task from a single DB row with multiple linked entities
+  Widget _buildGroupTaskFromEntities({
+    required Map<String, dynamic> task,
+    required bool isToday,
+  }) {
+    final title = task['name'] ?? task['task'] ?? 'Task';
+    final category = task['category'] ?? 'Operations';
+    final categoryColor = _getCategoryColor(category);
+    final categoryTextColor = _getCategoryTextColor(category);
+    final icon = _getCategoryIcon(category);
+    final dbId = task['id'] as int?;
+    final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
+    final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
+    final isOverdue = isToday ? _isTaskOverdue(task['dueDate']) : false;
+    final entities = task['linkedEntities'] as List? ?? [];
+    final groupId = '$title-entity-group';
+    final isExpanded = _expandedGroups.contains(groupId);
+    final isIgnored = dbId != null && _ignoredTasks.contains(dbId);
+
+    final subTasks = entities.map((e) {
+      final entityMap = e is Map ? e : {};
+      return {
+        'dbId': dbId,
+        'name': entityMap['name']?.toString() ?? 'Unknown',
+        'location': entityMap['cage']?.toString() ?? entityMap['barn']?.toString() ?? '',
+        'task': task,
+      };
+    }).toList();
+
+    return _buildGroupContainer(
+      title: title,
+      count: entities.length,
+      category: category,
+      categoryColor: categoryColor,
+      categoryTextColor: categoryTextColor,
+      icon: icon,
+      date: dateStr,
+      isOverdue: isOverdue,
+      groupId: groupId,
+      isExpanded: isExpanded,
+      allIgnored: isIgnored,
+      subTasks: subTasks,
+      onGroupIgnore: dbId != null ? () => _handleTaskIgnore(dbId) : null,
+      onGroupComplete: () {
+        final isGroupCompleted = _completedTasks.contains(groupId);
+        setState(() {
+          if (isGroupCompleted) {
+            _completedTasks.remove(groupId);
+            for (var sub in subTasks) {
+              _completedTasks.remove('${sub['name']}-${sub['location']}');
+            }
+          } else {
+            _completedTasks.add(groupId);
+            for (var sub in subTasks) {
+              _completedTasks.add('${sub['name']}-${sub['location']}');
+            }
+            Future.delayed(Duration(milliseconds: 400), () {
+              _handleTaskComplete(task);
+            });
+          }
+        });
+      },
+    );
+  }
+
+  /// Shared group container UI used by both group builders
+  Widget _buildGroupContainer({
+    required String title,
+    required int count,
+    required String category,
+    required Color categoryColor,
+    required Color categoryTextColor,
+    required IconData icon,
+    required String date,
+    required bool isOverdue,
+    required String groupId,
+    required bool isExpanded,
+    required bool allIgnored,
+    required List<Map<String, dynamic>> subTasks,
+    VoidCallback? onGroupIgnore,
+    VoidCallback? onGroupComplete,
+  }) {
+    final isGroupCompleted = _completedTasks.contains(groupId);
+
+    return Opacity(
+      opacity: allIgnored ? 0.5 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Color(0xFFE9E9E7)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            // Group Header
+            InkWell(
+              onTap: () {
+                setState(() {
+                  if (isExpanded) {
+                    _expandedGroups.remove(groupId);
+                  } else {
+                    _expandedGroups.add(groupId);
+                  }
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    // Group checkbox
+                    GestureDetector(
+                      onTap: allIgnored ? null : onGroupComplete,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: isGroupCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
+                          border: Border.all(
+                            color: isGroupCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: isGroupCompleted ? Icon(Icons.check, size: 16, color: Colors.white) : null,
+                      ),
+                    ),
+                    SizedBox(width: 16),
+
+                    // Title + category
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '$title ($count)',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: (isGroupCompleted || allIgnored) ? Color(0xFF9B9A97) : Colors.black87,
+                                    decoration: (isGroupCompleted || allIgnored) ? TextDecoration.lineThrough : null,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                date,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isOverdue ? Color(0xFFD44C47) : Color(0xFF787774),
+                                  fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 6),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: categoryColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(icon, size: 12, color: categoryTextColor),
+                                SizedBox(width: 4),
+                                Text(
+                                  category,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: categoryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Ignore button
+                    SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onGroupIgnore,
+                      child: Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          allIgnored ? Icons.undo : Icons.block,
+                          size: 20,
+                          color: allIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 4),
+
+                    // Expand/collapse caret
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0,
+                      duration: Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 24,
+                        color: Color(0xFF9B9A97),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Subtasks accordion
+            AnimatedCrossFade(
+              firstChild: SizedBox.shrink(),
+              secondChild: Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFFFAFAFA),
+                  border: Border(top: BorderSide(color: Color(0xFFE9E9E7))),
+                ),
+                child: Column(
+                  children: subTasks.map((sub) {
+                    final subName = sub['name'] as String? ?? '';
+                    final subLoc = sub['location'] as String? ?? '';
+                    final subDbId = sub['dbId'] as int?;
+                    final subTaskId = '$subName-$subLoc';
+                    final isSubCompleted = _completedTasks.contains(subTaskId);
+                    final isSubIgnored = subDbId != null && _ignoredTasks.contains(subDbId);
+                    final subTask = sub['task'] as Map<String, dynamic>?;
+
+                    return Opacity(
+                      opacity: isSubIgnored ? 0.5 : 1.0,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
                         ),
                         child: Row(
                           children: [
-                            SizedBox(
-                              width: 38,
-                            ),
+                            SizedBox(width: 38),
+                            // Sub checkbox
                             GestureDetector(
-                              onTap: () {
-                                setState(
-                                  () {
-                                    if (isSubCompleted) {
-                                      _completedTasks.remove(
-                                        subTaskId,
-                                      );
-                                      _completedTasks.remove(
-                                        groupId,
-                                      );
-                                    } else {
-                                      _completedTasks.add(
-                                        subTaskId,
-                                      );
-                                      bool allCompleted = filteredSubTasks.every(
-                                        (
-                                          t,
-                                        ) =>
-                                            _completedTasks.contains(
-                                          '${t['name']}-${t['location']}',
-                                        ),
-                                      );
-                                      if (allCompleted) {
-                                        _completedTasks.add(
-                                          groupId,
-                                        );
+                              onTap: (isSubIgnored)
+                                  ? null
+                                  : () {
+                                      if (isSubCompleted) {
+                                        setState(() {
+                                          _completedTasks.remove(subTaskId);
+                                          _completedTasks.remove(groupId);
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _completedTasks.add(subTaskId);
+                                          // Check if all subtasks completed
+                                          bool allDone = subTasks.every((t) => _completedTasks.contains('${t['name']}-${t['location']}'));
+                                          if (allDone) _completedTasks.add(groupId);
+                                        });
+                                        if (subTask != null) {
+                                          Future.delayed(Duration(milliseconds: 400), () {
+                                            _handleTaskComplete(subTask);
+                                          });
+                                        }
                                       }
-                                    }
-                                  },
-                                );
-                              },
+                                    },
                               child: Container(
                                 width: 18,
                                 height: 18,
                                 decoration: BoxDecoration(
-                                  color: isSubCompleted
-                                      ? Color(
-                                          0xFF0F7B6C,
-                                        )
-                                      : Colors.transparent,
+                                  color: isSubCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
                                   border: Border.all(
-                                    color: isSubCompleted
-                                        ? Color(
-                                            0xFF0F7B6C,
-                                          )
-                                        : Color(
-                                            0xFFE9E9E7,
-                                          ),
+                                    color: isSubCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
                                     width: 2,
                                   ),
-                                  borderRadius: BorderRadius.circular(
-                                    4,
-                                  ),
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: isSubCompleted
-                                    ? Icon(
-                                        Icons.check,
-                                        size: 12,
-                                        color: Colors.white,
-                                      )
-                                    : null,
+                                child: isSubCompleted ? Icon(Icons.check, size: 12, color: Colors.white) : null,
                               ),
                             ),
-                            SizedBox(
-                              width: 12,
-                            ),
+                            SizedBox(width: 12),
+
+                            // Subtask content
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        task['name']!,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: isSubCompleted
-                                              ? Color(
-                                                  0xFF9B9A97,
-                                                )
-                                              : Colors.black87,
-                                          decoration: isSubCompleted ? TextDecoration.lineThrough : null,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 6,
-                                      ),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                          vertical: 1,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Color(
-                                            0xFFEEEEEE,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          task['breed']!,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Color(
-                                              0xFF666666,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                    height: 2,
-                                  ),
                                   Text(
-                                    task['location']!,
+                                    subName,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(
-                                        0xFF787774,
-                                      ),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: (isSubCompleted || isSubIgnored) ? Color(0xFF9B9A97) : Colors.black87,
+                                      decoration: (isSubCompleted || isSubIgnored) ? TextDecoration.lineThrough : null,
                                     ),
                                   ),
+                                  if (subLoc.isNotEmpty) ...[
+                                    SizedBox(height: 2),
+                                    Text(
+                                      subLoc,
+                                      style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
-                            Icon(
-                              Icons.block,
-                              size: 18,
-                              color: Color(
-                                0xFF9B9A97,
+
+                            // Sub ignore
+                            GestureDetector(
+                              onTap: subDbId != null ? () => _handleTaskIgnore(subDbId) : null,
+                              child: Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(
+                                  isSubIgnored ? Icons.undo : Icons.block,
+                                  size: 18,
+                                  color: isSubIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
                     );
-                  },
-                ).toList(),
+                  }).toList(),
+                ),
               ),
+              crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: Duration(milliseconds: 200),
             ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: Duration(
-              milliseconds: 200,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2763,12 +2509,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   height: 16,
                 ),
                 ...[
-                  'All',
-                  'Rex',
-                  'NZ White',
-                  'Dutch',
-                  'Silver Fox',
-                  'Mix',
+                  'All'
                 ].map(
                   (
                     breed,

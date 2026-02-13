@@ -116,7 +116,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   widget.rabbit.name,
                   widget.rabbit.id,
                   widget.rabbit.breed,
-                  'Castor',
+                  widget.rabbit.color ?? 'Unknown',
                 ),
 
                 SizedBox(height: 24),
@@ -136,19 +136,19 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   children: [
                     Expanded(
                       child: _buildParentCard(
-                        'Thumper',
-                        'B-02',
+                        'Unknown Sire',
+                        '--',
                         widget.rabbit.breed,
-                        true, // isMale
+                        true,
                       ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
                       child: _buildParentCard(
-                        'Starlight',
-                        'EXT-001',
+                        'Unknown Dam',
+                        '--',
                         widget.rabbit.breed,
-                        false, // isFemale
+                        false,
                       ),
                     ),
                   ],
@@ -173,7 +173,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Thumper\'s parents',
+                        'Sire\'s parents',
                         style: TextStyle(
                           fontSize: 11,
                           color: Color(0xFF9B9A97),
@@ -183,7 +183,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Starlight\'s parents',
+                        'Dam\'s parents',
                         style: TextStyle(
                           fontSize: 11,
                           color: Color(0xFF9B9A97),
@@ -198,11 +198,11 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildGrandparentCard('Zeus', 'EXT-010', true),
+                      child: _buildGrandparentCard('Unknown', '--', true),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: _buildGrandparentCard('Thunder', 'EXT-020', true),
+                      child: _buildGrandparentCard('Unknown', '--', true),
                     ),
                   ],
                 ),
@@ -212,7 +212,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildGrandparentCard('Athena', 'EXT-011', false),
+                      child: _buildGrandparentCard('Unknown', '--', false),
                     ),
                     SizedBox(width: 12),
                     Expanded(
@@ -475,7 +475,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       widget.rabbit.name,
                       widget.rabbit.id,
                       widget.rabbit.breed,
-                      'Castor',
+                      widget.rabbit.color ?? 'Unknown',
                     ),
                     SizedBox(height: 24),
 
@@ -491,9 +491,9 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildParentCard('Thumper', 'B-02', widget.rabbit.breed, true)),
+                        Expanded(child: _buildParentCard('Unknown Sire', '--', widget.rabbit.breed, true)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildParentCard('Starlight', 'EXT-001', widget.rabbit.breed, false)),
+                        Expanded(child: _buildParentCard('Unknown Dam', '--', widget.rabbit.breed, false)),
                       ],
                     ),
                     SizedBox(height: 24),
@@ -512,14 +512,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Thumper\'s parents',
+                            'Sire\'s parents',
                             style: TextStyle(fontSize: 11, color: Color(0xFF9B9A97)),
                           ),
                         ),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Starlight\'s parents',
+                            'Dam\'s parents',
                             style: TextStyle(fontSize: 11, color: Color(0xFF9B9A97)),
                           ),
                         ),
@@ -528,17 +528,17 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard('Zeus', 'EXT-010', true)),
+                        Expanded(child: _buildGrandparentCard('Unknown', '--', true)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard('Thunder', 'EXT-020', true)),
+                        Expanded(child: _buildGrandparentCard('Unknown', '--', true)),
                       ],
                     ),
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard('Athena', 'EXT-011', false)),
+                        Expanded(child: _buildGrandparentCard('Unknown', '--', false)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard('Luna Sr', 'EXT-021', false)),
+                        Expanded(child: _buildGrandparentCard('Unknown', '--', false)),
                       ],
                     ),
                   ],

@@ -17,6 +17,10 @@ import '../widgets/notes_card.dart';
 import '../widgets/pedigree_inline_card.dart';
 import '../widgets/documents_card.dart';
 import '../widgets/certificate_card.dart';
+import '../widgets/modals/log_weight_modal.dart';
+import '../widgets/modals/health_record_modal.dart';
+import '../widgets/modals/move_cage_modal.dart';
+import '../widgets/modals/archive_modal.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
@@ -287,10 +291,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.settings_outlined, color: Color(0xFF37352F)),
-          onPressed: _openSettings,
-        ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: Color(0xFF37352F)),
           onPressed: _openActionSheet,
@@ -578,6 +578,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         children: [
           TasksCard(rabbit: _currentRabbit),
+          const SizedBox(height: 16),
+          ScheduleCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
           HealthRecordsCard(rabbit: _currentRabbit),
         ],
@@ -957,10 +959,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   // Action Methods
-  void _openSettings() {
-    // TODO: Implement settings
-  }
-
   void _openActionSheet() {
     showModalBottomSheet(
       context: context,
@@ -1005,16 +1003,95 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                 ],
               ),
             ),
-            _buildMenuItem(Icons.swap_horiz, 'Move Cage', () {}),
-            _buildMenuItem(Icons.scale, 'Log Weight', () {}),
-            _buildMenuItem(Icons.medical_services, 'Add Health Record', () {}),
+            _buildMenuItem(Icons.swap_horiz, 'Move Cage', _showMoveCageModal),
+            _buildMenuItem(Icons.scale, 'Log Weight', _showLogWeightModal),
+            _buildMenuItem(Icons.medical_services, 'Add Health Record', _showHealthRecordModal),
             _buildMenuItem(Icons.camera_alt, 'Change Photo', _showImagePickerOptions),
-            _buildMenuItem(Icons.print, 'Print Cage Card', () {}),
+
             const Divider(),
-            _buildMenuItem(Icons.archive, 'Archive Rabbit', () {}, isDestructive: true),
+            _buildMenuItem(Icons.archive, 'Archive Rabbit', _showArchiveModal, isDestructive: true),
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Refresh rabbit data from DB after an action
+  Future<void> _refreshRabbitData() async {
+    final updated = await _db.getRabbit(_currentRabbit.id);
+    if (updated != null && mounted) {
+      setState(() => _currentRabbit = updated);
+    }
+  }
+
+  void _showMoveCageModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => MoveCageModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          _refreshRabbitData();
+        },
+      ),
+    );
+  }
+
+  void _showLogWeightModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => LogWeightModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          _refreshRabbitData();
+        },
+      ),
+    );
+  }
+
+  void _showHealthRecordModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => HealthRecordModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          _refreshRabbitData();
+        },
+      ),
+    );
+  }
+
+  void _showArchiveModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ArchiveModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          // Go back to herd screen after archiving
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _printCageCard() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🖨️ Printing cage card...'),
+        backgroundColor: Color(0xFF0F7B6C),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

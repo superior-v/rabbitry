@@ -26,7 +26,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -213,6 +213,15 @@ class DatabaseService {
   )
 ''');
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS task_directory(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
     print('✅ Database created successfully with all tables');
   }
 
@@ -381,6 +390,23 @@ class DatabaseService {
         print('⚠️ breeds table may already exist: $e');
       }
     }
+
+    if (oldVersion < 10) {
+      // Add task_directory table for user-defined task templates
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS task_directory(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            createdAt TEXT NOT NULL
+          )
+        ''');
+        print('✅ Added task_directory table');
+      } catch (e) {
+        print('⚠️ task_directory table may already exist: $e');
+      }
+    }
   }
 
   // ==================== RABBIT CRUD ====================
@@ -504,11 +530,13 @@ class DatabaseService {
 
   // ==================== BREEDING OPERATIONS ====================
 
-  Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays) async {
+  Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays, {int? customPalpationDays, int? customNestBoxDays}) async {
     final db = await database;
     final settings = SettingsService.instance;
-    final palpationDate = breedDate.add(Duration(days: settings.palpationDays));
-    final nestBoxDate = breedDate.add(Duration(days: settings.nestBoxDays));
+    final palpDays = customPalpationDays ?? settings.palpationDays;
+    final nestDays = customNestBoxDays ?? settings.nestBoxDays;
+    final palpationDate = breedDate.add(Duration(days: palpDays));
+    final nestBoxDate = breedDate.add(Duration(days: nestDays));
     final dueDate = breedDate.add(Duration(days: gestationDays));
 
     // Determine initial status based on pipeline settings
@@ -544,7 +572,7 @@ class DatabaseService {
         'id': 'task_palp_${DateTime.now().millisecondsSinceEpoch}',
         'rabbitId': doeId,
         'title': 'Palpation Check',
-        'description': 'Day ${settings.palpationDays} pregnancy check',
+        'description': 'Day $palpDays pregnancy check',
         'taskType': 'palpation',
         'dueDate': palpationDate.toIso8601String(),
         'completed': 0,
@@ -2143,6 +2171,127 @@ class DatabaseService {
       ],
     );
     print('✅ Updated due date for scheduled task id: $id');
+  }
+
+  /// Get all scheduled tasks linked to a specific rabbit by ID.
+  /// Returns tasks where linkType='rabbit' and linkedEntities contains the rabbitId.
+  Future<List<Map<String, dynamic>>> getScheduledTasksByRabbit(String rabbitId) async {
+    final db = await database;
+
+    // Ensure the table exists
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS scheduled_tasks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        frequency TEXT NOT NULL,
+        linkType TEXT NOT NULL,
+        linkedEntities TEXT,
+        dueDate TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Get all tasks that are linked to rabbits
+    final List<Map<String, dynamic>> maps = await db.query(
+      'scheduled_tasks',
+      where: "linkType = 'rabbit'",
+      orderBy: 'dueDate ASC',
+    );
+
+    // Filter to only tasks whose linkedEntities contain this rabbit's ID
+    final filtered = maps.where((task) {
+      try {
+        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [];
+        if (entities is List) {
+          return entities.any((e) {
+            if (e is Map) return e['id'] == rabbitId;
+            if (e is String) return e == rabbitId;
+            return false;
+          });
+        }
+      } catch (_) {}
+      return false;
+    }).toList();
+
+    print('📋 getScheduledTasksByRabbit($rabbitId): Found ${filtered.length} tasks');
+
+    return filtered.map((task) {
+      return {
+        'id': task['id'],
+        'task': task['name'],
+        'name': task['name'],
+        'category': task['category'],
+        'frequency': task['frequency'],
+        'linkType': task['linkType'],
+        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [],
+        'dueDate': task['dueDate'],
+        'createdAt': task['createdAt'],
+      };
+    }).toList();
+  }
+
+  // ==================== TASK DIRECTORY ====================
+
+  Future<void> _ensureTaskDirectoryTable() async {
+    final db = await database;
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS task_directory(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<int> insertTaskDirectoryItem(String name, String category) async {
+    await _ensureTaskDirectoryTable();
+    final db = await database;
+    final id = await db.insert('task_directory', {
+      'name': name,
+      'category': category,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    print('✅ Inserted task directory item: $name ($category)');
+    return id;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllTaskDirectoryItems() async {
+    await _ensureTaskDirectoryTable();
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'task_directory',
+      orderBy: 'category ASC, name ASC',
+    );
+    return maps;
+  }
+
+  Future<List<Map<String, dynamic>>> getTaskDirectoryByCategory(String category) async {
+    await _ensureTaskDirectoryTable();
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'task_directory',
+      where: 'category = ?',
+      whereArgs: [
+        category
+      ],
+      orderBy: 'name ASC',
+    );
+    return maps;
+  }
+
+  Future<void> deleteTaskDirectoryItem(int id) async {
+    await _ensureTaskDirectoryTable();
+    final db = await database;
+    await db.delete(
+      'task_directory',
+      where: 'id = ?',
+      whereArgs: [
+        id
+      ],
+    );
+    print('✅ Deleted task directory item with id: $id');
   }
 
   // ✅ Add this method to migrate existing tables

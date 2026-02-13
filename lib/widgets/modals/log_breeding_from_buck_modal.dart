@@ -26,19 +26,29 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   DateTime _breedDate = DateTime.now();
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isCustomTimeline = false;
+
+  // Timeline days (loaded from settings, editable by user)
+  int _palpationDays = 14;
+  int _nestBoxDays = 28;
+  int _gestationDays = 31;
 
   @override
   void initState() {
     super.initState();
-    _loadDoes();
+    _loadData();
   }
 
-  Future<void> _loadDoes() async {
+  Future<void> _loadData() async {
+    await SettingsService.instance.init();
+    final settings = SettingsService.instance;
     final allRabbits = await _db.getAllRabbits();
-    // Filter for does that are open for breeding
     final does = allRabbits.where((r) => r.type == RabbitType.doe && (r.status == RabbitStatus.open || r.status == RabbitStatus.resting)).toList();
 
     setState(() {
+      _palpationDays = settings.palpationDays;
+      _nestBoxDays = settings.nestBoxDays;
+      _gestationDays = settings.gestationDays;
       _does = does;
       _isLoading = false;
     });
@@ -241,39 +251,114 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.schedule, size: 16, color: Color(0xFF0F7B6C)),
-                        SizedBox(width: 6),
-                        Text(
-                          'TIMELINE & REMINDERS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F7B6C),
-                            letterSpacing: 0.5,
+                        Row(
+                          children: [
+                            Icon(Icons.schedule, size: 16, color: Color(0xFF0F7B6C)),
+                            SizedBox(width: 6),
+                            Text(
+                              'TIMELINE & REMINDERS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F7B6C),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _isCustomTimeline = !_isCustomTimeline);
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _isCustomTimeline ? Color(0xFF0F7B6C).withOpacity(0.1) : Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isCustomTimeline ? Icons.check_circle : Icons.edit,
+                                  size: 14,
+                                  color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  _isCustomTimeline ? 'Custom' : 'Edit',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                     SizedBox(height: 14),
-                    _buildTimelineItem(
-                      '📅 Palpation Check',
-                      _breedDate.add(Duration(days: 14)),
-                      'Confirm pregnancy',
-                      isHighlighted: true,
-                    ),
-                    _buildTimelineItem(
-                      '🏠 Nest Box',
-                      _breedDate.add(Duration(days: 28)),
-                      'Prepare nest box',
-                      isHighlighted: false,
-                    ),
-                    _buildTimelineItem(
-                      '🐰 Due Date',
-                      _breedDate.add(Duration(days: 31)),
-                      'Expected kindle date',
-                      isHighlighted: false,
-                    ),
+                    if (_isCustomTimeline) ...[
+                      _buildEditableTimelineRow(
+                        '📅 Palpation Check',
+                        _palpationDays,
+                        _breedDate.add(Duration(days: _palpationDays)),
+                        (val) => setState(() => _palpationDays = val),
+                      ),
+                      _buildEditableTimelineRow(
+                        '🏠 Nest Box',
+                        _nestBoxDays,
+                        _breedDate.add(Duration(days: _nestBoxDays)),
+                        (val) => setState(() => _nestBoxDays = val),
+                      ),
+                      _buildEditableTimelineRow(
+                        '🐰 Due Date',
+                        _gestationDays,
+                        _breedDate.add(Duration(days: _gestationDays)),
+                        (val) => setState(() => _gestationDays = val),
+                      ),
+                      SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () async {
+                          await SettingsService.instance.init();
+                          setState(() {
+                            _palpationDays = SettingsService.instance.palpationDays;
+                            _nestBoxDays = SettingsService.instance.nestBoxDays;
+                            _gestationDays = SettingsService.instance.gestationDays;
+                          });
+                        },
+                        child: Text(
+                          'Reset to defaults',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ] else ...[
+                      _buildTimelineItem(
+                        '📅 Palpation Check',
+                        _breedDate.add(Duration(days: _palpationDays)),
+                        'Confirm pregnancy',
+                        isHighlighted: true,
+                      ),
+                      _buildTimelineItem(
+                        '🏠 Nest Box',
+                        _breedDate.add(Duration(days: _nestBoxDays)),
+                        'Prepare nest box',
+                        isHighlighted: false,
+                      ),
+                      _buildTimelineItem(
+                        '🐰 Due Date',
+                        _breedDate.add(Duration(days: _gestationDays)),
+                        'Expected kindle date',
+                        isHighlighted: false,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -315,6 +400,82 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEditableTimelineRow(
+    String label,
+    int days,
+    DateTime date,
+    ValueChanged<int> onChanged,
+  ) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Color(0xFFE9E9E7)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+            ),
+          ),
+          // Day stepper
+          GestureDetector(
+            onTap: () {
+              if (days > 1) onChanged(days - 1);
+            },
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Color(0xFFF7F7F5),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Color(0xFFE9E9E7)),
+              ),
+              child: Icon(Icons.remove, size: 14, color: Color(0xFF787774)),
+            ),
+          ),
+          Container(
+            width: 40,
+            alignment: Alignment.center,
+            child: Text(
+              '$days d',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F7B6C)),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => onChanged(days + 1),
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Color(0xFFF7F7F5),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Color(0xFFE9E9E7)),
+              ),
+              child: Icon(Icons.add, size: 14, color: Color(0xFF787774)),
+            ),
+          ),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _formatDate(date),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black54),
+              ),
+              Text(
+                'in ${date.difference(DateTime.now()).inDays} days',
+                style: TextStyle(fontSize: 10, color: Color(0xFF787774)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -414,15 +575,14 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
     setState(() => _isSaving = true);
 
     try {
-      await SettingsService.instance.init();
-      final gestationDays = SettingsService.instance.gestationDays;
-
       // Log breeding with doe and buck
       await _db.logBreeding(
         _selectedDoe!.id,
         widget.buck.id,
         _breedDate,
-        gestationDays,
+        _gestationDays,
+        customPalpationDays: _palpationDays,
+        customNestBoxDays: _nestBoxDays,
       );
 
       // Call callback FIRST to trigger parent refresh

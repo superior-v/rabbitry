@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/purchase_service.dart';
 
 class PaywallScreen extends StatefulWidget {
@@ -64,21 +63,21 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                   child: _isLoading
                       ? SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(
-                    'Purchase Full Access',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                          'Purchase Full Access',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               SizedBox(height: 16),
@@ -91,37 +90,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     fontSize: 16,
                   ),
                 ),
-              ),
-
-              // 🧪 DEBUG BUTTONS - Remove before production
-              SizedBox(height: 40),
-              Divider(),
-              Text(
-                '🧪 Debug Mode',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-              SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: _simulatePurchase,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: Text('✅ Simulate Purchase'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _clearPurchase,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    child: Text('❌ Clear Purchase'),
-                  ),
-                ],
               ),
             ],
           ),
@@ -195,35 +163,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  // 🧪 DEBUG METHOD - Simulate successful purchase
-  Future<void> _simulatePurchase() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('app_purchased', true);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ Purchase simulated! Restarting app...'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    await Future.delayed(Duration(seconds: 1));
-    Navigator.of(context).pushReplacementNamed('/home');
-  }
-
-  // 🧪 DEBUG METHOD - Clear purchase to see paywall again
-  Future<void> _clearPurchase() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('app_purchased', false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Purchase cleared! Restart app to see paywall.'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
 
   void _showError(String message) {

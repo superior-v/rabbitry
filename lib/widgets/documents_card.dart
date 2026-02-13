@@ -54,37 +54,18 @@ class DocumentsCard extends StatelessWidget {
               ],
             ),
           ),
-          _buildDocumentItem(
-            context,
-            Icons.picture_as_pdf,
-            'Registration Papers',
-            'PDF • 2.4 MB',
-            'Jan 15, 2025',
-            Color(0xFFC47070),
-          ),
-          _buildDocumentItem(
-            context,
-            Icons.picture_as_pdf,
-            'Pedigree Certificate',
-            'PDF • 1.8 MB',
-            'Mar 20, 2024',
-            Color(0xFFC47070),
-          ),
-          _buildDocumentItem(
-            context,
-            Icons.image,
-            'Show Photos',
-            'JPG • 3.2 MB',
-            'Sep 10, 2025',
-            Color(0xFF5B8AD0),
-          ),
-          _buildDocumentItem(
-            context,
-            Icons.description,
-            'Health Records',
-            'PDF • 1.1 MB',
-            'Dec 5, 2025',
-            Color(0xFFC47070),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No documents uploaded yet.\nTap Upload to add files.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF787774),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -92,13 +73,13 @@ class DocumentsCard extends StatelessWidget {
   }
 
   Widget _buildDocumentItem(
-      BuildContext context,
-      IconData icon,
-      String name,
-      String details,
-      String date,
-      Color color,
-      ) {
+    BuildContext context,
+    IconData icon,
+    String name,
+    String details,
+    String date,
+    Color color,
+  ) {
     return InkWell(
       onTap: () => _showDocumentOptions(context, name),
       child: Container(

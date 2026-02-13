@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
 import '../models/breed.dart';
+import '../models/barn.dart';
 import '../services/database_service.dart';
 
 class AddRabbitScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   // Form controllers
-  final TextEditingController _idController = TextEditingController(text: 'D-117');
+  final TextEditingController _idController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _breedController = TextEditingController();
   final TextEditingController _colorController = TextEditingController();
@@ -33,17 +34,32 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   bool _isSaving = false;
   List<Breed> _availableBreeds = [];
   String? _autoGenetics;
+  List<Barn> _barns = [];
 
   @override
   void initState() {
     super.initState();
     _loadBreeds();
+    _loadBarns();
   }
 
   Future<void> _loadBreeds() async {
     final breeds = await _db.getAllBreeds();
     if (mounted) {
       setState(() => _availableBreeds = breeds);
+    }
+  }
+
+  Future<void> _loadBarns() async {
+    try {
+      final barnMaps = await _db.getAllBarns();
+      if (mounted) {
+        setState(() {
+          _barns = barnMaps.map((m) => Barn.fromMap(m)).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading barns: $e');
     }
   }
 
@@ -606,6 +622,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildLocationDropdown() {
+    // Build location list from actual barns in database
+    final locationNames = _barns.map((b) => b.name).toList();
+
+    // Reset selection if it no longer exists in the list
+    if (_selectedLocation != null && !locationNames.contains(_selectedLocation)) {
+      _selectedLocation = null;
+    }
+
     return DropdownButtonFormField<String>(
       value: _selectedLocation,
       decoration: InputDecoration(
@@ -615,20 +639,38 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
       ),
-      hint: const Text('Select Location'),
-      items: [
-        'Barn A',
-        'Barn B',
-        'Quarantine'
-      ].map((location) {
+      hint: Text(locationNames.isEmpty ? 'No barns added yet' : 'Select Location'),
+      items: locationNames.map((location) {
         return DropdownMenuItem(value: location, child: Text(location));
       }).toList(),
-      onChanged: (value) => setState(() => _selectedLocation = value),
+      onChanged: (value) {
+        setState(() {
+          _selectedLocation = value;
+          _selectedCage = null; // Reset cage when location changes
+        });
+      },
     );
   }
 
   Widget _buildCageDropdown() {
+    // Get cages from the selected barn's rows
+    List<String> cageNames = [];
+    if (_selectedLocation != null) {
+      final matchingBarn = _barns.where((b) => b.name == _selectedLocation).toList();
+      if (matchingBarn.isNotEmpty) {
+        for (final row in matchingBarn.first.rows) {
+          cageNames.addAll(row.cages);
+        }
+      }
+    }
+
+    // Reset selection if it no longer exists in the list
+    if (_selectedCage != null && !cageNames.contains(_selectedCage)) {
+      _selectedCage = null;
+    }
+
     return DropdownButtonFormField<String>(
+      key: ValueKey(_selectedLocation), // Rebuild when location changes
       value: _selectedCage,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.home, color: Color(0xFF787774)),
@@ -637,12 +679,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
       ),
-      hint: const Text('Select Cage'),
-      items: [
-        'Cage 1',
-        'Cage 2',
-        'Cage 3'
-      ].map((cage) {
+      hint: Text(_selectedLocation == null
+          ? 'Select a location first'
+          : cageNames.isEmpty
+              ? 'No cages in this barn'
+              : 'Select Cage'),
+      items: cageNames.map((cage) {
         return DropdownMenuItem(value: cage, child: Text(cage));
       }).toList(),
       onChanged: (value) => setState(() => _selectedCage = value),
@@ -713,8 +755,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final rabbitId = _idController.text.isNotEmpty ? _idController.text : DateTime.now().millisecondsSinceEpoch.toString();
+
       final rabbit = Rabbit(
-        id: _idController.text,
+        id: rabbitId,
         name: _nameController.text,
         type: _selectedType,
         status: _selectedStatus,

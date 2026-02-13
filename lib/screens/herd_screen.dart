@@ -93,32 +93,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         print('  📸 ${rabbit.name}: hasPhoto=$hasPhoto, path=$photoPath, exists=$exists');
       }
 
-      if (rabbits.isEmpty && barnsData.isEmpty) {
-        print('! Database empty, initializing sample data...');
-        await _initializeSampleData();
-        final reloadedRabbits = await _db.getAllRabbits();
-        final reloadedArchived = await _db.getArchivedRabbits();
-        final reloadedBarns = await _db.getAllBarns();
-
-        if (mounted) {
-          setState(() {
-            _allRabbits = reloadedRabbits;
-            _archivedList = reloadedArchived;
-            _barns = reloadedBarns.map((b) => Barn.fromMap(b)).toList();
-            _growOutKits = growOutKits;
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _allRabbits = rabbits;
-            _archivedList = archivedRabbits;
-            _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
-            _growOutKits = growOutKits;
-            _isLoading = false;
-          });
-        }
+      if (mounted) {
+        setState(() {
+          _allRabbits = rabbits;
+          _archivedList = archivedRabbits;
+          _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+          _growOutKits = growOutKits;
+          _isLoading = false;
+        });
       }
 
       print('✅ Herd data loaded and UI updated');
@@ -158,210 +140,6 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       print('✅ Herd data refreshed: ${rabbits.length} rabbits');
     } catch (e) {
       print('❌ Error refreshing herd data: $e');
-    }
-  }
-
-  Future<void> _initializeSampleData() async {
-    final sampleRabbits = [
-      Rabbit(
-        id: 'D-101',
-        name: 'Luna',
-        type: RabbitType.doe,
-        status: RabbitStatus.pregnant,
-        location: 'Row A',
-        cage: 'A-02',
-        breed: 'Rex',
-        notes: 'Due: Feb 10 • 5 Days left',
-        dateOfBirth: DateTime(2023, 3, 15),
-        weight: 4.5,
-        dueDate: DateTime.now().add(const Duration(days: 5)),
-        lastBreedDate: DateTime.now().subtract(const Duration(days: 26)),
-      ),
-      Rabbit(
-        id: 'D-105',
-        name: 'Bella',
-        type: RabbitType.doe,
-        status: RabbitStatus.pregnant,
-        location: 'Row A',
-        cage: 'A-05',
-        breed: 'NZ White',
-        notes: 'Due: Feb 12 • 7 Days left',
-        dateOfBirth: DateTime(2023, 4, 20),
-        weight: 5.0,
-        dueDate: DateTime.now().add(const Duration(days: 7)),
-        lastBreedDate: DateTime.now().subtract(const Duration(days: 24)),
-      ),
-      Rabbit(
-        id: 'D-102',
-        name: 'Misty',
-        type: RabbitType.doe,
-        status: RabbitStatus.palpateDue,
-        location: 'Row A',
-        cage: 'A-04',
-        breed: 'Rex',
-        notes: 'Day 14 Check',
-        dateOfBirth: DateTime(2023, 5, 10),
-        weight: 4.2,
-        palpationDate: DateTime.now(),
-        lastBreedDate: DateTime.now().subtract(const Duration(days: 14)),
-      ),
-      Rabbit(
-        id: 'D-108',
-        name: 'Ginger',
-        type: RabbitType.doe,
-        status: RabbitStatus.nursing,
-        location: 'Row B',
-        cage: 'B-02',
-        breed: 'Dutch',
-        notes: '8 Kits • 4 Weeks old',
-        dateOfBirth: DateTime(2022, 11, 5),
-        weight: 4.8,
-        kindleDate: DateTime.now().subtract(const Duration(days: 28)),
-        currentLitterSize: 8,
-        weanDate: DateTime.now().add(const Duration(days: 28)),
-      ),
-      Rabbit(
-        id: 'D-112',
-        name: 'Snowball',
-        type: RabbitType.doe,
-        status: RabbitStatus.open,
-        location: 'Row B',
-        cage: 'B-05',
-        breed: 'NZ White',
-        notes: 'Last weaned: Dec 12',
-        dateOfBirth: DateTime(2022, 8, 15),
-        weight: 5.2,
-      ),
-      Rabbit(
-        id: 'D-115',
-        name: 'Cinnamon',
-        type: RabbitType.doe,
-        status: RabbitStatus.resting,
-        location: 'Row B',
-        cage: 'B-06',
-        breed: 'Rex',
-        notes: 'Resting after weaning',
-        dateOfBirth: DateTime(2023, 1, 10),
-        weight: 4.6,
-      ),
-      Rabbit(
-        id: 'B-01',
-        name: 'Roger',
-        type: RabbitType.buck,
-        status: RabbitStatus.active,
-        location: 'Row A',
-        cage: 'A-01',
-        breed: 'NZ White',
-        notes: '10.5 lbs',
-        dateOfBirth: DateTime(2022, 6, 10),
-        weight: 10.5,
-      ),
-      Rabbit(
-        id: 'B-02',
-        name: 'Thumper',
-        type: RabbitType.buck,
-        status: RabbitStatus.active,
-        location: 'Row A',
-        cage: 'A-03',
-        breed: 'Rex',
-        notes: 'Proven',
-        dateOfBirth: DateTime(2022, 7, 20),
-        weight: 9.8,
-      ),
-      Rabbit(
-        id: 'B-03',
-        name: 'Chester',
-        type: RabbitType.buck,
-        status: RabbitStatus.inactive,
-        location: 'Row B',
-        cage: 'B-01',
-        breed: 'Dutch',
-        notes: 'Retired breeder',
-        dateOfBirth: DateTime(2021, 5, 15),
-        weight: 8.5,
-      ),
-    ];
-
-    for (var rabbit in sampleRabbits) {
-      await _db.insertRabbit(rabbit);
-    }
-
-    final sampleBarns = [
-      Barn(
-        id: 'barn_a',
-        name: 'BARN A',
-        rows: [
-          BarnRow(
-            name: 'Row A',
-            cages: [
-              'A-01',
-              'A-02',
-              'A-03',
-              'A-04',
-              'A-05',
-              'A-06',
-              'A-07',
-              'A-08'
-            ],
-          ),
-        ],
-      ),
-      Barn(
-        id: 'barn_b',
-        name: 'BARN B',
-        rows: [
-          BarnRow(
-            name: 'Row B',
-            cages: [
-              'B-01',
-              'B-02',
-              'B-03',
-              'B-04',
-              'B-05',
-              'B-06',
-              'B-07',
-              'B-08',
-              'B-09',
-              'B-10',
-              'B-11'
-            ],
-          ),
-        ],
-      ),
-      Barn(
-        id: 'outdoor',
-        name: 'OUTDOOR',
-        rows: [
-          BarnRow(
-            name: 'Bank 1',
-            cages: [
-              '1',
-              '2',
-              '3',
-              '4',
-              '5',
-              '6'
-            ],
-          ),
-        ],
-      ),
-      Barn(
-        id: 'quarantine',
-        name: 'QUARANTINE',
-        rows: [
-          BarnRow(
-            name: 'Quarantine',
-            cages: [
-              'Q-01',
-              'Q-02'
-            ],
-          ),
-        ],
-      ),
-    ];
-
-    for (var barn in sampleBarns) {
-      await _db.insertBarn(barn.toMap());
     }
   }
 
@@ -543,6 +321,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               color: const Color(0xFF0F7B6C),
               child: TabBarView(
                 controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildRabbitList(RabbitType.doe),
                   _buildRabbitList(RabbitType.buck),
@@ -1286,6 +1065,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               ),
               IconButton(
                 icon: const Icon(Icons.more_vert, color: Color(0xFF9B9A97)),
+                iconSize: 20,
+                padding: const EdgeInsets.all(20),
+                constraints: const BoxConstraints(
+                  minWidth: 56,
+                  minHeight: 56,
+                ),
                 onPressed: () => _showArchiveMenu(rabbit),
               ),
             ],

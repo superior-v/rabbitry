@@ -59,94 +59,46 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // Checkboxes for automation
   List<Breed> breeds = [];
 
-  List<Map<String, String>> healthIssues = [
-    {
-      'name': 'Sniffles',
-      'treatment': 'Isolate immediately'
-    },
-    {
-      'name': 'Ear Mites',
-      'treatment': 'Oil drops'
-    },
-  ];
-  List<Map<String, String>> husbandryTasks = [
-    {
-      'name': 'Clean Trays'
-    },
-    {
-      'name': 'Top Off Feed'
-    },
-  ];
+  List<Map<String, String>> healthIssues = [];
+  List<Map<String, String>> husbandryTasks = [];
+  List<Map<String, String>> healthTasks = [];
+  List<Map<String, String>> maintenanceTasks = [];
 
-  List<Map<String, String>> healthTasks = [
-    {
-      'name': 'Nail Trim'
-    },
-    {
-      'name': 'Weighing'
-    },
-  ];
-
-  List<Map<String, String>> maintenanceTasks = [
-    {
-      'name': 'Sanitize Lines'
-    },
-    {
-      'name': 'Repair Cage'
-    },
-  ];
+  // Task Directory (DB-backed)
+  List<Map<String, dynamic>> taskDirectoryItems = [];
 
   List<Map<String, dynamic>> scheduledTasks = []; // ✅ CHANGED: Load from database instead of hardcoded
 
-  // ✅ ADDED Mock Data for the Modal Selection
-  final Map<String, List<Map<String, String>>> entityData = {
-    'rabbit': [
-      {
-        'id': 'r1',
-        'name': 'Luna',
-        'code': 'D-101'
-      },
-      {
-        'id': 'r2',
-        'name': 'Thumper',
-        'code': 'B-02'
-      },
-      {
-        'id': 'r3',
-        'name': 'Snowball',
-        'code': 'D-112'
-      },
-      {
-        'id': 'r4',
-        'name': 'Ginger',
-        'code': 'D-108'
-      },
-    ],
-    'litter': [
-      {
-        'id': 'l1',
-        'name': 'L-101',
-        'desc': 'Luna x Thumper • 6 kits'
-      },
-      {
-        'id': 'l2',
-        'name': 'L-102',
-        'desc': 'Ginger x Shadow • 8 kits'
-      },
-    ],
-    'kit': [
-      {
-        'id': 'k1',
-        'name': 'Kit #1',
-        'desc': 'From L-101'
-      },
-      {
-        'id': 'k2',
-        'name': 'Kit #2',
-        'desc': 'From L-101'
-      },
-    ]
+  // TODO: Load entity data from database
+  Map<String, List<Map<String, String>>> entityData = {
+    'rabbit': [],
+    'litter': [],
+    'kit': [],
   };
+  Future<void> _loadEntityData() async {
+    final rabbits = await _db.getAllRabbits();
+    final litters = await _db.getLitters();
+
+    setState(() {
+      entityData = {
+        'rabbit': rabbits
+            .map((r) => {
+                  'id': r.id,
+                  'name': r.name ?? r.id,
+                  'code': r.cage ?? '', // ✅ Changed from cageLocation to cage
+                })
+            .toList(),
+        'litter': litters
+            .map((l) => {
+                  'id': l.id, // ✅ Changed from litterId to id
+                  'name': 'Litter ${l.id}', // ✅ Changed from litterId to id
+                  'code': '${l.kits.length} kits',
+                })
+            .toList(),
+        'kit': [],
+      };
+    });
+  }
 
   Map<String, bool> soldLogic = {
     'archive': true,
@@ -252,12 +204,44 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         // ✅ Breeds from database
         breeds = loadedBreeds;
 
+        // ✅ Task directory items loaded below after setState
+
         _isLoading = false;
       });
+      // Load task directory items from database
+      await _loadTaskDirectory();
     } catch (e) {
       print('❌ Error loading settings: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadTaskDirectory() async {
+    final items = await _db.getAllTaskDirectoryItems();
+    setState(() {
+      taskDirectoryItems = items;
+      husbandryTasks = items
+          .where((t) => t['category'] == 'Husbandry')
+          .map((t) => {
+                'name': t['name'] as String,
+                'id': t['id'].toString()
+              })
+          .toList();
+      healthTasks = items
+          .where((t) => t['category'] == 'Health')
+          .map((t) => {
+                'name': t['name'] as String,
+                'id': t['id'].toString()
+              })
+          .toList();
+      maintenanceTasks = items
+          .where((t) => t['category'] == 'Maintenance')
+          .map((t) => {
+                'name': t['name'] as String,
+                'id': t['id'].toString()
+              })
+          .toList();
+    });
   }
 
   Future<void> _saveSettings() async {
@@ -1030,21 +1014,37 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
         SizedBox(height: 20),
 
-        // TASK DIRECTORY CARD (Kept same as before)
+        // TASK DIRECTORY CARD (DB-backed)
         _buildCard(
           'Task Directory',
           PhosphorIconsDuotone.listChecks,
           [
             _buildSubsectionHeader('HUSBANDRY TASKS'),
-            ...husbandryTasks.asMap().entries.map((entry) {
+            ...husbandryTasks.map((task) {
               return _buildSimpleTaskItem(
-                entry.value['name']!,
-                () => _deleteTask('husbandry', entry.key),
+                task['name']!,
+                () => _deleteTaskDirectory(int.parse(task['id']!)),
               );
             }).toList(),
-            _buildAddButton('Define New Task', () => _addTask('husbandry')),
-
-            // ... (Keep other sections Health/Maintenance if you have them)
+            _buildAddButton('Define New Task', () => _addTaskDirectory('Husbandry')),
+            SizedBox(height: 8),
+            _buildSubsectionHeader('HEALTH TASKS'),
+            ...healthTasks.map((task) {
+              return _buildSimpleTaskItem(
+                task['name']!,
+                () => _deleteTaskDirectory(int.parse(task['id']!)),
+              );
+            }).toList(),
+            _buildAddButton('Define New Task', () => _addTaskDirectory('Health')),
+            SizedBox(height: 8),
+            _buildSubsectionHeader('MAINTENANCE TASKS'),
+            ...maintenanceTasks.map((task) {
+              return _buildSimpleTaskItem(
+                task['name']!,
+                () => _deleteTaskDirectory(int.parse(task['id']!)),
+              );
+            }).toList(),
+            _buildAddButton('Define New Task', () => _addTaskDirectory('Maintenance')),
           ],
         ),
         SizedBox(height: 20),
@@ -2599,12 +2599,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   void _addTask(String category) {
+    _addTaskDirectory(category[0].toUpperCase() + category.substring(1));
+  }
+
+  void _deleteTaskDirectory(int id) async {
+    await _db.deleteTaskDirectoryItem(id);
+    await _loadTaskDirectory();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Task removed from directory'),
+        backgroundColor: Color(0xFF0F7B6C),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _addTaskDirectory(String category) {
     TextEditingController controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add New Task'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Define New $category Task'),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
@@ -2612,43 +2630,35 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+            ),
           ),
           autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  if (category == 'husbandry') {
-                    husbandryTasks.add({
-                      'name': controller.text
-                    });
-                  } else if (category == 'health') {
-                    healthTasks.add({
-                      'name': controller.text
-                    });
-                  } else if (category == 'maintenance') {
-                    maintenanceTasks.add({
-                      'name': controller.text
-                    });
-                  }
-                });
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await _db.insertTaskDirectoryItem(controller.text.trim(), category);
+                await _loadTaskDirectory();
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Task added successfully'),
+                    content: Text('Task added to $category directory'),
                     backgroundColor: Color(0xFF0F7B6C),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: Text('Add', style: TextStyle(color: Color(0xFF0F7B6C))),
+            child: Text('Add', style: TextStyle(color: Color(0xFF0F7B6C), fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -2656,8 +2666,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   // ✅ NEW: The robust "New Schedule" Modal
-  void _openScheduleModal() {
+  void _openScheduleModal() async {
     // Modal State
+    await _loadEntityData();
+    await _loadTaskDirectory(); // Ensure latest task directory is loaded
     String selectedCategory = 'Operations';
     String? selectedTask;
     String selectedFrequency = 'Weekly';
@@ -2671,24 +2683,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // Get Tasks based on Category
-            List<Map<String, String>> currentCategoryTasks = [];
-            if (selectedCategory == 'Husbandry')
-              currentCategoryTasks = husbandryTasks;
-            else if (selectedCategory == 'Health')
-              currentCategoryTasks = healthTasks;
-            else if (selectedCategory == 'Maintenance')
-              currentCategoryTasks = maintenanceTasks;
-            // Add a default lists if your variables differ
-            else
-              currentCategoryTasks = [
-                {
-                  'name': 'Clean Trays'
-                },
-                {
-                  'name': 'Check Water'
-                }
-              ];
+            // Get Tasks based on Category from task directory
+            List<Map<String, String>> currentCategoryTasks = taskDirectoryItems
+                .where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase())
+                .map((t) => {
+                      'name': t['name'] as String
+                    })
+                .toList();
 
             return Dialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

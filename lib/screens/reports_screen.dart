@@ -14,7 +14,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   String selectedPeriod = '30D';
   bool showBest = true;
 
-  final List<String> periods = ['7D', '30D', '90D', 'YTD', 'All'];
+  final List<String> periods = [
+    '7D',
+    '30D',
+    '90D',
+    'YTD',
+    'All'
+  ];
 
   @override
   void initState() {
@@ -104,13 +110,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   border: Border.all(
                     color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0),
                   ),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ] : [],
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Text(
                   period,
@@ -154,19 +162,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildProductionTab() {
     final kpis = [
-      KPICard(label: 'Active Litters', value: '5', subtitle: '+1', isTrending: true, isPositive: true),
-      KPICard(label: 'Live Kits Born', value: '42', subtitle: '+8', isTrending: true, isPositive: true),
-      KPICard(label: 'Avg Litter', value: '8.4', subtitle: 'Target: 8.0'),
-      KPICard(label: 'Gestation', value: '31.2d', subtitle: 'Range: 30-33'),
+      KPICard(label: 'Active Litters', value: '--', subtitle: ''),
+      KPICard(label: 'Live Kits Born', value: '--', subtitle: ''),
+      KPICard(label: 'Avg Litter', value: '--', subtitle: 'Target: 8.0'),
+      KPICard(label: 'Gestation', value: '--', subtitle: 'Range: 30-33'),
     ];
 
-    final gestationData = [
-      ChartData(label: '29', value: 10),
-      ChartData(label: '30', value: 25),
-      ChartData(label: '31', value: 80),
-      ChartData(label: '32', value: 40),
-      ChartData(label: '33+', value: 5),
-    ];
+    final gestationData = <ChartData>[];
 
     return ListView(
       padding: EdgeInsets.all(16),
@@ -184,19 +186,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildGrowthTab() {
     final kpis = [
-      KPICard(label: 'Meat Yield', value: '42.5lbs', subtitle: 'Last 30 Days'),
-      KPICard(label: 'Avg Live Wt', value: '5.1lbs', subtitle: 'At Harvest'),
-      KPICard(label: 'Dress-Out', value: '58%', subtitle: '+2% vs avg', isTrending: true, isPositive: true),
-      KPICard(label: 'Avg Age', value: '10.2wks', subtitle: 'To Butcher'),
+      KPICard(label: 'Meat Yield', value: '--', subtitle: 'Last 30 Days'),
+      KPICard(label: 'Avg Live Wt', value: '--', subtitle: 'At Harvest'),
+      KPICard(label: 'Dress-Out', value: '--', subtitle: ''),
+      KPICard(label: 'Avg Age', value: '--', subtitle: 'To Butcher'),
     ];
 
-    final growthData = [
-      ChartData(label: '4w', value: 20),
-      ChartData(label: '6w', value: 35),
-      ChartData(label: '8w', value: 55),
-      ChartData(label: '10w', value: 75),
-      ChartData(label: '12w', value: 90),
-    ];
+    final growthData = <ChartData>[];
 
     return ListView(
       padding: EdgeInsets.all(16),
@@ -212,10 +208,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildHealthTab() {
     final kpis = [
-      KPICard(label: 'Survival Rate', value: '92.5%', subtitle: 'Target: 90%+'),
-      KPICard(label: 'Losses', value: '3', subtitle: 'Last 30 days'),
-      KPICard(label: 'Doe Mortality', value: '0', subtitle: 'Active Herd'),
-      KPICard(label: 'Quarantine', value: '1', subtitle: 'Current'),
+      KPICard(label: 'Survival Rate', value: '--', subtitle: 'Target: 90%+'),
+      KPICard(label: 'Losses', value: '--', subtitle: 'Last 30 days'),
+      KPICard(label: 'Doe Mortality', value: '--', subtitle: 'Active Herd'),
+      KPICard(label: 'Quarantine', value: '--', subtitle: 'Current'),
     ];
 
     return ListView(
@@ -225,11 +221,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         SizedBox(height: 24),
         _buildDonutChart(
           'Causes of Loss',
-          [
-            ChartData(label: 'Born Dead', value: 40),
-            ChartData(label: 'Exposure', value: 30),
-            ChartData(label: 'Fading', value: 30),
-          ],
+          <ChartData>[],
         ),
         SizedBox(height: 24),
         _buildSurvivalFunnelCard(),
@@ -239,18 +231,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildFinanceTab() {
     final kpis = [
-      KPICard(label: 'Net Profit', value: '+\$345'),
-      KPICard(label: 'Revenue', value: '+\$820'),
-      KPICard(label: 'Expense', value: '-\$475'),
-      KPICard(label: 'Cost / Kit', value: '\$11.87'),
+      KPICard(label: 'Net Profit', value: '--'),
+      KPICard(label: 'Revenue', value: '--'),
+      KPICard(label: 'Expense', value: '--'),
+      KPICard(label: 'Cost / Kit', value: '--'),
     ];
 
-    final incomeData = [
-      ChartData(label: 'Meat', value: 40),
-      ChartData(label: 'Breeders', value: 80),
-      ChartData(label: 'Pets', value: 20),
-      ChartData(label: 'Manure', value: 10),
-    ];
+    final incomeData = <ChartData>[];
 
     return ListView(
       padding: EdgeInsets.all(16),
@@ -320,7 +307,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1E293B),
                   letterSpacing: -0.5,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: [
+                    FontFeature.tabularFigures()
+                  ],
                 ),
               ),
               if (kpi.subtitle != null)
@@ -396,9 +385,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildRatioBar('Does', 85, Color(0xFF0F7B6C)),
+          _buildRatioBar('Does', 0, Color(0xFF0F7B6C)),
           SizedBox(height: 16),
-          _buildRatioBar('Bucks', 92, Color(0xFF475569)),
+          _buildRatioBar('Bucks', 0, Color(0xFF475569)),
         ],
       ),
     );
@@ -424,7 +413,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1E293B),
-                fontFeatures: [FontFeature.tabularFigures()],
+                fontFeatures: [
+                  FontFeature.tabularFigures()
+                ],
               ),
             ),
           ],
@@ -444,52 +435,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildPerformanceCard() {
-    final rankings = showBest ? [
-      RankingItem(
-        rank: 1,
-        name: 'Luna',
-        id: 'D-101',
-        subtitle: '3 Litters • 26 Kits',
-        percentage: 100,
-        isTop: true,
-      ),
-      RankingItem(
-        rank: 2,
-        name: 'Snowball',
-        id: 'D-112',
-        subtitle: '2 Litters • 18 Kits',
-        percentage: 92,
-      ),
-      RankingItem(
-        rank: 3,
-        name: 'Ginger',
-        id: 'D-108',
-        subtitle: '2 Litters • 16 Kits',
-        percentage: 88,
-      ),
-    ] : [
-      RankingItem(
-        rank: 1,
-        name: 'Cocoa',
-        id: 'D-102',
-        subtitle: '2 Litters • 12 Kits',
-        percentage: 40,
-      ),
-      RankingItem(
-        rank: 2,
-        name: 'Bella',
-        id: 'D-105',
-        subtitle: '1 Litter • 6 Kits',
-        percentage: 50,
-      ),
-      RankingItem(
-        rank: 3,
-        name: 'Oreo',
-        id: 'D-122',
-        subtitle: '1 Litter • 8 Kits',
-        percentage: 60,
-      ),
-    ];
+    // TODO: Load performance data from database
+    final List<RankingItem> rankings = [];
 
     return Container(
       padding: EdgeInsets.all(20),
@@ -556,13 +503,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          boxShadow: isActive ? [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 3,
-              offset: Offset(0, 1),
-            ),
-          ] : [],
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 3,
+                    offset: Offset(0, 1),
+                  ),
+                ]
+              : [],
         ),
         child: Text(
           label,
@@ -599,8 +548,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               color: item.isTop && isBest
                   ? Color(0xFFFEF3C7)
                   : !isBest && item.rank == 1
-                  ? Color(0xFFFEF2F2)
-                  : Color(0xFFF5F7FA),
+                      ? Color(0xFFFEF2F2)
+                      : Color(0xFFF5F7FA),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -612,8 +561,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   color: item.isTop && isBest
                       ? Color(0xFFD97706)
                       : !isBest && item.rank == 1
-                      ? Color(0xFFEF4444)
-                      : Color(0xFF64748B),
+                          ? Color(0xFFEF4444)
+                          : Color(0xFF64748B),
                 ),
               ),
             ),
@@ -650,7 +599,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: percentColor,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: [
+                    FontFeature.tabularFigures()
+                  ],
                 ),
               ),
               SizedBox(height: 2),
@@ -708,8 +659,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 Color barColor = heightPercent >= 70
                     ? Color(0xFF0F7B6C)
                     : heightPercent >= 40
-                    ? Color(0xFF475569)
-                    : Color(0xFF94A3B8);
+                        ? Color(0xFF475569)
+                        : Color(0xFF94A3B8);
 
                 return Expanded(
                   child: Padding(
@@ -767,7 +718,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildDonutChart(String title, List<ChartData> data) {
-    final colors = [Color(0xFF0F7B6C), Color(0xFF475569), Color(0xFF94A3B8)];
+    final colors = [
+      Color(0xFF0F7B6C),
+      Color(0xFF475569),
+      Color(0xFF94A3B8)
+    ];
 
     return Container(
       padding: EdgeInsets.all(20),
@@ -805,7 +760,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   border: Border.all(color: Color(0xFFE2E8F0), width: 20),
                   gradient: SweepGradient(
                     colors: colors,
-                    stops: [0.0, 0.4, 0.7],
+                    stops: [
+                      0.0,
+                      0.4,
+                      0.7
+                    ],
                   ),
                 ),
                 child: Container(
@@ -851,7 +810,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF1E293B),
-                              fontFeatures: [FontFeature.tabularFigures()],
+                              fontFeatures: [
+                                FontFeature.tabularFigures()
+                              ],
                             ),
                           ),
                         ],
@@ -894,11 +855,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildRatioBar('Light (< 4.5 lbs)', 10, Color(0xFF94A3B8)),
+          _buildRatioBar('Light (< 4.5 lbs)', 0, Color(0xFF94A3B8)),
           SizedBox(height: 16),
-          _buildRatioBar('Target (4.5 - 5.5 lbs)', 75, Color(0xFF0F7B6C)),
+          _buildRatioBar('Target (4.5 - 5.5 lbs)', 0, Color(0xFF0F7B6C)),
           SizedBox(height: 16),
-          _buildRatioBar('Heavy (> 5.5 lbs)', 15, Color(0xFF475569)),
+          _buildRatioBar('Heavy (> 5.5 lbs)', 0, Color(0xFF475569)),
         ],
       ),
     );
@@ -931,21 +892,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildFunnelItem('Born Total', 45, 100, 0, Color(0xFF94A3B8)),
+          _buildFunnelItem('Born Total', 0, 0, 0, Color(0xFF94A3B8)),
           SizedBox(height: 12),
           Padding(
             padding: EdgeInsets.only(left: 8),
-            child: _buildFunnelItem('Born Live', 42, 93, -3, Color(0xFF475569)),
+            child: _buildFunnelItem('Born Live', 0, 0, 0, Color(0xFF475569)),
           ),
           SizedBox(height: 12),
           Padding(
             padding: EdgeInsets.only(left: 16),
-            child: _buildFunnelItem('Weaned', 40, 88, -2, Color(0xFF5EEAD4)),
+            child: _buildFunnelItem('Weaned', 0, 0, 0, Color(0xFF5EEAD4)),
           ),
           SizedBox(height: 12),
           Padding(
             padding: EdgeInsets.only(left: 24),
-            child: _buildFunnelItem('Mature', 39, 86, -1, Color(0xFF0F7B6C)),
+            child: _buildFunnelItem('Mature', 0, 0, 0, Color(0xFF0F7B6C)),
           ),
         ],
       ),
@@ -972,7 +933,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1E293B),
-                fontFeatures: [FontFeature.tabularFigures()],
+                fontFeatures: [
+                  FontFeature.tabularFigures()
+                ],
               ),
             ),
           ],
@@ -1018,9 +981,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 16),
-          _buildEconomicRow('Cost Per Doe', 'Feed + Meds / Active Does', '\$4.50', '/mo'),
+          _buildEconomicRow('Cost Per Doe', 'Feed + Meds / Active Does', '--', '/mo'),
           Divider(height: 28, color: Color(0xFFE2E8F0)),
-          _buildEconomicRow('Cost Per lb Meat', 'Total Exp / Total lbs', '\$2.15', '/lb'),
+          _buildEconomicRow('Cost Per lb Meat', 'Total Exp / Total lbs', '--', '/lb'),
         ],
       ),
     );
@@ -1062,7 +1025,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1E293B),
-                fontFeatures: [FontFeature.tabularFigures()],
+                fontFeatures: [
+                  FontFeature.tabularFigures()
+                ],
               ),
             ),
             Text(

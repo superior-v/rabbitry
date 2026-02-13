@@ -66,72 +66,19 @@ class HealthRecordsCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ACTIVE Section
-                Text(
-                  'ACTIVE',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.8,
+                // Empty state - no records yet
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'No health records yet.\nTap ADD to create one.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF787774),
+                      ),
+                    ),
                   ),
-                ),
-
-                SizedBox(height: 12),
-
-                _buildHealthRecordItem(
-                  context,
-                  'Sniffles',
-                  'Treatment: Pen G • Day 5 of 10',
-                  '\$8.00',
-                  Color(0xFFF59E0B),
-                  PhosphorIconsFill.warning,
-                ),
-
-                SizedBox(height: 20),
-
-                // RESOLVED Section
-                Text(
-                  'RESOLVED',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-
-                SizedBox(height: 12),
-
-                _buildHealthRecordItem(
-                  context,
-                  'Sore Hocks',
-                  'Oct 1 - Oct 20, 2025 (19 days)',
-                  '\$5.00',
-                  Color(0xFF10B981),
-                  PhosphorIconsFill.checkCircle,
-                ),
-
-                SizedBox(height: 20),
-
-                // VACCINATIONS Section
-                Text(
-                  'VACCINATIONS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-
-                SizedBox(height: 12),
-
-                _buildVaccinationItem(
-                  context,
-                  'RHDV2',
-                  'Last: Sep 1, 2025',
-                  'Next: Sep 1, 2026',
                 ),
 
                 SizedBox(height: 16),
@@ -144,13 +91,13 @@ class HealthRecordsCard extends StatelessWidget {
   }
 
   Widget _buildHealthRecordItem(
-      BuildContext context,
-      String title,
-      String subtitle,
-      String cost,
-      Color iconColor,
-      IconData icon,
-      ) {
+    BuildContext context,
+    String title,
+    String subtitle,
+    String cost,
+    Color iconColor,
+    IconData icon,
+  ) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -214,11 +161,11 @@ class HealthRecordsCard extends StatelessWidget {
   }
 
   Widget _buildVaccinationItem(
-      BuildContext context,
-      String title,
-      String lastDate,
-      String nextDate,
-      ) {
+    BuildContext context,
+    String title,
+    String lastDate,
+    String nextDate,
+  ) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -539,8 +486,7 @@ class HealthRecordsCard extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        if (typeController.text.isNotEmpty &&
-                            conditionController.text.isNotEmpty) {
+                        if (typeController.text.isNotEmpty && conditionController.text.isNotEmpty) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -577,6 +523,7 @@ class HealthRecordsCard extends StatelessWidget {
       ),
     );
   }
+
   void _showRecordOptions(BuildContext context, String title) {
     showModalBottomSheet(
       context: context,

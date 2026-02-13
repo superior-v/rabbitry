@@ -11,7 +11,11 @@ class RegistrationCard extends StatefulWidget {
 }
 
 class _RegistrationCardState extends State<RegistrationCard> {
-  List<bool> gcLegs = [true, true, false];
+  List<bool> gcLegs = [
+    false,
+    false,
+    false
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +59,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
               ],
             ),
           ),
-          _buildInfoRow('Registration #', 'RX78901'),
+          _buildInfoRow('Registration #', widget.rabbit.registrationNumber ?? 'Not set'),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -134,9 +138,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
         color: earned ? Color(0xFF0F7B6C) : null,
         border: earned ? null : Border.all(color: Color(0xFFE9E9E7), width: 2),
       ),
-      child: earned
-          ? Icon(Icons.check, size: 8, color: Colors.white)
-          : null,
+      child: earned ? Icon(Icons.check, size: 8, color: Colors.white) : null,
     );
   }
 

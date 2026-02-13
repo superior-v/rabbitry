@@ -33,41 +33,27 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _viewTabController = TabController(length: 2, vsync: this);
-    print('🎬 initState called, loading litters...');
+    print(' initState called, loading litters...');
     _loadLitters();
   }
 
-  // ✅ ADD THIS METHOD
   Future<void> _loadLitters() async {
     setState(() => _isLoading = true);
 
     try {
-      print('🔄 Loading litters...');
-
-      // First clear old broken data and reinitialize
       final existingLitters = await _db.getLitters();
-
-      // Check if data is broken (missing dob/location)
-      bool hasBrokenData = existingLitters.any((l) => l.location == 'Unknown' || l.cage == 'N/A' || l.kits.isEmpty);
-
-      if (existingLitters.isEmpty || hasBrokenData) {
-        print('📦 No valid litters found, initializing sample data...');
-        await _db.clearAllLitters();
-        await _initializeSampleData();
-      } else {
-        print('📦 Database returned ${existingLitters.length} valid litters');
-        setState(() {
-          litters = existingLitters;
-          _isLoading = false;
-        });
-        print('✅ Updated state: ${litters.length} litters, loading: false');
-      }
+      setState(() {
+        litters = existingLitters;
+        _isLoading = false;
+      });
+      print(' Loaded ${litters.length} litters from database');
     } catch (e, stackTrace) {
-      print('❌ Error loading litters: $e');
+      print('Error loading litters: $e');
       print('Stack trace: $stackTrace');
-      // Fallback to sample data
-      await _db.clearAllLitters();
-      await _initializeSampleData();
+      setState(() {
+        litters = [];
+        _isLoading = false;
+      });
     }
   }
 
@@ -79,160 +65,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       setState(() {
         litters = loadedLitters;
       });
-      print('🔄 Refreshed: ${litters.length} litters');
+      print('Refreshed: ${litters.length} litters');
     } catch (e) {
-      print('❌ Error refreshing litters: $e');
-    }
-  }
-
-  Future<void> _clearAndReinitialize() async {
-    print('🗑️ Clearing old data and reinitializing...');
-    setState(() => _isLoading = true);
-
-    try {
-      // Clear all existing litters
-      await _db.clearAllLitters();
-      print('✅ Cleared old litters');
-
-      // Initialize fresh sample data
-      await _initializeSampleData();
-
-      // Reload from database
-      await _loadLitters();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Database reinitialized with sample data'),
-            backgroundColor: Color(0xFF0F7B6C),
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Error reinitializing: $e');
-      setState(() => _isLoading = false);
-    }
-  }
-// Add this method around line 62 (after _refreshLitters)
-
-  Future<void> _initializeSampleData() async {
-    try {
-      print('📦 Creating sample litters...');
-
-      final sampleLitters = [
-        Litter(
-          id: 'L-101',
-          doeId: 'D-101',
-          doeName: 'Luna',
-          buckId: 'B-01',
-          buckName: 'Thumper',
-          breedDate: DateTime.now().subtract(const Duration(days: 45)),
-          kindleDate: DateTime.now().subtract(const Duration(days: 14)),
-          dob: DateTime.now().subtract(const Duration(days: 14)),
-          location: 'Maternity Row',
-          cage: 'A-02',
-          breed: 'New Zealand White',
-          status: 'Nursing',
-          sire: 'Thumper',
-          dam: 'Luna',
-          totalKits: 8,
-          aliveKits: 8,
-          deadKits: 0,
-          kits: [
-            Kit(id: '1', sex: 'M', color: 'White', weight: 0.5, status: 'Nursing'),
-            Kit(id: '2', sex: 'F', color: 'White', weight: 0.4, status: 'Nursing'),
-            Kit(id: '3', sex: 'M', color: 'White', weight: 0.6, status: 'Nursing'),
-            Kit(id: '4', sex: 'F', color: 'White', weight: 0.5, status: 'Nursing'),
-            Kit(id: '5', sex: 'M', color: 'White', weight: 0.4, status: 'Nursing'),
-            Kit(id: '6', sex: 'F', color: 'White', weight: 0.5, status: 'Nursing'),
-            Kit(id: '7', sex: 'M', color: 'White', weight: 0.6, status: 'Nursing'),
-            Kit(id: '8', sex: 'F', color: 'White', weight: 0.5, status: 'Nursing'),
-          ],
-        ),
-        Litter(
-          id: 'L-102',
-          doeId: 'D-102',
-          doeName: 'Snowball',
-          buckId: 'B-01',
-          buckName: 'Roger',
-          breedDate: DateTime.now().subtract(const Duration(days: 60)),
-          kindleDate: DateTime.now().subtract(const Duration(days: 28)),
-          dob: DateTime.now().subtract(const Duration(days: 28)),
-          location: 'Nursery 1',
-          cage: 'B-03',
-          breed: 'Californian',
-          status: 'Weaned',
-          sire: 'Roger',
-          dam: 'Snowball',
-          totalKits: 6,
-          aliveKits: 6,
-          deadKits: 0,
-          weanDate: DateTime.now().subtract(const Duration(days: 7)),
-          kits: [
-            Kit(id: '1', sex: 'M', color: 'Black/White', weight: 1.2, status: 'Weaned'),
-            Kit(id: '2', sex: 'F', color: 'Black/White', weight: 1.1, status: 'Weaned'),
-            Kit(id: '3', sex: 'M', color: 'Black/White', weight: 1.3, status: 'Weaned'),
-            Kit(id: '4', sex: 'F', color: 'Black/White', weight: 1.0, status: 'Weaned'),
-            Kit(id: '5', sex: 'M', color: 'Black/White', weight: 1.2, status: 'Weaned'),
-            Kit(id: '6', sex: 'F', color: 'Black/White', weight: 1.1, status: 'Weaned'),
-          ],
-        ),
-        Litter(
-          id: 'L-103',
-          doeId: 'D-103',
-          doeName: 'Bella',
-          buckId: 'B-02',
-          buckName: 'Buck',
-          breedDate: DateTime.now().subtract(const Duration(days: 90)),
-          kindleDate: DateTime.now().subtract(const Duration(days: 56)),
-          dob: DateTime.now().subtract(const Duration(days: 56)),
-          location: 'Grow Pen A',
-          cage: 'GP-A',
-          breed: 'Rex',
-          status: 'GrowOut',
-          sire: 'Buck',
-          dam: 'Bella',
-          totalKits: 5,
-          aliveKits: 4,
-          deadKits: 1,
-          weanDate: DateTime.now().subtract(const Duration(days: 28)),
-          kits: [
-            Kit(id: '1', sex: 'M', color: 'Castor', weight: 3.5, status: 'GrowOut'),
-            Kit(id: '2', sex: 'F', color: 'Castor', weight: 3.2, status: 'GrowOut'),
-            Kit(id: '3', sex: 'M', color: 'Red', weight: 3.8, status: 'GrowOut'),
-            Kit(id: '4', sex: 'F', color: 'Castor', weight: 3.4, status: 'Sold', price: 45.0, details: 'Sold to John'),
-            Kit(id: '5', sex: 'M', color: 'Black', weight: 2.1, status: 'Dead', details: 'Runt'),
-          ],
-        ),
-      ];
-
-      print('💾 Saving ${sampleLitters.length} litters to database...');
-
-      for (var litter in sampleLitters) {
-        await _db.updateLitter(litter);
-        print('  ✅ Saved: ${litter.id} - ${litter.dam} x ${litter.sire} (${litter.kits.length} kits)');
-      }
-
-      print('✅ Sample litters saved, reloading...');
-
-      // Reload from database to verify
-      final reloaded = await _db.getLitters();
-      print('🔄 Reloaded ${reloaded.length} litters from database');
-
-      for (var l in reloaded) {
-        print('  📋 ${l.id}: dob=${l.dob}, loc=${l.location}, kits=${l.kits.length}');
-      }
-
-      setState(() {
-        litters = reloaded;
-        _isLoading = false;
-      });
-
-      print('✅ State updated: ${litters.length} litters loaded');
-    } catch (e, stackTrace) {
-      print('❌ Error initializing sample data: $e');
-      print('Stack trace: $stackTrace');
-      setState(() => _isLoading = false);
+      print('Error refreshing litters: $e');
     }
   }
 
@@ -336,7 +171,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddLitterDialog(), // ✅ ADD THIS
+        onPressed: () => _showAddLitterDialog(), //  ADD THIS
         backgroundColor: Color(0xFF0F7B6C),
         shape: CircleBorder(),
         child: Icon(
@@ -1025,8 +860,11 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       onPressed: () => _showLitterMenu(
                         litter,
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                      padding: EdgeInsets.all(20),
+                      constraints: BoxConstraints(
+                        minWidth: 56,
+                        minHeight: 56,
+                      ),
                     ),
                   ],
                 ),
@@ -1699,8 +1537,11 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               litter,
               kit,
             ),
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
+            padding: EdgeInsets.all(20),
+            constraints: BoxConstraints(
+              minWidth: 56,
+              minHeight: 56,
+            ),
           ),
         ],
       ),
@@ -1946,8 +1787,11 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               litter,
               kit,
             ),
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
+            padding: EdgeInsets.all(20),
+            constraints: BoxConstraints(
+              minWidth: 56,
+              minHeight: 56,
+            ),
           ),
         ],
       ),
@@ -2052,15 +1896,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 _showMoveCageDialog(litter);
               },
             ),
-            _buildActionOption(
-              icon: Icons.print_outlined,
-              label: 'Print Cage Card',
-              color: const Color(0xFF787774),
-              onTap: () {
-                Navigator.pop(context);
-                _printCageCard(litter);
-              },
-            ),
+
             const Divider(height: 1, thickness: 1),
             _buildActionOption(
               icon: Icons.delete_outline,

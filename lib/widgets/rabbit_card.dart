@@ -171,10 +171,11 @@ class RabbitCard extends StatelessWidget {
             ),
 
             // THREE DOTS MENU
-            GestureDetector(
+            InkWell(
               onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: const Icon(
                   Icons.more_vert,
                   color: Color(0xFF787774),
