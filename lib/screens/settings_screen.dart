@@ -129,6 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
+    _tabController.animation?.addListener(() {
+      setState(() {});
+    });
     _loadSettings();
   }
 
@@ -579,7 +582,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Widget _buildTabChip(String label, int index) {
-    bool isSelected = _tabController.index == index;
+    bool isSelected = (_tabController.animation?.value.round() ?? _tabController.index) == index;
     return GestureDetector(
       onTap: () {
         setState(() {
