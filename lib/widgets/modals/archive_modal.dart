@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/rabbit.dart';
 import '../../models/transaction.dart' as finance;
 import '../../services/database_service.dart';
+import '../../services/settings_service.dart';
 
 class ArchiveModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -96,15 +97,17 @@ class _ArchiveModalState extends State<ArchiveModal> {
               ),
               const SizedBox(height: 12),
 
-              // Butchered Option - FIXED
-              _buildReasonOption(
-                reason: ArchiveReason.butchered, // ✅ CHANGED FROM butcher
-                title: 'Butchered',
-                subtitle: 'Processed for meat',
-                icon: Icons.restaurant,
-                color: const Color(0xFFCB8347),
-              ),
-              const SizedBox(height: 12),
+              // Butchered Option - only show if meat production enabled
+              if (SettingsService.instance.meatProductionEnabled) ...[
+                _buildReasonOption(
+                  reason: ArchiveReason.butchered,
+                  title: 'Butchered',
+                  subtitle: 'Processed for meat',
+                  icon: Icons.restaurant,
+                  color: const Color(0xFFCB8347),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // Culled Option
               _buildReasonOption(

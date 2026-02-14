@@ -35,6 +35,11 @@ class SettingsService {
   int get growOutDuration => _prefs?.getInt('growOutDuration') ?? 12; // weeks
   int get sexualMaturityAge => _prefs?.getInt('sexualMaturityAge') ?? 6; // months
 
+  // Module toggles
+  bool get meatProductionEnabled => _prefs?.getBool('meatProductionEnabled') ?? true;
+  bool get showRabbitryEnabled => _prefs?.getBool('showRabbitryEnabled') ?? false;
+  bool get financeSalesEnabled => _prefs?.getBool('financeSalesEnabled') ?? true;
+
   // App settings
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MM/dd/yyyy';
@@ -170,6 +175,19 @@ class SettingsService {
 
   Future<void> setSexualMaturityAge(int months) async {
     await _prefs?.setInt('sexualMaturityAge', months);
+  }
+
+  // Module toggle setters
+  Future<void> setMeatProductionEnabled(bool enabled) async {
+    await _prefs?.setBool('meatProductionEnabled', enabled);
+  }
+
+  Future<void> setShowRabbitryEnabled(bool enabled) async {
+    await _prefs?.setBool('showRabbitryEnabled', enabled);
+  }
+
+  Future<void> setFinanceSalesEnabled(bool enabled) async {
+    await _prefs?.setBool('financeSalesEnabled', enabled);
   }
 
   // Setters for app settings

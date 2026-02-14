@@ -620,6 +620,37 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildBarChart(String title, List<ChartData> data) {
+    if (data.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 24),
+            Center(
+              child: Text(
+                'No data yet',
+                style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+              ),
+            ),
+            SizedBox(height: 24),
+          ],
+        ),
+      );
+    }
     double maxValue = data.map((e) => e.value).reduce((a, b) => a > b ? a : b);
 
     return Container(

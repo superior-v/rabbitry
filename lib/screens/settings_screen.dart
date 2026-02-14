@@ -129,9 +129,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
-    _tabController.animation?.addListener(() {
-      setState(() {});
-    });
     _loadSettings();
   }
 
@@ -197,6 +194,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         nestBoxEnabled = _settings.nestBoxEnabled;
         weaningEnabled = _settings.weaningEnabled;
         growOutEnabled = _settings.growOutEnabled;
+
+        // Module Toggles
+        meatProduction = _settings.meatProductionEnabled;
+        showRabbitry = _settings.showRabbitryEnabled;
+        financeSales = _settings.financeSalesEnabled;
 
         // Notifications
         pushNotifications = _settings.notificationsEnabled;
@@ -277,6 +279,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _settings.setNestBoxEnabled(nestBoxEnabled);
       await _settings.setWeaningEnabled(weaningEnabled);
       await _settings.setGrowOutEnabled(growOutEnabled);
+
+      // Module Toggles
+      await _settings.setMeatProductionEnabled(meatProduction);
+      await _settings.setShowRabbitryEnabled(showRabbitry);
+      await _settings.setFinanceSalesEnabled(financeSales);
 
       // Notifications
       await _settings.setNotificationsEnabled(pushNotifications);
@@ -558,37 +565,39 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Widget _buildTabBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildTabChip('General', 0),
-            _buildTabChip('Modules', 1),
-            _buildTabChip('Pipeline', 2),
-            _buildTabChip('Operations', 3),
-            _buildTabChip('Automation', 4),
-            _buildTabChip('Data', 5),
-            _buildTabChip('System', 6),
-          ],
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _tabController.animation!,
+      builder: (context, _) {
+        final selected = _tabController.animation!.value.round();
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTabChip('General', 0, selected),
+                _buildTabChip('Modules', 1, selected),
+                _buildTabChip('Pipeline', 2, selected),
+                _buildTabChip('Operations', 3, selected),
+                _buildTabChip('Automation', 4, selected),
+                _buildTabChip('Data', 5, selected),
+                _buildTabChip('System', 6, selected),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTabChip(String label, int index) {
-    bool isSelected = (_tabController.animation?.value.round() ?? _tabController.index) == index;
+  Widget _buildTabChip(String label, int index, int selectedIndex) {
+    bool isSelected = selectedIndex == index;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tabController.animateTo(index);
-        });
-      },
+      onTap: () => _tabController.animateTo(index),
       child: Container(
         margin: EdgeInsets.only(right: 8),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -815,12 +824,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Enables GC legs, show wins, and registration numbers.',
               showRabbitry,
               (val) => setState(() => showRabbitry = val),
-            ),
-            _buildSwitchRow(
-              'Finance & Sales',
-              'Enables ledger, kit sales, and expense tracking.',
-              financeSales,
-              (val) => setState(() => financeSales = val),
             ),
           ],
         ),

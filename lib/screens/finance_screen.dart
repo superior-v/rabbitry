@@ -183,7 +183,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
         heroTag: 'finance_fab',
         onPressed: _addTransaction,
         backgroundColor: Color(0xFF0F7B6C),
-        child: Icon(Icons.add, color: Colors.white),
+        shape: CircleBorder(),
+        child: Icon(
+          Icons.add,
+          size: 28,
+          color: Colors.white,
+        ),
       ),
     );
   }

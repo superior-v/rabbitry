@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/quick_info_card.dart';
 import '../widgets/genetics_card.dart';
 import '../widgets/parentage_card.dart';
@@ -508,8 +509,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           GeneticsCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
           ParentageCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
-          RegistrationCard(rabbit: _currentRabbit),
+          if (SettingsService.instance.showRabbitryEnabled) ...[
+            const SizedBox(height: 16),
+            RegistrationCard(rabbit: _currentRabbit),
+          ],
         ],
       ),
     );
@@ -1007,7 +1010,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             _buildMenuItem(Icons.scale, 'Log Weight', _showLogWeightModal),
             _buildMenuItem(Icons.medical_services, 'Add Health Record', _showHealthRecordModal),
             _buildMenuItem(Icons.camera_alt, 'Change Photo', _showImagePickerOptions),
-
             const Divider(),
             _buildMenuItem(Icons.archive, 'Archive Rabbit', _showArchiveModal, isDestructive: true),
             const SizedBox(height: 30),

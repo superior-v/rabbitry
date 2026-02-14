@@ -551,7 +551,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       filters = [
         'All',
         'Sold',
-        'Butchered',
+        if (SettingsService.instance.meatProductionEnabled) 'Butchered',
         'Dead',
         'Cull'
       ];

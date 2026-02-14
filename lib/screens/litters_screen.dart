@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart'; // ✅ ADD THIS
+import '../services/settings_service.dart';
 import '../models/rabbit.dart';
 
 import 'dart:developer' as developer;
@@ -1896,7 +1897,6 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 _showMoveCageDialog(litter);
               },
             ),
-
             const Divider(height: 1, thickness: 1),
             _buildActionOption(
               icon: Icons.delete_outline,
@@ -2007,16 +2007,17 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               },
             ),
 
-            // Harvest/Butcher
-            _buildKitActionOption(
-              icon: Icons.restaurant_outlined,
-              label: 'Harvest / Butcher',
-              color: const Color(0xFF787774),
-              onTap: () {
-                Navigator.pop(context);
-                _showButcherKitDialog(litter, kit);
-              },
-            ),
+            // Harvest/Butcher - only show if meat production enabled
+            if (SettingsService.instance.meatProductionEnabled)
+              _buildKitActionOption(
+                icon: Icons.restaurant_outlined,
+                label: 'Harvest / Butcher',
+                color: const Color(0xFF787774),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showButcherKitDialog(litter, kit);
+                },
+              ),
 
             // Quarantine
             _buildKitActionOption(
@@ -3890,14 +3891,15 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   _showKitHealthRecord(litter, kit);
                 },
               ),
-              _buildMenuItem(
-                Icons.restaurant,
-                'Harvest / Butcher',
-                false,
-                () {
-                  _showButcherKitDialog(litter, kit);
-                },
-              ),
+              if (SettingsService.instance.meatProductionEnabled)
+                _buildMenuItem(
+                  Icons.restaurant,
+                  'Harvest / Butcher',
+                  false,
+                  () {
+                    _showButcherKitDialog(litter, kit);
+                  },
+                ),
               _buildMenuItem(
                 Icons.warning_amber,
                 'Quarantine',

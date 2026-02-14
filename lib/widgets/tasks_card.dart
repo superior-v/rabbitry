@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 
 // ================================================================
 //  TASKS CARD — shows Today/Overdue & Upcoming tasks for a rabbit
@@ -1064,7 +1065,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                             items: [
                               'Operations',
                               'Health',
-                              'Butchering',
+                              if (SettingsService.instance.meatProductionEnabled) 'Butchering',
                               'Pregnancy',
                               'Other'
                             ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))).toList(),

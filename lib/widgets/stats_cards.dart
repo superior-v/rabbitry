@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
+import '../services/settings_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class StatsCards extends StatefulWidget {
@@ -327,8 +328,10 @@ class _StatsCardsState extends State<StatsCards> {
           _buildOutcomeRow('Sold', 0, const Color(0xFF0F7B6C), 0),
           const SizedBox(height: 12),
           _buildOutcomeRow('Breeder', 0, const Color(0xFF5B8AD0), 0),
-          const SizedBox(height: 12),
-          _buildOutcomeRow('Butchered', 0, const Color(0xFF9C6ADE), 0),
+          if (SettingsService.instance.meatProductionEnabled) ...[
+            const SizedBox(height: 12),
+            _buildOutcomeRow('Butchered', 0, const Color(0xFF9C6ADE), 0),
+          ],
           const SizedBox(height: 12),
           _buildOutcomeRow('Died', 0, const Color(0xFFCB8347), 0),
           const SizedBox(height: 16),
