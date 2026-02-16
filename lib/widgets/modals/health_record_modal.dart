@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
+import '../../services/format_utils.dart';
 
 class HealthRecordModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -345,7 +346,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0.00',
-                    prefixText: '\$ ',
+                    prefixText: FormatUtils.currencyPrefix,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Color(0xFFE9E9E7)),

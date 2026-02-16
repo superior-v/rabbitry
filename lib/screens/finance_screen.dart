@@ -5,6 +5,7 @@ import '../models/transaction.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 import 'add_transaction_screen.dart';
 
 enum GroupingMode {
@@ -283,7 +284,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '${_netAmount >= 0 ? '+' : ''}\$${_netAmount.abs().toStringAsFixed(0)}',
+                    '${_netAmount >= 0 ? '+' : ''}${FormatUtils.formatCurrencyShort(_netAmount.abs())}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -319,7 +320,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ),
           SizedBox(height: 4),
           Text(
-            '${isIncome ? '+' : '-'}\$${amount.toStringAsFixed(0)}',
+            '${isIncome ? '+' : '-'}${FormatUtils.formatCurrencyShort(amount)}',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -464,7 +465,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     // Group by month
     Map<String, List<Transaction>> grouped = {};
     for (var t in transactions) {
-      final key = DateFormat('MMMM yyyy').format(t.date);
+      final key = FormatUtils.formatMonthYear(t.date);
       grouped.putIfAbsent(key, () => []).add(t);
     }
 
@@ -522,7 +523,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ),
                     Spacer(),
                     Text(
-                      '${monthTotal >= 0 ? '+' : ''}\$${monthTotal.toStringAsFixed(0)}',
+                      '${monthTotal >= 0 ? '+' : ''}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -644,7 +645,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       ),
                     ),
                     Text(
-                      '${total >= 0 ? '+' : ''}\$${total.toStringAsFixed(0)}',
+                      FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -743,7 +744,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ),
                     Spacer(),
                     Text(
-                      '${total >= 0 ? '+' : ''}\$${total.toStringAsFixed(0)}',
+                      FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -836,7 +837,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ),
                     Spacer(),
                     Text(
-                      '${total >= 0 ? '+' : ''}\$${total.toStringAsFixed(0)}',
+                      FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -881,7 +882,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           final batchTransactions = entry.value;
           final total = batchTransactions.fold<double>(0, (sum, t) => sum + t.amount);
           final firstTxn = batchTransactions.first;
-          final dateStr = DateFormat('MMM d').format(firstTxn.date);
+          final dateStr = FormatUtils.formatDateShort(firstTxn.date);
 
           return GestureDetector(
             onTap: () {
@@ -947,7 +948,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ),
                   ),
                   Text(
-                    '+\$${total.toStringAsFixed(0)}',
+                    '+${FormatUtils.formatCurrencyShort(total)}',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -984,7 +985,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   Widget _buildTransactionCard(Transaction t, {bool showRabbit = true, bool showCategory = true}) {
     final isIncome = t.type == TransactionType.income;
-    final dateStr = DateFormat('MMM d').format(t.date);
+    final dateStr = FormatUtils.formatDateShort(t.date);
 
     return GestureDetector(
       onTap: () => _editTransaction(t),
@@ -1094,7 +1095,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
             ),
             // Amount
             Text(
-              '${isIncome ? '+' : '-'}\$${t.amount.toStringAsFixed(2)}',
+              '${isIncome ? '+' : '-'}${FormatUtils.formatCurrency(t.amount)}',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,

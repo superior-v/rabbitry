@@ -42,6 +42,7 @@ class SettingsService {
 
   // App settings
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
+  String get currency => _prefs?.getString('currency') ?? 'usd';
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MM/dd/yyyy';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
@@ -193,6 +194,10 @@ class SettingsService {
   // Setters for app settings
   Future<void> setWeightUnit(String unit) async {
     await _prefs?.setString('weightUnit', unit);
+  }
+
+  Future<void> setCurrency(String currency) async {
+    await _prefs?.setString('currency', currency);
   }
 
   Future<void> setDateFormat(String format) async {

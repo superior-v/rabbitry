@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/rabbit.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 
 class BreedingPipelineCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -38,7 +39,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   String _formatDate(DateTime date) {
-    return DateFormat('MMM d').format(date);
+    return FormatUtils.formatDateShort(date);
   }
 
   int get _daysSinceBred {

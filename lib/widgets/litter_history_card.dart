@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 
 class LitterHistoryCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -292,21 +293,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return FormatUtils.formatDate(date);
   }
 
   void _showLitterDetails(BuildContext context, Litter litter) {

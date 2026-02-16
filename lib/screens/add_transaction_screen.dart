@@ -4,6 +4,7 @@ import '../models/transaction.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 
 enum EntryMode {
   single,
@@ -548,7 +549,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           controller: _amountController,
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            prefixText: '\$ ',
+            prefixText: '${FormatUtils.currencySymbol} ',
             prefixStyle: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -676,7 +677,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 Icon(Icons.calendar_today, color: Color(0xFF787774), size: 20),
                 SizedBox(width: 12),
                 Text(
-                  DateFormat('MMMM d, yyyy').format(_date),
+                  FormatUtils.formatDateLong(_date),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,

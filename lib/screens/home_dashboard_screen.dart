@@ -8,6 +8,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import '../widgets/modals/log_weight_modal.dart';
 import '../widgets/modals/confirm_pregnancy_modal.dart';
 import '../widgets/modals/log_birth_modal.dart';
@@ -887,7 +888,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Cost incurred',
-                prefixText: '\$ ',
+                prefixText: '${FormatUtils.currencySymbol} ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -1523,21 +1524,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
 
   // ✅ Helper: Format due date for display
   String _formatDueDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}';
+    return FormatUtils.formatDateShort(date);
   }
 
   // ✅ Helper: Get display location from task's linked entities

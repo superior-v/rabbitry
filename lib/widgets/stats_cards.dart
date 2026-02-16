@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/rabbit.dart';
+import '../models/litter.dart';
+import '../models/transaction.dart' as finance_model;
+import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class StatsCards extends StatefulWidget {
@@ -20,7 +25,69 @@ class StatsCards extends StatefulWidget {
 }
 
 class _StatsCardsState extends State<StatsCards> {
+  final DatabaseService _db = DatabaseService();
   String _selectedTimeRange = 'M'; // W, M, Y
+
+  // Loaded data
+  List<Litter> _litters = [];
+  List<Map<String, dynamic>> _weightHistory = [];
+  List<finance_model.Transaction> _transactions = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllData();
+  }
+
+  Future<void> _loadAllData() async {
+    try {
+      // Load litters (as doe or buck)
+      final littersData = await _db.getLittersByDoe(widget.rabbit.id);
+      final db = await _db.database;
+      final sireLitters = await db.query(
+        'litters',
+        where: 'buckId = ?',
+        whereArgs: [
+          widget.rabbit.id
+        ],
+        orderBy: 'breedDate DESC',
+      );
+      final allLittersData = [
+        ...littersData,
+        ...sireLitters
+      ];
+      final seenIds = <String>{};
+      final uniqueLitters = allLittersData.where((l) {
+        final id = l['id'] as String?;
+        if (id == null || seenIds.contains(id)) return false;
+        seenIds.add(id);
+        return true;
+      }).toList();
+      final litters = uniqueLitters.map((data) => Litter.fromMap(data)).toList();
+      litters.sort((a, b) => (b.kindleDate ?? b.breedDate).compareTo(a.kindleDate ?? a.breedDate));
+
+      // Load weight history
+      final weightHistory = await _db.getWeightHistory(widget.rabbit.id);
+
+      // Load transactions
+      final transactions = await _db.getTransactionsByRabbit(widget.rabbit.id);
+
+      if (mounted) {
+        setState(() {
+          _litters = litters;
+          _weightHistory = weightHistory;
+          _transactions = transactions;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading stats data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,15 +127,61 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   Widget _buildPerformanceGrid() {
+    // Survival rate
+    String survival = '--';
+    if (_litters.isNotEmpty) {
+      final totalBorn = _litters.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
+      final totalAlive = _litters.fold<int>(0, (sum, l) => sum + (l.aliveKits ?? 0));
+      if (totalBorn > 0) {
+        survival = '${((totalAlive / totalBorn) * 100).round()}%';
+      }
+    }
+
+    // Avg litter size
+    String avgLitter = '--';
+    if (_litters.isNotEmpty) {
+      final littersWithKits = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
+      if (littersWithKits.isNotEmpty) {
+        final total = littersWithKits.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
+        avgLitter = (total / littersWithKits.length).toStringAsFixed(1);
+      }
+    }
+
+    // Avg gestation
+    String avgGest = '--';
+    if (_litters.isNotEmpty) {
+      final littersWithKindle = _litters.where((l) => l.kindleDate != null).toList();
+      if (littersWithKindle.isNotEmpty) {
+        final totalDays = littersWithKindle.fold<int>(
+          0,
+          (sum, l) => sum + l.kindleDate!.difference(l.breedDate).inDays,
+        );
+        avgGest = '${(totalDays / littersWithKindle.length).round()}d';
+      }
+    }
+
+    // Avg wean age
+    String avgWean = '--';
+    if (_litters.isNotEmpty) {
+      final littersWithWean = _litters.where((l) => l.weanDate != null && l.kindleDate != null).toList();
+      if (littersWithWean.isNotEmpty) {
+        final totalDays = littersWithWean.fold<int>(
+          0,
+          (sum, l) => sum + l.weanDate!.difference(l.kindleDate!).inDays,
+        );
+        avgWean = '${(totalDays / littersWithWean.length).round()}d';
+      }
+    }
+
     return Row(
       children: [
-        Expanded(child: _buildPerformanceBox('--', 'Survival', const Color(0xFF6B9E78))),
+        Expanded(child: _buildPerformanceBox(survival, 'Survival', const Color(0xFF6B9E78))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('--', 'Avg Litter', const Color(0xFF0F7B6C))),
+        Expanded(child: _buildPerformanceBox(avgLitter, 'Avg Litter', const Color(0xFF0F7B6C))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('--', 'Avg Gest.', const Color(0xFF5B8AD0))),
+        Expanded(child: _buildPerformanceBox(avgGest, 'Avg Gest.', const Color(0xFF5B8AD0))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox('--', 'Avg Wean', const Color(0xFF9C6ADE))),
+        Expanded(child: _buildPerformanceBox(avgWean, 'Avg Wean', const Color(0xFF9C6ADE))),
       ],
     );
   }
@@ -143,54 +256,61 @@ class _StatsCardsState extends State<StatsCards> {
           const SizedBox(height: 20),
           SizedBox(
             height: 180,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: 12,
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem(
-                        '${rod.toY.toStringAsFixed(1)} lbs',
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+            child: _getFilteredWeights().isEmpty
+                ? const Center(
+                    child: Text(
+                      'No weight data yet',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                    ),
+                  )
+                : BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: _getFilteredWeights().isEmpty ? 12 : (_getFilteredWeights().map((w) => (w['weight'] as num).toDouble()).reduce((a, b) => a > b ? a : b) * 1.2),
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              '${rod.toY.toStringAsFixed(1)} ${FormatUtils.weightUnit}',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final months = _getTimeLabels();
-                        if (value.toInt() >= 0 && value.toInt() < months.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              months[value.toInt()],
-                              style: const TextStyle(fontSize: 10, color: Color(0xFF9B9A97)),
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final months = _getTimeLabels();
+                              if (value.toInt() >= 0 && value.toInt() < months.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    months[value.toInt()],
+                                    style: const TextStyle(fontSize: 10, color: Color(0xFF9B9A97)),
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: false),
+                      barGroups: _getBarData(),
                     ),
                   ),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                barGroups: _getBarData(),
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           Container(
@@ -199,13 +319,13 @@ class _StatsCardsState extends State<StatsCards> {
               color: const Color(0xFFF7F7F5),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.info_outline, size: 14, color: Color(0xFF787774)),
                 SizedBox(width: 8),
                 Text(
-                  'Target: 9.0 - 11.0 lbs',
+                  'Target: 9.0 - 11.0 ${FormatUtils.weightUnit}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Color(0xFF787774),
@@ -220,47 +340,46 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   List<String> _getTimeLabels() {
+    final filtered = _getFilteredWeights();
+    if (filtered.isEmpty) return [];
+    return filtered.map((w) {
+      final date = DateTime.parse(w['date'] as String);
+      return FormatUtils.formatDateChart(date, _selectedTimeRange);
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _getFilteredWeights() {
+    if (_weightHistory.isEmpty) return [];
+    final now = DateTime.now();
+    DateTime cutoff;
     switch (_selectedTimeRange) {
       case 'W':
-        return [
-          'Mon',
-          'Tue',
-          'Wed',
-          'Thu',
-          'Fri',
-          'Sat',
-          'Sun'
-        ];
+        cutoff = now.subtract(const Duration(days: 7));
+        break;
       case 'M':
-        return [
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-          'Jan',
-          'Feb'
-        ];
+        cutoff = now.subtract(const Duration(days: 30));
+        break;
       case 'Y':
-        return [
-          '2020',
-          '2021',
-          '2022',
-          '2023',
-          '2024',
-          '2025',
-          '2026'
-        ];
+        cutoff = now.subtract(const Duration(days: 365));
+        break;
       default:
-        return [];
+        cutoff = now.subtract(const Duration(days: 30));
     }
+    final filtered = _weightHistory.where((w) {
+      final date = DateTime.parse(w['date'] as String);
+      return date.isAfter(cutoff);
+    }).toList();
+    // Sort oldest first for chart display
+    filtered.sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+    return filtered;
   }
 
   List<BarChartGroupData> _getBarData() {
-    // TODO: Load weight data from database
-    return [];
+    final filtered = _getFilteredWeights();
+    return List.generate(filtered.length, (i) {
+      final weight = (filtered[i]['weight'] as num).toDouble();
+      return _buildBarGroup(i, weight);
+    });
   }
 
   BarChartGroupData _buildBarGroup(int x, double y) {
@@ -306,6 +425,36 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   Widget _buildKitOutcomesCard() {
+    // Count kit statuses across all litters
+    int sold = 0;
+    int breeder = 0;
+    int butchered = 0;
+    int died = 0;
+    int totalKitsBorn = 0;
+
+    for (final litter in _litters) {
+      totalKitsBorn += litter.totalKits ?? 0;
+      for (final kit in litter.kits) {
+        switch (kit.status) {
+          case 'Sold':
+            sold++;
+            break;
+          case 'Breeder':
+            breeder++;
+            break;
+          case 'Butchered':
+            butchered++;
+            break;
+          case 'Dead':
+          case 'Cull':
+            died++;
+            break;
+        }
+      }
+    }
+
+    final totalOutcomes = sold + breeder + butchered + died;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -325,15 +474,15 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildOutcomeRow('Sold', 0, const Color(0xFF0F7B6C), 0),
+          _buildOutcomeRow('Sold', sold, const Color(0xFF0F7B6C), totalOutcomes > 0 ? sold / totalOutcomes : 0),
           const SizedBox(height: 12),
-          _buildOutcomeRow('Breeder', 0, const Color(0xFF5B8AD0), 0),
+          _buildOutcomeRow('Breeder', breeder, const Color(0xFF5B8AD0), totalOutcomes > 0 ? breeder / totalOutcomes : 0),
           if (SettingsService.instance.meatProductionEnabled) ...[
             const SizedBox(height: 12),
-            _buildOutcomeRow('Butchered', 0, const Color(0xFF9C6ADE), 0),
+            _buildOutcomeRow('Butchered', butchered, const Color(0xFF9C6ADE), totalOutcomes > 0 ? butchered / totalOutcomes : 0),
           ],
           const SizedBox(height: 12),
-          _buildOutcomeRow('Died', 0, const Color(0xFFCB8347), 0),
+          _buildOutcomeRow('Died', died, const Color(0xFFCB8347), totalOutcomes > 0 ? died / totalOutcomes : 0),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -352,9 +501,9 @@ class _StatsCardsState extends State<StatsCards> {
                     color: Color(0xFF787774),
                   ),
                 ),
-                const Text(
-                  '0',
-                  style: TextStyle(
+                Text(
+                  '$totalKitsBorn',
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF37352F),
@@ -424,6 +573,20 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   Widget _buildLitterSizesCard() {
+    // Find max litter size for progress bar scaling
+    final maxSize = _litters.isEmpty ? 1 : _litters.map((l) => l.totalKits ?? 0).reduce((a, b) => a > b ? a : b);
+
+    final statusColors = {
+      'nursing': const Color(0xFF0F7B6C),
+      'Nursing': const Color(0xFF0F7B6C),
+      'weaned': const Color(0xFF5B8AD0),
+      'Weaned': const Color(0xFF5B8AD0),
+      'growing': const Color(0xFF6B9E78),
+      'Growing': const Color(0xFF6B9E78),
+      'archived': const Color(0xFF787774),
+      'Archived': const Color(0xFF787774),
+    };
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -443,16 +606,32 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 16),
-          // TODO: Load litter data from database
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'No litter data available',
-                style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+          if (_litters.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'No litter data available',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                ),
               ),
-            ),
-          ),
+            )
+          else
+            ...List.generate(_litters.length, (index) {
+              final litter = _litters[index];
+              final kitCount = litter.totalKits ?? 0;
+              final progress = maxSize > 0 ? kitCount / maxSize : 0.0;
+              final status = litter.status.isNotEmpty ? litter.status[0].toUpperCase() + litter.status.substring(1) : 'Unknown';
+              final statusColor = statusColors[litter.status] ?? const Color(0xFF787774);
+
+              // Use litter ID shortened
+              final litterId = litter.id.length > 5 ? litter.id.substring(0, 5) : litter.id;
+
+              return Padding(
+                padding: EdgeInsets.only(bottom: index < _litters.length - 1 ? 16 : 0),
+                child: _buildLitterBar('L-${index + 1}', kitCount, progress, status, statusColor),
+              );
+            }),
         ],
       ),
     );
@@ -531,6 +710,23 @@ class _StatsCardsState extends State<StatsCards> {
   }
 
   Widget _buildFinancialsCard() {
+    // Compute income, expenses, net from transactions
+    double income = 0;
+    double expenses = 0;
+    for (final t in _transactions) {
+      if (t.type == finance_model.TransactionType.income) {
+        income += t.amount;
+      } else {
+        expenses += t.amount;
+      }
+    }
+    final net = income - expenses;
+
+    // Get recent transactions (last 5)
+    final recentTransactions = List<finance_model.Transaction>.from(_transactions);
+    recentTransactions.sort((a, b) => b.date.compareTo(a.date));
+    final recent = recentTransactions.take(5).toList();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -576,15 +772,19 @@ class _StatsCardsState extends State<StatsCards> {
           Row(
             children: [
               Expanded(
-                child: _buildFinancialBox('\$0', 'INCOME', const Color(0xFF6B9E78)),
+                child: _buildFinancialBox(FormatUtils.formatCurrencyShort(income), 'INCOME', const Color(0xFF6B9E78)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFinancialBox('\$0', 'EXPENSES', const Color(0xFFCB8347)),
+                child: _buildFinancialBox(FormatUtils.formatCurrencyShort(expenses), 'EXPENSES', const Color(0xFFCB8347)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFinancialBox('\$0', 'NET', const Color(0xFF0F7B6C)),
+                child: _buildFinancialBox(
+                  FormatUtils.formatCurrencySigned(net),
+                  'NET',
+                  net >= 0 ? const Color(0xFF0F7B6C) : const Color(0xFFCB8347),
+                ),
               ),
             ],
           ),
@@ -599,15 +799,30 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 12),
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'No transactions yet',
-                style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+          if (recent.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No transactions yet',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                ),
               ),
-            ),
-          ),
+            )
+          else
+            ...recent.map((t) {
+              final isIncome = t.type == finance_model.TransactionType.income;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildTransactionItem(
+                  FormatUtils.formatDateShort(t.date),
+                  t.categoryName,
+                  t.description ?? '',
+                  '${isIncome ? '+' : '-'}${FormatUtils.formatCurrencyShort(t.amount)}',
+                  isIncome ? const Color(0xFF6B9E78) : const Color(0xFFCB8347),
+                ),
+              );
+            }),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(

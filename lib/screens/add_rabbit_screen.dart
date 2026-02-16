@@ -6,6 +6,7 @@ import '../models/rabbit.dart';
 import '../models/breed.dart';
 import '../models/barn.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 
 class AddRabbitScreen extends StatefulWidget {
   const AddRabbitScreen({Key? key}) : super(key: key);
@@ -41,6 +42,37 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     super.initState();
     _loadBreeds();
     _loadBarns();
+    _generateRabbitId();
+  }
+
+  Future<void> _generateRabbitId() async {
+    try {
+      final allRabbits = await _db.getAllRabbits();
+      final archivedRabbits = await _db.getArchivedRabbits();
+      final allIds = [
+        ...allRabbits,
+        ...archivedRabbits
+      ].map((r) => r.id).toList();
+
+      int maxNum = 0;
+      for (final id in allIds) {
+        final match = RegExp(r'^R-(\d+)$').firstMatch(id);
+        if (match != null) {
+          final num = int.tryParse(match.group(1)!) ?? 0;
+          if (num > maxNum) maxNum = num;
+        }
+      }
+
+      final nextId = 'R-${(maxNum + 1).toString().padLeft(4, '0')}';
+      if (mounted) {
+        setState(() {
+          _idController.text = nextId;
+        });
+      }
+    } catch (e) {
+      // Fallback to timestamp-based ID
+      _idController.text = 'R-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    }
   }
 
   Future<void> _loadBreeds() async {
@@ -137,12 +169,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Rabbit ID
+            // Rabbit ID (auto-generated)
             _buildTextField(
               controller: _idController,
               label: 'Rabbit ID',
               icon: Icons.tag,
-              readOnly: false,
+              readOnly: true,
             ),
             const SizedBox(height: 16),
 
@@ -234,7 +266,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             // Weight
             _buildTextField(
               controller: _weightController,
-              label: 'Weight (lbs)',
+              label: FormatUtils.weightLabel(),
               icon: Icons.monitor_weight,
               hint: '0.0',
               keyboardType: TextInputType.number,

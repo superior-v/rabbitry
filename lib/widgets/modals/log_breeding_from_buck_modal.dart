@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
 
 /// Log Breeding Modal when initiated from a Buck
 /// Asks for the Doe, date, and shows palpation reminder timeline
@@ -540,21 +541,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return FormatUtils.formatDate(date);
   }
 
   Future<void> _selectDate(BuildContext context) async {

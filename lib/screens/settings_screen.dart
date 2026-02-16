@@ -178,6 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
         // Units and Formats
         weightUnit = _settings.weightUnit;
+        currency = _settings.currency;
         dateFormat = _settings.dateFormat;
 
         // Pipeline Settings
@@ -755,13 +756,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   DropdownMenuItem(value: 'lbs', child: Text('Pounds (lbs)')),
                   DropdownMenuItem(value: 'kg', child: Text('Kilograms (kg)')),
                 ],
-                onChanged: (value) {},
+                onChanged: (value) {
+                  setState(() => weightUnit = value!);
+                  _settings.setWeightUnit(value!);
+                },
               ),
             ),
             _buildSettingRow(
               'Currency',
               DropdownButton<String>(
-                value: 'usd',
+                value: currency,
                 underline: SizedBox(),
                 style: TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
                 items: [
@@ -777,6 +781,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ],
                 onChanged: (value) {
                   setState(() => currency = value!);
+                  _settings.setCurrency(value!);
                 },
               ),
             ),
@@ -793,6 +798,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ],
                 onChanged: (value) {
                   setState(() => dateFormat = value!);
+                  _settings.setDateFormat(value!);
                 },
               ),
             ),

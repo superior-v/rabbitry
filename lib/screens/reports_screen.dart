@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show FontFeature;
 import '../models/report_models.dart';
+import '../services/format_utils.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({Key? key}) : super(key: key);
@@ -199,7 +200,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       children: [
         _buildKPIGrid(kpis),
         SizedBox(height: 24),
-        _buildBarChart('Avg Growth Rate (lbs)', growthData),
+        _buildBarChart('Avg Growth Rate (${FormatUtils.weightUnit})', growthData),
         SizedBox(height: 24),
         _buildHarvestWeightCard(),
       ],
@@ -886,11 +887,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildRatioBar('Light (< 4.5 lbs)', 0, Color(0xFF94A3B8)),
+          _buildRatioBar('Light (< 4.5 ${FormatUtils.weightUnit})', 0, Color(0xFF94A3B8)),
           SizedBox(height: 16),
-          _buildRatioBar('Target (4.5 - 5.5 lbs)', 0, Color(0xFF0F7B6C)),
+          _buildRatioBar('Target (4.5 - 5.5 ${FormatUtils.weightUnit})', 0, Color(0xFF0F7B6C)),
           SizedBox(height: 16),
-          _buildRatioBar('Heavy (> 5.5 lbs)', 0, Color(0xFF475569)),
+          _buildRatioBar('Heavy (> 5.5 ${FormatUtils.weightUnit})', 0, Color(0xFF475569)),
         ],
       ),
     );
@@ -1014,7 +1015,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           SizedBox(height: 16),
           _buildEconomicRow('Cost Per Doe', 'Feed + Meds / Active Does', '--', '/mo'),
           Divider(height: 28, color: Color(0xFFE2E8F0)),
-          _buildEconomicRow('Cost Per lb Meat', 'Total Exp / Total lbs', '--', '/lb'),
+          _buildEconomicRow('Cost Per ${FormatUtils.weightUnit} Meat', 'Total Exp / Total ${FormatUtils.weightUnit}', '--', '/${FormatUtils.weightUnit}'),
         ],
       ),
     );

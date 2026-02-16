@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/rabbit.dart';
+import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import '../widgets/quick_info_card.dart';
 import '../widgets/genetics_card.dart';
 import '../widgets/parentage_card.dart';
@@ -40,12 +42,62 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   bool _showTabShadow = false;
   late Rabbit _currentRabbit;
 
+  // Breeding stats
+  List<Litter> _litters = [];
+  bool _littersLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _currentRabbit = widget.rabbit;
     _tabController = TabController(length: 5, vsync: this);
     _scrollController.addListener(_handleScroll);
+    _loadBreedingStats();
+  }
+
+  Future<void> _loadBreedingStats() async {
+    try {
+      final littersData = await _db.getLittersByDoe(_currentRabbit.id);
+
+      // Also check if rabbit is a sire (for bucks)
+      final db = await _db.database;
+      final sireLitters = await db.query(
+        'litters',
+        where: 'buckId = ?',
+        whereArgs: [
+          _currentRabbit.id
+        ],
+        orderBy: 'breedDate DESC',
+      );
+
+      // Combine and deduplicate
+      final allLittersData = [
+        ...littersData,
+        ...sireLitters
+      ];
+      final seenIds = <String>{};
+      final uniqueLitters = allLittersData.where((l) {
+        final id = l['id'] as String?;
+        if (id == null || seenIds.contains(id)) return false;
+        seenIds.add(id);
+        return true;
+      }).toList();
+
+      final litters = uniqueLitters.map((data) => Litter.fromMap(data)).toList();
+      litters.sort((a, b) => (b.kindleDate ?? b.breedDate).compareTo(a.kindleDate ?? a.breedDate));
+
+      if (mounted) {
+        setState(() {
+          _litters = litters;
+          _littersLoaded = true;
+        });
+      }
+    } catch (e) {
+      print('Error loading breeding stats: $e');
+      if (mounted) {
+        setState(() => _littersLoaded = true);
+      }
+    }
   }
 
   void _handleScroll() {
@@ -534,15 +586,51 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   Widget _buildBreedingStats() {
+    // Litters count
+    final litterCount = _litters.length;
+
+    // Avg litter size (totalKits)
+    String avgSize = '--';
+    if (_litters.isNotEmpty) {
+      final littersWithKits = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
+      if (littersWithKits.isNotEmpty) {
+        final total = littersWithKits.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
+        avgSize = (total / littersWithKits.length).toStringAsFixed(1);
+      }
+    }
+
+    // Survival rate (alive / total across all litters)
+    String survival = '--';
+    if (_litters.isNotEmpty) {
+      final totalBorn = _litters.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
+      final totalAlive = _litters.fold<int>(0, (sum, l) => sum + (l.aliveKits ?? 0));
+      if (totalBorn > 0) {
+        survival = '${((totalAlive / totalBorn) * 100).round()}%';
+      }
+    }
+
+    // Avg gestation (days between breedDate and kindleDate)
+    String avgGest = '--';
+    if (_litters.isNotEmpty) {
+      final littersWithKindle = _litters.where((l) => l.kindleDate != null).toList();
+      if (littersWithKindle.isNotEmpty) {
+        final totalDays = littersWithKindle.fold<int>(
+          0,
+          (sum, l) => sum + l.kindleDate!.difference(l.breedDate).inDays,
+        );
+        avgGest = '${(totalDays / littersWithKindle.length).round()}d';
+      }
+    }
+
     return Row(
       children: [
-        Expanded(child: _buildStatCard('5', 'Litters')),
+        Expanded(child: _buildStatCard(_littersLoaded ? '$litterCount' : '--', 'Litters')),
         const SizedBox(width: 8),
-        Expanded(child: _buildStatCard('8.4', 'Avg Size')),
+        Expanded(child: _buildStatCard(_littersLoaded ? avgSize : '--', 'Avg Size')),
         const SizedBox(width: 8),
-        Expanded(child: _buildStatCard('90%', 'Survival')),
+        Expanded(child: _buildStatCard(_littersLoaded ? survival : '--', 'Survival')),
         const SizedBox(width: 8),
-        Expanded(child: _buildStatCard('31d', 'Avg Gest.')),
+        Expanded(child: _buildStatCard(_littersLoaded ? avgGest : '--', 'Avg Gest.')),
       ],
     );
   }
@@ -679,8 +767,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     TextField(
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: '\$0.00',
-                        prefixText: '\$',
+                        hintText: FormatUtils.currencyHint,
+                        prefixText: FormatUtils.currencySymbol,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -1025,6 +1113,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     if (updated != null && mounted) {
       setState(() => _currentRabbit = updated);
     }
+    _loadBreedingStats();
   }
 
   void _showMoveCageModal() {

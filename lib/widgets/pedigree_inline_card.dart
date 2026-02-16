@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
+import '../services/database_service.dart';
 
 class PedigreeInlineCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -11,7 +12,62 @@ class PedigreeInlineCard extends StatefulWidget {
 }
 
 class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
+  final DatabaseService _db = DatabaseService();
   int selectedGenerations = 3;
+
+  // Pedigree data
+  Rabbit? _sire;
+  Rabbit? _dam;
+  Rabbit? _siresSire;
+  Rabbit? _siresDam;
+  Rabbit? _damsSire;
+  Rabbit? _damsDam;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPedigree();
+  }
+
+  Future<void> _loadPedigree() async {
+    try {
+      // Load parents
+      if (widget.rabbit.sireId != null && widget.rabbit.sireId!.isNotEmpty) {
+        _sire = await _db.getRabbit(widget.rabbit.sireId!);
+      }
+      if (widget.rabbit.damId != null && widget.rabbit.damId!.isNotEmpty) {
+        _dam = await _db.getRabbit(widget.rabbit.damId!);
+      }
+
+      // Load grandparents
+      if (_sire != null) {
+        if (_sire!.sireId != null && _sire!.sireId!.isNotEmpty) {
+          _siresSire = await _db.getRabbit(_sire!.sireId!);
+        }
+        if (_sire!.damId != null && _sire!.damId!.isNotEmpty) {
+          _siresDam = await _db.getRabbit(_sire!.damId!);
+        }
+      }
+      if (_dam != null) {
+        if (_dam!.sireId != null && _dam!.sireId!.isNotEmpty) {
+          _damsSire = await _db.getRabbit(_dam!.sireId!);
+        }
+        if (_dam!.damId != null && _dam!.damId!.isNotEmpty) {
+          _damsDam = await _db.getRabbit(_dam!.damId!);
+        }
+      }
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print('Error loading pedigree: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,18 +192,18 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   children: [
                     Expanded(
                       child: _buildParentCard(
-                        'Unknown Sire',
-                        '--',
-                        widget.rabbit.breed,
+                        _sire?.name ?? 'Unknown Sire',
+                        _sire?.id ?? '--',
+                        _sire?.breed ?? widget.rabbit.breed,
                         true,
                       ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
                       child: _buildParentCard(
-                        'Unknown Dam',
-                        '--',
-                        widget.rabbit.breed,
+                        _dam?.name ?? 'Unknown Dam',
+                        _dam?.id ?? '--',
+                        _dam?.breed ?? widget.rabbit.breed,
                         false,
                       ),
                     ),
@@ -194,66 +250,44 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 ),
                 SizedBox(height: 8),
 
-                // First row of grandparents (Zeus and Thunder)
+                // First row of grandparents
                 Row(
                   children: [
                     Expanded(
-                      child: _buildGrandparentCard('Unknown', '--', true),
+                      child: _buildGrandparentCard(
+                        _siresSire?.name ?? 'Unknown',
+                        _siresSire?.id ?? '--',
+                        true,
+                      ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: _buildGrandparentCard('Unknown', '--', true),
+                      child: _buildGrandparentCard(
+                        _damsSire?.name ?? 'Unknown',
+                        _damsSire?.id ?? '--',
+                        true,
+                      ),
                     ),
                   ],
                 ),
                 SizedBox(height: 8),
 
-                // Second row of grandparents (Athena and Add button)
+                // Second row of grandparents
                 Row(
                   children: [
                     Expanded(
-                      child: _buildGrandparentCard('Unknown', '--', false),
+                      child: _buildGrandparentCard(
+                        _siresDam?.name ?? 'Unknown',
+                        _siresDam?.id ?? '--',
+                        false,
+                      ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          // Add grandparent functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Add grandparent'),
-                              backgroundColor: Color(0xFF0F7B6C),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Color(0xFFE9E9E7),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add, size: 16, color: Color(0xFF9B9A97)),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Add',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF9B9A97),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      child: _buildGrandparentCard(
+                        _damsDam?.name ?? 'Unknown',
+                        _damsDam?.id ?? '--',
+                        false,
                       ),
                     ),
                   ],
@@ -491,9 +525,9 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildParentCard('Unknown Sire', '--', widget.rabbit.breed, true)),
+                        Expanded(child: _buildParentCard(_sire?.name ?? 'Unknown Sire', _sire?.id ?? '--', _sire?.breed ?? widget.rabbit.breed, true)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildParentCard('Unknown Dam', '--', widget.rabbit.breed, false)),
+                        Expanded(child: _buildParentCard(_dam?.name ?? 'Unknown Dam', _dam?.id ?? '--', _dam?.breed ?? widget.rabbit.breed, false)),
                       ],
                     ),
                     SizedBox(height: 24),
@@ -528,17 +562,17 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard('Unknown', '--', true)),
+                        Expanded(child: _buildGrandparentCard(_siresSire?.name ?? 'Unknown', _siresSire?.id ?? '--', true)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard('Unknown', '--', true)),
+                        Expanded(child: _buildGrandparentCard(_damsSire?.name ?? 'Unknown', _damsSire?.id ?? '--', true)),
                       ],
                     ),
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard('Unknown', '--', false)),
+                        Expanded(child: _buildGrandparentCard(_siresDam?.name ?? 'Unknown', _siresDam?.id ?? '--', false)),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard('Unknown', '--', false)),
+                        Expanded(child: _buildGrandparentCard(_damsDam?.name ?? 'Unknown', _damsDam?.id ?? '--', false)),
                       ],
                     ),
                   ],

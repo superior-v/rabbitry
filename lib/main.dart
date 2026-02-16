@@ -10,6 +10,12 @@ void main() async {
   await SettingsService.instance.init();
   await DatabaseService().database;
 
+  // Backfill finance transactions for kits/rabbits sold before the fix
+  await DatabaseService().backfillSoldTransactions();
+
+  // Fix litters that have rabbit IDs instead of names in sire/dam
+  await DatabaseService().fixLitterSireDamNames();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

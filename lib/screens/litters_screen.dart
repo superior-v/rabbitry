@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/litter.dart';
+import '../models/barn.dart';
+import '../models/transaction.dart' as finance;
 import '../services/database_service.dart'; // ✅ ADD THIS
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import '../models/rabbit.dart';
 
 import 'dart:developer' as developer;
@@ -28,6 +31,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   Map<String, bool> _expandedLitters = {};
 
   List<Litter> litters = [];
+  List<Barn> _barns = [];
+  bool _isBarnEditMode = false;
   bool _isLoading = true; // ✅ ADD THIS
 
   @override
@@ -43,8 +48,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
     try {
       final existingLitters = await _db.getLitters();
+      final barnsData = await _db.getAllBarns();
       setState(() {
         litters = existingLitters;
+        _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
         _isLoading = false;
       });
       print(' Loaded ${litters.length} litters from database');
@@ -63,8 +70,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   Future<void> _refreshLitters() async {
     try {
       final loadedLitters = await _db.getLitters();
+      final barnsData = await _db.getAllBarns();
       setState(() {
         litters = loadedLitters;
+        _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
       });
       print('Refreshed: ${litters.length} litters');
     } catch (e) {
@@ -906,7 +915,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       ),
                       _buildDataPoint(
                         'TOTAL WT',
-                        '${litter.totalWeight.toStringAsFixed(1)} lbs',
+                        '${litter.totalWeight.toStringAsFixed(1)} ${FormatUtils.weightUnit}',
                       ),
                       Spacer(),
                       _buildRatioBar(
@@ -1277,7 +1286,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '${kit.weight} lbs',
+                  '${kit.weight} ${FormatUtils.weightUnit}',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1516,7 +1525,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       width: 4,
                     ),
                     Text(
-                      '${kit.weight} lbs',
+                      '${kit.weight} ${FormatUtils.weightUnit}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Color(
@@ -1739,7 +1748,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           ),
                         ),
                         Text(
-                          '\$${kit.price!.toStringAsFixed(2)}',
+                          '${FormatUtils.currencySymbol}${kit.price!.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 13,
                             color: Color(
@@ -2110,7 +2119,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Sex: ${kit.sex == 'M' ? 'Male (Buck)' : 'Female (Doe)'}\nColor: ${kit.color}\nWeight: ${kit.weight} lbs',
+                      'Sex: ${kit.sex == 'M' ? 'Male (Buck)' : 'Female (Doe)'}\nColor: ${kit.color}\nWeight: ${kit.weight} ${FormatUtils.weightUnit}',
                       style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C)),
                     ),
                   ),
@@ -2247,7 +2256,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} lbs',
+                            '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF787774),
@@ -2271,8 +2280,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       controller: priceController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: '\$0.00',
-                        prefixText: '\$',
+                        hintText: FormatUtils.currencyHint,
+                        prefixText: FormatUtils.currencySymbol,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -2340,6 +2349,28 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
                       final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
                       await _db.updateLitter(updatedLitter);
+
+                      // Create finance transaction for kit sale
+                      final salePrice = double.tryParse(priceController.text);
+                      if (salePrice != null && salePrice > 0) {
+                        final transaction = finance.Transaction(
+                          id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+                          type: finance.TransactionType.income,
+                          category: finance.TransactionCategory.soldKit,
+                          amount: salePrice,
+                          date: DateTime.now(),
+                          description: 'Sold Kit ${litter.id}-${kit.id}',
+                          notes: buyerController.text.isNotEmpty ? 'Buyer: ${buyerController.text}' : null,
+                          linkType: finance.LinkType.litter,
+                          litterId: litter.id,
+                          kitId: kit.id.toString(),
+                          kitColor: kit.color,
+                          kitSex: kit.sex,
+                          buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
+                        );
+                        await _db.insertTransaction(transaction);
+                      }
+
                       await _refreshLitters();
                     }
 
@@ -2534,7 +2565,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               controller: yieldController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: 'Dressed Weight (lbs)',
+                labelText: FormatUtils.weightLabel('Dressed Weight'),
                 hintText: '0.0',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -2559,7 +2590,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   if (k.id == kit.id) {
                     return k.copyWith(
                       status: 'Butchered',
-                      details: 'Yield ${yieldController.text}lbs',
+                      details: 'Yield ${yieldController.text}${FormatUtils.weightUnit}',
                     );
                   }
                   return k;
@@ -2648,8 +2679,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
           controller: weightController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            labelText: 'Weight (lbs)',
-            suffixText: 'lbs',
+            labelText: FormatUtils.weightLabel(),
+            suffixText: FormatUtils.weightUnit,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -3304,8 +3335,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       controller: totalWeightController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: '0.0 lbs',
-                        suffixText: 'lbs',
+                        hintText: FormatUtils.weightHint,
+                        suffixText: FormatUtils.weightUnit,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -3391,6 +3422,17 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   void _showMoveCageDialog(Litter litter) {
     String? selectedLocation = litter.location;
     String? selectedCage = litter.cage;
+    List<String> availableCages = [];
+
+    // Pre-populate available cages for current location
+    for (var barn in _barns) {
+      for (var row in barn.rows) {
+        if (row.name == selectedLocation) {
+          availableCages = List.from(row.cages);
+          break;
+        }
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -3444,7 +3486,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: selectedLocation,
+                        value: _barns.any((b) => b.rows.any((r) => r.name == selectedLocation)) ? selectedLocation : null,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -3457,14 +3499,28 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                             ),
                           ),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'Maternity Row', child: Text('Maternity Row')),
-                          DropdownMenuItem(value: 'Nursery 1', child: Text('Nursery 1')),
-                          DropdownMenuItem(value: 'Grow Pen A', child: Text('Grow Pen A')),
-                          DropdownMenuItem(value: 'Bank 1', child: Text('Bank 1')),
-                        ],
+                        items: _barns
+                            .expand((barn) => barn.rows.map((row) {
+                                  return DropdownMenuItem<String>(
+                                    value: row.name,
+                                    child: Text('${row.name}  (${barn.name})'),
+                                  );
+                                }))
+                            .toList(),
                         onChanged: (value) {
-                          setModalState(() => selectedLocation = value);
+                          setModalState(() {
+                            selectedLocation = value;
+                            selectedCage = null;
+                            availableCages = [];
+                            for (var barn in _barns) {
+                              for (var row in barn.rows) {
+                                if (row.name == value) {
+                                  availableCages = List.from(row.cages);
+                                  break;
+                                }
+                              }
+                            }
+                          });
                         },
                       ),
                       const SizedBox(height: 20),
@@ -3478,23 +3534,49 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: TextEditingController(text: selectedCage),
-                        onChanged: (value) => selectedCage = value,
-                        decoration: InputDecoration(
-                          hintText: 'e.g., A-01',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF0F7B6C),
-                              width: 2,
+                      availableCages.isNotEmpty
+                          ? DropdownButtonFormField<String>(
+                              value: availableCages.contains(selectedCage) ? selectedCage : null,
+                              decoration: InputDecoration(
+                                hintText: 'Select cage',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF0F7B6C),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              items: availableCages.map((cage) {
+                                return DropdownMenuItem<String>(
+                                  value: cage,
+                                  child: Text(cage),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setModalState(() => selectedCage = value);
+                              },
+                            )
+                          : TextField(
+                              controller: TextEditingController(text: selectedCage),
+                              onChanged: (value) => selectedCage = value,
+                              decoration: InputDecoration(
+                                hintText: 'Enter cage number',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF0F7B6C),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -3598,21 +3680,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return FormatUtils.formatDate(date);
   }
 
   void _showKitMenu(
@@ -4017,266 +4085,294 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
+  // ==================== BARN/CAGE HELPERS ====================
+
+  int _countLittersInLocation(String location, [String? cage]) {
+    return litters.where((l) {
+      if (cage != null) {
+        return l.location == location && l.cage == cage;
+      }
+      return l.location == location;
+    }).length;
+  }
+
+  int _countLittersInBarn(Barn barn) {
+    int total = 0;
+    for (var row in barn.rows) {
+      total += _countLittersInLocation(row.name);
+    }
+    return total;
+  }
+
+  int _getTotalLitters() {
+    return litters.length;
+  }
+
+  int _getUnassignedLitterCount() {
+    return litters.where((l) => l.location.isEmpty || l.location == 'Unknown' || l.location == 'Unassigned').length;
+  }
+
+  // ==================== BARN DRAWER ====================
+
   void _showBarnDrawer() {
-    // Similar to herd screen barn drawer
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Barn Filter',
+      barrierLabel: 'Barn Drawer',
       barrierColor: Colors.black54,
-      transitionDuration: Duration(
-        milliseconds: 300,
-      ),
-      pageBuilder: (
-        context,
-        animation,
-        secondaryAnimation,
-      ) {
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
         return Align(
           alignment: Alignment.centerLeft,
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: MediaQuery.of(
-                    context,
-                  ).size.width *
-                  0.85,
-              height: MediaQuery.of(
-                context,
-              ).size.height,
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      50,
-                      20,
-                      20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Color(
-                        0xFFF7F7F5,
-                      ),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Color(
-                            0xFFE9E9E7,
-                          ),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          PhosphorIconsDuotone.warehouse,
-                          color: Color(
-                            0xFF0F7B6C,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 8,
-                        ),
-                        Text(
-                          'BARN FILTER',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(
-                              0xFF787774,
-                            ),
-                          ),
-                        ),
-                        Spacer(),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                          ),
-                          onPressed: () => Navigator.pop(
-                            context,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.all(
-                        12,
-                      ),
-                      children: [
-                        _buildLocationItem(
-                          'All Locations',
-                          null,
-                          24,
-                        ),
-                        SizedBox(
-                          height: 16,
-                        ),
-                        Text(
-                          'BARN A',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(
-                              0xFF9B9A97,
-                            ),
-                          ),
-                        ),
-                        _buildLocationItem(
-                          'Maternity Row',
-                          'Maternity Row',
-                          8,
-                        ),
-                        _buildLocationItem(
-                          'Nursery 1',
-                          'Nursery 1',
-                          10,
-                        ),
-                        SizedBox(
-                          height: 16,
-                        ),
-                        Text(
-                          'OUTDOOR',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(
-                              0xFF9B9A97,
-                            ),
-                          ),
-                        ),
-                        _buildLocationItem(
-                          'Grow Pen A',
-                          'Grow Pen A',
-                          6,
-                        ),
-                      ],
-                    ),
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: MediaQuery.of(context).size.height,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(2, 0),
                   ),
                 ],
+              ),
+              child: StatefulBuilder(
+                builder: (context, setModalState) {
+                  return Column(
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF7F7F5),
+                          border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(PhosphorIconsDuotone.warehouse, color: const Color(0xFF0F7B6C), size: 20),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'BARN & CAGES',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF787774),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Manage your layout',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF9B9A97),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setModalState(() {
+                                      _isBarnEditMode = !_isBarnEditMode;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: _isBarnEditMode ? const Color(0xFF0F7B6C) : Colors.white,
+                                      border: Border.all(
+                                        color: _isBarnEditMode ? const Color(0xFF0F7B6C) : const Color(0xFFE9E9E7),
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _isBarnEditMode ? 'Done' : 'Manage',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _isBarnEditMode ? Colors.white : Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          _isBarnEditMode ? Icons.check : Icons.edit,
+                                          size: 16,
+                                          color: _isBarnEditMode ? Colors.white : Colors.black87,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Body
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(12),
+                          children: [
+                            if (!_isBarnEditMode) ...[
+                              _buildBarnTreeItem(
+                                icon: Icons.grid_view,
+                                label: 'All Locations',
+                                count: _getTotalLitters(),
+                                isActive: _locationFilter == null,
+                                onTap: () {
+                                  setState(() => _locationFilter = null);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              _buildBarnTreeItem(
+                                icon: Icons.warning_amber,
+                                label: 'Unassigned',
+                                count: _getUnassignedLitterCount(),
+                                isActive: _locationFilter == 'Unassigned',
+                                onTap: () {
+                                  setState(() => _locationFilter = 'Unassigned');
+                                  Navigator.pop(context);
+                                },
+                                isWarning: true,
+                              ),
+                              Container(
+                                height: 1,
+                                color: const Color(0xFFE9E9E7),
+                                margin: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ],
+                            ..._barns.map((barn) => _buildLitterBarnSection(
+                                  barn,
+                                  setModalState,
+                                  context,
+                                )),
+                          ],
+                        ),
+                      ),
+                      // Add Barn button in edit mode
+                      if (_isBarnEditMode)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            border: Border(top: BorderSide(color: Color(0xFFE9E9E7))),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => _addBarn(setModalState),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE8F5F3),
+                              foregroundColor: const Color(0xFF0F7B6C),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: const BorderSide(color: Color(0xFF0F7B6C), width: 1.5),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_circle_outline, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Add New Barn / Building',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
         );
       },
-      transitionBuilder: (
-        context,
-        animation,
-        secondaryAnimation,
-        child,
-      ) {
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
         return SlideTransition(
           position: Tween<Offset>(
-            begin: Offset(
-              -1.0,
-              0.0,
-            ),
+            begin: const Offset(-1.0, 0.0),
             end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          ),
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
           child: child,
         );
       },
     );
   }
 
-  Widget _buildLocationItem(
-    String label,
-    String? location,
-    int count,
-  ) {
-    final isActive = _locationFilter == location;
-
+  Widget _buildBarnTreeItem({
+    required IconData icon,
+    required String label,
+    required int count,
+    required bool isActive,
+    required VoidCallback onTap,
+    bool isWarning = false,
+  }) {
     return GestureDetector(
-      onTap: () {
-        setState(
-          () => _locationFilter = location,
-        );
-        Navigator.pop(
-          context,
-        );
-      },
+      onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(
-          12,
-        ),
-        margin: EdgeInsets.only(
-          bottom: 4,
-        ),
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
-          color: isActive
-              ? Color(
-                  0xFFE8F5F3,
-                )
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(
-            8,
-          ),
-          border: isActive
-              ? Border.all(
-                  color: Color(
-                    0xFF0F7B6C,
-                  ),
-                )
-              : null,
+          color: isActive ? const Color(0xFFE8F5F3) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: isActive ? Border.all(color: const Color(0xFF0F7B6C)) : Border.all(color: Colors.transparent),
         ),
         child: Row(
           children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF0F7B6C) : const Color(0xFF787774)),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive
-                      ? Color(
-                          0xFF0F7B6C,
-                        )
-                      : Colors.black87,
+                  color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF0F7B6C) : Colors.black87),
                 ),
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 2,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isActive
-                    ? Colors.white
-                    : Color(
-                        0xFFF7F7F5,
-                      ),
+                color: isActive ? Colors.white : const Color(0xFFF7F7F5),
                 border: Border.all(
-                  color: isActive
-                      ? Color(
-                          0xFF0F7B6C,
-                        )
-                      : Color(
-                          0xFFE9E9E7,
-                        ),
+                  color: isActive ? const Color(0xFF0F7B6C) : const Color(0xFFE9E9E7),
                 ),
-                borderRadius: BorderRadius.circular(
-                  10,
-                ),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 count.toString(),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isActive
-                      ? Color(
-                          0xFF0F7B6C,
-                        )
-                      : Color(
-                          0xFF787774,
-                        ),
+                  color: isActive ? const Color(0xFF0F7B6C) : const Color(0xFF787774),
                 ),
               ),
             ),
@@ -4284,6 +4380,351 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ),
       ),
     );
+  }
+
+  Widget _buildLitterBarnSection(Barn barn, StateSetter setModalState, BuildContext dialogContext) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(top: 16, bottom: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F5F3),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  barn.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF37352F),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (_isBarnEditMode && _countLittersInBarn(barn) == 0)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9B9A97)),
+                  onPressed: () => _deleteBarn(barn, setModalState),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+        ),
+        ...barn.rows.map((row) {
+          return Container(
+            margin: const EdgeInsets.only(left: 10, bottom: 6),
+            padding: const EdgeInsets.only(left: 12),
+            decoration: const BoxDecoration(
+              border: Border(left: BorderSide(color: Color(0xFFE9E9E7), width: 2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_isBarnEditMode)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            row.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (_countLittersInLocation(row.name) == 0)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFF9B9A97)),
+                            onPressed: () => _deleteRow(barn, row, setModalState),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  _buildBarnTreeItem(
+                    icon: Icons.view_list,
+                    label: row.name,
+                    count: _countLittersInLocation(row.name),
+                    isActive: _locationFilter == row.name,
+                    onTap: () {
+                      setState(() => _locationFilter = row.name);
+                      Navigator.pop(dialogContext);
+                    },
+                  ),
+                if (_isBarnEditMode)
+                  ...row.cages.map((cage) {
+                    final cageCount = _countLittersInLocation(row.name, cage);
+                    return Container(
+                      margin: const EdgeInsets.only(left: 10, top: 4, bottom: 4),
+                      padding: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
+                      decoration: const BoxDecoration(
+                        border: Border(left: BorderSide(color: Color(0xFFE9E9E7), width: 2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            cage,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                          ),
+                          if (cageCount == 0)
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 14, color: Color(0xFF9B9A97)),
+                              onPressed: () => _deleteCage(barn, row, cage, setModalState),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            )
+                          else
+                            const Text(
+                              'Occupied',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF9B9A97)),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                if (_isBarnEditMode)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: GestureDetector(
+                      onTap: () => _addCage(barn, row, setModalState),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFF0F7B6C)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add, size: 14, color: Color(0xFF0F7B6C)),
+                            SizedBox(width: 4),
+                            Text(
+                              'Add Cage',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F7B6C),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+        if (_isBarnEditMode)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 8),
+            child: GestureDetector(
+              onTap: () => _addRow(barn, setModalState),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFF0F7B6C)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 14, color: Color(0xFF0F7B6C)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add Row',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F7B6C),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ==================== BARN MANAGEMENT ACTIONS ====================
+
+  void _addBarn(StateSetter setModalState) async {
+    final TextEditingController controller = TextEditingController();
+    final result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Barn'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Enter Barn Name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+        ],
+      ),
+    );
+
+    if (result == true && controller.text.isNotEmpty) {
+      final barnId = 'barn_${DateTime.now().millisecondsSinceEpoch}';
+      final newBarn = Barn(id: barnId, name: controller.text, rows: []);
+      await _db.insertBarn(newBarn.toMap());
+      await _refreshLitters();
+      setModalState(() {});
+    }
+  }
+
+  void _addRow(Barn barn, StateSetter setModalState) async {
+    final TextEditingController controller = TextEditingController();
+    final result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Row'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Enter Row Name (e.g. Row C)'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+        ],
+      ),
+    );
+
+    if (result == true && controller.text.isNotEmpty) {
+      setModalState(() {
+        barn.rows.add(BarnRow(name: controller.text, cages: []));
+      });
+      await _db.updateBarn(barn.toMap());
+      await _refreshLitters();
+    }
+  }
+
+  void _addCage(Barn barn, BarnRow row, StateSetter setModalState) async {
+    final TextEditingController controller = TextEditingController();
+    final result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Cage'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Enter Cage ID'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+        ],
+      ),
+    );
+
+    if (result == true && controller.text.isNotEmpty) {
+      setModalState(() {
+        row.cages.add(controller.text);
+      });
+      await _db.updateBarn(barn.toMap());
+      await _refreshLitters();
+    }
+  }
+
+  void _deleteBarn(Barn barn, StateSetter setModalState) async {
+    if (_countLittersInBarn(barn) > 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot delete barn with active litters')),
+        );
+      }
+      return;
+    }
+
+    final result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Barn'),
+        content: Text('Are you sure you want to delete ${barn.name}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _db.deleteBarn(barn.id);
+      await _refreshLitters();
+      setModalState(() {});
+    }
+  }
+
+  void _deleteRow(Barn barn, BarnRow row, StateSetter setModalState) async {
+    if (_countLittersInLocation(row.name) > 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot delete row with active litters')),
+        );
+      }
+      return;
+    }
+
+    final result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Row'),
+        content: Text('Are you sure you want to delete ${row.name}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      setModalState(() {
+        barn.rows.remove(row);
+      });
+      await _db.updateBarn(barn.toMap());
+      await _refreshLitters();
+    }
+  }
+
+  void _deleteCage(Barn barn, BarnRow row, String cage, StateSetter setModalState) async {
+    if (_countLittersInLocation(row.name, cage) > 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cage has active litters')),
+        );
+      }
+      return;
+    }
+
+    setModalState(() {
+      row.cages.remove(cage);
+    });
+    await _db.updateBarn(barn.toMap());
+    await _refreshLitters();
   }
 
   void _showFilterModal() {
@@ -4415,13 +4856,13 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               setModalState,
                             ),
                             _buildFilterChip(
-                              'Under 2 lbs',
+                              'Under 2 ${FormatUtils.weightUnit}',
                               'weight',
                               'light',
                               setModalState,
                             ),
                             _buildFilterChip(
-                              '2 lbs +',
+                              '2 ${FormatUtils.weightUnit} +',
                               'weight',
                               'heavy',
                               setModalState,
@@ -4541,6 +4982,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => AddLitterSheet(
+        barns: _barns,
         onComplete: () async {
           await _refreshLitters();
           if (mounted) {
@@ -4566,8 +5008,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
 class AddLitterSheet extends StatefulWidget {
   final VoidCallback onComplete;
+  final List<Barn> barns;
 
-  const AddLitterSheet({Key? key, required this.onComplete}) : super(key: key);
+  const AddLitterSheet({Key? key, required this.onComplete, required this.barns}) : super(key: key);
 
   @override
   State<AddLitterSheet> createState() => _AddLitterSheetState();
@@ -4587,8 +5030,9 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
   DateTime _dob = DateTime.now();
 
   final TextEditingController _litterIdController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController(text: 'Maternity Row');
-  final TextEditingController _cageController = TextEditingController();
+  String? _selectedLocation;
+  String? _selectedCage;
+  List<String> _availableCages = [];
   final TextEditingController _totalKitsController = TextEditingController();
   final TextEditingController _aliveKitsController = TextEditingController();
   final TextEditingController _deadKitsController = TextEditingController(text: '0');
@@ -4934,21 +5378,59 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                       // Location
                       _buildSectionLabel('LOCATION'),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _locationController,
-                        decoration: _buildInputDecoration('Enter location'),
-                        validator: (value) => value?.isEmpty ?? true ? 'Location is required' : null,
+                      DropdownButtonFormField<String>(
+                        value: _selectedLocation,
+                        decoration: _buildInputDecoration('Select location'),
+                        validator: (value) => value == null || value.isEmpty ? 'Location is required' : null,
+                        items: widget.barns
+                            .expand((barn) => barn.rows.map((row) {
+                                  return DropdownMenuItem<String>(
+                                    value: row.name,
+                                    child: Text('${row.name}  (${barn.name})'),
+                                  );
+                                }))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedLocation = value;
+                            _selectedCage = null;
+                            _availableCages = [];
+                            // Find cages for this row
+                            for (var barn in widget.barns) {
+                              for (var row in barn.rows) {
+                                if (row.name == value) {
+                                  _availableCages = row.cages;
+                                  break;
+                                }
+                              }
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 20),
 
                       // Cage
                       _buildSectionLabel('CAGE'),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _cageController,
-                        decoration: _buildInputDecoration('Enter cage number'),
-                        validator: (value) => value?.isEmpty ?? true ? 'Cage is required' : null,
-                      ),
+                      _availableCages.isNotEmpty
+                          ? DropdownButtonFormField<String>(
+                              value: _selectedCage,
+                              decoration: _buildInputDecoration('Select cage'),
+                              items: _availableCages.map((cage) {
+                                return DropdownMenuItem<String>(
+                                  value: cage,
+                                  child: Text(cage),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() => _selectedCage = value);
+                              },
+                            )
+                          : TextFormField(
+                              initialValue: _selectedCage,
+                              decoration: _buildInputDecoration('Enter cage number'),
+                              onChanged: (value) => _selectedCage = value,
+                            ),
                       const SizedBox(height: 20),
 
                       // Total Kits Born
@@ -5139,21 +5621,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return FormatUtils.formatDate(date);
   }
 
   Widget _buildKitDetailRow(int index) {
@@ -5283,8 +5751,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
         breedDate: _breedDate,
         kindleDate: _kindleDate,
         dob: _dob, // ✅ Include DOB
-        location: _locationController.text, // ✅ Include location
-        cage: _cageController.text, // ✅ Include cage
+        location: _selectedLocation ?? '', // ✅ Include location
+        cage: _selectedCage ?? '', // ✅ Include cage
         breed: doe.breed, // ✅ Include breed
         status: 'Nursing',
         sire: buck.name, // ✅ Include sire
@@ -5320,8 +5788,6 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
   @override
   void dispose() {
     _litterIdController.dispose();
-    _locationController.dispose();
-    _cageController.dispose();
     _totalKitsController.dispose();
     _aliveKitsController.dispose();
     _deadKitsController.dispose();

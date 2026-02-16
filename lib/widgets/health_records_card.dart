@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
+import '../services/format_utils.dart';
 
 class HealthRecordsCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -425,7 +426,7 @@ class HealthRecordsCard extends StatelessWidget {
                 controller: costController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  prefixText: '\$ ',
+                  prefixText: FormatUtils.currencyPrefix,
                   prefixStyle: TextStyle(
                     color: Color(0xFF6B7280),
                     fontSize: 15,

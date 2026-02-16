@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
+import '../services/database_service.dart';
 
 class NotesCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -11,6 +12,7 @@ class NotesCard extends StatefulWidget {
 }
 
 class _NotesCardState extends State<NotesCard> {
+  final DatabaseService _db = DatabaseService();
   late final TextEditingController _notesController;
 
   @override
@@ -20,6 +22,12 @@ class _NotesCardState extends State<NotesCard> {
   }
 
   bool _isEditing = false;
+
+  Future<void> _saveNotes() async {
+    final updatedRabbit = widget.rabbit.copyWith(notes: _notesController.text);
+    await _db.updateRabbit(updatedRabbit);
+    widget.rabbit.notes = _notesController.text;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +59,9 @@ class _NotesCardState extends State<NotesCard> {
                 ),
                 GestureDetector(
                   onTap: () {
+                    if (_isEditing) {
+                      _saveNotes();
+                    }
                     setState(() {
                       _isEditing = !_isEditing;
                     });

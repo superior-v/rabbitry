@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../models/breed.dart';
+import '../models/rabbit_document.dart';
 import '../models/transaction.dart' as finance_model;
 import 'dart:convert';
 import 'settings_service.dart';
@@ -26,7 +27,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -222,6 +223,19 @@ class DatabaseService {
       )
     ''');
 
+    // Documents table for rabbit file attachments
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS documents(
+        id TEXT PRIMARY KEY,
+        rabbitId TEXT NOT NULL,
+        name TEXT NOT NULL,
+        filePath TEXT NOT NULL,
+        fileType TEXT NOT NULL DEFAULT 'file',
+        fileSize INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
     print('✅ Database created successfully with all tables');
   }
 
@@ -405,6 +419,26 @@ class DatabaseService {
         print('✅ Added task_directory table');
       } catch (e) {
         print('⚠️ task_directory table may already exist: $e');
+      }
+    }
+
+    if (oldVersion < 11) {
+      // Add documents table for rabbit file attachments
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS documents(
+            id TEXT PRIMARY KEY,
+            rabbitId TEXT NOT NULL,
+            name TEXT NOT NULL,
+            filePath TEXT NOT NULL,
+            fileType TEXT NOT NULL DEFAULT 'file',
+            fileSize INTEGER NOT NULL DEFAULT 0,
+            createdAt TEXT NOT NULL
+          )
+        ''');
+        print('✅ Added documents table');
+      } catch (e) {
+        print('⚠️ documents table may already exist: $e');
       }
     }
   }
@@ -731,8 +765,8 @@ class DatabaseService {
       'location': rabbit.location ?? '',
       'cage': rabbit.cage ?? '',
       'breed': rabbit.breed,
-      'sire': rabbit.lastBreedBuckId ?? '',
-      'dam': rabbit.id,
+      'sire': buckName.isNotEmpty ? buckName : (rabbit.lastBreedBuckId ?? ''),
+      'dam': rabbit.name,
       'kits': kitsJson,
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
@@ -1753,7 +1787,141 @@ class DatabaseService {
     print('✅ Updated genetics for all rabbits with breed: $breedName');
   }
 
+  /// Fix litters that have rabbit IDs in sire/dam fields instead of names.
+  /// This handles litters created via logBirth before the fix.
+  Future<void> fixLitterSireDamNames() async {
+    final db = await database;
+    final littersData = await db.query('litters');
+
+    for (final litterMap in littersData) {
+      final litter = Litter.fromMap(litterMap);
+      bool needsUpdate = false;
+      String newSire = litter.sire;
+      String newDam = litter.dam;
+
+      // Check if sire looks like a rabbit ID (e.g. "R-0001" or any ID format)
+      // If sire != buckName and buckId exists, look up the actual name
+      if (litter.buckId.isNotEmpty && (litter.sire == litter.buckId || litter.sire.isEmpty)) {
+        final buck = await getRabbit(litter.buckId);
+        if (buck != null && buck.name.isNotEmpty) {
+          newSire = buck.name;
+          needsUpdate = true;
+        }
+      }
+
+      // Check if dam looks like a rabbit ID
+      if (litter.doeId.isNotEmpty && (litter.dam == litter.doeId || litter.dam.isEmpty)) {
+        final doe = await getRabbit(litter.doeId);
+        if (doe != null && doe.name.isNotEmpty) {
+          newDam = doe.name;
+          needsUpdate = true;
+        }
+      }
+
+      if (needsUpdate) {
+        await db.update(
+          'litters',
+          {
+            'sire': newSire,
+            'dam': newDam
+          },
+          where: 'id = ?',
+          whereArgs: [
+            litter.id
+          ],
+        );
+        print('✅ Fixed sire/dam for litter ${litter.id}: sire=$newSire, dam=$newDam');
+      }
+    }
+  }
+
   // ==================== TRANSACTIONS (FINANCE) ====================
+
+  /// Backfill finance transactions for sold kits and sold rabbits that are missing transactions.
+  /// This handles data created before the sell flow was fixed to auto-create transactions.
+  Future<void> backfillSoldTransactions() async {
+    final db = await database;
+
+    // 1. Backfill sold KITS from litters
+    final littersData = await db.query('litters');
+    for (final litterMap in littersData) {
+      final litter = Litter.fromMap(litterMap);
+      for (final kit in litter.kits) {
+        if (kit.status == 'Sold' && kit.price != null && kit.price! > 0) {
+          // Check if a transaction already exists for this kit
+          final existing = await db.query(
+            'transactions',
+            where: 'kitId = ? AND litterId = ? AND category = ?',
+            whereArgs: [
+              kit.id.toString(),
+              litter.id,
+              'TransactionCategory.soldKit'
+            ],
+          );
+          if (existing.isEmpty) {
+            final transaction = finance_model.Transaction(
+              id: 'txn_backfill_kit_${litter.id}_${kit.id}',
+              type: finance_model.TransactionType.income,
+              category: finance_model.TransactionCategory.soldKit,
+              amount: kit.price!,
+              date: DateTime.now(),
+              description: 'Sold Kit ${litter.id}-${kit.id}',
+              notes: kit.details?.isNotEmpty == true ? kit.details : null,
+              linkType: finance_model.LinkType.litter,
+              litterId: litter.id,
+              kitId: kit.id.toString(),
+              kitColor: kit.color,
+              kitSex: kit.sex,
+              buyerInfo: kit.details?.replaceFirst('Sold to ', ''),
+            );
+            await db.insert('transactions', transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+            print('✅ Backfilled transaction for sold kit ${litter.id}-${kit.id}: ${kit.price}');
+          }
+        }
+      }
+    }
+
+    // 2. Backfill sold RABBITS
+    final soldRabbits = await db.query(
+      'rabbits',
+      where: 'archiveReason = ? AND salePrice IS NOT NULL AND salePrice > 0',
+      whereArgs: [
+        'ArchiveReason.sold'
+      ],
+    );
+    for (final rabbitMap in soldRabbits) {
+      final rabbitId = rabbitMap['id'] as String;
+      final salePrice = (rabbitMap['salePrice'] as num).toDouble();
+      final rabbitName = rabbitMap['name'] as String? ?? rabbitId;
+      final buyerInfo = rabbitMap['buyerInfo'] as String?;
+
+      // Check if a transaction already exists for this rabbit sale
+      final existing = await db.query(
+        'transactions',
+        where: 'rabbitId = ? AND category = ?',
+        whereArgs: [
+          rabbitId,
+          'TransactionCategory.soldKit'
+        ],
+      );
+      if (existing.isEmpty) {
+        final transaction = finance_model.Transaction(
+          id: 'txn_backfill_rabbit_$rabbitId',
+          type: finance_model.TransactionType.income,
+          category: finance_model.TransactionCategory.soldKit,
+          amount: salePrice,
+          date: rabbitMap['archiveDate'] != null ? DateTime.parse(rabbitMap['archiveDate'] as String) : DateTime.now(),
+          description: 'Sold $rabbitName ($rabbitId)',
+          notes: buyerInfo != null ? 'Buyer: $buyerInfo' : null,
+          linkType: finance_model.LinkType.rabbit,
+          rabbitId: rabbitId,
+          buyerInfo: buyerInfo,
+        );
+        await db.insert('transactions', transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+        print('✅ Backfilled transaction for sold rabbit $rabbitId: $salePrice');
+      }
+    }
+  }
 
   Future<void> insertTransaction(finance_model.Transaction transaction) async {
     final db = await database;
@@ -2338,5 +2506,47 @@ class DatabaseService {
     } catch (e) {
       print('❌ Error migrating litters table: $e');
     }
+  }
+
+  // ==================== DOCUMENTS CRUD ====================
+
+  Future<void> insertDocument(RabbitDocument doc) async {
+    final db = await database;
+    await db.insert('documents', doc.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    print('✅ Inserted document: ${doc.name}');
+  }
+
+  Future<List<RabbitDocument>> getDocumentsByRabbit(String rabbitId) async {
+    final db = await database;
+    final maps = await db.query(
+      'documents',
+      where: 'rabbitId = ?',
+      whereArgs: [
+        rabbitId
+      ],
+      orderBy: 'createdAt DESC',
+    );
+    return maps.map((m) => RabbitDocument.fromMap(m)).toList();
+  }
+
+  Future<void> updateDocument(RabbitDocument doc) async {
+    final db = await database;
+    await db.update(
+      'documents',
+      doc.toMap(),
+      where: 'id = ?',
+      whereArgs: [
+        doc.id
+      ],
+    );
+    print('✅ Updated document: ${doc.name}');
+  }
+
+  Future<void> deleteDocument(String id) async {
+    final db = await database;
+    await db.delete('documents', where: 'id = ?', whereArgs: [
+      id
+    ]);
+    print('✅ Deleted document: $id');
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 import 'modals/move_cage_modal.dart';
 import 'dart:convert'; // ✅ Add this import for jsonDecode
 
@@ -65,11 +66,11 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
           _buildEditableInfoRow(context, 'Cage', _currentRabbit.cage ?? 'Unassigned', () => _showCageSelector(context)),
           _buildEditableInfoRow(context, 'Breed', _currentRabbit.breed, () => _showBreedSelector(context)),
           _buildEditableInfoRow(context, 'Color', _currentRabbit.color ?? 'Not set', () => _showColorSelector(context)),
-          _buildEditableInfoRow(context, 'Weight', _currentRabbit.weight != null ? '${_currentRabbit.weight!.toStringAsFixed(1)} lbs' : 'Not recorded', () async {
+          _buildEditableInfoRow(context, 'Weight', _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : 'Not recorded', () async {
             await _showWeightModal(context);
             await _refreshRabbitData();
           }, showInfoIcon: true),
-          _buildStaticInfoRow('Born', _currentRabbit.dateOfBirth != null ? '${_formatDate(_currentRabbit.dateOfBirth!)}' : 'Not set'),
+          _buildStaticInfoRow('Born', _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : 'Not set'),
           _buildStaticInfoRow('Age', _calculateAge()),
           _buildEditableInfoRow(context, 'Origin', _currentRabbit.origin ?? 'Not set', () => _showOriginSelector(context)),
         ],
@@ -156,21 +157,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return FormatUtils.formatDate(date);
   }
 
   // Replace the entire _showCageSelector method with this:
@@ -1252,7 +1239,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _currentRabbit.weight != null ? '${_currentRabbit.weight} lbs' : 'Not recorded', // Changed rabbit to _currentRabbit
+                      _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : 'Not recorded', // Changed rabbit to _currentRabbit
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -1274,7 +1261,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               const SizedBox(height: 12),
               ...weightHistory.take(5).map((entry) {
                 return _buildWeightEntry(
-                  '${entry['weight']} lbs',
+                  '${entry['weight']} ${FormatUtils.weightUnit}',
                   _formatDate(DateTime.parse(entry['date'])),
                 );
               }).toList(),
@@ -1351,7 +1338,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               controller: weightController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: 'Weight (lbs)',
+                labelText: FormatUtils.weightLabel(),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

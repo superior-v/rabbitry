@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
+import '../../models/transaction.dart' as finance;
 import '../../services/database_service.dart';
+import '../../services/format_utils.dart';
 
 class SellModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -99,7 +101,7 @@ class _SellModalState extends State<SellModal> {
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   hintText: '0.00',
-                  prefixText: '\$ ',
+                  prefixText: FormatUtils.currencyPrefix,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
@@ -239,12 +241,29 @@ class _SellModalState extends State<SellModal> {
         _buyerController.text.isEmpty ? null : _buyerController.text,
       );
 
+      // Create finance transaction if price is set and ledger toggle is on
+      if (_addToLedger && price != null && price > 0) {
+        final transaction = finance.Transaction(
+          id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+          type: finance.TransactionType.income,
+          category: finance.TransactionCategory.soldKit,
+          amount: price,
+          date: _saleDate,
+          description: 'Sold ${widget.rabbit.name} (${widget.rabbit.id})',
+          notes: _buyerController.text.isNotEmpty ? 'Buyer: ${_buyerController.text}' : null,
+          linkType: finance.LinkType.rabbit,
+          rabbitId: widget.rabbit.id,
+          buyerInfo: _buyerController.text.isNotEmpty ? _buyerController.text : null,
+        );
+        await _db.insertTransaction(transaction);
+      }
+
       Navigator.pop(context);
       widget.onComplete();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${widget.rabbit.name} sold${price != null ? " for \$${price.toStringAsFixed(2)}" : ""}'),
+          content: Text('${widget.rabbit.name} sold${price != null ? " for ${FormatUtils.formatCurrency(price)}" : ""}'),
           backgroundColor: Color(0xFF0F7B6C),
         ),
       );

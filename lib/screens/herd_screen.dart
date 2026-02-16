@@ -4,6 +4,7 @@ import '../models/barn.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import '../widgets/rabbit_card.dart';
 import 'dart:io';
 import 'rabbit_detail_screen.dart';
@@ -25,6 +26,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   String? _locationFilter;
   String _grouping = 'none';
   bool _isBarnEditMode = false;
+
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   final DatabaseService _db = DatabaseService();
   final SettingsService _settings = SettingsService.instance;
@@ -300,14 +304,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-        ],
+
       ),
       body: Column(
         children: [
@@ -454,14 +451,25 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 border: Border.all(color: const Color(0xFFE9E9E7)),
               ),
               child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
                 onChanged: (value) => setState(() => _searchQuery = value),
                 style: const TextStyle(fontSize: 15),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search ID or Name...',
-                  hintStyle: TextStyle(color: Color(0xFF9B9A97), fontSize: 15),
-                  prefixIcon: Icon(Icons.search, color: Color(0xFF787774), size: 20),
+                  hintStyle: const TextStyle(color: Color(0xFF9B9A97), fontSize: 15),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF787774), size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close, size: 18, color: Color(0xFF787774)),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
@@ -1101,7 +1109,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             Icon(Icons.attach_money, size: 14, color: Colors.grey[600]),
             const SizedBox(width: 4),
             Text(
-              'Price: \$${rabbit.salePrice?.toStringAsFixed(2) ?? '0.00'}',
+              'Price: ${FormatUtils.formatCurrency(rabbit.salePrice ?? 0)}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
             ),
             const SizedBox(width: 16),
@@ -1123,7 +1131,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             Icon(Icons.scale, size: 14, color: Colors.grey[600]),
             const SizedBox(width: 4),
             Text(
-              'Yield: ${rabbit.butcherYield?.toStringAsFixed(1) ?? '0.0'} lbs',
+              'Yield: ${rabbit.butcherYield?.toStringAsFixed(1) ?? '0.0'} ${FormatUtils.weightUnit}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
             ),
             const SizedBox(width: 16),
@@ -1343,6 +1351,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 padding: const EdgeInsets.only(top: 8),
                 child: TextButton(
                   onPressed: () {
+                    _searchController.clear();
                     setState(() {
                       _currentFilter = 'All';
                       _searchQuery = '';
@@ -2118,6 +2127,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 }

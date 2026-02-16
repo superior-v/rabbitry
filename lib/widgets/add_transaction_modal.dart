@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/finance_transaction.dart';
 import '../models/rabbit.dart';
 import '../constants/finance_categories.dart';
+import '../services/format_utils.dart';
 
 class AddTransactionModal extends StatefulWidget {
   final Function(FinanceTransaction) onAdd;
@@ -68,8 +69,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 _buildNotesField(),
                 SizedBox(height: 20),
                 _buildVirtualToggle(),
-                if (selectedType == TransactionType.income &&
-                    selectedContext == TransactionContext.kit) ...[
+                if (selectedType == TransactionType.income && selectedContext == TransactionContext.kit) ...[
                   SizedBox(height: 20),
                   _buildBatchToggle(),
                 ],
@@ -209,9 +209,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           itemBuilder: (context, index) {
             final category = availableCategories[index];
             bool isSelected = selectedCategory == category.key;
-            final color = selectedType == TransactionType.income
-                ? Color(0xFF2F855A)
-                : Color(0xFFC53030);
+            final color = selectedType == TransactionType.income ? Color(0xFF2F855A) : Color(0xFFC53030);
 
             return GestureDetector(
               onTap: () {
@@ -342,7 +340,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 Icon(Icons.calendar_today, color: Color(0xFF787774), size: 20),
                 SizedBox(width: 12),
                 Text(
-                  DateFormat('MMMM d, yyyy').format(selectedDate),
+                  FormatUtils.formatDateLong(selectedDate),
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF37352F),
@@ -431,9 +429,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          selectedContext == TransactionContext.rabbit ? 'SELECT RABBIT' :
-          selectedContext == TransactionContext.litter ? 'SELECT LITTER' :
-          'SELECT KIT',
+          selectedContext == TransactionContext.rabbit
+              ? 'SELECT RABBIT'
+              : selectedContext == TransactionContext.litter
+                  ? 'SELECT LITTER'
+                  : 'SELECT KIT',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -671,9 +671,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       category: selectedCategory!,
       amount: double.parse(amountController.text),
       context: selectedContext,
-      entity: selectedContext == TransactionContext.general
-          ? 'General Herd'
-          : 'Entity Name', // Get from selected rabbit/litter/kit
+      entity: selectedContext == TransactionContext.general ? 'General Herd' : 'Entity Name', // Get from selected rabbit/litter/kit
       entityId: selectedRabbit ?? 'GEN',
       litterId: selectedLitter,
       sub: notesController.text.isNotEmpty ? notesController.text : null,
@@ -687,20 +685,34 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
 
   IconData _getCategoryIcon(String iconName) {
     switch (iconName) {
-      case 'sell': return Icons.sell;
-      case 'restaurant': return Icons.restaurant;
-      case 'male': return Icons.male;
-      case 'person_remove': return Icons.person_remove;
-      case 'grass': return Icons.grass;
-      case 'paid': return Icons.paid;
-      case 'grain': return Icons.grain;
-      case 'medical_services': return Icons.medical_services;
-      case 'build': return Icons.build;
-      case 'emoji_events': return Icons.emoji_events;
-      case 'forest': return Icons.forest;
-      case 'local_hospital': return Icons.local_hospital;
-      case 'inventory_2': return Icons.inventory_2;
-      default: return Icons.receipt;
+      case 'sell':
+        return Icons.sell;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'male':
+        return Icons.male;
+      case 'person_remove':
+        return Icons.person_remove;
+      case 'grass':
+        return Icons.grass;
+      case 'paid':
+        return Icons.paid;
+      case 'grain':
+        return Icons.grain;
+      case 'medical_services':
+        return Icons.medical_services;
+      case 'build':
+        return Icons.build;
+      case 'emoji_events':
+        return Icons.emoji_events;
+      case 'forest':
+        return Icons.forest;
+      case 'local_hospital':
+        return Icons.local_hospital;
+      case 'inventory_2':
+        return Icons.inventory_2;
+      default:
+        return Icons.receipt;
     }
   }
 

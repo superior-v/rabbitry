@@ -4,6 +4,7 @@ import '../../models/rabbit.dart';
 import '../../models/transaction.dart' as finance;
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
 
 class ArchiveModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -269,7 +270,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             ],
             decoration: InputDecoration(
               labelText: 'Sale Price *',
-              prefixText: '\$',
+              prefixText: FormatUtils.currencySymbol,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
@@ -299,7 +300,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
             ],
             decoration: InputDecoration(
-              labelText: 'Yield Weight (lbs) *',
+              labelText: '${FormatUtils.weightLabel('Yield Weight')} *',
               hintText: 'Dressed weight',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -313,7 +314,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             ],
             decoration: InputDecoration(
               labelText: 'Processing Cost',
-              prefixText: '\$',
+              prefixText: FormatUtils.currencySymbol,
               hintText: 'Optional',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -475,7 +476,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             category: finance.TransactionCategory.meatHarvest,
             amount: butcherYield, // Yield value (could be multiplied by price per lb)
             date: DateTime.now(),
-            description: 'Butchered ${widget.rabbit.name} (${widget.rabbit.id}) - ${butcherYield} lbs',
+            description: 'Butchered ${widget.rabbit.name} (${widget.rabbit.id}) - ${butcherYield} ${FormatUtils.weightUnit}',
             linkType: finance.LinkType.rabbit,
             rabbitId: widget.rabbit.id,
           );

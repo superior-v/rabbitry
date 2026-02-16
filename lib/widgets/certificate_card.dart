@@ -1,10 +1,47 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
+import '../services/database_service.dart';
 
-class CertificateCard extends StatelessWidget {
+class CertificateCard extends StatefulWidget {
   final Rabbit rabbit;
 
   const CertificateCard({Key? key, required this.rabbit}) : super(key: key);
+
+  @override
+  State<CertificateCard> createState() => _CertificateCardState();
+}
+
+class _CertificateCardState extends State<CertificateCard> {
+  final DatabaseService _db = DatabaseService();
+  String _sireName = 'Not set';
+  String _damName = 'Not set';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParentNames();
+  }
+
+  Future<void> _loadParentNames() async {
+    try {
+      if (widget.rabbit.sireId != null && widget.rabbit.sireId!.isNotEmpty) {
+        final sire = await _db.getRabbit(widget.rabbit.sireId!);
+        if (sire != null && mounted) {
+          setState(() => _sireName = sire.name);
+        }
+      }
+      if (widget.rabbit.damId != null && widget.rabbit.damId!.isNotEmpty) {
+        final dam = await _db.getRabbit(widget.rabbit.damId!);
+        if (dam != null && mounted) {
+          setState(() => _damName = dam.name);
+        }
+      }
+    } catch (e) {
+      print('Error loading parent names: $e');
+    }
+  }
+
+  Rabbit get rabbit => widget.rabbit;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +132,7 @@ class CertificateCard extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        'Rex Rabbit',
+                        rabbit.breed,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -105,16 +142,14 @@ class CertificateCard extends StatelessWidget {
                       SizedBox(height: 12),
                       _buildCertRow('Name', rabbit.name),
                       _buildCertRow('ID', rabbit.id),
-                      _buildCertRow('Registration #', 'Not set'),
+                      _buildCertRow('Registration #', rabbit.registrationNumber ?? 'Not set'),
                       _buildCertRow('Color', rabbit.color ?? 'Not set'),
                       _buildCertRow('Born', rabbit.dateOfBirth != null ? '${rabbit.dateOfBirth!.month}/${rabbit.dateOfBirth!.day}/${rabbit.dateOfBirth!.year}' : 'Not set'),
                       Divider(height: 24),
-                      _buildCertRow('Sire', 'Not set'),
-                      _buildCertRow('Dam', 'Not set'),
+                      _buildCertRow('Sire', _sireName),
+                      _buildCertRow('Dam', _damName),
                       Divider(height: 24),
-                      _buildCertRow('Breeder', 'Not set'),
-                      _buildCertRow('Owner', 'Not set'),
-                      _buildCertRow('Issue Date', 'Not set'),
+                      _buildCertRow('Origin', rabbit.origin ?? 'Not set'),
                     ],
                   ),
                 ),
