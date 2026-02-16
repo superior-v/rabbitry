@@ -7,6 +7,8 @@ import '../services/database_service.dart'; // ✅ ADD THIS
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
 import '../models/rabbit.dart';
+import '../models/breed.dart';
+import 'rabbit_detail_screen.dart';
 
 import 'dart:developer' as developer;
 
@@ -2070,128 +2072,445 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
-  void _promoteKitToMature(Litter litter, Kit kit) {
-    final TextEditingController nameController = TextEditingController(text: 'Kit ${kit.id}');
-    final TextEditingController idController = TextEditingController();
+  void _promoteKitToMature(Litter litter, Kit kit) async {
+    // Generate next rabbit ID
+    String nextId = '';
+    try {
+      final allRabbits = await _db.getAllRabbits();
+      final archivedRabbits = await _db.getArchivedRabbits();
+      final allIds = [
+        ...allRabbits,
+        ...archivedRabbits
+      ].map((r) => r.id).toList();
+      int maxNum = 0;
+      for (final id in allIds) {
+        final match = RegExp(r'^R-(\d+)$').firstMatch(id);
+        if (match != null) {
+          final num = int.tryParse(match.group(1)!) ?? 0;
+          if (num > maxNum) maxNum = num;
+        }
+      }
+      nextId = 'R-${(maxNum + 1).toString().padLeft(4, '0')}';
+    } catch (_) {
+      nextId = 'R-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    }
 
-    showDialog(
+    // Load breeds for autocomplete
+    List<Breed> availableBreeds = [];
+    try {
+      availableBreeds = await _db.getAllBreeds();
+    } catch (_) {}
+
+    bool isBuck = kit.sex == 'M';
+    final nameController = TextEditingController(text: 'Kit ${kit.id}');
+    final idController = TextEditingController(text: nextId);
+    final breedController = TextEditingController(text: litter.breed);
+    final colorController = TextEditingController(text: kit.color);
+    final weightController = TextEditingController(text: kit.weight > 0 ? kit.weight.toString() : '');
+    final notesController = TextEditingController(text: 'Promoted from litter ${litter.id}');
+    String? selectedLocation = litter.location.isNotEmpty ? litter.location : null;
+    String? selectedCage = litter.cage.isNotEmpty ? litter.cage : null;
+    DateTime? dateOfBirth = litter.dob;
+    bool isSaving = false;
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Promote to Active Breeder'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This will create a new rabbit entry as an active breeder.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Rabbit Name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            // Build cage list from selected location
+            List<String> cageNames = [];
+            if (selectedLocation != null) {
+              final matchingBarn = _barns.where((b) => b.name == selectedLocation).toList();
+              if (matchingBarn.isNotEmpty) {
+                for (final row in matchingBarn.first.rows) {
+                  cageNames.addAll(row.cages);
+                }
+              }
+            }
+            if (selectedCage != null && !cageNames.contains(selectedCage)) {
+              selectedCage = null;
+            }
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.92,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: idController,
-              decoration: InputDecoration(
-                labelText: 'Rabbit ID (optional)',
-                hintText: 'Auto-generated if empty',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Color(0xFFE0F2F1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
+              child: Column(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: Color(0xFF0F7B6C)),
-                  SizedBox(width: 8),
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 8, 12),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.star, color: Color(0xFF0F7B6C), size: 22),
+                            SizedBox(width: 10),
+                            Text(
+                              'Promote to ${isBuck ? 'Buck' : 'Doe'}',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF37352F)),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      // Validation
+                                      if (nameController.text.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFD44C47)),
+                                        );
+                                        return;
+                                      }
+                                      if (breedController.text.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter a breed'), backgroundColor: Color(0xFFD44C47)),
+                                        );
+                                        return;
+                                      }
+
+                                      setSheetState(() => isSaving = true);
+
+                                      try {
+                                        final newRabbit = await _db.promoteKitToBreeder(
+                                          litter,
+                                          kit,
+                                          customName: nameController.text,
+                                          customId: idController.text.isNotEmpty ? idController.text : null,
+                                          type: isBuck ? RabbitType.buck : RabbitType.doe,
+                                          breed: breedController.text,
+                                          location: selectedLocation,
+                                          cage: selectedCage,
+                                          dateOfBirth: dateOfBirth,
+                                          color: colorController.text.isNotEmpty ? colorController.text : null,
+                                          weight: weightController.text.isNotEmpty ? double.tryParse(weightController.text) : null,
+                                          notes: notesController.text.isNotEmpty ? notesController.text : null,
+                                        );
+
+                                        await _refreshLitters();
+
+                                        if (mounted) {
+                                          Navigator.pop(context); // close sheet
+
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('${newRabbit?.name ?? "Kit"} promoted to ${isBuck ? 'Buck' : 'Doe'}!'),
+                                              backgroundColor: const Color(0xFF0F7B6C),
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+
+                                          // Navigate to the new rabbit's detail screen
+                                          if (newRabbit != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => RabbitDetailScreen(rabbit: newRabbit),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        setSheetState(() => isSaving = false);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error: $e'),
+                                              backgroundColor: Colors.red,
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                              child: isSaving ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F7B6C))) : Text('SAVE', style: TextStyle(color: Color(0xFF0F7B6C), fontWeight: FontWeight.w700, fontSize: 15)),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 22),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Form body
                   Expanded(
-                    child: Text(
-                      'Sex: ${kit.sex == 'M' ? 'Male (Buck)' : 'Female (Doe)'}\nColor: ${kit.color}\nWeight: ${kit.weight} ${FormatUtils.weightUnit}',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C)),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Kit info banner
+                          Container(
+                            padding: EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFF0F7F6),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Color(0xFF0F7B6C).withOpacity(0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isBuck ? Color(0xFF2E7BB5).withOpacity(0.15) : Color(0xFF9C6ADE).withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isBuck ? Icons.male : Icons.female,
+                                    color: isBuck ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
+                                    size: 26,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Kit ${litter.id}-${kit.id}',
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF37352F)),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        '${isBuck ? 'Male (Buck)' : 'Female (Doe)'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
+                                        style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                                      ),
+                                      Text(
+                                        'Sire: ${litter.buckName} • Dam: ${litter.doeName}',
+                                        style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 24),
+
+                          // Rabbit Type
+                          Text('Rabbit Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() => isBuck = false),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: !isBuck ? Color(0xFF9C6ADE) : Colors.white,
+                                      border: Border.all(color: !isBuck ? Color(0xFF9C6ADE) : Color(0xFFE9E9E7)),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.female, color: !isBuck ? Colors.white : Color(0xFF9C6ADE), size: 20),
+                                        SizedBox(width: 6),
+                                        Text('Doe', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: !isBuck ? Colors.white : Color(0xFF9C6ADE))),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() => isBuck = true),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: isBuck ? Color(0xFF2E7BB5) : Colors.white,
+                                      border: Border.all(color: isBuck ? Color(0xFF2E7BB5) : Color(0xFFE9E9E7)),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.male, color: isBuck ? Colors.white : Color(0xFF2E7BB5), size: 20),
+                                        SizedBox(width: 6),
+                                        Text('Buck', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isBuck ? Colors.white : Color(0xFF2E7BB5))),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+
+                          // Rabbit ID
+                          _buildPromoteTextField(idController, 'Rabbit ID', Icons.tag, readOnly: true),
+                          SizedBox(height: 16),
+
+                          // Name
+                          _buildPromoteTextField(nameController, 'Name *', Icons.pets, hint: 'Enter rabbit name'),
+                          SizedBox(height: 16),
+
+                          // Breed
+                          Text('Breed *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          SizedBox(height: 8),
+                          Autocomplete<String>(
+                            optionsBuilder: (TextEditingValue val) {
+                              final names = availableBreeds.map((b) => b.name).toList();
+                              if (val.text.isEmpty) return names;
+                              return names.where((n) => n.toLowerCase().contains(val.text.toLowerCase()));
+                            },
+                            initialValue: TextEditingValue(text: breedController.text),
+                            fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
+                              ctrl.addListener(() => breedController.text = ctrl.text);
+                              return TextField(
+                                controller: ctrl,
+                                focusNode: focusNode,
+                                decoration: InputDecoration(
+                                  hintText: 'e.g., New Zealand White',
+                                  prefixIcon: Icon(Icons.category, color: Color(0xFF787774)),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2)),
+                                ),
+                              );
+                            },
+                            onSelected: (v) => breedController.text = v,
+                          ),
+                          SizedBox(height: 16),
+
+                          // Location
+                          Text('Location', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _barns.any((b) => b.name == selectedLocation) ? selectedLocation : null,
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(Icons.location_on, color: Color(0xFF787774)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+                            ),
+                            hint: Text(_barns.isEmpty ? 'No barns added yet' : 'Select Location'),
+                            items: _barns.map((b) => DropdownMenuItem(value: b.name, child: Text(b.name))).toList(),
+                            onChanged: (v) {
+                              setSheetState(() {
+                                selectedLocation = v;
+                                selectedCage = null;
+                              });
+                            },
+                          ),
+                          SizedBox(height: 16),
+
+                          // Cage
+                          Text('Cage', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey(selectedLocation),
+                            value: selectedCage,
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(Icons.home, color: Color(0xFF787774)),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+                            ),
+                            hint: Text(selectedLocation == null
+                                ? 'Select a location first'
+                                : cageNames.isEmpty
+                                    ? 'No cages in this barn'
+                                    : 'Select Cage'),
+                            items: cageNames.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (v) => setSheetState(() => selectedCage = v),
+                          ),
+                          SizedBox(height: 16),
+
+                          // Date of Birth
+                          Text('Date of Birth', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          SizedBox(height: 8),
+                          InkWell(
+                            onTap: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: dateOfBirth ?? DateTime.now(),
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                              );
+                              if (date != null) {
+                                setSheetState(() => dateOfBirth = date);
+                              }
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Color(0xFFE9E9E7)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.cake, color: Color(0xFF787774)),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    dateOfBirth != null ? '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}' : 'Not set',
+                                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                                  ),
+                                  Spacer(),
+                                  Icon(Icons.calendar_today, color: Color(0xFF787774), size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+
+                          // Color
+                          _buildPromoteTextField(colorController, 'Color', Icons.palette, hint: 'e.g., White, Black'),
+                          SizedBox(height: 16),
+
+                          // Weight
+                          _buildPromoteTextField(weightController, FormatUtils.weightLabel(), Icons.monitor_weight, hint: '0.0', keyboardType: TextInputType.number),
+                          SizedBox(height: 16),
+
+                          // Notes
+                          _buildPromoteTextField(notesController, 'Notes', Icons.notes, hint: 'Optional notes'),
+                          SizedBox(height: 32),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
+            );
+          },
+        );
+      },
+    );
+  }
 
-              // Show loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
-                  ),
-                ),
-              );
-
-              try {
-                // Promote kit to breeder using database service
-                final newRabbit = await _db.promoteKitToBreeder(
-                  litter,
-                  kit,
-                  customName: nameController.text.isNotEmpty ? nameController.text : null,
-                  customId: idController.text.isNotEmpty ? idController.text : null,
-                );
-
-                // Reload litters
-                await _refreshLitters();
-
-                // Close loading
-                if (mounted) {
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Kit promoted to breeder: ${newRabbit?.name ?? "Unknown"}'),
-                      backgroundColor: const Color(0xFF0F7B6C),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F7B6C),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Promote', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+  Widget _buildPromoteTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    String? hint,
+    bool readOnly = false,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: Color(0xFF787774)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2)),
       ),
     );
   }
@@ -3889,58 +4208,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   Icons.star,
                   'Promote to Mature',
                   true,
-                  () async {
-                    // ✅ Show loading
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
-                        ),
-                      ),
-                    );
-
-                    try {
-                      final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-                      if (litterIndex != -1) {
-                        final updatedKits = litters[litterIndex].kits.map((k) {
-                          if (k.id == kit.id) {
-                            return k.copyWith(status: 'Mature');
-                          }
-                          return k;
-                        }).toList();
-
-                        final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
-                        await _db.updateLitter(updatedLitter);
-                        await _refreshLitters();
-                      }
-
-                      // ✅ Close loading
-                      if (mounted) {
-                        Navigator.pop(context);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Kit promoted to mature'),
-                            backgroundColor: Color(0xFF0F7B6C),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      print('❌ Error promoting kit: $e');
-                      if (mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: $e'),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    }
+                  () {
+                    _promoteKitToMature(litter, kit);
                   },
                 ),
               _buildMenuItem(
@@ -5765,6 +6034,21 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
       // Save to database
       await _db.updateLitter(newLitter);
+
+      // Create wean pipeline task for this litter
+      final settings = SettingsService.instance;
+      final weanDate = _dob.add(Duration(days: settings.weanAge * 7));
+      await _db.insertTask({
+        'id': 'task_wean_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doe.id,
+        'litterId': newLitter.id,
+        'title': 'Wean Litter',
+        'description': '$aliveKits kits ready for weaning',
+        'taskType': 'wean',
+        'dueDate': weanDate.toIso8601String(),
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
 
       Navigator.pop(context);
       widget.onComplete();

@@ -6,6 +6,7 @@ import 'reports_screen.dart';
 import 'settings_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
+import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
@@ -647,84 +648,196 @@ class _HomeTabContentState extends State<HomeTabContent> {
   String _selectedCategory = 'All';
   String _breedFilter = 'All';
   String _searchQuery = ''; // ✅ Search query
-  Set<String> _completedTasks = {};
   Set<int> _ignoredTasks = {};
   Set<String> _expandedGroups = {};
+  bool _isLoading = true; // Show loading on first load
+  bool _hasLoadedOnce = false; // Track if initial load completed
 
   // ✅ Database scheduled tasks
   List<Map<String, dynamic>> _todayTasks = [];
   List<Map<String, dynamic>> _upcomingTasks = [];
 
+  // ✅ Stats counters
+  int _activeLitters = 0;
+  int _breederCount = 0;
+  int _growOutCount = 0;
+
   @override
   void initState() {
     super.initState();
-    _loadScheduledTasks();
+    _initTasks();
   }
 
-  /// Load scheduled tasks from database
-  Future<void> _loadScheduledTasks() async {
-    print('🔄 Loading scheduled tasks from database...');
-    final today = await _db.getTasksDueToday();
-    final upcoming = await _db.getUpcomingScheduledTasks();
-    print('✅ Loaded ${today.length} today tasks, ${upcoming.length} upcoming tasks');
+  Future<void> _initTasks() async {
+    if (!_hasLoadedOnce) {
+      setState(() => _isLoading = true);
+    }
+    // Cleanup tasks completed before today (reschedule recurring, delete one-time)
+    try {
+      await _db.cleanupCompletedScheduledTasks();
+    } catch (e) {
+      print('❌ Error in cleanupCompletedScheduledTasks: $e');
+    }
+    // Backfill any missing pipeline tasks for existing litters/rabbits
+    try {
+      await _db.backfillMissingPipelineTasks();
+    } catch (e) {
+      print('❌ Error in backfillMissingPipelineTasks: $e');
+    }
+    await _loadScheduledTasks();
+    await _loadStats();
     if (mounted) {
       setState(() {
-        _todayTasks = today;
-        _upcomingTasks = upcoming;
+        _isLoading = false;
+        _hasLoadedOnce = true;
       });
     }
   }
 
-  /// Handle task completion via checkbox
-  Future<void> _handleTaskComplete(Map<String, dynamic> task) async {
-    final taskId = task['id'] as int?;
-    if (taskId == null) return;
+  /// Load stat counts from database
+  Future<void> _loadStats() async {
+    try {
+      final litters = await _db.getLitters();
+      final rabbits = await _db.getAllRabbits();
 
-    final frequency = task['frequency']?.toString() ?? 'Once';
+      print('📊 Stats: ${litters.length} litters, ${rabbits.length} rabbits');
+      for (final l in litters) {
+        print('  📦 Litter ${l.id}: status="${l.status}"');
+      }
+      for (final r in rabbits) {
+        print('  🐰 Rabbit ${r.id}: type=${r.type}, status=${r.status}');
+      }
 
-    if (frequency == 'Once') {
-      // One-time task: delete from DB
-      await _db.deleteScheduledTask(taskId);
+      if (mounted) {
+        setState(() {
+          _activeLitters = litters.where((l) => l.status == 'Nursing' || l.status == 'nursing' || l.status == 'Weaned' || l.status == 'weaned').length;
+          _breederCount = rabbits.where((r) => (r.type == RabbitType.doe || r.type == RabbitType.buck) && r.status != RabbitStatus.archived).length;
+          _growOutCount = rabbits.where((r) => r.status == RabbitStatus.growout).length;
+          print('📊 Final: activeLitters=$_activeLitters, breeders=$_breederCount, growout=$_growOutCount');
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading stats: $e');
+    }
+  }
+
+  /// Load scheduled tasks and pipeline tasks from database
+  Future<void> _loadScheduledTasks() async {
+    try {
+      print('🔄 Loading scheduled tasks from database...');
+      final today = await _db.getTasksDueToday();
+      final upcoming = await _db.getUpcomingScheduledTasks();
+
+      // Also load pipeline tasks (palpation, kindle, wean, etc.)
+      List<Map<String, dynamic>> pipelineToday = [];
+      List<Map<String, dynamic>> pipelineUpcoming = [];
+      try {
+        pipelineToday = await _db.getPipelineTasksDueToday();
+        pipelineUpcoming = await _db.getUpcomingPipelineTasks();
+      } catch (e) {
+        print('⚠️ Error loading pipeline tasks: $e');
+      }
+
+      // Merge and sort by dueDate
+      final mergedToday = [
+        ...today,
+        ...pipelineToday
+      ];
+      mergedToday.sort((a, b) {
+        final aDate = DateTime.tryParse(a['dueDate'] ?? '') ?? DateTime.now();
+        final bDate = DateTime.tryParse(b['dueDate'] ?? '') ?? DateTime.now();
+        return aDate.compareTo(bDate);
+      });
+
+      final mergedUpcoming = [
+        ...upcoming,
+        ...pipelineUpcoming
+      ];
+      mergedUpcoming.sort((a, b) {
+        final aDate = DateTime.tryParse(a['dueDate'] ?? '') ?? DateTime.now();
+        final bDate = DateTime.tryParse(b['dueDate'] ?? '') ?? DateTime.now();
+        return aDate.compareTo(bDate);
+      });
+
+      print('✅ Loaded ${today.length} scheduled + ${pipelineToday.length} pipeline today, ${upcoming.length} scheduled + ${pipelineUpcoming.length} pipeline upcoming');
+      if (mounted) {
+        setState(() {
+          _todayTasks = mergedToday;
+          _upcomingTasks = mergedUpcoming;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading scheduled tasks: $e');
+    }
+  }
+
+  /// Handle task completion via checkbox — marks as completed but keeps visible until day ends
+  Future<void> _handleTaskComplete(Map<String, dynamic> task, {bool reload = true}) async {
+    final isPipeline = task['isPipelineTask'] == true;
+
+    if (isPipeline) {
+      // Pipeline task: mark as completed in tasks table
+      final taskId = task['id']?.toString();
+      if (taskId != null) {
+        await _db.completeTask(taskId);
+      }
     } else {
-      // Recurring task: reschedule to next due date
-      final currentDue = DateTime.tryParse(task['dueDate'] ?? '') ?? DateTime.now();
-      final nextDue = _getNextDueDate(frequency, currentDue);
-      await _db.updateScheduledTaskDueDate(taskId, nextDue.toIso8601String());
+      // Scheduled task: mark as completed (keep visible until day ends)
+      final taskId = task['id'] as int?;
+      if (taskId == null) return;
+      await _db.markScheduledTaskCompleted(taskId);
+    }
+
+    // Reload tasks and stats
+    if (reload) {
+      await _loadScheduledTasks();
+      await _loadStats();
+    }
+  }
+
+  /// Handle task un-completion (user unchecked the box)
+  Future<void> _handleTaskUncomplete(Map<String, dynamic> task, {bool reload = true}) async {
+    final isPipeline = task['isPipelineTask'] == true;
+
+    if (isPipeline) {
+      // Pipeline task: unmark completed
+      final taskId = task['id']?.toString();
+      if (taskId != null) {
+        final db = await _db.database;
+        await db.update(
+            'tasks',
+            {
+              'completed': 0,
+              'completedAt': null
+            },
+            where: 'id = ?',
+            whereArgs: [
+              taskId
+            ]);
+      }
+    } else {
+      // Scheduled task: clear completedAt
+      final taskId = task['id'] as int?;
+      if (taskId == null) return;
+      await _db.unmarkScheduledTaskCompleted(taskId);
     }
 
     // Reload tasks
-    await _loadScheduledTasks();
-  }
-
-  /// Calculate next due date based on frequency
-  DateTime _getNextDueDate(String frequency, DateTime currentDue) {
-    switch (frequency) {
-      case 'Daily':
-        return currentDue.add(Duration(days: 1));
-      case 'Weekly':
-        return currentDue.add(Duration(days: 7));
-      case 'Bi-Weekly':
-        return currentDue.add(Duration(days: 14));
-      case 'Monthly':
-        return DateTime(currentDue.year, currentDue.month + 1, currentDue.day);
-      case 'Quarterly':
-        return DateTime(currentDue.year, currentDue.month + 3, currentDue.day);
-      case 'Semi-Annually':
-        return DateTime(currentDue.year, currentDue.month + 6, currentDue.day);
-      case 'Annually':
-        return DateTime(currentDue.year + 1, currentDue.month, currentDue.day);
-      default:
-        return currentDue.add(Duration(days: 7));
+    if (reload) {
+      await _loadScheduledTasks();
     }
   }
 
   /// Toggle ignore state for a task
-  void _handleTaskIgnore(int taskId) {
+  void _handleTaskIgnore(dynamic taskId) {
+    if (taskId == null) return;
+    // Convert to int for set tracking (pipeline tasks have string IDs)
+    final trackId = taskId is int ? taskId : taskId.hashCode;
     setState(() {
-      if (_ignoredTasks.contains(taskId)) {
-        _ignoredTasks.remove(taskId);
+      if (_ignoredTasks.contains(trackId)) {
+        _ignoredTasks.remove(trackId);
       } else {
-        _ignoredTasks.add(taskId);
+        _ignoredTasks.add(trackId);
       }
     });
   }
@@ -1084,15 +1197,26 @@ class _HomeTabContentState extends State<HomeTabContent> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildStatsRow(),
-          _buildCategoryTabs(),
-          Expanded(
-            child: _buildTaskList(),
-          ),
-        ],
-      ),
+      body: (_isLoading && !_hasLoadedOnce)
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF0F7B6C), strokeWidth: 2),
+                  SizedBox(height: 16),
+                  Text('Loading tasks...', style: TextStyle(color: Color(0xFF787774), fontSize: 14)),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                _buildStatsRow(),
+                _buildCategoryTabs(),
+                Expanded(
+                  child: _buildTaskList(),
+                ),
+              ],
+            ),
     );
   }
 
@@ -1111,7 +1235,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
           children: [
             _buildStatBox(
               'Tasks Due',
-              '${_getFilteredTodayTasksCount()}',
+              _hasLoadedOnce ? '${_getFilteredTodayTasksCount()}' : '-',
               Color(
                 0xFF0F7B6C,
               ),
@@ -1121,7 +1245,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Active Litters',
-              '0',
+              _hasLoadedOnce ? '$_activeLitters' : '-',
               Colors.black87,
             ),
             SizedBox(
@@ -1129,7 +1253,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Breeders',
-              '0',
+              _hasLoadedOnce ? '$_breederCount' : '-',
               Colors.black87,
             ),
             SizedBox(
@@ -1137,7 +1261,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             ),
             _buildStatBox(
               'Grow-outs',
-              '0',
+              _hasLoadedOnce ? '$_growOutCount' : '-',
               Colors.black87,
             ),
           ],
@@ -1348,8 +1472,8 @@ class _HomeTabContentState extends State<HomeTabContent> {
         // TODAY & OVERDUE Tasks
         ..._getFilteredTodayTasks(),
 
-        // Show empty state if no tasks
-        if (_getFilteredTodayTasks().isEmpty)
+        // Show empty state if no tasks (only after loading completes)
+        if (_getFilteredTodayTasks().isEmpty && !_isLoading)
           _buildEmptyState(
             'No tasks match your filter',
           ),
@@ -1405,8 +1529,8 @@ class _HomeTabContentState extends State<HomeTabContent> {
         // UPCOMING Tasks
         ..._getFilteredUpcomingTasks(),
 
-        // Show empty state if no upcoming tasks
-        if (_getFilteredUpcomingTasks().isEmpty)
+        // Show empty state if no upcoming tasks (only after loading completes)
+        if (_getFilteredUpcomingTasks().isEmpty && !_isLoading)
           _buildEmptyState(
             'No upcoming tasks match your filter',
           ),
@@ -1494,7 +1618,8 @@ class _HomeTabContentState extends State<HomeTabContent> {
             location: taskLocation,
             date: dateStr,
             isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false,
-            taskType: 'scheduled',
+            taskType: firstTask['taskType']?.toString() ?? 'scheduled',
+            rabbitId: firstTask['rabbitId']?.toString(),
             task: firstTask,
           ));
         }
@@ -1615,8 +1740,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
   int _getFilteredTodayTasksCount() {
     int count = 0;
 
-    // Database tasks only
+    // Database tasks only — exclude completed tasks from count
     for (var task in _todayTasks) {
+      if (task['completedAt'] != null) continue; // Skip completed
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
       final taskLocation = _getTaskLocation(task);
@@ -1716,15 +1842,18 @@ class _HomeTabContentState extends State<HomeTabContent> {
     String? rabbitId,
     Map<String, dynamic>? task,
   }) {
-    final dbId = task?['id'] as int?;
+    final isPipeline = task?['isPipelineTask'] == true;
+    final rawId = task?['id'];
+    final trackId = rawId is int ? rawId : rawId?.hashCode;
     final taskId = '$title-$location';
-    final isCompleted = _completedTasks.contains(taskId);
-    final isIgnored = dbId != null && _ignoredTasks.contains(dbId);
+    // Check completed state from DB (completedAt field) — persists across app restarts
+    final isCompleted = task?['completedAt'] != null;
+    final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
 
     return Opacity(
       opacity: isIgnored ? 0.5 : 1.0,
       child: GestureDetector(
-        onTap: isIgnored ? null : () => _handleTaskTap(taskType, rabbitId, title),
+        onTap: isIgnored ? null : () => _handleTaskTap(taskType, rabbitId ?? task?['rabbitId']?.toString(), title),
         child: Container(
           padding: EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1740,15 +1869,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
                     ? null
                     : () {
                         if (isCompleted) {
-                          setState(() => _completedTasks.remove(taskId));
+                          // Uncheck — clear completedAt in DB
+                          if (task != null) _handleTaskUncomplete(task);
                         } else {
-                          setState(() => _completedTasks.add(taskId));
-                          // Persist to DB after brief visual feedback
-                          if (task != null) {
-                            Future.delayed(Duration(milliseconds: 400), () {
-                              _handleTaskComplete(task);
-                            });
-                          }
+                          // Check — mark as completed in DB (stays visible until day ends)
+                          if (task != null) _handleTaskComplete(task);
                         }
                       },
                 child: Container(
@@ -1851,7 +1976,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
               // Ignore / Undo button
               SizedBox(width: 8),
               GestureDetector(
-                onTap: dbId != null ? () => _handleTaskIgnore(dbId) : null,
+                onTap: rawId != null ? () => _handleTaskIgnore(rawId) : null,
                 child: Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(
@@ -1881,7 +2006,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
     final icon = _getCategoryIcon(category);
     final groupId = '$title-group';
     final isExpanded = _expandedGroups.contains(groupId);
-    final allIgnored = tasks.every((t) => _ignoredTasks.contains(t['id'] as int?));
+    final allIgnored = tasks.every((t) {
+      final id = t['id'];
+      final trackId = id is int ? id : id?.hashCode;
+      return trackId != null && _ignoredTasks.contains(trackId);
+    });
 
     // Build subtask info from each DB task row
     final subTasks = tasks.map((t) {
@@ -1896,7 +2025,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
         }
       }
       return {
-        'dbId': t['id'] as int?,
+        'dbId': t['id'],
         'name': name,
         'location': loc.isNotEmpty ? loc : _getTaskLocation(t),
         'task': t,
@@ -1920,39 +2049,38 @@ class _HomeTabContentState extends State<HomeTabContent> {
         setState(() {
           if (allIgnored) {
             for (var t in tasks) {
-              final id = t['id'] as int?;
-              if (id != null) _ignoredTasks.remove(id);
+              final id = t['id'];
+              final trackId = id is int ? id : id?.hashCode;
+              if (trackId != null) _ignoredTasks.remove(trackId);
             }
           } else {
             for (var t in tasks) {
-              final id = t['id'] as int?;
-              if (id != null) _ignoredTasks.add(id);
+              final id = t['id'];
+              final trackId = id is int ? id : id?.hashCode;
+              if (trackId != null) _ignoredTasks.add(trackId);
             }
           }
         });
       },
-      onGroupComplete: () {
-        final groupTaskId = '$title-group';
-        final isGroupCompleted = _completedTasks.contains(groupTaskId);
-        setState(() {
-          if (isGroupCompleted) {
-            _completedTasks.remove(groupTaskId);
-            for (var sub in subTasks) {
-              _completedTasks.remove('${sub['name']}-${sub['location']}');
-            }
-          } else {
-            _completedTasks.add(groupTaskId);
-            for (var sub in subTasks) {
-              _completedTasks.add('${sub['name']}-${sub['location']}');
-            }
-            // Persist to DB after visual feedback
-            Future.delayed(Duration(milliseconds: 400), () async {
-              for (var t in tasks) {
-                await _handleTaskComplete(t);
-              }
-            });
+      onGroupComplete: () async {
+        // Check if all tasks in group are already completed
+        final allCompleted = tasks.every((t) => t['completedAt'] != null);
+        if (allCompleted) {
+          // Uncheck all — batch without reloading
+          for (var t in tasks) {
+            await _handleTaskUncomplete(t, reload: false);
           }
-        });
+        } else {
+          // Check all — batch without reloading
+          for (var t in tasks) {
+            if (t['completedAt'] == null) {
+              await _handleTaskComplete(t, reload: false);
+            }
+          }
+        }
+        // Single reload after all operations
+        await _loadScheduledTasks();
+        await _loadStats();
       },
     );
   }
@@ -1967,19 +2095,20 @@ class _HomeTabContentState extends State<HomeTabContent> {
     final categoryColor = _getCategoryColor(category);
     final categoryTextColor = _getCategoryTextColor(category);
     final icon = _getCategoryIcon(category);
-    final dbId = task['id'] as int?;
+    final rawId = task['id'];
+    final trackId = rawId is int ? rawId : rawId?.hashCode;
     final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
     final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
     final isOverdue = isToday ? _isTaskOverdue(task['dueDate']) : false;
     final entities = task['linkedEntities'] as List? ?? [];
     final groupId = '$title-entity-group';
     final isExpanded = _expandedGroups.contains(groupId);
-    final isIgnored = dbId != null && _ignoredTasks.contains(dbId);
+    final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
 
     final subTasks = entities.map((e) {
       final entityMap = e is Map ? e : {};
       return {
-        'dbId': dbId,
+        'dbId': rawId,
         'name': entityMap['name']?.toString() ?? 'Unknown',
         'location': entityMap['cage']?.toString() ?? entityMap['barn']?.toString() ?? '',
         'task': task,
@@ -1999,25 +2128,14 @@ class _HomeTabContentState extends State<HomeTabContent> {
       isExpanded: isExpanded,
       allIgnored: isIgnored,
       subTasks: subTasks,
-      onGroupIgnore: dbId != null ? () => _handleTaskIgnore(dbId) : null,
-      onGroupComplete: () {
-        final isGroupCompleted = _completedTasks.contains(groupId);
-        setState(() {
-          if (isGroupCompleted) {
-            _completedTasks.remove(groupId);
-            for (var sub in subTasks) {
-              _completedTasks.remove('${sub['name']}-${sub['location']}');
-            }
-          } else {
-            _completedTasks.add(groupId);
-            for (var sub in subTasks) {
-              _completedTasks.add('${sub['name']}-${sub['location']}');
-            }
-            Future.delayed(Duration(milliseconds: 400), () {
-              _handleTaskComplete(task);
-            });
-          }
-        });
+      onGroupIgnore: rawId != null ? () => _handleTaskIgnore(rawId) : null,
+      onGroupComplete: () async {
+        final isCompleted = task['completedAt'] != null;
+        if (isCompleted) {
+          await _handleTaskUncomplete(task);
+        } else {
+          await _handleTaskComplete(task);
+        }
       },
     );
   }
@@ -2039,7 +2157,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
     VoidCallback? onGroupIgnore,
     VoidCallback? onGroupComplete,
   }) {
-    final isGroupCompleted = _completedTasks.contains(groupId);
+    // Group is completed when all subtasks' underlying tasks have completedAt
+    final isGroupCompleted = subTasks.every((sub) {
+      final subTask = sub['task'] as Map<String, dynamic>?;
+      return subTask?['completedAt'] != null;
+    });
 
     return Opacity(
       opacity: allIgnored ? 0.5 : 1.0,
@@ -2182,11 +2304,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   children: subTasks.map((sub) {
                     final subName = sub['name'] as String? ?? '';
                     final subLoc = sub['location'] as String? ?? '';
-                    final subDbId = sub['dbId'] as int?;
-                    final subTaskId = '$subName-$subLoc';
-                    final isSubCompleted = _completedTasks.contains(subTaskId);
-                    final isSubIgnored = subDbId != null && _ignoredTasks.contains(subDbId);
+                    final subRawId = sub['dbId'];
+                    final subTrackId = subRawId is int ? subRawId : subRawId?.hashCode;
+                    final isSubIgnored = subTrackId != null && _ignoredTasks.contains(subTrackId);
                     final subTask = sub['task'] as Map<String, dynamic>?;
+                    final isSubCompleted = subTask?['completedAt'] != null;
 
                     return Opacity(
                       opacity: isSubIgnored ? 0.5 : 1.0,
@@ -2203,23 +2325,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
                               onTap: (isSubIgnored)
                                   ? null
                                   : () {
+                                      if (subTask == null) return;
                                       if (isSubCompleted) {
-                                        setState(() {
-                                          _completedTasks.remove(subTaskId);
-                                          _completedTasks.remove(groupId);
-                                        });
+                                        _handleTaskUncomplete(subTask);
                                       } else {
-                                        setState(() {
-                                          _completedTasks.add(subTaskId);
-                                          // Check if all subtasks completed
-                                          bool allDone = subTasks.every((t) => _completedTasks.contains('${t['name']}-${t['location']}'));
-                                          if (allDone) _completedTasks.add(groupId);
-                                        });
-                                        if (subTask != null) {
-                                          Future.delayed(Duration(milliseconds: 400), () {
-                                            _handleTaskComplete(subTask);
-                                          });
-                                        }
+                                        _handleTaskComplete(subTask);
                                       }
                                     },
                               child: Container(
@@ -2265,7 +2375,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
 
                             // Sub ignore
                             GestureDetector(
-                              onTap: subDbId != null ? () => _handleTaskIgnore(subDbId) : null,
+                              onTap: subRawId != null ? () => _handleTaskIgnore(subRawId) : null,
                               child: Padding(
                                 padding: EdgeInsets.all(4),
                                 child: Icon(

@@ -29,7 +29,16 @@ class _TasksCardState extends State<TasksCard> {
 
   Future<void> _loadTasks() async {
     try {
-      final allTasks = await _db.getScheduledTasksByRabbit(widget.rabbit.id);
+      // Load both scheduled tasks and pipeline tasks for this rabbit
+      final scheduledTasks = await _db.getScheduledTasksByRabbit(widget.rabbit.id);
+      final pipelineTasks = await _db.getPipelineTasksForRabbit(widget.rabbit.id);
+
+      // Merge both lists
+      final allTasks = [
+        ...scheduledTasks,
+        ...pipelineTasks
+      ];
+
       final now = DateTime.now();
       final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
@@ -44,6 +53,18 @@ class _TasksCardState extends State<TasksCard> {
           upcoming.add(task);
         }
       }
+
+      // Sort each list by due date
+      today.sort((a, b) {
+        final aDate = DateTime.tryParse(a['dueDate'] ?? '') ?? DateTime.now();
+        final bDate = DateTime.tryParse(b['dueDate'] ?? '') ?? DateTime.now();
+        return aDate.compareTo(bDate);
+      });
+      upcoming.sort((a, b) {
+        final aDate = DateTime.tryParse(a['dueDate'] ?? '') ?? DateTime.now();
+        final bDate = DateTime.tryParse(b['dueDate'] ?? '') ?? DateTime.now();
+        return aDate.compareTo(bDate);
+      });
 
       if (mounted) {
         setState(() {
@@ -203,6 +224,7 @@ class _TasksCardState extends State<TasksCard> {
     final now = DateTime.now();
     final bool isOverdue = dueDate != null && dueDate.isBefore(DateTime(now.year, now.month, now.day));
     final bool isToday = dueDate != null && dueDate.year == now.year && dueDate.month == now.month && dueDate.day == now.day;
+    final bool isCompleted = task['completedAt'] != null;
 
     String timeLabel;
     if (isOverdue) {
@@ -228,14 +250,33 @@ class _TasksCardState extends State<TasksCard> {
           // Complete button
           GestureDetector(
             onTap: () async {
+              final isPipeline = task['isPipelineTask'] == true;
               final taskId = task['id'];
-              final frequency = task['frequency'] ?? 'Once';
               if (taskId != null) {
-                if (frequency == 'Once' || frequency == 'One-time') {
-                  await _db.deleteScheduledTask(taskId);
+                if (isCompleted) {
+                  // Uncheck — clear completedAt
+                  if (isPipeline) {
+                    final db = await _db.database;
+                    await db.update(
+                        'tasks',
+                        {
+                          'completed': 0,
+                          'completedAt': null
+                        },
+                        where: 'id = ?',
+                        whereArgs: [
+                          taskId.toString()
+                        ]);
+                  } else {
+                    await _db.unmarkScheduledTaskCompleted(taskId);
+                  }
                 } else {
-                  final nextDue = _getNextDueDate(frequency);
-                  await _db.updateScheduledTaskDueDate(taskId, nextDue);
+                  // Check — mark as completed
+                  if (isPipeline) {
+                    await _db.completeTask(taskId.toString());
+                  } else {
+                    await _db.markScheduledTaskCompleted(taskId);
+                  }
                 }
                 _loadTasks();
               }
@@ -245,9 +286,10 @@ class _TasksCardState extends State<TasksCard> {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: Color(0xFFD1D5DB), width: 2),
+                color: isCompleted ? Color(0xFF0F7B6C) : Colors.white,
+                border: Border.all(color: isCompleted ? Color(0xFF0F7B6C) : Color(0xFFD1D5DB), width: 2),
               ),
+              child: isCompleted ? Icon(Icons.check, size: 14, color: Colors.white) : null,
             ),
           ),
           SizedBox(width: 12),
@@ -260,7 +302,8 @@ class _TasksCardState extends State<TasksCard> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
+                    color: isCompleted ? Color(0xFF9CA3AF) : Color(0xFF1F2937),
+                    decoration: isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -598,21 +641,50 @@ class _TasksCardState extends State<TasksCard> {
               decoration: BoxDecoration(color: Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
             ),
             ListTile(
-              leading: Icon(Icons.check_circle, color: Color(0xFF10B981)),
-              title: Text('Mark Done & Reschedule', style: TextStyle(fontSize: 15)),
+              leading: Icon(
+                task['completedAt'] != null ? Icons.undo : Icons.check_circle,
+                color: task['completedAt'] != null ? Color(0xFF64748B) : Color(0xFF10B981),
+              ),
+              title: Text(
+                task['completedAt'] != null ? 'Mark Undone' : 'Mark Done',
+                style: TextStyle(fontSize: 15),
+              ),
               onTap: () async {
                 Navigator.pop(context);
+                final isPipeline = task['isPipelineTask'] == true;
                 final taskId = task['id'];
-                final frequency = task['frequency'] ?? 'Once';
                 if (taskId != null) {
-                  if (frequency == 'Once' || frequency == 'One-time') {
-                    await _db.deleteScheduledTask(taskId);
+                  if (task['completedAt'] != null) {
+                    // Uncomplete
+                    if (isPipeline) {
+                      final db = await _db.database;
+                      await db.update(
+                          'tasks',
+                          {
+                            'completed': 0,
+                            'completedAt': null
+                          },
+                          where: 'id = ?',
+                          whereArgs: [
+                            taskId.toString()
+                          ]);
+                    } else {
+                      await _db.unmarkScheduledTaskCompleted(taskId);
+                    }
                   } else {
-                    final nextDue = _getNextDueDate(frequency);
-                    await _db.updateScheduledTaskDueDate(taskId, nextDue);
+                    // Complete
+                    if (isPipeline) {
+                      await _db.completeTask(taskId.toString());
+                    } else {
+                      await _db.markScheduledTaskCompleted(taskId);
+                    }
                   }
                   _loadTasks();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Task completed'), backgroundColor: Color(0xFF0F7B6C), behavior: SnackBarBehavior.floating));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(task['completedAt'] != null ? 'Task unmarked' : 'Task completed'),
+                    backgroundColor: Color(0xFF0F7B6C),
+                    behavior: SnackBarBehavior.floating,
+                  ));
                 }
               },
             ),
@@ -634,6 +706,7 @@ class _TasksCardState extends State<TasksCard> {
   void _deleteTask(Map<String, dynamic> task) {
     final taskId = task['id'];
     if (taskId == null) return;
+    final isPipeline = task['isPipelineTask'] == true;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -647,7 +720,11 @@ class _TasksCardState extends State<TasksCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _db.deleteScheduledTask(taskId);
+              if (isPipeline) {
+                await _db.deleteTask(taskId.toString());
+              } else {
+                await _db.deleteScheduledTask(taskId);
+              }
               Navigator.pop(context);
               _loadTasks();
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(

@@ -68,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   List<Map<String, dynamic>> taskDirectoryItems = [];
 
   List<Map<String, dynamic>> scheduledTasks = []; // ✅ CHANGED: Load from database instead of hardcoded
+  List<Map<String, dynamic>> pipelineTasks = []; // Pipeline tasks (auto-generated)
 
   // TODO: Load entity data from database
   Map<String, List<Map<String, String>>> entityData = {
@@ -150,6 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
       // ✅ Load scheduled tasks from database
       final loadedTasks = await _db.getAllScheduledTasks();
+      final loadedPipelineTasks = await _db.getAllPipelineTasks();
 
       // ✅ Load breeds from database
       var loadedBreeds = await _db.getAllBreeds();
@@ -204,8 +206,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         // Notifications
         pushNotifications = _settings.notificationsEnabled;
 
+        // Task logic
+        snowballEffect = _settings.snowballEffect;
+
         // ✅ Scheduled tasks from database
         scheduledTasks = loadedTasks;
+        pipelineTasks = loadedPipelineTasks;
 
         // ✅ Breeds from database
         breeds = loadedBreeds;
@@ -288,6 +294,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
       // Notifications
       await _settings.setNotificationsEnabled(pushNotifications);
+
+      // Task Logic
+      await _settings.setSnowballEffect(snowballEffect);
 
       setState(() => _isSaving = false);
 
@@ -1026,6 +1035,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
         SizedBox(height: 20),
 
+        // PIPELINE TASKS CARD (auto-generated from breeding pipeline)
+        _buildCard(
+          'Pipeline Tasks',
+          PhosphorIconsDuotone.gitBranch,
+          [
+            if (pipelineTasks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Center(child: Text("No active pipeline tasks", style: TextStyle(color: Colors.grey))),
+              )
+            else
+              ...pipelineTasks.map((task) {
+                return _buildPipelineTaskItem(task);
+              }).toList(),
+          ],
+        ),
+        SizedBox(height: 20),
+
         // TASK DIRECTORY CARD (DB-backed)
         _buildCard(
           'Task Directory',
@@ -1070,7 +1097,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Snowball Effect',
               'Overdue tasks carry over to the next day instead of disappearing.',
               snowballEffect,
-              (val) => setState(() => snowballEffect = val),
+              (val) async {
+                setState(() => snowballEffect = val);
+                await _settings.setSnowballEffect(val);
+              },
             ),
           ],
         ),
@@ -1085,81 +1115,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return ListView(
       padding: EdgeInsets.all(16),
       children: [
-        _buildCard(
-          'Exit Workflows',
-          Icons.logout_outlined,
-          [
-            _buildChecklistSetting(
-              'Sold Logic',
-              'When rabbit is marked "Sold":',
-              [
-                {
-                  'label': 'Move to Archive',
-                  'key': 'archive'
-                },
-                {
-                  'label': 'Open Ledger (Income)',
-                  'key': 'ledger'
-                },
-                {
-                  'label': 'Generate Pedigree PDF',
-                  'key': 'pedigree'
-                },
-              ],
-              soldLogic,
-            ),
-            _buildChecklistSetting(
-              'Harvest Logic',
-              'When rabbit is marked "Butchered":',
-              [
-                {
-                  'label': 'Move to Archive',
-                  'key': 'archive'
-                },
-                {
-                  'label': 'Open Weight Log',
-                  'key': 'weight'
-                },
-              ],
-              harvestLogic,
-            ),
-            _buildChecklistSetting(
-              'Mortality Logic',
-              'When rabbit is marked "Dead":',
-              [
-                {
-                  'label': 'Move to Archive',
-                  'key': 'archive'
-                },
-                {
-                  'label': 'Log Cause of Death',
-                  'key': 'cause'
-                },
-              ],
-              mortalityLogic,
-            ),
-          ],
-        ),
-        SizedBox(height: 20),
-        _buildCard(
-          'Status Transitions',
-          Icons.auto_awesome_outlined,
-          [
-            _buildSwitchRow(
-              'Kit Promotion',
-              'Auto-promote kits to "Grow-out" after weaning task.',
-              kitPromotion,
-              (val) => setState(() => kitPromotion = val),
-            ),
-            _buildSwitchRow(
-              'Maturity Promotion',
-              'Auto-promote "Grow-out" to "Active" after 6 months.',
-              maturityPromotion,
-              (val) => setState(() => maturityPromotion = val),
-            ),
-          ],
-        ),
-        SizedBox(height: 20),
         _buildCard(
           'Health & Quarantine',
           Icons.health_and_safety_outlined,
@@ -1985,6 +1940,158 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPipelineTaskItem(Map<String, dynamic> task) {
+    final String taskName = task['task'] ?? 'Task';
+    final String category = task['category'] ?? 'Operations';
+    final String dueDate = task['dueDate'] ?? '';
+    final List linkedEntities = task['linkedEntities'] ?? [];
+    final String entityName = linkedEntities.isNotEmpty ? (linkedEntities[0]['name'] ?? '') : '';
+
+    // Format due date
+    String dueDateDisplay = '';
+    if (dueDate.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(dueDate);
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final taskDate = DateTime(dt.year, dt.month, dt.day);
+        final diff = taskDate.difference(today).inDays;
+        if (diff == 0) {
+          dueDateDisplay = 'Today';
+        } else if (diff == 1) {
+          dueDateDisplay = 'Tomorrow';
+        } else if (diff < 0) {
+          dueDateDisplay = '${-diff} day${-diff == 1 ? '' : 's'} overdue';
+        } else {
+          dueDateDisplay = 'In $diff day${diff == 1 ? '' : 's'}';
+        }
+      } catch (_) {}
+    }
+
+    // Color for due date
+    Color dueDateColor = Color(0xFF64748B);
+    if (dueDateDisplay.contains('overdue')) {
+      dueDateColor = Colors.red;
+    } else if (dueDateDisplay == 'Today') {
+      dueDateColor = Colors.orange;
+    }
+
+    // Task type icon
+    IconData taskIcon;
+    switch (task['taskType']) {
+      case 'palpation':
+        taskIcon = PhosphorIconsDuotone.handPalm;
+        break;
+      case 'nestbox':
+        taskIcon = PhosphorIconsDuotone.house;
+        break;
+      case 'kindle':
+        taskIcon = PhosphorIconsDuotone.baby;
+        break;
+      case 'wean':
+        taskIcon = PhosphorIconsDuotone.arrowsOutLineVertical;
+        break;
+      case 'open_breeding':
+        taskIcon = PhosphorIconsDuotone.heartHalf;
+        break;
+      case 'quarantine_end':
+        taskIcon = PhosphorIconsDuotone.shieldCheck;
+        break;
+      default:
+        taskIcon = PhosphorIconsDuotone.checkCircle;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+      ),
+      child: Row(
+        children: [
+          // Task type icon
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(taskIcon, size: 18, color: Color(0xFF16A34A)),
+          ),
+          SizedBox(width: 12),
+          // Task info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      taskName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Color(0xFFBBF7D0)),
+                      ),
+                      child: Text(
+                        'PIPELINE',
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF16A34A), letterSpacing: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (entityName.isNotEmpty) ...[
+                      Icon(PhosphorIconsBold.rabbit, size: 12, color: Color(0xFF94A3B8)),
+                      SizedBox(width: 4),
+                      Text(
+                        entityName,
+                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(width: 12),
+                    ],
+                    if (dueDateDisplay.isNotEmpty) ...[
+                      Icon(PhosphorIconsBold.clock, size: 12, color: dueDateColor),
+                      SizedBox(width: 4),
+                      Text(
+                        dueDateDisplay,
+                        style: TextStyle(fontSize: 13, color: dueDateColor, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Category badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              category.toUpperCase(),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5),
+            ),
+          ),
+        ],
       ),
     );
   }

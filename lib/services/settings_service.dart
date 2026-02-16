@@ -47,6 +47,9 @@ class SettingsService {
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
 
+  // Task logic
+  bool get snowballEffect => _prefs?.getBool('snowballEffect') ?? true;
+
   // Farm info
   String get farmName => _prefs?.getString('farmName') ?? 'My Rabbitry';
   String get ownerName => _prefs?.getString('ownerName') ?? '';
@@ -210,6 +213,10 @@ class SettingsService {
 
   Future<void> setNotificationsEnabled(bool enabled) async {
     await _prefs?.setBool('notificationsEnabled', enabled);
+  }
+
+  Future<void> setSnowballEffect(bool enabled) async {
+    await _prefs?.setBool('snowballEffect', enabled);
   }
 
   // Setters for farm info

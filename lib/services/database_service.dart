@@ -27,7 +27,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -127,7 +127,9 @@ class DatabaseService {
         dueDate TEXT NOT NULL,
         completed INTEGER DEFAULT 0,
         completedAt TEXT,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        ignored INTEGER DEFAULT 0,
+        cost REAL
       )
     ''');
 
@@ -367,7 +369,8 @@ class DatabaseService {
             linkType TEXT NOT NULL,
             linkedEntities TEXT,
             dueDate TEXT NOT NULL,
-            createdAt TEXT NOT NULL
+            createdAt TEXT NOT NULL,
+            completedAt TEXT
           )
         ''');
         print('✅ Added scheduled_tasks table');
@@ -439,6 +442,23 @@ class DatabaseService {
         print('✅ Added documents table');
       } catch (e) {
         print('⚠️ documents table may already exist: $e');
+      }
+    }
+
+    if (oldVersion < 12) {
+      // Add completedAt column to scheduled_tasks for day-end cleanup
+      try {
+        await db.execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
+        print('✅ Added completedAt column to scheduled_tasks');
+      } catch (e) {
+        print('⚠️ completedAt column may already exist in scheduled_tasks: $e');
+      }
+      // Add completedAt column to tasks (pipeline tasks) for day-end cleanup
+      try {
+        await db.execute('ALTER TABLE tasks ADD COLUMN completedAt TEXT');
+        print('✅ Added completedAt column to tasks');
+      } catch (e) {
+        print('⚠️ completedAt column may already exist in tasks: $e');
       }
     }
   }
@@ -1065,15 +1085,25 @@ class DatabaseService {
 
   /// Promotes a kit from a litter to a full rabbit (active breeder)
   /// Creates a new rabbit entry and updates the kit status
-  Future<Rabbit?> promoteKitToBreeder(Litter litter, Kit kit, {String? customName, String? customId}) async {
-    final db = await database;
-
+  Future<Rabbit?> promoteKitToBreeder(
+    Litter litter,
+    Kit kit, {
+    String? customName,
+    String? customId,
+    RabbitType? type,
+    String? breed,
+    String? location,
+    String? cage,
+    DateTime? dateOfBirth,
+    String? color,
+    double? weight,
+    String? notes,
+  }) async {
     // Generate a new rabbit ID
-    final newRabbitId = customId ?? '${kit.sex == 'M' ? 'B' : 'D'}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final rabbitType = type ?? (kit.sex == 'M' ? RabbitType.buck : RabbitType.doe);
+    final typePrefix = rabbitType == RabbitType.buck ? 'B' : 'D';
+    final newRabbitId = customId ?? '$typePrefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     final rabbitName = customName ?? 'Kit ${kit.id}';
-
-    // Determine rabbit type based on sex
-    final rabbitType = kit.sex == 'M' ? RabbitType.buck : RabbitType.doe;
 
     // Create the new rabbit
     final newRabbit = Rabbit(
@@ -1081,16 +1111,16 @@ class DatabaseService {
       name: rabbitName,
       type: rabbitType,
       status: RabbitStatus.open, // Active breeder - ready for breeding
-      breed: litter.breed,
-      location: litter.location,
-      cage: litter.cage,
-      dateOfBirth: litter.dob,
-      color: kit.color,
-      weight: kit.weight,
+      breed: breed ?? litter.breed,
+      location: location ?? litter.location,
+      cage: cage ?? litter.cage,
+      dateOfBirth: dateOfBirth ?? litter.dob,
+      color: color ?? kit.color,
+      weight: weight ?? kit.weight,
       sireId: litter.buckId,
       damId: litter.doeId,
       origin: 'Homebred',
-      notes: 'Promoted from litter ${litter.id}',
+      notes: notes ?? 'Promoted from litter ${litter.id}',
     );
 
     // Insert the new rabbit
@@ -1355,7 +1385,192 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAllTasks() async {
     final db = await database;
+    await _ensureTasksIgnoredColumn(db);
     return await db.query('tasks', where: 'ignored = 0 OR ignored IS NULL', orderBy: 'dueDate ASC');
+  }
+
+  /// Ensure the 'ignored' column exists on the tasks table (handles fresh installs pre-fix)
+  Future<void> _ensureTasksIgnoredColumn(Database db) async {
+    try {
+      await db.execute('ALTER TABLE tasks ADD COLUMN ignored INTEGER DEFAULT 0');
+    } catch (_) {
+      // Column already exists — ignore
+    }
+    try {
+      await db.execute('ALTER TABLE tasks ADD COLUMN cost REAL');
+    } catch (_) {
+      // Column already exists — ignore
+    }
+    try {
+      await db.execute('ALTER TABLE tasks ADD COLUMN completedAt TEXT');
+    } catch (_) {
+      // Column already exists — ignore
+    }
+  }
+
+  /// Get pipeline tasks due today or overdue, normalized for home dashboard display
+  /// Includes uncompleted tasks AND tasks completed today (so they stay visible)
+  Future<List<Map<String, dynamic>>> getPipelineTasksDueToday({bool snowballEffect = true}) async {
+    final db = await database;
+    await _ensureTasksIgnoredColumn(db);
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    final List<Map<String, dynamic>> tasks;
+    if (snowballEffect) {
+      // Snowball ON: show overdue + today
+      tasks = await db.query(
+        'tasks',
+        where: '(ignored = 0 OR ignored IS NULL) AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+        whereArgs: [
+          todayEnd.toIso8601String(),
+          todayStart.toIso8601String(),
+        ],
+        orderBy: 'dueDate ASC',
+      );
+    } else {
+      // Snowball OFF: only show tasks due today (not overdue)
+      tasks = await db.query(
+        'tasks',
+        where: '(ignored = 0 OR ignored IS NULL) AND dueDate >= ? AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+        whereArgs: [
+          todayStart.toIso8601String(),
+          todayEnd.toIso8601String(),
+          todayStart.toIso8601String(),
+        ],
+        orderBy: 'dueDate ASC',
+      );
+    }
+
+    return _normalizePipelineTasks(tasks);
+  }
+
+  /// Get all active pipeline tasks (for settings display)
+  Future<List<Map<String, dynamic>>> getAllPipelineTasks() async {
+    final db = await database;
+    await _ensureTasksIgnoredColumn(db);
+    final tasks = await db.query(
+      'tasks',
+      where: 'completed = 0 AND (ignored = 0 OR ignored IS NULL)',
+      orderBy: 'dueDate ASC',
+    );
+    return _normalizePipelineTasks(tasks);
+  }
+
+  /// Get upcoming pipeline tasks (future), normalized for home dashboard display
+  Future<List<Map<String, dynamic>>> getUpcomingPipelineTasks() async {
+    final db = await database;
+    await _ensureTasksIgnoredColumn(db);
+    final now = DateTime.now();
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+
+    final tasks = await db.query(
+      'tasks',
+      where: '(ignored = 0 OR ignored IS NULL) AND dueDate > ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+      whereArgs: [
+        todayEnd.toIso8601String(),
+        todayStart,
+      ],
+      orderBy: 'dueDate ASC',
+    );
+
+    return _normalizePipelineTasks(tasks);
+  }
+
+  /// Normalize pipeline tasks to the same format as scheduled tasks for the home dashboard
+  Future<List<Map<String, dynamic>>> _normalizePipelineTasks(List<Map<String, dynamic>> tasks) async {
+    final List<Map<String, dynamic>> normalized = [];
+
+    for (final task in tasks) {
+      final taskType = task['taskType']?.toString() ?? '';
+      final rabbitId = task['rabbitId']?.toString() ?? '';
+      final litterId = task['litterId']?.toString() ?? '';
+
+      // Get entity name for display
+      String entityName = rabbitId;
+      String entityCage = '';
+
+      // For litter-linked tasks, prefer litter info (doe name, litter ID)
+      if (litterId.isNotEmpty) {
+        final litter = await getLitter(litterId);
+        if (litter != null) {
+          final doeName = litter.doeName.isNotEmpty ? litter.doeName : '';
+          final kits = litter.aliveKits ?? 0;
+          if (doeName.isNotEmpty) {
+            entityName = '$doeName${kits > 0 ? ' ($kits kits)' : ''}';
+          } else {
+            entityName = 'Litter $litterId';
+          }
+          entityCage = litter.cage.isNotEmpty ? litter.cage : litter.location;
+        }
+      } else if (rabbitId.isNotEmpty) {
+        final rabbit = await getRabbit(rabbitId);
+        if (rabbit != null) {
+          entityName = rabbit.name.isNotEmpty ? rabbit.name : rabbit.id;
+          entityCage = rabbit.cage ?? '';
+        }
+      }
+
+      // Map taskType to display name and category
+      String displayName;
+      String category;
+      switch (taskType) {
+        case 'palpation':
+          displayName = 'Palpation Check';
+          category = 'Reproduction';
+          break;
+        case 'nestbox':
+          displayName = 'Add Nest Box';
+          category = 'Reproduction';
+          break;
+        case 'kindle':
+          displayName = 'Expected Kindle';
+          category = 'Reproduction';
+          break;
+        case 'wean':
+          displayName = 'Wean Litter';
+          category = 'Reproduction';
+          break;
+        case 'open_breeding':
+          displayName = 'Ready to Breed';
+          category = 'Reproduction';
+          break;
+        case 'quarantine_end':
+          displayName = 'Quarantine End';
+          category = 'Health';
+          break;
+        default:
+          displayName = task['title']?.toString() ?? 'Task';
+          category = 'Operations';
+      }
+
+      normalized.add({
+        'id': task['id'], // String ID from tasks table
+        'isPipelineTask': true, // Flag to distinguish from scheduled tasks
+        'task': displayName,
+        'name': displayName,
+        'category': category,
+        'frequency': 'Once',
+        'linkType': 'rabbit',
+        'taskType': taskType,
+        'rabbitId': rabbitId,
+        'litterId': litterId,
+        'linkedEntities': [
+          {
+            'id': rabbitId,
+            'name': entityName,
+            'cage': entityCage
+          }
+        ],
+        'dueDate': task['dueDate'],
+        'createdAt': task['createdAt'],
+        'completedAt': task['completedAt'],
+      });
+    }
+
+    return normalized;
   }
 
   Future<List<Map<String, dynamic>>> getUpcomingTasks({int limit = 10}) async {
@@ -1366,6 +1581,25 @@ class DatabaseService {
       orderBy: 'dueDate ASC',
       limit: limit,
     );
+  }
+
+  /// Get pipeline tasks for a specific rabbit, normalized for display
+  Future<List<Map<String, dynamic>>> getPipelineTasksForRabbit(String rabbitId) async {
+    final db = await database;
+    await _ensureTasksIgnoredColumn(db);
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+
+    final tasks = await db.query(
+      'tasks',
+      where: '(ignored = 0 OR ignored IS NULL) AND rabbitId = ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+      whereArgs: [
+        rabbitId,
+        todayStart,
+      ],
+      orderBy: 'dueDate ASC',
+    );
+    return _normalizePipelineTasks(tasks);
   }
 
   Future<void> completeTask(String taskId) async {
@@ -1837,6 +2071,164 @@ class DatabaseService {
 
   // ==================== TRANSACTIONS (FINANCE) ====================
 
+  /// Remove duplicate pipeline tasks — keeps only one task per litter+taskType or rabbit+taskType
+  Future<void> _deduplicatePipelineTasks(Database db) async {
+    int removed = 0;
+
+    // Deduplicate by litterId + taskType (for wean tasks)
+    final litterTasks = await db.rawQuery('''
+      SELECT litterId, taskType, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+      FROM tasks
+      WHERE litterId IS NOT NULL AND litterId != ''
+      GROUP BY litterId, taskType
+      HAVING cnt > 1
+    ''');
+
+    for (final row in litterTasks) {
+      final ids = (row['ids'] as String).split(',');
+      // Keep the first one, delete the rest
+      for (int i = 1; i < ids.length; i++) {
+        await db.delete('tasks', where: 'id = ?', whereArgs: [
+          ids[i]
+        ]);
+        removed++;
+      }
+    }
+
+    // Deduplicate by rabbitId + taskType (for palpation, kindle, etc.)
+    final rabbitTasks = await db.rawQuery('''
+      SELECT rabbitId, taskType, GROUP_CONCAT(id) as ids, COUNT(*) as cnt
+      FROM tasks
+      WHERE rabbitId IS NOT NULL AND rabbitId != '' AND (litterId IS NULL OR litterId = '')
+      GROUP BY rabbitId, taskType
+      HAVING cnt > 1
+    ''');
+
+    for (final row in rabbitTasks) {
+      final ids = (row['ids'] as String).split(',');
+      for (int i = 1; i < ids.length; i++) {
+        await db.delete('tasks', where: 'id = ?', whereArgs: [
+          ids[i]
+        ]);
+        removed++;
+      }
+    }
+
+    if (removed > 0) {
+      print('🧹 Removed $removed duplicate pipeline tasks');
+    }
+  }
+
+  /// Backfill missing pipeline tasks for existing rabbits/litters that were created
+  /// without going through the breeding pipeline (e.g., added via Add Litter form).
+  Future<void> backfillMissingPipelineTasks() async {
+    final db = await database;
+    int created = 0;
+
+    // Clean up duplicate pipeline tasks (keep only one per litter/rabbit+taskType)
+    await _deduplicatePipelineTasks(db);
+
+    // 1. Nursing litters without a wean task
+    final litters = await db.query('litters');
+    for (final litter in litters) {
+      final status = (litter['status'] ?? '').toString().toLowerCase();
+      if (status != 'nursing') continue;
+
+      final litterId = litter['id']?.toString() ?? '';
+      final doeId = litter['doeId']?.toString() ?? '';
+
+      // Check if a wean task already exists for this litter (completed or not)
+      final existing = await db.query(
+        'tasks',
+        where: 'litterId = ? AND taskType = ?',
+        whereArgs: [
+          litterId,
+          'wean'
+        ],
+      );
+      if (existing.isNotEmpty) continue;
+
+      // Create wean task
+      final weanDate = litter['weanDate']?.toString();
+      final dueDate = weanDate ?? DateTime.now().add(Duration(days: 28)).toIso8601String();
+      final aliveKits = litter['currentAlive'] ?? litter['aliveKits'] ?? 0;
+
+      await insertTask({
+        'id': 'task_wean_backfill_${litterId}_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doeId,
+        'litterId': litterId,
+        'title': 'Wean Litter',
+        'description': '$aliveKits kits ready for weaning',
+        'taskType': 'wean',
+        'dueDate': dueDate,
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      created++;
+    }
+
+    // 2. Does with palpateDue status but no palpation task
+    final rabbits = await db.query('rabbits');
+    for (final rabbit in rabbits) {
+      final statusStr = rabbit['status']?.toString() ?? '';
+      final rabbitId = rabbit['id']?.toString() ?? '';
+
+      if (statusStr.contains('palpateDue')) {
+        final existing = await db.query(
+          'tasks',
+          where: 'rabbitId = ? AND taskType = ?',
+          whereArgs: [
+            rabbitId,
+            'palpation'
+          ],
+        );
+        if (existing.isEmpty) {
+          final palpDate = rabbit['palpationDate']?.toString() ?? DateTime.now().toIso8601String();
+          await insertTask({
+            'id': 'task_palp_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
+            'rabbitId': rabbitId,
+            'title': 'Palpation Check',
+            'description': 'Pregnancy check',
+            'taskType': 'palpation',
+            'dueDate': palpDate,
+            'completed': 0,
+            'createdAt': DateTime.now().toIso8601String(),
+          });
+          created++;
+        }
+      } else if (statusStr.contains('pregnant')) {
+        // Does marked pregnant but no kindle task
+        final existing = await db.query(
+          'tasks',
+          where: 'rabbitId = ? AND taskType IN (?, ?)',
+          whereArgs: [
+            rabbitId,
+            'kindle',
+            'nestbox'
+          ],
+        );
+        if (existing.isEmpty) {
+          final dueDate = rabbit['dueDate']?.toString() ?? DateTime.now().add(Duration(days: 31)).toIso8601String();
+          await insertTask({
+            'id': 'task_kindle_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
+            'rabbitId': rabbitId,
+            'title': 'Expected Kindle',
+            'description': 'Due date for birth',
+            'taskType': 'kindle',
+            'dueDate': dueDate,
+            'completed': 0,
+            'createdAt': DateTime.now().toIso8601String(),
+          });
+          created++;
+        }
+      }
+    }
+
+    if (created > 0) {
+      print('✅ Backfilled $created missing pipeline tasks');
+    }
+  }
+
   /// Backfill finance transactions for sold kits and sold rabbits that are missing transactions.
   /// This handles data created before the sell flow was fixed to auto-create transactions.
   Future<void> backfillSoldTransactions() async {
@@ -2123,10 +2515,8 @@ class DatabaseService {
 
   // ==================== SCHEDULED TASKS CRUD ====================
 
-  Future<int> insertScheduledTask(Map<String, dynamic> task) async {
-    final db = await database;
-
-    // Ensure the table exists
+  /// Ensure scheduled_tasks table exists with all columns including completedAt
+  Future<void> _ensureScheduledTasksTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS scheduled_tasks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2136,9 +2526,135 @@ class DatabaseService {
         linkType TEXT NOT NULL,
         linkedEntities TEXT,
         dueDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        completedAt TEXT
       )
     ''');
+    // Also try adding the column if table existed without it
+    try {
+      await db.execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
+    } catch (_) {}
+  }
+
+  /// Cleanup tasks completed before today:
+  /// - One-time: delete
+  /// - Recurring: reschedule to next due date and clear completedAt
+  Future<void> cleanupCompletedScheduledTasks() async {
+    final db = await database;
+    await _ensureScheduledTasksTable(db);
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+
+    // Get all tasks completed before today
+    final completed = await db.query(
+      'scheduled_tasks',
+      where: 'completedAt IS NOT NULL AND completedAt < ?',
+      whereArgs: [
+        todayStart
+      ],
+    );
+
+    for (final task in completed) {
+      final id = task['id'] as int;
+      final frequency = task['frequency']?.toString() ?? 'Once';
+
+      if (frequency == 'Once' || frequency == 'One-time') {
+        // One-time task completed yesterday or before → delete
+        await db.delete('scheduled_tasks', where: 'id = ?', whereArgs: [
+          id
+        ]);
+      } else {
+        // Recurring task → advance due date past today, clear completedAt
+        final currentDue = DateTime.tryParse(task['dueDate']?.toString() ?? '') ?? now;
+        DateTime nextDue = _calculateNextRecurringDate(frequency, currentDue);
+        // Keep advancing until nextDue is today or later
+        while (nextDue.isBefore(DateTime(now.year, now.month, now.day))) {
+          nextDue = _calculateNextRecurringDate(frequency, nextDue);
+        }
+        await db.update(
+          'scheduled_tasks',
+          {
+            'dueDate': nextDue.toIso8601String(),
+            'completedAt': null
+          },
+          where: 'id = ?',
+          whereArgs: [
+            id
+          ],
+        );
+      }
+    }
+
+    // Also cleanup pipeline tasks completed before today
+    await _ensureTasksIgnoredColumn(db);
+    await db.delete(
+      'tasks',
+      where: 'completed = 1 AND completedAt IS NOT NULL AND completedAt < ?',
+      whereArgs: [
+        todayStart
+      ],
+    );
+
+    if (completed.isNotEmpty) {
+      print('✅ Cleaned up ${completed.length} completed scheduled tasks from previous days');
+    }
+  }
+
+  DateTime _calculateNextRecurringDate(String frequency, DateTime from) {
+    switch (frequency) {
+      case 'Daily':
+        return from.add(Duration(days: 1));
+      case 'Weekly':
+        return from.add(Duration(days: 7));
+      case 'Bi-Weekly':
+        return from.add(Duration(days: 14));
+      case 'Monthly':
+        return DateTime(from.year, from.month + 1, from.day);
+      case 'Quarterly':
+        return DateTime(from.year, from.month + 3, from.day);
+      case 'Semi-Annually':
+        return DateTime(from.year, from.month + 6, from.day);
+      case 'Annually':
+        return DateTime(from.year + 1, from.month, from.day);
+      default:
+        return from.add(Duration(days: 7));
+    }
+  }
+
+  /// Mark a scheduled task as completed (keeps it visible until day ends)
+  Future<void> markScheduledTaskCompleted(int id) async {
+    final db = await database;
+    await db.update(
+      'scheduled_tasks',
+      {
+        'completedAt': DateTime.now().toIso8601String()
+      },
+      where: 'id = ?',
+      whereArgs: [
+        id
+      ],
+    );
+  }
+
+  /// Unmark a scheduled task as completed (user unchecked the box)
+  Future<void> unmarkScheduledTaskCompleted(int id) async {
+    final db = await database;
+    await db.update(
+      'scheduled_tasks',
+      {
+        'completedAt': null
+      },
+      where: 'id = ?',
+      whereArgs: [
+        id
+      ],
+    );
+  }
+
+  Future<int> insertScheduledTask(Map<String, dynamic> task) async {
+    final db = await database;
+    await _ensureScheduledTasksTable(db);
 
     final Map<String, dynamic> taskData = {
       'name': task['name'] ?? task['task'] ?? 'Unknown Task',
@@ -2187,20 +2703,7 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAllScheduledTasks() async {
     final db = await database;
-
-    // Ensure the table exists
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS scheduled_tasks(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        frequency TEXT NOT NULL,
-        linkType TEXT NOT NULL,
-        linkedEntities TEXT,
-        dueDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      )
-    ''');
+    await _ensureScheduledTasksTable(db);
 
     final List<Map<String, dynamic>> maps = await db.query(
       'scheduled_tasks',
@@ -2217,9 +2720,10 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [],
+        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
+        'completedAt': task['completedAt'],
       };
     }).toList();
   }
@@ -2236,34 +2740,41 @@ class DatabaseService {
     print('✅ Deleted scheduled task with id: $id');
   }
 
-  Future<List<Map<String, dynamic>>> getTasksDueToday() async {
+  Future<List<Map<String, dynamic>>> getTasksDueToday({bool snowballEffect = true}) async {
     final db = await database;
-
-    // Ensure the table exists
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS scheduled_tasks(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        frequency TEXT NOT NULL,
-        linkType TEXT NOT NULL,
-        linkedEntities TEXT,
-        dueDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      )
-    ''');
+    await _ensureScheduledTasksTable(db);
 
     final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
     final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-    final List<Map<String, dynamic>> maps = await db.query(
-      'scheduled_tasks',
-      where: 'dueDate <= ?',
-      whereArgs: [
-        todayEnd.toIso8601String()
-      ],
-      orderBy: 'dueDate ASC',
-    );
+    // Include tasks due today (and overdue if snowball is on) that are NOT completed,
+    // PLUS tasks completed today (so they stay visible with a checkmark)
+    final List<Map<String, dynamic>> maps;
+    if (snowballEffect) {
+      // Snowball ON: show overdue + today
+      maps = await db.query(
+        'scheduled_tasks',
+        where: 'dueDate <= ? AND (completedAt IS NULL OR completedAt >= ?)',
+        whereArgs: [
+          todayEnd.toIso8601String(),
+          todayStart.toIso8601String(),
+        ],
+        orderBy: 'dueDate ASC',
+      );
+    } else {
+      // Snowball OFF: only show tasks due today (not overdue)
+      maps = await db.query(
+        'scheduled_tasks',
+        where: 'dueDate >= ? AND dueDate <= ? AND (completedAt IS NULL OR completedAt >= ?)',
+        whereArgs: [
+          todayStart.toIso8601String(),
+          todayEnd.toIso8601String(),
+          todayStart.toIso8601String(),
+        ],
+        orderBy: 'dueDate ASC',
+      );
+    }
 
     print('📋 getTasksDueToday: Found ${maps.length} tasks due today/overdue');
 
@@ -2275,38 +2786,29 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [],
+        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
+        'completedAt': task['completedAt'],
       };
     }).toList();
   }
 
   Future<List<Map<String, dynamic>>> getUpcomingScheduledTasks() async {
     final db = await database;
-
-    // Ensure the table exists
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS scheduled_tasks(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        frequency TEXT NOT NULL,
-        linkType TEXT NOT NULL,
-        linkedEntities TEXT,
-        dueDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      )
-    ''');
+    await _ensureScheduledTasksTable(db);
 
     final now = DateTime.now();
     final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
+    final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+
     final List<Map<String, dynamic>> maps = await db.query(
       'scheduled_tasks',
-      where: 'dueDate > ?',
+      where: 'dueDate > ? AND (completedAt IS NULL OR completedAt >= ?)',
       whereArgs: [
-        todayEnd.toIso8601String()
+        todayEnd.toIso8601String(),
+        todayStart,
       ],
       orderBy: 'dueDate ASC',
     );
@@ -2319,9 +2821,10 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [],
+        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
+        'completedAt': task['completedAt'],
       };
     }).toList();
   }
@@ -2345,32 +2848,19 @@ class DatabaseService {
   /// Returns tasks where linkType='rabbit' and linkedEntities contains the rabbitId.
   Future<List<Map<String, dynamic>>> getScheduledTasksByRabbit(String rabbitId) async {
     final db = await database;
-
-    // Ensure the table exists
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS scheduled_tasks(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        frequency TEXT NOT NULL,
-        linkType TEXT NOT NULL,
-        linkedEntities TEXT,
-        dueDate TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      )
-    ''');
+    await _ensureScheduledTasksTable(db);
 
     // Get all tasks that are linked to rabbits
-    final List<Map<String, dynamic>> maps = await db.query(
+    final List<Map<String, dynamic>> rabbitTasks = await db.query(
       'scheduled_tasks',
       where: "linkType = 'rabbit'",
       orderBy: 'dueDate ASC',
     );
 
     // Filter to only tasks whose linkedEntities contain this rabbit's ID
-    final filtered = maps.where((task) {
+    final filtered = rabbitTasks.where((task) {
       try {
-        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [];
+        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [];
         if (entities is List) {
           return entities.any((e) {
             if (e is Map) return e['id'] == rabbitId;
@@ -2382,9 +2872,41 @@ class DatabaseService {
       return false;
     }).toList();
 
-    print('📋 getScheduledTasksByRabbit($rabbitId): Found ${filtered.length} tasks');
+    // Also get litter-linked tasks where this rabbit is the doe
+    final litterTasks = await db.query(
+      'scheduled_tasks',
+      where: "linkType = 'litter'",
+      orderBy: 'dueDate ASC',
+    );
 
-    return filtered.map((task) {
+    // Find litters belonging to this rabbit (as doe)
+    final litters = await db.query('litters', where: 'doeId = ?', whereArgs: [
+      rabbitId
+    ]);
+    final litterIds = litters.map((l) => l['id']?.toString()).where((id) => id != null).toSet();
+
+    final litterFiltered = litterTasks.where((task) {
+      try {
+        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [];
+        if (entities is List) {
+          return entities.any((e) {
+            if (e is Map) return litterIds.contains(e['id']?.toString());
+            if (e is String) return litterIds.contains(e);
+            return false;
+          });
+        }
+      } catch (_) {}
+      return false;
+    }).toList();
+
+    final allFiltered = [
+      ...filtered,
+      ...litterFiltered
+    ];
+
+    print('📋 getScheduledTasksByRabbit($rabbitId): Found ${filtered.length} rabbit-linked + ${litterFiltered.length} litter-linked tasks');
+
+    return allFiltered.map((task) {
       return {
         'id': task['id'],
         'task': task['name'],
@@ -2392,9 +2914,10 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities']) : [],
+        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
+        'completedAt': task['completedAt'],
       };
     }).toList();
   }
