@@ -220,6 +220,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         // ✅ Color directory from settings
         colorDirectory = _settings.colors;
 
+        // ✅ Health issues directory from settings
+        healthIssues = _settings.healthIssues;
+
         // ✅ Task directory items loaded below after setState
 
         _isLoading = false;
@@ -2303,12 +2306,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
               ),
               IconButton(
@@ -2318,11 +2323,33 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Delete $name - Coming soon'),
-                      backgroundColor: Color(0xFF0F7B6C),
-                      behavior: SnackBarBehavior.floating,
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Remove Issue'),
+                      content: Text('Remove "$name" from the registry?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await _settings.removeHealthIssue(name);
+                            setState(() {
+                              healthIssues = _settings.healthIssues;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD44C47),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Remove', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -2331,38 +2358,25 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
             ],
           ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'Default Treatment:',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  height: 36,
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  alignment: Alignment.centerLeft,
+          if (treatment.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(PhosphorIconsRegular.firstAid, size: 14, color: Color(0xFF94A3B8)),
+                SizedBox(width: 6),
+                Expanded(
                   child: Text(
                     treatment,
                     style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFF64748B),
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -3312,11 +3326,70 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   void _addHealthIssue() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Add health issue - Coming soon'),
-        backgroundColor: Color(0xFF0F7B6C),
-        behavior: SnackBarBehavior.floating,
+    final nameController = TextEditingController();
+    final treatmentController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Health Issue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: 'Issue / Condition',
+                hintText: 'e.g. Snuffles, GI Stasis...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: treatmentController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: 'Default Treatment (optional)',
+                hintText: 'e.g. Antibiotics, fluids...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.pop(ctx);
+                await _settings.addHealthIssue(name, treatmentController.text.trim());
+                setState(() {
+                  healthIssues = _settings.healthIssues;
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F7B6C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

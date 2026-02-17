@@ -428,6 +428,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   location: selectedLocation,
                                 );
                                 await DatabaseService().updateRabbit(updatedRabbit);
+                                // Sync cage into barn row
+                                if (selectedLocation != null && selectedLocation!.isNotEmpty && selectedCage != null && selectedCage!.isNotEmpty) {
+                                  await DatabaseService().syncCageToBarn(selectedLocation!, selectedCage!);
+                                }
                                 Navigator.pop(context);
                                 await _refreshRabbitData();
                                 if (context.mounted) {

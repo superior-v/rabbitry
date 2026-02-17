@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/format_utils.dart';
+import '../../services/settings_service.dart';
 
 class HealthRecordModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -297,7 +298,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
 
                 // Treatment/Description input
                 Text(
-                  'Treatment/Description',
+                  'Condition / Issue',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -305,28 +306,85 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                   ),
                 ),
                 SizedBox(height: 8),
-                TextFormField(
-                  controller: _treatmentController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter treatment or description',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a description';
+                Autocomplete<String>(
+                  optionsBuilder: (textEditingValue) {
+                    final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
+                    if (textEditingValue.text.isEmpty) return issues;
+                    return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                  },
+                  fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
+                    // Sync with _treatmentController
+                    textController.addListener(() {
+                      _treatmentController.text = textController.text;
+                    });
+                    if (_treatmentController.text.isNotEmpty && textController.text.isEmpty) {
+                      textController.text = _treatmentController.text;
                     }
-                    return null;
+                    return TextFormField(
+                      controller: textController,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Snuffles, GI Stasis...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a condition';
+                        }
+                        return null;
+                      },
+                    );
+                  },
+                  onSelected: (value) {
+                    _treatmentController.text = value;
+                  },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(8),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: 200, maxWidth: MediaQuery.of(context).size.width - 80),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (context, index) {
+                              final option = options.elementAt(index);
+                              // Find treatment for this issue
+                              final issues = SettingsService.instance.healthIssues;
+                              final match = issues.firstWhere((i) => i['name'] == option, orElse: () => {});
+                              final treatment = match['treatment'] ?? '';
+                              return InkWell(
+                                onTap: () => onSelected(option),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(option, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                      if (treatment.isNotEmpty) Text(treatment, style: TextStyle(fontSize: 12, color: Color(0xFF787774))),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
                 SizedBox(height: 16),

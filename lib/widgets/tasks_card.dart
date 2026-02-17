@@ -218,6 +218,117 @@ class _TasksCardState extends State<TasksCard> {
     );
   }
 
+  /// Show cost dialog when completing a task
+  Future<void> _showTaskCostDialog(Map<String, dynamic> task) async {
+    final costController = TextEditingController();
+    final taskTitle = task['title']?.toString() ?? task['name']?.toString() ?? 'Task';
+    final taskCategory = task['category']?.toString();
+    final rabbitId = task['rabbitId']?.toString() ?? widget.rabbit.id;
+
+    final result = await showDialog<double?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Color(0xFF0F7B6C).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.check_circle_outline, color: Color(0xFF0F7B6C), size: 20),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Task Complete',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              taskTitle,
+              style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Any cost spent on this task?',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: costController,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText: '\u20b9',
+                prefixStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 0.0),
+            child: Text('No Cost', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final cost = double.tryParse(costController.text) ?? 0.0;
+              Navigator.pop(ctx, cost);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF0F7B6C),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    // If dialog was dismissed (back button / outside tap), don't complete
+    if (result == null) return;
+
+    final cost = result > 0 ? result : null;
+    final isPipeline = task['isPipelineTask'] == true;
+
+    if (isPipeline) {
+      final taskId = task['id']?.toString();
+      if (taskId != null) {
+        if (cost != null) {
+          await _db.completeTaskWithCost(taskId, cost, rabbitId, taskTitle: taskTitle, taskCategory: taskCategory);
+        } else {
+          await _db.completeTask(taskId);
+        }
+      }
+    } else {
+      final taskId = task['id'] as int?;
+      if (taskId == null) return;
+      if (cost != null) {
+        await _db.markScheduledTaskCompletedWithCost(taskId, cost, taskTitle: taskTitle, taskCategory: taskCategory, rabbitId: rabbitId);
+      } else {
+        await _db.markScheduledTaskCompleted(taskId);
+      }
+    }
+
+    _loadTasks();
+  }
+
   Widget _buildTaskItem(Map<String, dynamic> task) {
     String? category = task['category'];
     final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
@@ -270,15 +381,11 @@ class _TasksCardState extends State<TasksCard> {
                   } else {
                     await _db.unmarkScheduledTaskCompleted(taskId);
                   }
+                  _loadTasks();
                 } else {
-                  // Check — mark as completed
-                  if (isPipeline) {
-                    await _db.completeTask(taskId.toString());
-                  } else {
-                    await _db.markScheduledTaskCompleted(taskId);
-                  }
+                  // Check — show cost dialog then complete
+                  await _showTaskCostDialog(task);
                 }
-                _loadTasks();
               }
             },
             child: Container(

@@ -1126,6 +1126,13 @@ class DatabaseService {
     // Insert the new rabbit
     await insertRabbit(newRabbit);
 
+    // Sync cage into barn row
+    final cageVal = cage ?? litter.cage;
+    final locVal = location ?? litter.location;
+    if (locVal.isNotEmpty && cageVal.isNotEmpty) {
+      await syncCageToBarn(locVal, cageVal);
+    }
+
     // Update the kit status to 'Promoted'
     final updatedKits = litter.kits.map((k) {
       if (k.id == kit.id) {
@@ -1143,6 +1150,47 @@ class DatabaseService {
 
   // ==================== MOVE CAGE ====================
 
+  /// Ensures a cage exists in the barn row. If the row has the given location
+  /// name and the cage isn't already in its cages list, it gets added.
+  Future<void> syncCageToBarn(String location, String cage) async {
+    if (location.isEmpty || cage.isEmpty) return;
+    final barnsData = await getAllBarns();
+    for (var barnMap in barnsData) {
+      List<dynamic> rows = [];
+      final rowsRaw = barnMap['rows'];
+      if (rowsRaw is String && rowsRaw.isNotEmpty) {
+        try {
+          rows = jsonDecode(rowsRaw) as List<dynamic>;
+        } catch (_) {}
+      }
+      bool updated = false;
+      for (var row in rows) {
+        if (row is Map && row['name'] == location) {
+          final cages = List<String>.from(row['cages'] ?? []);
+          if (!cages.contains(cage)) {
+            cages.add(cage);
+            row['cages'] = cages;
+            updated = true;
+          }
+        }
+      }
+      if (updated) {
+        final db = await database;
+        await db.update(
+          'barns',
+          {
+            'rows': jsonEncode(rows)
+          },
+          where: 'id = ?',
+          whereArgs: [
+            barnMap['id']
+          ],
+        );
+        print('✅ Synced cage "$cage" into barn "${barnMap['name']}" → row "$location"');
+      }
+    }
+  }
+
   Future<void> moveCage(String rabbitId, String newLocation, String newCage) async {
     final db = await database;
     await db.update(
@@ -1157,6 +1205,8 @@ class DatabaseService {
         rabbitId
       ],
     );
+    // Sync cage into barn row
+    await syncCageToBarn(newLocation, newCage);
     print('✅ Moved $rabbitId to $newLocation - $newCage');
   }
 
@@ -1176,6 +1226,8 @@ class DatabaseService {
         'nursing'
       ],
     );
+    // Sync cage into barn row
+    await syncCageToBarn(location, cage);
     print('✅ Updated litter location for $doeId to $location - $cage');
   }
 
@@ -1641,7 +1693,7 @@ class DatabaseService {
   }
 
   // Complete task with optional cost logging
-  Future<void> completeTaskWithCost(String taskId, double? cost, String? rabbitId) async {
+  Future<void> completeTaskWithCost(String taskId, double? cost, String? rabbitId, {String? taskTitle, String? taskCategory}) async {
     final db = await database;
     await db.update(
       'tasks',
@@ -1658,19 +1710,67 @@ class DatabaseService {
 
     // If cost is provided, log it as a transaction
     if (cost != null && cost > 0) {
+      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory);
       final transaction = finance_model.Transaction(
         id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
         type: finance_model.TransactionType.expense,
-        category: finance_model.TransactionCategory.medical,
+        category: txnCategory,
         amount: cost,
         date: DateTime.now(),
-        description: 'Task cost',
+        description: taskTitle ?? 'Task cost',
         notes: 'Logged from completed task',
         linkType: rabbitId != null ? finance_model.LinkType.rabbit : finance_model.LinkType.general,
         rabbitId: rabbitId,
       );
       await insertTransaction(transaction);
       print('✅ Task completed with cost: \$$cost');
+    }
+  }
+
+  // Complete scheduled task with optional cost logging
+  Future<void> markScheduledTaskCompletedWithCost(int id, double? cost, {String? taskTitle, String? taskCategory, String? rabbitId}) async {
+    final db = await database;
+    await db.update(
+      'scheduled_tasks',
+      {
+        'completedAt': DateTime.now().toIso8601String()
+      },
+      where: 'id = ?',
+      whereArgs: [
+        id
+      ],
+    );
+
+    // If cost is provided, log it as a transaction
+    if (cost != null && cost > 0) {
+      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory);
+      final transaction = finance_model.Transaction(
+        id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+        type: finance_model.TransactionType.expense,
+        category: txnCategory,
+        amount: cost,
+        date: DateTime.now(),
+        description: taskTitle ?? 'Task cost',
+        notes: 'Logged from completed task',
+        linkType: rabbitId != null ? finance_model.LinkType.rabbit : finance_model.LinkType.general,
+        rabbitId: rabbitId,
+      );
+      await insertTransaction(transaction);
+      print('✅ Scheduled task completed with cost: \$$cost');
+    }
+  }
+
+  // Map task category to transaction expense category
+  finance_model.TransactionCategory _mapTaskCategoryToTransactionCategory(String? taskCategory) {
+    switch (taskCategory?.toLowerCase()) {
+      case 'health':
+        return finance_model.TransactionCategory.medical;
+      case 'maintenance':
+        return finance_model.TransactionCategory.equipment;
+      case 'butchering':
+        return finance_model.TransactionCategory.supplies;
+      default:
+        return finance_model.TransactionCategory.otherExpense;
     }
   }
 

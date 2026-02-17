@@ -164,6 +164,117 @@ class SettingsService {
     await setColors(current);
   }
 
+  // ==================== HEALTH ISSUES DIRECTORY ====================
+
+  static const List<Map<String, String>> _defaultHealthIssues = [
+    {
+      'name': 'Snuffles (Pasteurella)',
+      'treatment': 'Antibiotics'
+    },
+    {
+      'name': 'GI Stasis',
+      'treatment': 'Gut motility meds, hydration'
+    },
+    {
+      'name': 'Ear Mites',
+      'treatment': 'Ivermectin ear drops'
+    },
+    {
+      'name': 'Sore Hocks',
+      'treatment': 'Padding, topical ointment'
+    },
+    {
+      'name': 'Coccidiosis',
+      'treatment': 'Sulfa drugs'
+    },
+    {
+      'name': 'Eye Infection',
+      'treatment': 'Antibiotic eye drops'
+    },
+    {
+      'name': 'Malocclusion',
+      'treatment': 'Tooth trimming'
+    },
+    {
+      'name': 'Fly Strike',
+      'treatment': 'Clean, treat wounds'
+    },
+    {
+      'name': 'Fur Mites',
+      'treatment': 'Ivermectin, Revolution'
+    },
+    {
+      'name': 'Heat Stress',
+      'treatment': 'Cool environment, fluids'
+    },
+    {
+      'name': 'Bloat',
+      'treatment': 'Simethicone, vet care'
+    },
+    {
+      'name': 'Mastitis',
+      'treatment': 'Antibiotics, warm compress'
+    },
+    {
+      'name': 'Ringworm',
+      'treatment': 'Antifungal cream'
+    },
+    {
+      'name': 'Wry Neck (Head Tilt)',
+      'treatment': 'Antibiotics, anti-inflammatory'
+    },
+    {
+      'name': 'Diarrhea',
+      'treatment': 'Hydration, probiotics'
+    },
+  ];
+
+  List<Map<String, String>> get healthIssues {
+    final jsonStr = _prefs?.getString('healthIssuesDirectory');
+    if (jsonStr == null) {
+      return _defaultHealthIssues.map((e) => Map<String, String>.from(e)).toList();
+    }
+    try {
+      final list = jsonDecode(jsonStr) as List;
+      return list.map((e) => Map<String, String>.from(e as Map)).toList();
+    } catch (_) {
+      return _defaultHealthIssues.map((e) => Map<String, String>.from(e)).toList();
+    }
+  }
+
+  Future<void> setHealthIssues(List<Map<String, String>> issues) async {
+    await _prefs?.setString('healthIssuesDirectory', jsonEncode(issues));
+  }
+
+  Future<void> addHealthIssue(String name, String treatment) async {
+    final current = healthIssues;
+    if (!current.any((i) => i['name'] == name)) {
+      current.add({
+        'name': name,
+        'treatment': treatment
+      });
+      await setHealthIssues(current);
+    }
+  }
+
+  Future<void> removeHealthIssue(String name) async {
+    final current = healthIssues;
+    current.removeWhere((i) => i['name'] == name);
+    await setHealthIssues(current);
+  }
+
+  Future<void> updateHealthIssueTreatment(String name, String treatment) async {
+    final current = healthIssues;
+    final idx = current.indexWhere((i) => i['name'] == name);
+    if (idx != -1) {
+      current[idx] = {
+        'name': name,
+        'treatment': treatment
+      };
+      await setHealthIssues(current);
+    }
+  }
+
   Future<void> init() async {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();

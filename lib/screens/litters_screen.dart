@@ -2836,6 +2836,43 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ),
                     const SizedBox(height: 20),
                     const Text(
+                      'CONDITION / ISSUE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF787774),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Autocomplete<String>(
+                      optionsBuilder: (textEditingValue) {
+                        final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
+                        if (textEditingValue.text.isEmpty) return issues;
+                        return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                      },
+                      fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
+                        return TextField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Snuffles, Sore Hocks...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF0F7B6C),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
                       'NOTES',
                       style: TextStyle(
                         fontSize: 11,
@@ -3732,6 +3769,43 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ),
                     const SizedBox(height: 20),
                     const Text(
+                      'CONDITION / ISSUE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF787774),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Autocomplete<String>(
+                      optionsBuilder: (textEditingValue) {
+                        final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
+                        if (textEditingValue.text.isEmpty) return issues;
+                        return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                      },
+                      fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
+                        return TextField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Snuffles, Sore Hocks...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF0F7B6C),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
                       'NOTES',
                       style: TextStyle(
                         fontSize: 11,
@@ -4145,6 +4219,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         );
 
                         await _db.updateLitter(updatedLitter);
+                        // Sync cage into barn row
+                        final loc = selectedLocation ?? litters[index].location;
+                        final cg = selectedCage ?? litters[index].cage;
+                        if (loc.isNotEmpty && cg.isNotEmpty) {
+                          await _db.syncCageToBarn(loc, cg);
+                        }
                         await _refreshLitters();
                       }
 
@@ -6261,6 +6341,11 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
       // Save to database
       await _db.updateLitter(newLitter);
+
+      // Sync cage into barn row
+      if ((_selectedLocation ?? '').isNotEmpty && (_selectedCage ?? '').isNotEmpty) {
+        await _db.syncCageToBarn(_selectedLocation!, _selectedCage!);
+      }
 
       // Create wean pipeline task for this litter
       final settings = SettingsService.instance;

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/format_utils.dart';
+import '../services/settings_service.dart';
+import '../services/database_service.dart';
 
 class HealthRecordsCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -302,24 +304,46 @@ class HealthRecordsCard extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8),
-              TextField(
-                controller: conditionController,
-                decoration: InputDecoration(
-                  hintText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
+              Autocomplete<String>(
+                optionsBuilder: (textEditingValue) {
+                  final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
+                  if (textEditingValue.text.isEmpty) return issues;
+                  return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                },
+                fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
+                  textController.addListener(() {
+                    conditionController.text = textController.text;
+                  });
+                  return TextField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Snuffles, GI Stasis...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFFD1D5DB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFFD1D5DB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  );
+                },
+                onSelected: (value) {
+                  conditionController.text = value;
+                  // Auto-fill treatment if available
+                  final issues = SettingsService.instance.healthIssues;
+                  final match = issues.firstWhere((i) => i['name'] == value, orElse: () => {});
+                  if (match['treatment'] != null && match['treatment']!.isNotEmpty) {
+                    treatmentController.text = match['treatment']!;
+                  }
+                },
               ),
 
               SizedBox(height: 20),

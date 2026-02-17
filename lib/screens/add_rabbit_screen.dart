@@ -810,6 +810,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
       await _db.insertRabbit(rabbit);
 
+      // Sync cage into barn row
+      if (rabbit.location != null && rabbit.location!.isNotEmpty && rabbit.cage != null && rabbit.cage!.isNotEmpty) {
+        await _db.syncCageToBarn(rabbit.location!, rabbit.cage!);
+      }
+
       Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
