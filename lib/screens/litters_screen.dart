@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/litter.dart';
@@ -9,6 +10,7 @@ import '../services/format_utils.dart';
 import '../models/rabbit.dart';
 import '../models/breed.dart';
 import 'rabbit_detail_screen.dart';
+import 'kit_detail_screen.dart';
 
 import 'dart:developer' as developer;
 
@@ -1196,11 +1198,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     }
 
     return InkWell(
-      // ✅ Change GestureDetector to InkWell
-      onTap: () {
-        print('Kit tapped: ${litter.id}-${kit.id}'); // ✅ Add debug print
-        _showKitActions(litter, kit);
-      },
+      onTap: () => _openKitDetail(litter, kit),
+      onLongPress: () => _showKitActions(litter, kit),
       child: Container(
         padding: EdgeInsets.all(10),
         margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1221,12 +1220,20 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               decoration: BoxDecoration(
                 color: avatarColor,
                 shape: BoxShape.circle,
+                image: kit.imagePath != null && kit.imagePath!.isNotEmpty && File(kit.imagePath!).existsSync()
+                    ? DecorationImage(
+                        image: FileImage(File(kit.imagePath!)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.pets,
-                size: 16,
-                color: iconColor,
-              ),
+              child: kit.imagePath != null && kit.imagePath!.isNotEmpty && File(kit.imagePath!).existsSync()
+                  ? null
+                  : Icon(
+                      Icons.pets,
+                      size: 16,
+                      color: iconColor,
+                    ),
             ),
             SizedBox(width: 12),
             Expanded(
@@ -1405,157 +1412,168 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       );
     }
 
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: 10,
-      ),
-      padding: EdgeInsets.all(
-        14,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: Color(
-            0xFFE9E9E7,
+    return GestureDetector(
+      onTap: () => _openKitDetail(litter, kit),
+      child: Container(
+        margin: EdgeInsets.only(
+          bottom: 10,
+        ),
+        padding: EdgeInsets.all(
+          14,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Color(
+              0xFFE9E9E7,
+            ),
+          ),
+          borderRadius: BorderRadius.circular(
+            12,
           ),
         ),
-        borderRadius: BorderRadius.circular(
-          12,
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: avatarColor,
+                shape: BoxShape.circle,
+                image: kit.imagePath != null && kit.imagePath!.isNotEmpty && File(kit.imagePath!).existsSync()
+                    ? DecorationImage(
+                        image: FileImage(File(kit.imagePath!)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: kit.imagePath != null && kit.imagePath!.isNotEmpty && File(kit.imagePath!).existsSync()
+                  ? null
+                  : Icon(
+                      Icons.pets,
+                      size: 24,
+                      color: iconColor,
+                    ),
+            ),
+            SizedBox(
+              width: 12,
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '${litter.id}-${kit.id}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 8,
+                      ),
+                      Text(
+                        '${kit.color} Kit',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 4,
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.biotech,
+                        size: 12,
+                        color: Color(
+                          0xFF787774,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 4,
+                      ),
+                      Text(
+                        '${litter.dam} x ${litter.sire}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(
+                            0xFF787774,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 4,
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 12,
+                        color: Color(
+                          0xFF787774,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 4,
+                      ),
+                      Text(
+                        '${litter.location} • ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(
+                            0xFF787774,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.scale,
+                        size: 12,
+                        color: Color(
+                          0xFF787774,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 4,
+                      ),
+                      Text(
+                        '${kit.weight} ${FormatUtils.weightUnit}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(
+                            0xFF787774,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.more_vert,
+                size: 20,
+              ),
+              onPressed: () => _showKitMenu(
+                litter,
+                kit,
+              ),
+              padding: EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                minWidth: 56,
+                minHeight: 56,
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: avatarColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.pets,
-              size: 24,
-              color: iconColor,
-            ),
-          ),
-          SizedBox(
-            width: 12,
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '${litter.id}-${kit.id}',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 8,
-                    ),
-                    Text(
-                      '${kit.color} Kit',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  height: 4,
-                ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.biotech,
-                      size: 12,
-                      color: Color(
-                        0xFF787774,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 4,
-                    ),
-                    Text(
-                      '${litter.dam} x ${litter.sire}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(
-                          0xFF787774,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  height: 4,
-                ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 12,
-                      color: Color(
-                        0xFF787774,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 4,
-                    ),
-                    Text(
-                      '${litter.location} • ',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(
-                          0xFF787774,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.scale,
-                      size: 12,
-                      color: Color(
-                        0xFF787774,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 4,
-                    ),
-                    Text(
-                      '${kit.weight} ${FormatUtils.weightUnit}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(
-                          0xFF787774,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.more_vert,
-              size: 20,
-            ),
-            onPressed: () => _showKitMenu(
-              litter,
-              kit,
-            ),
-            padding: EdgeInsets.all(20),
-            constraints: BoxConstraints(
-              minWidth: 56,
-              minHeight: 56,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1593,219 +1611,237 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       );
     }
 
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: 12,
-      ),
-      padding: EdgeInsets.all(
-        16,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: Color(
-            0xFFE9E9E7,
-          ),
+    return GestureDetector(
+      onTap: () => _openKitDetail(litter, kit),
+      child: Container(
+        margin: EdgeInsets.only(
+          bottom: 12,
         ),
-        borderRadius: BorderRadius.circular(
-          12,
+        padding: EdgeInsets.all(
+          16,
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Color(
-                0xFFF7F7F5,
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.pets,
-              size: 28,
-              color: Color(
-                0xFF9B9A97,
-              ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: Color(
+              0xFFE9E9E7,
             ),
           ),
-          SizedBox(
-            width: 16,
+          borderRadius: BorderRadius.circular(
+            12,
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '${litter.id}-${kit.id}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 6,
-                    ),
-                    Text(
-                      '${kit.color} Kit',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Color(
+                  0xFFF7F7F5,
                 ),
-                SizedBox(
-                  height: 4,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.pets,
+                size: 28,
+                color: Color(
+                  0xFF9B9A97,
                 ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 12,
-                      color: Color(
-                        0xFF787774,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 4,
-                    ),
-                    Text(
-                      'Archive • -',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(
-                          0xFF787774,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  height: 6,
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(
-                      6,
-                    ),
-                    border: kit.status == 'Sold'
-                        ? Border.all(
-                            color: badgeColor,
-                          )
-                        : (kit.status == 'Butchered'
-                            ? Border.all(
-                                color: Color(
-                                  0xFF787774,
-                                ),
-                              )
-                            : null),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+              ),
+            ),
+            SizedBox(
+              width: 16,
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: badgeColor,
-                          shape: BoxShape.circle,
+                      Text(
+                        '${litter.id}-${kit.id}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       SizedBox(
                         width: 6,
                       ),
                       Text(
-                        badgeLabel.toUpperCase(),
+                        '${kit.color} Kit',
                         style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: badgeColor,
-                          letterSpacing: 0.5,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                ),
-                if (kit.price != null || kit.details != null) ...[
                   SizedBox(
-                    height: 8,
+                    height: 4,
                   ),
                   Row(
                     children: [
-                      if (kit.price != null) ...[
-                        Icon(
-                          Icons.attach_money,
-                          size: 14,
+                      Icon(
+                        Icons.location_on,
+                        size: 12,
+                        color: Color(
+                          0xFF787774,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 4,
+                      ),
+                      Text(
+                        'Archive • -',
+                        style: TextStyle(
+                          fontSize: 13,
                           color: Color(
                             0xFF787774,
                           ),
                         ),
-                        Text(
-                          '${FormatUtils.currencySymbol}${kit.price!.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(
-                              0xFF787774,
-                            ),
-                          ),
-                        ),
-                        if (kit.details != null)
-                          SizedBox(
-                            width: 12,
-                          ),
-                      ],
-                      if (kit.details != null) ...[
-                        Icon(
-                          Icons.info_outline,
-                          size: 14,
-                          color: Color(
-                            0xFF787774,
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 6,
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(
+                        6,
+                      ),
+                      border: kit.status == 'Sold'
+                          ? Border.all(
+                              color: badgeColor,
+                            )
+                          : (kit.status == 'Butchered'
+                              ? Border.all(
+                                  color: Color(
+                                    0xFF787774,
+                                  ),
+                                )
+                              : null),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            shape: BoxShape.circle,
                           ),
                         ),
                         SizedBox(
-                          width: 4,
+                          width: 6,
                         ),
                         Text(
-                          kit.details!,
+                          badgeLabel.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: badgeColor,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (kit.price != null || kit.details != null) ...[
+                    SizedBox(
+                      height: 8,
+                    ),
+                    Row(
+                      children: [
+                        if (kit.price != null) ...[
+                          Icon(
+                            Icons.attach_money,
+                            size: 14,
                             color: Color(
                               0xFF787774,
                             ),
                           ),
-                        ),
+                          Text(
+                            '${FormatUtils.currencySymbol}${kit.price!.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(
+                                0xFF787774,
+                              ),
+                            ),
+                          ),
+                          if (kit.details != null)
+                            SizedBox(
+                              width: 12,
+                            ),
+                        ],
+                        if (kit.details != null) ...[
+                          Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: Color(
+                              0xFF787774,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 4,
+                          ),
+                          Text(
+                            kit.details!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(
+                                0xFF787774,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.more_vert,
-              size: 20,
+            IconButton(
+              icon: Icon(
+                Icons.more_vert,
+                size: 20,
+              ),
+              onPressed: () => _showKitMenu(
+                litter,
+                kit,
+              ),
+              padding: EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                minWidth: 56,
+                minHeight: 56,
+              ),
             ),
-            onPressed: () => _showKitMenu(
-              litter,
-              kit,
-            ),
-            padding: EdgeInsets.all(20),
-            constraints: BoxConstraints(
-              minWidth: 56,
-              minHeight: 56,
-            ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openKitDetail(Litter litter, Kit kit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => KitDetailScreen(
+          litter: litter,
+          kit: kit,
+          onUpdated: () {
+            _loadLitters();
+          },
+        ),
       ),
     );
   }

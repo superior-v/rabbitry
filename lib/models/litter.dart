@@ -8,6 +8,7 @@ class Kit {
   String status; // Keep as mutable for direct updates
   final String? details;
   final double? price;
+  final String? imagePath;
 
   Kit({
     required this.id,
@@ -17,6 +18,7 @@ class Kit {
     required this.status,
     this.details,
     this.price,
+    this.imagePath,
   });
 
   bool get isArchived => [
@@ -34,6 +36,7 @@ class Kit {
     String? status,
     String? details,
     double? price,
+    String? imagePath,
   }) {
     return Kit(
       id: id ?? this.id,
@@ -43,6 +46,7 @@ class Kit {
       status: status ?? this.status,
       details: details ?? this.details,
       price: price ?? this.price,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 
@@ -55,18 +59,20 @@ class Kit {
       'status': status,
       'details': details,
       'price': price,
+      'imagePath': imagePath,
     };
   }
 
   factory Kit.fromMap(Map<String, dynamic> map) {
     return Kit(
-      id: map['id'] as String? ?? '0', // ✅ Handle null
-      sex: map['sex'] as String? ?? 'U', // ✅ Handle null
-      color: map['color'] as String? ?? 'Unknown', // ✅ Handle null
-      weight: (map['weight'] as num?)?.toDouble() ?? 0.0, // ✅ Handle null
-      status: map['status'] as String? ?? 'Nursing', // ✅ Handle null
+      id: map['id'] as String? ?? '0',
+      sex: map['sex'] as String? ?? 'U',
+      color: map['color'] as String? ?? 'Unknown',
+      weight: (map['weight'] as num?)?.toDouble() ?? 0.0,
+      status: map['status'] as String? ?? 'Nursing',
       details: map['details'] as String?,
       price: map['price'] != null ? (map['price'] as num).toDouble() : null,
+      imagePath: map['imagePath'] as String?,
     );
   }
   String toJson() => json.encode(toMap());
