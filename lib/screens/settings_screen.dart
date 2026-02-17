@@ -60,6 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   List<Breed> breeds = [];
 
   List<Map<String, String>> healthIssues = [];
+  List<String> colorDirectory = [];
   List<Map<String, String>> husbandryTasks = [];
   List<Map<String, String>> healthTasks = [];
   List<Map<String, String>> maintenanceTasks = [];
@@ -215,6 +216,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
         // ✅ Breeds from database
         breeds = loadedBreeds;
+
+        // ✅ Color directory from settings
+        colorDirectory = _settings.colors;
 
         // ✅ Task directory items loaded below after setState
 
@@ -1123,6 +1127,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ))
                 .toList(),
             _buildAddButton('Add Breed', _addBreed),
+          ],
+        ),
+        SizedBox(height: 20),
+        _buildCard(
+          'Color Directory',
+          PhosphorIconsDuotone.palette,
+          [
+            ...colorDirectory.map((color) => _buildColorItem(color)).toList(),
+            _buildAddButton('Add Color', _addColor),
           ],
         ),
         SizedBox(height: 20),
@@ -3304,6 +3317,133 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         content: Text('Add health issue - Coming soon'),
         backgroundColor: Color(0xFF0F7B6C),
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // ==================== COLOR DIRECTORY ====================
+
+  void _addColor() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Color', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            labelText: 'Color Name',
+            hintText: 'e.g. Castor, Blue Otter...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final val = controller.text.trim();
+              if (val.isNotEmpty && !colorDirectory.contains(val)) {
+                Navigator.pop(ctx);
+                await _settings.addColor(val);
+                setState(() {
+                  colorDirectory = _settings.colors;
+                });
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F7B6C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeColorItem(String color) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove Color'),
+        content: Text('Remove "$color" from the directory?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _settings.removeColor(color);
+              setState(() {
+                colorDirectory = _settings.colors;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD44C47),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorItem(String color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F5),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE9E9E7)),
+            ),
+            child: const Icon(Icons.circle, size: 14, color: Color(0xFF0F7B6C)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              color,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              PhosphorIconsRegular.trash,
+              size: 20,
+              color: Color(0xFF94A3B8),
+            ),
+            onPressed: () => _removeColorItem(color),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
     );
   }

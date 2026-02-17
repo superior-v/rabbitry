@@ -904,13 +904,9 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                         value: isCustom ? 'Custom' : selectedColor,
                         icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF37352F)),
                         style: const TextStyle(fontSize: 14, color: Color(0xFF37352F)),
-                        items: const [
-                          DropdownMenuItem(value: 'Castor', child: Text('Castor')),
-                          DropdownMenuItem(value: 'Black', child: Text('Black')),
-                          DropdownMenuItem(value: 'White', child: Text('White')),
-                          DropdownMenuItem(value: 'Broken Castor', child: Text('Broken Castor')),
-                          DropdownMenuItem(value: 'Chinchilla', child: Text('Chinchilla')),
-                          DropdownMenuItem(value: 'Custom', child: Text('Custom...')),
+                        items: [
+                          ...SettingsService.instance.colors.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                          const DropdownMenuItem(value: 'Custom', child: Text('Custom...')),
                         ],
                         onChanged: (value) {
                           setDialogState(() {

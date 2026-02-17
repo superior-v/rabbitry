@@ -5546,18 +5546,17 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     'M',
     'F'
   ];
-  final List<String> _colorOptions = [
-    'Unknown',
-    'Black',
-    'White',
-    'Brown',
-    'Gray',
-    'Spotted',
-    'Tan',
-    'Agouti',
-    'Broken',
-    'Other',
-  ];
+  List<String> get _colorOptions {
+    final colors = SettingsService.instance.colors;
+    final list = <String>[
+      'Unknown'
+    ];
+    for (final c in colors) {
+      if (c != 'Unknown' && c != 'Other') list.add(c);
+    }
+    if (!list.contains('Other')) list.add('Other');
+    return list;
+  }
 
   @override
   void initState() {

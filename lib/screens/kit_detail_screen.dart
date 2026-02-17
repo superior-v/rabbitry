@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/litter.dart';
 import '../services/format_utils.dart';
 import '../services/database_service.dart';
+import '../services/settings_service.dart';
 
 class KitDetailScreen extends StatefulWidget {
   final Litter litter;
@@ -366,25 +367,37 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   }
 
   void _showEditColorDialog() {
-    final controller = TextEditingController(text: _kit.color);
+    var controller = TextEditingController(text: _kit.color);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Edit Color', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            labelText: 'Color',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
-            ),
-          ),
+        content: Autocomplete<String>(
+          optionsBuilder: (textEditingValue) {
+            final colors = SettingsService.instance.colors;
+            if (textEditingValue.text.isEmpty) return colors;
+            return colors.where((c) => c.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+          },
+          initialValue: controller.value,
+          fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
+            controller = textController;
+            return TextField(
+              controller: textController,
+              focusNode: focusNode,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: 'Color',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                ),
+              ),
+            );
+          },
         ),
         actions: [
           TextButton(

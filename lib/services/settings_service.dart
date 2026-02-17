@@ -116,6 +116,54 @@ class SettingsService {
     await setBreeds(currentBreeds);
   }
 
+  // Colors Directory - stored as JSON array
+  static const List<String> _defaultColors = [
+    'Black',
+    'White',
+    'Brown',
+    'Gray',
+    'Agouti',
+    'Castor',
+    'Chinchilla',
+    'Broken',
+    'Spotted',
+    'Tan',
+    'Blue',
+    'Lilac',
+    'Sable',
+    'Orange',
+    'Red',
+  ];
+
+  List<String> get colors {
+    final jsonStr = _prefs?.getString('colorDirectory');
+    if (jsonStr == null) return List<String>.from(_defaultColors);
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonStr);
+      return decoded.cast<String>().toList();
+    } catch (e) {
+      return List<String>.from(_defaultColors);
+    }
+  }
+
+  Future<void> setColors(List<String> colorsList) async {
+    await _prefs?.setString('colorDirectory', jsonEncode(colorsList));
+  }
+
+  Future<void> addColor(String color) async {
+    final current = colors;
+    if (!current.contains(color)) {
+      current.add(color);
+      await setColors(current);
+    }
+  }
+
+  Future<void> removeColor(String color) async {
+    final current = colors;
+    current.remove(color);
+    await setColors(current);
+  }
+
   Future<void> init() async {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();
