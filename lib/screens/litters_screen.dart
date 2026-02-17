@@ -621,31 +621,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         if (_filters['age'] == 'mid' && (litter.ageDays < 28 || litter.ageDays > 56)) return false;
         if (_filters['age'] == 'old' && litter.ageDays <= 56) return false;
 
-        // Filter kits by stage
-        final validKits = litter.kits.where(
-          (
-            kit,
-          ) {
-            final isArchiveStatus = [
-              'Sold',
-              'Butchered',
-              'Dead',
-              'Cull',
-            ].contains(
-              kit.status,
-            );
-
-            if (_currentStage == 'Archive') {
-              return isArchiveStatus;
-            } else if (_currentStage != 'All') {
-              if (isArchiveStatus || kit.status == 'Quarantine') {
-                return _currentStage == 'Quarantine' && kit.status == 'Quarantine';
-              }
-              return kit.status == _currentStage || litter.status == _currentStage;
-            }
-            return true;
-          },
-        ).toList();
+        // Filter kits by stage - use the same logic as kit view
+        final validKits = litter.kits
+            .where(
+              (kit) => _kitMatchesStage(kit),
+            )
+            .toList();
 
         return validKits.isNotEmpty;
       },
@@ -910,14 +891,14 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       ),
                       _buildDataPoint(
                         'COUNT',
-                        '${litter.totalKitsCount} Live',
+                        _currentStage == 'All' ? '${litter.totalKitsCount} Live' : '${litter.kits.where((k) => _kitMatchesStage(k)).length} Live',
                       ),
                       SizedBox(
                         width: 16,
                       ),
                       _buildDataPoint(
                         'TOTAL WT',
-                        '${litter.totalWeight.toStringAsFixed(1)} ${FormatUtils.weightUnit}',
+                        _currentStage == 'All' ? '${litter.totalWeight.toStringAsFixed(1)} ${FormatUtils.weightUnit}' : '${litter.kits.where((k) => _kitMatchesStage(k)).fold(0.0, (sum, k) => sum + k.weight).toStringAsFixed(1)} ${FormatUtils.weightUnit}',
                       ),
                       Spacer(),
                       _buildRatioBar(
@@ -947,6 +928,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               ),
               child: Column(
                 children: litter.kits
+                    .where((kit) => _kitMatchesStage(kit))
                     .map(
                       (
                         kit,
@@ -1302,18 +1284,36 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
+  /// Returns true if a kit matches the current stage filter
+  bool _kitMatchesStage(Kit kit) {
+    final isArchiveStatus = [
+      'Sold',
+      'Butchered',
+      'Dead',
+      'Cull'
+    ].contains(kit.status);
+    if (_currentStage == 'All') return true;
+    if (_currentStage == 'Archive') return isArchiveStatus;
+    if (_currentStage == 'Quarantine') return kit.status == 'Quarantine';
+    if (isArchiveStatus) return false;
+    return kit.status == _currentStage;
+  }
+
   Widget _buildKitsList() {
     final filtered = _getFilteredLitters();
     List<Map<String, dynamic>> allKits = [];
 
     for (var litter in filtered) {
       for (var kit in litter.kits) {
-        allKits.add(
-          {
-            'litter': litter,
-            'kit': kit,
-          },
-        );
+        // Only include kits that match the current stage filter
+        if (_kitMatchesStage(kit)) {
+          allKits.add(
+            {
+              'litter': litter,
+              'kit': kit,
+            },
+          );
+        }
       }
     }
 
@@ -3186,9 +3186,11 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   }
 
   void _showWeanLitterDialog(Litter litter) {
-    final TextEditingController weanedCountController = TextEditingController(
-      text: litter.aliveKits.toString(),
-    );
+    // Get only nursing kits (eligible for weaning)
+    final nursingKits = litter.kits.where((k) => k.status == 'Nursing').toList();
+    // Track which kits are selected for weaning (all selected by default)
+    Set<String> selectedKitIds = nursingKits.map((k) => k.id).toSet();
+    bool weanAll = true;
     DateTime selectedDate = DateTime.now();
 
     showModalBottomSheet(
@@ -3197,7 +3199,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.75,
+          height: MediaQuery.of(context).size.height * 0.85,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -3230,6 +3232,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Litter info card
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -3266,8 +3269,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      // Wean mode toggle
                       const Text(
-                        'NUMBER WEANED',
+                        'WEAN MODE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -3276,24 +3281,205 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: weanedCountController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Enter count',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF0F7B6C),
-                              width: 2,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setModalState(() {
+                                weanAll = true;
+                                selectedKitIds = nursingKits.map((k) => k.id).toSet();
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: weanAll ? const Color(0xFFE6FFFA) : Colors.white,
+                                  border: Border.all(
+                                    color: weanAll ? const Color(0xFF0F7B6C) : const Color(0xFFE9E9E7),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Wean All (${nursingKits.length})',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: weanAll ? const Color(0xFF0F7B6C) : const Color(0xFF787774),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setModalState(() {
+                                weanAll = false;
+                                selectedKitIds.clear();
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !weanAll ? const Color(0xFFE6FFFA) : Colors.white,
+                                  border: Border.all(
+                                    color: !weanAll ? const Color(0xFF0F7B6C) : const Color(0xFFE9E9E7),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Select Kits',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: !weanAll ? const Color(0xFF0F7B6C) : const Color(0xFF787774),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+
+                      // Kit selection list (only shown in Select Kits mode)
+                      if (!weanAll) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'SELECT KITS TO WEAN (${selectedKitIds.length}/${nursingKits.length})',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF787774),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => setModalState(() {
+                                if (selectedKitIds.length == nursingKits.length) {
+                                  selectedKitIds.clear();
+                                } else {
+                                  selectedKitIds = nursingKits.map((k) => k.id).toSet();
+                                }
+                              }),
+                              child: Text(
+                                selectedKitIds.length == nursingKits.length ? 'Deselect All' : 'Select All',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF0F7B6C),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFE9E9E7)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            children: nursingKits.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final kit = entry.value;
+                              final isSelected = selectedKitIds.contains(kit.id);
+                              return InkWell(
+                                onTap: () => setModalState(() {
+                                  if (isSelected) {
+                                    selectedKitIds.remove(kit.id);
+                                  } else {
+                                    selectedKitIds.add(kit.id);
+                                  }
+                                }),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFF0FDFA) : Colors.white,
+                                    border: idx < nursingKits.length - 1 ? const Border(bottom: BorderSide(color: Color(0xFFF0F0EE))) : null,
+                                    borderRadius: idx == 0
+                                        ? const BorderRadius.vertical(top: Radius.circular(10))
+                                        : idx == nursingKits.length - 1
+                                            ? const BorderRadius.vertical(bottom: Radius.circular(10))
+                                            : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? const Color(0xFF0F7B6C) : Colors.transparent,
+                                          border: Border.all(
+                                            color: isSelected ? const Color(0xFF0F7B6C) : const Color(0xFF9B9A97),
+                                            width: 1.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Kit avatar
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: kit.sex == 'M'
+                                              ? const Color(0xFFEBF8FF)
+                                              : kit.sex == 'F'
+                                                  ? const Color(0xFFFFF0F5)
+                                                  : const Color(0xFFF7F7F5),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.pets,
+                                            size: 16,
+                                            color: kit.sex == 'M'
+                                                ? const Color(0xFF2E7BB5)
+                                                : kit.sex == 'F'
+                                                    ? const Color(0xFFE91E8C)
+                                                    : const Color(0xFF787774),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${litter.id}-K-${kit.id}',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${kit.sex == 'M' ? 'Male' : kit.sex == 'F' ? 'Female' : 'Unknown'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF787774),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Wean date
                       const Text(
                         'WEAN DATE',
                         style: TextStyle(
@@ -3348,18 +3534,18 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           color: const Color(0xFFE0F2F1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.info_outline,
                               size: 16,
                               color: Color(0xFF0F7B6C),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Weaning will move kits to "Grow-out" stage',
-                                style: TextStyle(
+                                weanAll ? 'All ${nursingKits.length} nursing kits will be moved to "Weaned" stage' : '${selectedKitIds.length} selected kit${selectedKitIds.length == 1 ? '' : 's'} will be moved to "Weaned" stage',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF0F7B6C),
                                 ),
@@ -3377,45 +3563,51 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      // ✅ ADD async
-                      Navigator.pop(context);
+                    onPressed: selectedKitIds.isEmpty
+                        ? null
+                        : () async {
+                            Navigator.pop(context);
 
-                      final index = litters.indexWhere((l) => l.id == litter.id);
-                      if (index != -1) {
-                        final updatedKits = litters[index].kits.map((k) {
-                          return k.copyWith(status: 'Weaned');
-                        }).toList();
+                            final index = litters.indexWhere((l) => l.id == litter.id);
+                            if (index != -1) {
+                              final updatedKits = litters[index].kits.map((k) {
+                                // Only wean selected kits
+                                if (selectedKitIds.contains(k.id) && k.status == 'Nursing') {
+                                  return k.copyWith(status: 'Weaned');
+                                }
+                                return k;
+                              }).toList();
 
-                        final updatedLitter = litters[index].copyWith(
-                          kits: updatedKits,
-                          weanDate: selectedDate,
-                        );
+                              final updatedLitter = litters[index].copyWith(
+                                kits: updatedKits,
+                                weanDate: selectedDate,
+                              );
 
-                        await _db.updateLitter(updatedLitter);
-                        await _refreshLitters();
-                      }
+                              await _db.updateLitter(updatedLitter);
+                              await _refreshLitters();
+                            }
 
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Litter weaned successfully'),
-                            backgroundColor: Color(0xFF0F7B6C),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    },
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${selectedKitIds.length} kit${selectedKitIds.length == 1 ? '' : 's'} weaned successfully'),
+                                  backgroundColor: const Color(0xFF0F7B6C),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0F7B6C),
+                      disabledBackgroundColor: const Color(0xFFE9E9E7),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Wean Litter',
-                      style: TextStyle(
+                    child: Text(
+                      weanAll ? 'Wean All Kits' : 'Wean ${selectedKitIds.length} Kit${selectedKitIds.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,

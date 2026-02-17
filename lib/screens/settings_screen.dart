@@ -129,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _loadSettings();
   }
 
@@ -563,7 +563,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 _buildModulesTab(),
                 _buildPipelineTab(),
                 _buildOperationsTab(),
-                _buildAutomationTab(),
                 _buildDataTab(),
                 _buildSystemTab(),
               ],
@@ -593,9 +592,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 _buildTabChip('Modules', 1, selected),
                 _buildTabChip('Pipeline', 2, selected),
                 _buildTabChip('Operations', 3, selected),
-                _buildTabChip('Automation', 4, selected),
-                _buildTabChip('Data', 5, selected),
-                _buildTabChip('System', 6, selected),
+                _buildTabChip('Data', 4, selected),
+                _buildTabChip('System', 5, selected),
               ],
             ),
           ),
@@ -1101,63 +1099,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 setState(() => snowballEffect = val);
                 await _settings.setSnowballEffect(val);
               },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ============================================
-  // AUTOMATION TAB
-  // ============================================
-  Widget _buildAutomationTab() {
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: [
-        _buildCard(
-          'Health & Quarantine',
-          Icons.health_and_safety_outlined,
-          [
-            _buildSwitchRow(
-              'Quarantine Checks',
-              'Auto-add daily check tasks if rabbits are in quarantine.',
-              quarantineChecks,
-              (val) => setState(() => quarantineChecks = val),
-            ),
-            _buildSettingRowWithInput(
-              'Default Duration',
-              'Standard isolation period in days.',
-              30,
-              'days',
-            ),
-            _buildChecklistSetting(
-              'Entry Actions',
-              null,
-              [
-                {
-                  'label': 'Prompt to change Cage',
-                  'key': 'changeCage'
-                },
-              ],
-              quarantineEntry,
-              isCompact: true,
-            ),
-            _buildChecklistSetting(
-              'Exit Actions',
-              null,
-              [
-                {
-                  'label': 'Prompt to return to original Cage',
-                  'key': 'returnCage'
-                },
-                {
-                  'label': 'Create "End Quarantine" Task',
-                  'key': 'endTask'
-                },
-              ],
-              quarantineExit,
-              isCompact: true,
             ),
           ],
         ),
@@ -2792,92 +2733,185 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     String selectedCategory = 'Operations';
     String? selectedTask;
     String selectedFrequency = 'Weekly';
-    String linkType = 'unlinked'; // unlinked, rabbit, litter, kit
+    String selectedLinkType = 'unlinked'; // unlinked, rabbit, litter, kit
     bool isCustomTask = false;
     TextEditingController customTaskController = TextEditingController();
-    List<Map<String, String>> selectedEntities = [];
+    List<Map<String, String>> linkedEntities = [];
+
+    BoxDecoration inputDeco() {
+      return BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(8),
+      );
+    }
 
     showDialog(
       context: context,
-      builder: (context) {
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            // Get Tasks based on Category from task directory
-            List<Map<String, String>> currentCategoryTasks = taskDirectoryItems
-                .where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase())
-                .map((t) => {
-                      'name': t['name'] as String
-                    })
-                .toList();
+          builder: (context, setDialogState) {
+            // Task Options Logic: use task directory items, fallback to defaults
+            List<String> directoryTasks = taskDirectoryItems.where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase()).map((t) => t['name'] as String).toList();
+
+            List<String> currentTaskOptions;
+            if (directoryTasks.isNotEmpty) {
+              currentTaskOptions = directoryTasks;
+            } else {
+              if (selectedCategory == 'Operations')
+                currentTaskOptions = [
+                  'Clean Trays',
+                  'Top Off Feed',
+                  'Check Water',
+                  'Deep Clean'
+                ];
+              else if (selectedCategory == 'Health')
+                currentTaskOptions = [
+                  'Nail Trim',
+                  'Health Check',
+                  'Weighing',
+                  'Ear Check'
+                ];
+              else if (selectedCategory == 'Butchering')
+                currentTaskOptions = [
+                  'Schedule Butcher',
+                  'Prep Equipment',
+                  'Process'
+                ];
+              else if (selectedCategory == 'Pregnancy')
+                currentTaskOptions = [
+                  'Palpation',
+                  'Add Nest Box',
+                  'Check for Kindle'
+                ];
+              else
+                currentTaskOptions = [
+                  'Inventory Check',
+                  'General Maintenance'
+                ];
+            }
+
+            // Helper to build a Radio Chip
+            Widget buildRadioChip(String label, String value) {
+              final bool isSelected = selectedLinkType == value;
+              return GestureDetector(
+                onTap: () {
+                  setDialogState(() {
+                    selectedLinkType = value;
+                    linkedEntities.clear();
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Color(0xFFE6FFFA) : Colors.white,
+                    border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0), width: 1.5),
+                        ),
+                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF0F7B6C), shape: BoxShape.circle))) : null,
+                      ),
+                      SizedBox(width: 8),
+                      Text(label, style: TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            }
 
             return Dialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               insetPadding: EdgeInsets.all(16),
               child: Container(
+                width: double.infinity,
+                constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
                 padding: EdgeInsets.all(24),
-                constraints: BoxConstraints(maxWidth: 500, maxHeight: MediaQuery.of(context).size.height * 0.9),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
+                      // --- Header ---
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('New Schedule', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                          IconButton(
-                            icon: Icon(Icons.close, color: Color(0xFF64748B)),
-                            onPressed: () => Navigator.pop(context),
+                          Text(
+                            'New Schedule',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(dialogContext),
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFF5F7FA),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                            ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 24),
 
-                      // Category
+                      // --- Category ---
                       _buildModalLabel('Category'),
-                      _buildModalDropdown(
-                        value: selectedCategory,
-                        items: [
-                          'Operations',
-                          'Health',
-                          'Butchering',
-                          'Pregnancy',
-                          'Husbandry',
-                          'Maintenance'
-                        ],
-                        onChanged: (val) {
-                          setModalState(() {
-                            selectedCategory = val!;
-                            selectedTask = null;
-                            isCustomTask = false;
-                          });
-                        },
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        decoration: inputDeco(),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedCategory,
+                            isExpanded: true,
+                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                            items: [
+                              'Operations',
+                              'Health',
+                              if (SettingsService.instance.meatProductionEnabled) 'Butchering',
+                              'Pregnancy',
+                              'Other'
+                            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))).toList(),
+                            onChanged: (val) {
+                              setDialogState(() {
+                                selectedCategory = val!;
+                                selectedTask = null;
+                                isCustomTask = false;
+                              });
+                            },
+                          ),
+                        ),
                       ),
                       SizedBox(height: 16),
 
-                      // Task
+                      // --- Task ---
                       _buildModalLabel('Task'),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Color(0xFFE2E8F0)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        decoration: inputDeco(),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            isExpanded: true,
-                            hint: Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
                             value: isCustomTask ? 'custom' : selectedTask,
+                            hint: Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                            isExpanded: true,
+                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                             items: [
-                              ...currentCategoryTasks.map((t) => DropdownMenuItem(
-                                    value: t['name'],
-                                    child: Text(t['name']!),
-                                  )),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(color: Color(0xFF0F7B6C), fontWeight: FontWeight.w600))),
+                              ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
+                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF0F7B6C)))),
                             ],
                             onChanged: (val) {
-                              setModalState(() {
+                              setDialogState(() {
                                 if (val == 'custom') {
                                   isCustomTask = true;
                                   selectedTask = null;
@@ -2890,159 +2924,169 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           ),
                         ),
                       ),
-                      if (isCustomTask)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: TextField(
-                            controller: customTaskController,
-                            decoration: InputDecoration(
-                              hintText: 'Enter custom task name...',
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
+                      // Custom Task Input
+                      if (isCustomTask) ...[
+                        SizedBox(height: 8),
+                        TextField(
+                          controller: customTaskController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter custom task name...',
+                            hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF0F7B6C))),
                           ),
                         ),
+                      ],
                       SizedBox(height: 16),
 
-                      // Frequency
+                      // --- Frequency ---
                       _buildModalLabel('Frequency'),
-                      _buildModalDropdown(
-                        value: selectedFrequency,
-                        items: [
-                          'Daily',
-                          'Weekly',
-                          'Bi-Weekly',
-                          'Monthly',
-                          'Once'
-                        ],
-                        onChanged: (val) => setModalState(() => selectedFrequency = val!),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        decoration: inputDeco(),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedFrequency,
+                            isExpanded: true,
+                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                            items: [
+                              'Daily',
+                              'Weekly',
+                              'Bi-Weekly',
+                              'Monthly',
+                              'Once'
+                            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))).toList(),
+                            onChanged: (val) => setDialogState(() => selectedFrequency = val!),
+                          ),
+                        ),
                       ),
                       SizedBox(height: 16),
 
-                      // Link To (Radio Chips)
+                      // --- Link To (Radio Chips) ---
                       _buildModalLabel('Link To'),
                       Text('Choose what this task applies to', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      SizedBox(height: 8),
+                      SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildLinkChip(
-                              'Unlinked',
-                              'unlinked',
-                              linkType,
-                              (val) => setModalState(() {
-                                    linkType = val;
-                                    selectedEntities.clear();
-                                  })),
-                          _buildLinkChip(
-                              'Rabbit',
-                              'rabbit',
-                              linkType,
-                              (val) => setModalState(() {
-                                    linkType = val;
-                                    selectedEntities.clear();
-                                  })),
-                          _buildLinkChip(
-                              'Litter',
-                              'litter',
-                              linkType,
-                              (val) => setModalState(() {
-                                    linkType = val;
-                                    selectedEntities.clear();
-                                  })),
-                          _buildLinkChip(
-                              'Kits (Mixed)',
-                              'kit',
-                              linkType,
-                              (val) => setModalState(() {
-                                    linkType = val;
-                                    selectedEntities.clear();
-                                  })),
+                          buildRadioChip('Unlinked', 'unlinked'),
+                          buildRadioChip('Rabbit', 'rabbit'),
+                          buildRadioChip('Litter', 'litter'),
+                          buildRadioChip('Kits (Mixed)', 'kit'),
                         ],
                       ),
 
-                      // Dynamic Multi-Select
-                      if (linkType != 'unlinked') ...[
+                      // --- Dynamic Multi-Select for Linked Entities ---
+                      if (selectedLinkType != 'unlinked') ...[
                         SizedBox(height: 16),
-                        _buildModalLabel('Select ${linkType == 'rabbit' ? 'Rabbits' : linkType == 'litter' ? 'Litters' : 'Kits'}'),
+                        _buildModalLabel('Select ${selectedLinkType == 'rabbit' ? 'Rabbits' : selectedLinkType == 'litter' ? 'Litters' : 'Kits'}'),
                         Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Color(0xFFE2E8F0)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                          width: double.infinity,
+                          decoration: inputDeco(),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Selected Chips
-                              if (selectedEntities.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: selectedEntities
-                                        .map((e) => Chip(
-                                              label: Text(e['name']!, style: TextStyle(fontSize: 12)),
-                                              deleteIcon: Icon(Icons.close, size: 14),
-                                              onDeleted: () {
-                                                setModalState(() {
-                                                  selectedEntities.removeWhere((item) => item['id'] == e['id']);
-                                                });
-                                              },
-                                              backgroundColor: Color(0xFFF1F5F9),
-                                              padding: EdgeInsets.zero,
-                                              visualDensity: VisualDensity.compact,
-                                            ))
-                                        .toList(),
-                                  ),
+                              // Selected Chips Area
+                              Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    if (linkedEntities.isEmpty)
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 4, left: 4, bottom: 4),
+                                        child: Text('Select...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                                      ),
+                                    ...linkedEntities.map((e) => Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFFF5F7FA),
+                                            border: Border.all(color: Color(0xFFE2E8F0)),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(e['name']!, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                              SizedBox(width: 4),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setDialogState(() {
+                                                    linkedEntities.removeWhere((item) => item['id'] == e['id']);
+                                                  });
+                                                },
+                                                child: Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
+                                              )
+                                            ],
+                                          ),
+                                        ))
+                                  ],
                                 ),
-
-                              // Dropdown List
+                              ),
+                              Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              // Scrollable list of options
                               Container(
                                 height: 150,
-                                decoration: BoxDecoration(
-                                  border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                                ),
                                 child: ListView(
+                                  padding: EdgeInsets.zero,
                                   shrinkWrap: true,
-                                  children: (entityData[linkType] ?? []).map((entity) {
-                                    bool isSelected = selectedEntities.any((e) => e['id'] == entity['id']);
-                                    return CheckboxListTile(
-                                      value: isSelected,
-                                      title: Text(entity['name']!, style: TextStyle(fontSize: 14)),
-                                      subtitle: entity['code'] != null ? Text(entity['code']!, style: TextStyle(fontSize: 12)) : null,
-                                      dense: true,
-                                      activeColor: Color(0xFF0F7B6C),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                                      onChanged: (bool? checked) {
-                                        setModalState(() {
-                                          if (checked == true) {
-                                            selectedEntities.add(entity);
+                                  children: (entityData[selectedLinkType] ?? []).map((entity) {
+                                    final isSelected = linkedEntities.any((e) => e['id'] == entity['id']);
+                                    return InkWell(
+                                      onTap: () {
+                                        setDialogState(() {
+                                          if (isSelected) {
+                                            linkedEntities.removeWhere((e) => e['id'] == entity['id']);
                                           } else {
-                                            selectedEntities.removeWhere((e) => e['id'] == entity['id']);
+                                            linkedEntities.add(entity);
                                           }
                                         });
                                       },
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        color: isSelected ? Color(0xFFF5F7FA) : Colors.transparent,
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 18,
+                                              height: 18,
+                                              decoration: BoxDecoration(
+                                                color: isSelected ? Color(0xFF0F7B6C) : Colors.transparent,
+                                                border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFF64748B), width: 1.5),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: isSelected ? Icon(Icons.check, size: 14, color: Colors.white) : null,
+                                            ),
+                                            SizedBox(width: 10),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(entity['name']!, style: TextStyle(fontSize: 14, color: Color(0xFF1E293B))),
+                                                if (entity.containsKey('code')) Text(entity['code']!, style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
                                     );
                                   }).toList(),
                                 ),
-                              ),
+                              )
                             ],
                           ),
                         ),
                       ],
 
                       SizedBox(height: 24),
+
+                      // --- Save Button ---
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0F7B6C),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
                           onPressed: () async {
-                            // SAVE LOGIC - Save to database
                             String finalTaskName = isCustomTask ? customTaskController.text : (selectedTask ?? 'Unknown');
 
                             if (finalTaskName.isEmpty || finalTaskName == 'Unknown') {
@@ -3053,22 +3097,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             }
 
                             try {
-                              // Save to database
                               await _db.insertScheduledTask({
                                 'name': finalTaskName,
                                 'category': selectedCategory,
                                 'frequency': selectedFrequency,
-                                'linkType': linkType,
-                                'linkedEntities': List.from(selectedEntities),
+                                'linkType': selectedLinkType,
+                                'linkedEntities': List.from(linkedEntities),
                               });
 
-                              // Reload tasks from database to get updated list
                               final updatedTasks = await _db.getAllScheduledTasks();
                               setState(() {
                                 scheduledTasks = updatedTasks;
                               });
 
-                              Navigator.pop(context);
+                              Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF0F7B6C)),
                               );
@@ -3078,15 +3120,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               );
                             }
                           },
-                          child: Text('Save Schedule', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF0F7B6C),
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                         ),
                       ),
+
+                      // --- Cancel Button ---
                       SizedBox(height: 8),
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
                         ),
                       ),
                     ],
@@ -3112,8 +3162,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        border: Border.all(color: Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        border: Border.all(color: Color(0xFFE9E9E7)),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
