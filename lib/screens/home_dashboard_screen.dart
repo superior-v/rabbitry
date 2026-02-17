@@ -657,6 +657,10 @@ class _HomeTabContentState extends State<HomeTabContent> {
   List<Map<String, dynamic>> _todayTasks = [];
   List<Map<String, dynamic>> _upcomingTasks = [];
 
+  // ✅ Breed filter data
+  List<String> _availableBreeds = [];
+  Map<String, String> _rabbitBreedMap = {}; // rabbitId → breed
+
   // ✅ Stats counters
   int _activeLitters = 0;
   int _breederCount = 0;
@@ -725,6 +729,24 @@ class _HomeTabContentState extends State<HomeTabContent> {
   Future<void> _loadScheduledTasks() async {
     try {
       print('🔄 Loading scheduled tasks from database...');
+
+      // Build rabbit breed map for breed filtering
+      try {
+        final allRabbits = await _db.getAllRabbits();
+        final breedMap = <String, String>{};
+        final breedSet = <String>{};
+        for (final r in allRabbits) {
+          if (r.breed.isNotEmpty) {
+            breedMap[r.id] = r.breed;
+            breedSet.add(r.breed);
+          }
+        }
+        _rabbitBreedMap = breedMap;
+        _availableBreeds = breedSet.toList()..sort();
+      } catch (e) {
+        print('⚠️ Error loading rabbit breeds: $e');
+      }
+
       final today = await _db.getTasksDueToday();
       final upcoming = await _db.getUpcomingScheduledTasks();
 
@@ -737,6 +759,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
       } catch (e) {
         print('⚠️ Error loading pipeline tasks: $e');
       }
+
+      // Enrich all tasks with breed info
+      _enrichTasksWithBreed(today);
+      _enrichTasksWithBreed(upcoming);
+      _enrichTasksWithBreed(pipelineToday);
+      _enrichTasksWithBreed(pipelineUpcoming);
 
       // Merge and sort by dueDate
       final mergedToday = [
@@ -768,6 +796,31 @@ class _HomeTabContentState extends State<HomeTabContent> {
       }
     } catch (e) {
       print('❌ Error loading scheduled tasks: $e');
+    }
+  }
+
+  /// Enrich tasks with breed info from rabbit breed map
+  void _enrichTasksWithBreed(List<Map<String, dynamic>> tasks) {
+    for (var task in tasks) {
+      // Try pipeline rabbitId first
+      final rabbitId = task['rabbitId']?.toString();
+      if (rabbitId != null && rabbitId.isNotEmpty && _rabbitBreedMap.containsKey(rabbitId)) {
+        task['breed'] = _rabbitBreedMap[rabbitId];
+        continue;
+      }
+      // Try linkedEntities
+      final entities = task['linkedEntities'];
+      if (entities is List && entities.isNotEmpty) {
+        for (var e in entities) {
+          if (e is Map) {
+            final eId = e['id']?.toString();
+            if (eId != null && _rabbitBreedMap.containsKey(eId)) {
+              task['breed'] = _rabbitBreedMap[eId];
+              break;
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1238,36 +1291,6 @@ class _HomeTabContentState extends State<HomeTabContent> {
             icon: Stack(
               children: [
                 Icon(
-                  Icons.tune,
-                  color: Colors.black87,
-                ),
-                if (_breedFilter != 'All')
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Color(
-                          0xFF0F7B6C,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: () => _showFilterModal(),
-          ),
-          IconButton(
-            icon: Stack(
-              children: [
-                Icon(
                   Icons.search,
                   color: Colors.black87,
                 ),
@@ -1644,7 +1667,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
       final taskLocation = _getTaskLocation(task);
+      final taskBreed = task['breed']?.toString();
       if (!_shouldShowCategory(taskCategory)) continue;
+      if (!_shouldShowBreed(taskBreed)) continue;
       if (!_matchesSearch(taskName, null, taskLocation)) continue;
       filtered.add(task);
     }
@@ -1659,7 +1684,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
       final taskLocation = _getTaskLocation(task);
+      final taskBreed = task['breed']?.toString();
       if (!_shouldShowCategory(taskCategory)) continue;
+      if (!_shouldShowBreed(taskBreed)) continue;
       if (!_matchesSearch(taskName, null, taskLocation)) continue;
       filtered.add(task);
     }
@@ -1822,9 +1849,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
   }
 
   // Helper method to check if breed should be shown
-  bool _shouldShowBreed(
-    String? breed,
-  ) {
+  bool _shouldShowBreed(String? breed) {
     if (_breedFilter == 'All') return true;
     if (breed == null) return false;
     return breed == _breedFilter;
@@ -1840,8 +1865,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
       final taskLocation = _getTaskLocation(task);
+      final taskBreed = task['breed']?.toString();
 
-      if (_shouldShowCategory(taskCategory) && _matchesSearch(taskName, null, taskLocation)) {
+      if (_shouldShowCategory(taskCategory) && _shouldShowBreed(taskBreed) && _matchesSearch(taskName, null, taskLocation)) {
         count++;
       }
     }
@@ -1858,8 +1884,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
       final taskName = task['name'] ?? task['task'] ?? 'Task';
       final taskCategory = task['category'] ?? 'Operations';
       final taskLocation = _getTaskLocation(task);
+      final taskBreed = task['breed']?.toString();
 
-      if (_shouldShowCategory(taskCategory) && _matchesSearch(taskName, null, taskLocation)) {
+      if (_shouldShowCategory(taskCategory) && _shouldShowBreed(taskBreed) && _matchesSearch(taskName, null, taskLocation)) {
         count++;
       }
     }
@@ -2650,28 +2677,22 @@ class _HomeTabContentState extends State<HomeTabContent> {
   }
 
   void _showFilterModal() {
+    final allBreeds = [
+      'All',
+      ..._availableBreeds
+    ];
     showDialog(
       context: context,
-      builder: (
-        context,
-      ) =>
-          Dialog(
+      builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: 32,
-          ),
-          padding: EdgeInsets.all(
-            20,
-          ),
+          margin: EdgeInsets.symmetric(horizontal: 32),
+          padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(
-              16,
-            ),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Material(
-            // ← ADD THIS WRAPPER
             color: Colors.transparent,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -2682,94 +2703,96 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   children: [
                     Text(
                       'Filter by Breed',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
+                    if (_breedFilter != 'All')
+                      TextButton(
+                        onPressed: () {
+                          setState(() => _breedFilter = 'All');
+                          Navigator.pop(context);
+                        },
+                        child: Text('Clear', style: TextStyle(color: Color(0xFF0F7B6C), fontWeight: FontWeight.w600)),
+                      )
+                    else
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      onPressed: () => Navigator.pop(
-                        context,
-                      ),
-                    ),
                   ],
                 ),
-                SizedBox(
-                  height: 16,
-                ),
-                ...[
-                  'All'
-                ].map(
-                  (
-                    breed,
-                  ) {
-                    final isSelected = _breedFilter == breed;
-                    return InkWell(
-                      onTap: () {
-                        setState(
-                          () => _breedFilter = breed,
-                        );
-                        Navigator.pop(
-                          context,
-                        );
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 12,
-                        ),
-                        margin: EdgeInsets.only(
-                          bottom: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Color(
-                                  0xFFE8F5F3,
-                                )
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(
-                            8,
-                          ),
-                          border: isSelected
-                              ? Border.all(
-                                  color: Color(
-                                    0xFF0F7B6C,
+                SizedBox(height: 8),
+                if (_availableBreeds.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        'No breeds found.\nAdd breeds to your rabbits first.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Color(0xFF9B9A97)),
+                      ),
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: 400),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: allBreeds.map((breed) {
+                          final isSelected = _breedFilter == breed;
+                          return InkWell(
+                            onTap: () {
+                              setState(() => _breedFilter = breed);
+                              Navigator.pop(context);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                              margin: EdgeInsets.only(bottom: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Color(0xFFE8F5F3) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: isSelected ? Border.all(color: Color(0xFF0F7B6C)) : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (breed != 'All')
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          margin: EdgeInsets.only(right: 10),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              breed[0].toUpperCase(),
+                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                                            ),
+                                          ),
+                                        ),
+                                      Text(
+                                        breed,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          color: isSelected ? Color(0xFF0F7B6C) : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                )
-                              : null,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              breed,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                color: isSelected
-                                    ? Color(
-                                        0xFF0F7B6C,
-                                      )
-                                    : Colors.black87,
+                                  if (isSelected) Icon(Icons.check, color: Color(0xFF0F7B6C), size: 20),
+                                ],
                               ),
                             ),
-                            if (isSelected)
-                              Icon(
-                                Icons.check,
-                                color: Color(
-                                  0xFF0F7B6C,
-                                ),
-                                size: 20,
-                              ),
-                          ],
-                        ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  },
-                ).toList(),
+                    ),
+                  ),
               ],
             ),
           ),
