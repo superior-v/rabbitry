@@ -4,8 +4,9 @@ import '../services/database_service.dart';
 
 class PedigreeInlineCard extends StatefulWidget {
   final Rabbit rabbit;
+  final VoidCallback? onUpdated;
 
-  const PedigreeInlineCard({Key? key, required this.rabbit}) : super(key: key);
+  const PedigreeInlineCard({Key? key, required this.rabbit, this.onUpdated}) : super(key: key);
 
   @override
   State<PedigreeInlineCard> createState() => _PedigreeInlineCardState();
@@ -28,6 +29,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   void initState() {
     super.initState();
     _loadPedigree();
+  }
+
+  @override
+  void didUpdateWidget(covariant PedigreeInlineCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rabbit.sireId != widget.rabbit.sireId || oldWidget.rabbit.damId != widget.rabbit.damId) {
+      _loadPedigree();
+    }
   }
 
   Future<void> _loadPedigree() async {
@@ -196,6 +205,12 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _sire?.id ?? '--',
                         _sire?.breed ?? widget.rabbit.breed,
                         true,
+                        onTap: () => _showEditPedigreeEntryDialog(
+                          label: 'Edit Sire',
+                          targetRabbit: widget.rabbit,
+                          isMale: true,
+                          currentId: widget.rabbit.sireId,
+                        ),
                       ),
                     ),
                     SizedBox(width: 12),
@@ -205,6 +220,12 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _dam?.id ?? '--',
                         _dam?.breed ?? widget.rabbit.breed,
                         false,
+                        onTap: () => _showEditPedigreeEntryDialog(
+                          label: 'Edit Dam',
+                          targetRabbit: widget.rabbit,
+                          isMale: false,
+                          currentId: widget.rabbit.damId,
+                        ),
                       ),
                     ),
                   ],
@@ -258,6 +279,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _siresSire?.name ?? 'Unknown',
                         _siresSire?.id ?? '--',
                         true,
+                        onTap: _sire != null
+                            ? () => _showEditPedigreeEntryDialog(
+                                  label: 'Edit Sire\'s Sire',
+                                  targetRabbit: _sire!,
+                                  isMale: true,
+                                  currentId: _sire!.sireId,
+                                )
+                            : null,
                       ),
                     ),
                     SizedBox(width: 12),
@@ -266,6 +295,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _damsSire?.name ?? 'Unknown',
                         _damsSire?.id ?? '--',
                         true,
+                        onTap: _dam != null
+                            ? () => _showEditPedigreeEntryDialog(
+                                  label: 'Edit Dam\'s Sire',
+                                  targetRabbit: _dam!,
+                                  isMale: true,
+                                  currentId: _dam!.sireId,
+                                )
+                            : null,
                       ),
                     ),
                   ],
@@ -280,6 +317,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _siresDam?.name ?? 'Unknown',
                         _siresDam?.id ?? '--',
                         false,
+                        onTap: _sire != null
+                            ? () => _showEditPedigreeEntryDialog(
+                                  label: 'Edit Sire\'s Dam',
+                                  targetRabbit: _sire!,
+                                  isMale: false,
+                                  currentId: _sire!.damId,
+                                )
+                            : null,
                       ),
                     ),
                     SizedBox(width: 12),
@@ -288,6 +333,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         _damsDam?.name ?? 'Unknown',
                         _damsDam?.id ?? '--',
                         false,
+                        onTap: _dam != null
+                            ? () => _showEditPedigreeEntryDialog(
+                                  label: 'Edit Dam\'s Dam',
+                                  targetRabbit: _dam!,
+                                  isMale: false,
+                                  currentId: _dam!.damId,
+                                )
+                            : null,
                       ),
                     ),
                   ],
@@ -340,81 +393,244 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     );
   }
 
-  Widget _buildParentCard(String name, String id, String breed, bool isMale) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: isMale ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
-          width: 1.5,
+  Widget _buildParentCard(String name, String id, String breed, bool isMale, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: isMale ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(10),
         ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF37352F),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF37352F),
+                    ),
+                  ),
+                ),
+                if (onTap != null) Icon(Icons.edit, size: 14, color: Color(0xFF9B9A97)),
+              ],
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            id,
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF787774),
+            SizedBox(height: 4),
+            Text(
+              id,
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF787774),
+              ),
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            breed,
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF9B9A97),
+            SizedBox(height: 4),
+            Text(
+              breed,
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF9B9A97),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGrandparentCard(String name, String id, bool isMale) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(
-          color: isMale ? Color(0xFF2E7BB5).withOpacity(0.3) : Color(0xFF9C6ADE).withOpacity(0.3),
-          width: 1,
+  Widget _buildGrandparentCard(String name, String id, bool isMale, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: isMale ? Color(0xFF2E7BB5).withOpacity(0.3) : Color(0xFF9C6ADE).withOpacity(0.3),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
         ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF37352F),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF37352F),
+                    ),
+                  ),
+                ),
+                if (onTap != null) Icon(Icons.edit, size: 12, color: Color(0xFF9B9A97)),
+              ],
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            id,
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF787774),
+            SizedBox(height: 4),
+            Text(
+              id,
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF787774),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  /// Shows a dialog to edit one pedigree relationship.
+  /// [label] – display title (e.g. "Edit Sire")
+  /// [targetRabbit] – the rabbit whose parent we are changing
+  /// [isMale] – true = selecting a buck (sire), false = selecting a doe (dam)
+  /// [currentId] – currently assigned parent id (for pre-selection)
+  void _showEditPedigreeEntryDialog({
+    required String label,
+    required Rabbit targetRabbit,
+    required bool isMale,
+    String? currentId,
+  }) {
+    final db = DatabaseService();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return FutureBuilder<List<Rabbit>>(
+          future: db.getAllRabbits().then((all) => all.where((r) => (isMale ? r.type == RabbitType.buck : r.type == RabbitType.doe) && r.status != RabbitStatus.archived && r.id != targetRabbit.id).toList()),
+          builder: (ctx, snapshot) {
+            if (!snapshot.hasData) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                content: SizedBox(
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF0F7B6C), strokeWidth: 2)),
+                ),
+              );
+            }
+
+            final rabbits = snapshot.data!;
+            String? selectedId = currentId;
+
+            return StatefulBuilder(
+              builder: (ctx2, setDialogState) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: (isMale ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE)).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          isMale ? Icons.male : Icons.female,
+                          color: isMale ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
+                          size: 20,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Editing for ${targetRabbit.name.isNotEmpty ? targetRabbit.name : targetRabbit.id}',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97)),
+                      ),
+                      SizedBox(height: 12),
+                      DropdownButtonFormField<String?>(
+                        value: rabbits.any((r) => r.id == selectedId) ? selectedId : null,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          prefixIcon: Icon(
+                            isMale ? Icons.male : Icons.female,
+                            color: isMale ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
+                            size: 20,
+                          ),
+                        ),
+                        hint: Text(
+                          isMale ? 'Select Sire' : 'Select Dam',
+                          style: TextStyle(fontSize: 14, color: Color(0xFF9B9A97)),
+                        ),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('None', style: TextStyle(color: Color(0xFF9B9A97), fontStyle: FontStyle.italic)),
+                          ),
+                          ...rabbits.map((r) => DropdownMenuItem<String?>(
+                                value: r.id,
+                                child: Text(
+                                  '${r.name.isNotEmpty ? r.name : r.id}  (${r.id})',
+                                  style: TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )),
+                        ],
+                        onChanged: (val) => setDialogState(() => selectedId = val),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final updated = isMale ? targetRabbit.copyWith(sireId: selectedId) : targetRabbit.copyWith(damId: selectedId);
+                        await db.updateRabbit(updated);
+                        Navigator.pop(dialogContext);
+                        // Reload pedigree tree
+                        setState(() => _isLoading = true);
+                        await _loadPedigree();
+                        widget.onUpdated?.call();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Pedigree updated'),
+                              backgroundColor: Color(0xFF0F7B6C),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0F7B6C),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text('Save', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -525,9 +741,29 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildParentCard(_sire?.name ?? 'Unknown Sire', _sire?.id ?? '--', _sire?.breed ?? widget.rabbit.breed, true)),
+                        Expanded(
+                            child: _buildParentCard(
+                          _sire?.name ?? 'Unknown Sire',
+                          _sire?.id ?? '--',
+                          _sire?.breed ?? widget.rabbit.breed,
+                          true,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showEditPedigreeEntryDialog(label: 'Edit Sire', targetRabbit: widget.rabbit, isMale: true, currentId: widget.rabbit.sireId);
+                          },
+                        )),
                         SizedBox(width: 12),
-                        Expanded(child: _buildParentCard(_dam?.name ?? 'Unknown Dam', _dam?.id ?? '--', _dam?.breed ?? widget.rabbit.breed, false)),
+                        Expanded(
+                            child: _buildParentCard(
+                          _dam?.name ?? 'Unknown Dam',
+                          _dam?.id ?? '--',
+                          _dam?.breed ?? widget.rabbit.breed,
+                          false,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showEditPedigreeEntryDialog(label: 'Edit Dam', targetRabbit: widget.rabbit, isMale: false, currentId: widget.rabbit.damId);
+                          },
+                        )),
                       ],
                     ),
                     SizedBox(height: 24),
@@ -562,17 +798,61 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard(_siresSire?.name ?? 'Unknown', _siresSire?.id ?? '--', true)),
+                        Expanded(
+                            child: _buildGrandparentCard(
+                          _siresSire?.name ?? 'Unknown',
+                          _siresSire?.id ?? '--',
+                          true,
+                          onTap: _sire != null
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showEditPedigreeEntryDialog(label: 'Edit Sire\'s Sire', targetRabbit: _sire!, isMale: true, currentId: _sire!.sireId);
+                                }
+                              : null,
+                        )),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard(_damsSire?.name ?? 'Unknown', _damsSire?.id ?? '--', true)),
+                        Expanded(
+                            child: _buildGrandparentCard(
+                          _damsSire?.name ?? 'Unknown',
+                          _damsSire?.id ?? '--',
+                          true,
+                          onTap: _dam != null
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showEditPedigreeEntryDialog(label: 'Edit Dam\'s Sire', targetRabbit: _dam!, isMale: true, currentId: _dam!.sireId);
+                                }
+                              : null,
+                        )),
                       ],
                     ),
                     SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _buildGrandparentCard(_siresDam?.name ?? 'Unknown', _siresDam?.id ?? '--', false)),
+                        Expanded(
+                            child: _buildGrandparentCard(
+                          _siresDam?.name ?? 'Unknown',
+                          _siresDam?.id ?? '--',
+                          false,
+                          onTap: _sire != null
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showEditPedigreeEntryDialog(label: 'Edit Sire\'s Dam', targetRabbit: _sire!, isMale: false, currentId: _sire!.damId);
+                                }
+                              : null,
+                        )),
                         SizedBox(width: 12),
-                        Expanded(child: _buildGrandparentCard(_damsDam?.name ?? 'Unknown', _damsDam?.id ?? '--', false)),
+                        Expanded(
+                            child: _buildGrandparentCard(
+                          _damsDam?.name ?? 'Unknown',
+                          _damsDam?.id ?? '--',
+                          false,
+                          onTap: _dam != null
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showEditPedigreeEntryDialog(label: 'Edit Dam\'s Dam', targetRabbit: _dam!, isMale: false, currentId: _dam!.damId);
+                                }
+                              : null,
+                        )),
                       ],
                     ),
                   ],

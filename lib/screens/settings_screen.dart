@@ -1970,82 +1970,79 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       ),
       child: Row(
         children: [
-          // Task type icon
+          // Task type icon (keep your existing icon container)
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Color(0xFFF0FDF4),
+              color: Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(taskIcon, size: 18, color: Color(0xFF16A34A)),
+            child: Icon(taskIcon, size: 18, color: Color(0xFF64748B)),
           ),
           SizedBox(width: 12),
-          // Task info
+          // Task info — wrapped in Expanded to prevent overflow
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
-                      taskName,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                    Flexible(
+                      child: Text(
+                        taskName,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: 6),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF0FDF4),
+                        color: Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Color(0xFFBBF7D0)),
                       ),
                       child: Text(
                         'PIPELINE',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF16A34A), letterSpacing: 0.5),
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF6366F1)),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (entityName.isNotEmpty) ...[
-                      Icon(PhosphorIconsBold.rabbit, size: 12, color: Color(0xFF94A3B8)),
-                      SizedBox(width: 4),
-                      Text(
-                        entityName,
-                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(width: 12),
+                if (entityName.isNotEmpty || dueDateDisplay.isNotEmpty) ...[
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (entityName.isNotEmpty) ...[
+                        Icon(PhosphorIconsRegular.rabbit, size: 12, color: Color(0xFF94A3B8)),
+                        SizedBox(width: 4),
+                        Text(entityName, style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                        SizedBox(width: 8),
+                      ],
+                      if (dueDateDisplay.isNotEmpty) Icon(Icons.schedule, size: 12, color: dueDateColor),
+                      if (dueDateDisplay.isNotEmpty) SizedBox(width: 4),
+                      if (dueDateDisplay.isNotEmpty) Text(dueDateDisplay, style: TextStyle(fontSize: 12, color: dueDateColor)),
                     ],
-                    if (dueDateDisplay.isNotEmpty) ...[
-                      Icon(PhosphorIconsBold.clock, size: 12, color: dueDateColor),
-                      SizedBox(width: 4),
-                      Text(
-                        dueDateDisplay,
-                        style: TextStyle(fontSize: 13, color: dueDateColor, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
-          // Category badge
+          SizedBox(width: 8),
+          // Category badge — OUTSIDE Expanded, fixed width
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
               color: Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               category.toUpperCase(),
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B), letterSpacing: 0.5),
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
         ],

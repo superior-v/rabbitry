@@ -304,7 +304,6 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             fontWeight: FontWeight.w700,
           ),
         ),
-
       ),
       body: Column(
         children: [
@@ -544,7 +543,6 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         'Pregnant',
         'Nursing',
         'Resting',
-        'Growout',
         'Quarantine'
       ];
     } else if (_tabController.index == 1) {
@@ -552,7 +550,6 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         'All',
         'Active',
         'Inactive',
-        'Growout',
         'Quarantine'
       ];
     } else {
@@ -573,9 +570,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: filters.length + (_tabController.index != 2 ? 1 : 0), // Add 1 for separator
         itemBuilder: (context, index) {
-          // Add separator before Growout
+          // Add separator before Quarantine
           if (_tabController.index != 2) {
-            final separatorIndex = _tabController.index == 0 ? 6 : 3;
+            final separatorIndex = _tabController.index == 0 ? 5 : 3;
             if (index == separatorIndex) {
               return Container(
                 width: 1,

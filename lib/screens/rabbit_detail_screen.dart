@@ -560,7 +560,15 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           const SizedBox(height: 16),
           GeneticsCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
-          ParentageCard(rabbit: _currentRabbit),
+          ParentageCard(
+            rabbit: _currentRabbit,
+            onUpdated: () async {
+              final refreshed = await _db.getRabbit(_currentRabbit.id);
+              if (refreshed != null && mounted) {
+                setState(() => _currentRabbit = refreshed);
+              }
+            },
+          ),
           if (SettingsService.instance.showRabbitryEnabled) ...[
             const SizedBox(height: 16),
             RegistrationCard(rabbit: _currentRabbit),
@@ -963,7 +971,15 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         children: [
           NotesCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
-          PedigreeInlineCard(rabbit: _currentRabbit),
+          PedigreeInlineCard(
+            rabbit: _currentRabbit,
+            onUpdated: () async {
+              final updated = await DatabaseService().getRabbit(_currentRabbit.id);
+              if (updated != null && mounted) {
+                setState(() => _currentRabbit = updated);
+              }
+            },
+          ),
           const SizedBox(height: 16),
           DocumentsCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
