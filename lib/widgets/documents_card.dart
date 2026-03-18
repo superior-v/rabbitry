@@ -122,7 +122,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Document uploaded successfully'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
           ),
         );
       }
@@ -192,7 +192,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Document deleted'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
           ),
         );
       }
@@ -220,7 +220,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text('Rename', style: TextStyle(color: Color(0xFF0F7B6C))),
+            child: Text('Rename', style: TextStyle(color: Color(0xFF8B5E3C))),
           ),
         ],
       ),
@@ -284,7 +284,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('File stored at: ${doc.filePath}'),
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
           duration: Duration(seconds: 3),
         ),
       );
@@ -346,7 +346,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F7B6C)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B5E3C)),
                 ),
               ),
             )
@@ -377,7 +377,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
     switch (doc.fileType) {
       case 'image':
         icon = Icons.image;
-        color = Color(0xFF0F7B6C);
+        color = Color(0xFF8B5E3C);
         break;
       case 'pdf':
         icon = Icons.picture_as_pdf;

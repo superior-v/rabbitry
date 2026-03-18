@@ -304,18 +304,18 @@ class _LogBirthModalState extends State<LogBirthModal> {
         Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Color(0xFFF0FDF4),
+            color: Color(0xFFF7EDE3),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Color(0xFF0F7B6C).withOpacity(0.2)),
+            border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.2)),
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF0F7B6C), size: 20),
+              Icon(Icons.info_outline, color: Color(0xFF8B5E3C), size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Add details for each kit. You can skip and update later.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF0F7B6C)),
+                  style: TextStyle(fontSize: 13, color: Color(0xFF8B5E3C)),
                 ),
               ),
             ],
@@ -350,7 +350,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Color(0xFF0F7B6C),
+                  color: Color(0xFF8B5E3C),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -442,10 +442,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF0F7B6C) : Colors.white,
+          color: isSelected ? Color(0xFF8B5E3C) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0),
+            color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -481,7 +481,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _validateAndProceed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -510,7 +510,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -595,7 +595,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Birth logged: ${_litterIdController.text} with $aliveBorn kits'),
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {

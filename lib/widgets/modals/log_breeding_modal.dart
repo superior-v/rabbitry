@@ -204,10 +204,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: _isCustomTimeline ? Color(0xFF0F7B6C).withOpacity(0.1) : Colors.white,
+                              color: _isCustomTimeline ? Color(0xFF8B5E3C).withOpacity(0.1) : Colors.white,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                                color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                               ),
                             ),
                             child: Row(
@@ -216,7 +216,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                                 Icon(
                                   _isCustomTimeline ? Icons.check_circle : Icons.edit,
                                   size: 14,
-                                  color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                  color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFF787774),
                                 ),
                                 SizedBox(width: 4),
                                 Text(
@@ -224,7 +224,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: _isCustomTimeline ? Color(0xFF0F7B6C) : Color(0xFF787774),
+                                    color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFF787774),
                                   ),
                                 ),
                               ],
@@ -268,7 +268,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         },
                         child: Text(
                           'Reset to defaults',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF0F7B6C), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 12, color: Color(0xFF8B5E3C), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ] else ...[
@@ -299,7 +299,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 child: ElevatedButton(
                   onPressed: _selectedBuck == null || _isSaving ? null : _saveBreeding,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0F7B6C),
+                    backgroundColor: Color(0xFF8B5E3C),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -343,7 +343,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       padding: EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Color(0xFF0F7B6C)),
+          Icon(icon, size: 16, color: Color(0xFF8B5E3C)),
           SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -371,7 +371,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
             alignment: Alignment.center,
             child: Text(
               '$days d',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F7B6C)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF8B5E3C)),
             ),
           ),
           GestureDetector(
@@ -401,7 +401,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       padding: EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Color(0xFF0F7B6C)),
+          Icon(icon, size: 16, color: Color(0xFF8B5E3C)),
           SizedBox(width: 8),
           Text(
             '$label: ',

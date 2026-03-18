@@ -159,7 +159,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _addToLedger,
                           onChanged: (value) => setState(() => _addToLedger = value),
-                          activeColor: Color(0xFF0F7B6C),
+                          activeColor: Color(0xFF8B5E3C),
                         ),
                       ],
                     ),
@@ -176,7 +176,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _generatePedigree,
                           onChanged: (value) => setState(() => _generatePedigree = value),
-                          activeColor: Color(0xFF0F7B6C),
+                          activeColor: Color(0xFF8B5E3C),
                         ),
                       ],
                     ),
@@ -191,7 +191,7 @@ class _SellModalState extends State<SellModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveSale,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0F7B6C),
+                    backgroundColor: Color(0xFF8B5E3C),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -264,7 +264,7 @@ class _SellModalState extends State<SellModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} sold${price != null ? " for ${FormatUtils.formatCurrency(price)}" : ""}'),
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {

@@ -76,7 +76,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           IconButton(
             icon: Icon(
               _isEditing ? Icons.check : Icons.edit,
-              color: _isEditing ? Color(0xFF0F7B6C) : Colors.black87,
+              color: _isEditing ? Color(0xFF8B5E3C) : Colors.black87,
             ),
             onPressed: () {
               setState(() => _isEditing = !_isEditing);
@@ -163,9 +163,9 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 margin: EdgeInsets.only(right: 8),
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isActive ? Color(0xFF0F7B6C) : Colors.white,
+                  color: isActive ? Color(0xFF8B5E3C) : Colors.white,
                   border: Border.all(
-                    color: isActive ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                    color: isActive ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -192,7 +192,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFF0F7B6C),
+            Color(0xFF8B5E3C),
             Color(0xFF14B8A6)
           ],
           begin: Alignment.topLeft,
@@ -201,7 +201,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF0F7B6C).withOpacity(0.3),
+            color: Color(0xFF8B5E3C).withOpacity(0.3),
             blurRadius: 12,
             offset: Offset(0, 4),
           ),
@@ -247,12 +247,12 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Color(0xFF0F7B6C), width: 2),
+                          border: Border.all(color: Color(0xFF8B5E3C), width: 2),
                         ),
                         child: Icon(
                           Icons.camera_alt,
                           size: 12,
-                          color: Color(0xFF0F7B6C),
+                          color: Color(0xFF8B5E3C),
                         ),
                       ),
                     ),
@@ -335,7 +335,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             padding: EdgeInsets.only(bottom: 16),
             child: Row(
               children: [
-                Icon(Icons.account_tree, color: Color(0xFF0F7B6C), size: 20),
+                Icon(Icons.account_tree, color: Color(0xFF8B5E3C), size: 20),
                 SizedBox(width: 8),
                 Text(
                   'Ancestry Tree',
@@ -444,13 +444,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           color: isEmpty ? Color(0xFFF7F7F5) : Colors.white,
           borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
           border: Border.all(
-            color: isSubject ? Color(0xFF0F7B6C) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
+            color: isSubject ? Color(0xFF8B5E3C) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
             width: isSubject ? 2 : 1,
           ),
           boxShadow: isSubject
               ? [
                   BoxShadow(
-                    color: Color(0xFF0F7B6C).withOpacity(0.2),
+                    color: Color(0xFF8B5E3C).withOpacity(0.2),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
@@ -502,7 +502,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                                 width: 16,
                                 height: 16,
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF0F7B6C),
+                                  color: Color(0xFF8B5E3C),
                                   shape: BoxShape.circle,
                                   border: Border.all(color: Colors.white, width: 1.5),
                                 ),
@@ -593,7 +593,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: Color(0xFF0F7B6C),
+                      color: Color(0xFF8B5E3C),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -699,7 +699,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF0F7B6C),
+                      backgroundColor: Color(0xFF8B5E3C),
                     ),
                   );
                 },
@@ -764,7 +764,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profile picture updated successfully'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
             duration: Duration(seconds: 2),
           ),
         );
@@ -875,12 +875,12 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Ancestor updated successfully'),
-                          backgroundColor: Color(0xFF0F7B6C),
+                          backgroundColor: Color(0xFF8B5E3C),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0F7B6C),
+                      backgroundColor: Color(0xFF8B5E3C),
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -934,7 +934,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+              borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),

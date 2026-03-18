@@ -142,7 +142,7 @@ class FinanceTransaction {
       case 'Veterinary':
         return Color(0xFFEF4444);
       case 'Sales':
-        return Color(0xFF0F7B6C);
+        return Color(0xFF8B5E3C);
       case 'Supplies':
         return Color(0xFF8B5CF6);
       case 'Breeding':

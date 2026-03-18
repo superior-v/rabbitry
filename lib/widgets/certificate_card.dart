@@ -79,12 +79,12 @@ class _CertificateCardState extends State<CertificateCard> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF0F7B6C).withOpacity(0.1),
+                    color: Color(0xFF8B5E3C).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.verified,
-                    color: Color(0xFF0F7B6C),
+                    color: Color(0xFF8B5E3C),
                     size: 24,
                   ),
                 ),
@@ -136,7 +136,7 @@ class _CertificateCardState extends State<CertificateCard> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F7B6C),
+                          color: Color(0xFF8B5E3C),
                         ),
                       ),
                       SizedBox(height: 12),
@@ -218,7 +218,7 @@ class _CertificateCardState extends State<CertificateCard> {
                         icon: Icon(Icons.share, size: 18),
                         label: Text('Share'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF0F7B6C),
+                          backgroundColor: Color(0xFF8B5E3C),
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -326,7 +326,7 @@ class _CertificateCardState extends State<CertificateCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Preparing certificate for printing...'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -336,7 +336,7 @@ class _CertificateCardState extends State<CertificateCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Sharing certificate...'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         behavior: SnackBarBehavior.floating,
       ),
     );

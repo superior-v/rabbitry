@@ -428,7 +428,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Export feature coming soon'),
-                  backgroundColor: Color(0xFF0F7B6C),
+                  backgroundColor: Color(0xFF8B5E3C),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -442,7 +442,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           _buildTabBar(),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: Color(0xFF0F7B6C)))
+                ? Center(child: CircularProgressIndicator(color: Color(0xFF8B5E3C)))
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -485,7 +485,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   color: isSelected ? Colors.white : Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0),
+                    color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0),
                   ),
                   boxShadow: isSelected
                       ? [
@@ -502,7 +502,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isSelected ? Color(0xFF0F7B6C) : Color(0xFF64748B),
+                    color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF64748B),
                   ),
                 ),
               ),
@@ -521,11 +521,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       ),
       child: TabBar(
         controller: _tabController,
-        labelColor: Color(0xFF0F7B6C),
+        labelColor: Color(0xFF8B5E3C),
         unselectedLabelColor: Color(0xFF64748B),
         labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        indicatorColor: Color(0xFF0F7B6C),
+        indicatorColor: Color(0xFF8B5E3C),
         indicatorWeight: 2,
         tabs: [
           Tab(text: 'Production'),
@@ -806,7 +806,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildRatioBar('Does', _doeConceptionRate, Color(0xFF0F7B6C)),
+          _buildRatioBar('Does', _doeConceptionRate, Color(0xFF8B5E3C)),
           SizedBox(height: 16),
           _buildRatioBar('Bucks', _buckConceptionRate, Color(0xFF475569)),
         ],
@@ -1130,7 +1130,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 ChartData item = entry.value;
                 double heightPercent = (item.value / maxValue) * 100;
                 Color barColor = heightPercent >= 70
-                    ? Color(0xFF0F7B6C)
+                    ? Color(0xFF8B5E3C)
                     : heightPercent >= 40
                         ? Color(0xFF475569)
                         : Color(0xFF94A3B8);
@@ -1192,7 +1192,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildDonutChart(String title, List<ChartData> data) {
     final colors = [
-      Color(0xFF0F7B6C),
+      Color(0xFF8B5E3C),
       Color(0xFF475569),
       Color(0xFF94A3B8),
       Color(0xFFF59E0B),
@@ -1374,7 +1374,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           SizedBox(height: 20),
           _buildRatioBar('Light (< 4.5 ${FormatUtils.weightUnit})', _lightPercent, Color(0xFF94A3B8)),
           SizedBox(height: 16),
-          _buildRatioBar('Target (4.5 - 5.5 ${FormatUtils.weightUnit})', _targetPercent, Color(0xFF0F7B6C)),
+          _buildRatioBar('Target (4.5 - 5.5 ${FormatUtils.weightUnit})', _targetPercent, Color(0xFF8B5E3C)),
           SizedBox(height: 16),
           _buildRatioBar('Heavy (> 5.5 ${FormatUtils.weightUnit})', _heavyPercent, Color(0xFF475569)),
         ],
@@ -1427,7 +1427,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           SizedBox(height: 12),
           Padding(
             padding: EdgeInsets.only(left: 24),
-            child: _buildFunnelItem('Mature', _matureCount, maturePct, 0, Color(0xFF0F7B6C)),
+            child: _buildFunnelItem('Mature', _matureCount, maturePct, 0, Color(0xFF8B5E3C)),
           ),
         ],
       ),

@@ -11,11 +11,14 @@ class RegistrationCard extends StatefulWidget {
 }
 
 class _RegistrationCardState extends State<RegistrationCard> {
-  List<bool> gcLegs = [
-    false,
-    false,
-    false
-  ];
+  late List<bool> gcLegs;
+
+  @override
+  void initState() {
+    super.initState();
+    final legs = widget.rabbit.grandChampionLegs ?? 0;
+    gcLegs = List.generate(3, (i) => i < legs);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +63,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
             ),
           ),
           _buildInfoRow('Registration #', widget.rabbit.registrationNumber ?? 'Not set'),
+          _buildInfoRow('Grand Champion #', widget.rabbit.grandChampionNumber ?? 'Not set'),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -135,7 +139,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
       height: 12,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: earned ? Color(0xFF0F7B6C) : null,
+        color: earned ? Color(0xFF8B5E3C) : null,
         border: earned ? null : Border.all(color: Color(0xFFE9E9E7), width: 2),
       ),
       child: earned ? Icon(Icons.check, size: 8, color: Colors.white) : null,
@@ -157,7 +161,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                  borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                 ),
               ),
             ),
@@ -185,9 +189,9 @@ class _RegistrationCardState extends State<RegistrationCard> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: gcLegs[index] ? Color(0xFF0F7B6C) : Color(0xFFF7F7F5),
+                            color: gcLegs[index] ? Color(0xFF8B5E3C) : Color(0xFFF7F7F5),
                             border: Border.all(
-                              color: gcLegs[index] ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                              color: gcLegs[index] ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                               width: 2,
                             ),
                           ),
@@ -229,13 +233,13 @@ class _RegistrationCardState extends State<RegistrationCard> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Registration updated'),
-                  backgroundColor: Color(0xFF0F7B6C),
+                  backgroundColor: Color(0xFF8B5E3C),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0F7B6C),
+              backgroundColor: Color(0xFF8B5E3C),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Save', style: TextStyle(color: Colors.white)),

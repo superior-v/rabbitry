@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'herd_screen.dart';
 import 'litters_screen.dart';
 import 'finance_screen.dart';
@@ -38,6 +39,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       HomeTabContent(key: _homeTabKey),
       HerdScreen(),
       LittersScreen(),
+      ReportsScreen(),
       FinanceScreen(),
     ];
   }
@@ -52,7 +54,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       floatingActionButton: _selectedNavIndex == 0
           ? FloatingActionButton(
               backgroundColor: Color(
-                0xFF0F7B6C,
+                0xFF8B5E3C,
               ),
               elevation: 8,
               shape: CircleBorder(),
@@ -90,7 +92,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Color(
-          0xFF14B8A6,
+          0xFF8B5E3C,
         ),
         unselectedItemColor: Colors.grey[400],
         selectedFontSize: 12,
@@ -105,7 +107,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         },
         elevation: 0,
         backgroundColor: Colors.transparent,
-        // ✅ FIXED: Only 4 items (removed Reports)
         items: [
           BottomNavigationBarItem(
             icon: Padding(
@@ -127,7 +128,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 Icons.pets,
               ),
             ),
-            label: 'Herd',
+            label: 'Heard',
           ),
           BottomNavigationBarItem(
             icon: Padding(
@@ -139,7 +140,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 size: 24,
               ),
             ),
-            label: 'Litters',
+            label: 'Litter',
+          ),
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(
+                bottom: 4,
+              ),
+              child: Icon(
+                PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone),
+              ),
+            ),
+            label: 'Task',
           ),
           BottomNavigationBarItem(
             icon: Padding(
@@ -152,7 +164,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
             label: 'Finance',
           ),
-          // ❌ REMOVED: Reports tab
         ],
       ),
     );
@@ -264,8 +275,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? Color(0xFFE6FFFA) : Colors.white,
-                    border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0)),
+                    color: isSelected ? Color(0xFFFFF5EB) : Colors.white,
+                    border: Border.all(color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -276,9 +287,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFFE2E8F0), width: 1.5),
+                          border: Border.all(color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0), width: 1.5),
                         ),
-                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF0F7B6C), shape: BoxShape.circle))) : null,
+                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF8B5E3C), shape: BoxShape.circle))) : null,
                       ),
                       SizedBox(width: 8),
                       Text(label, style: TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
@@ -367,7 +378,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                             items: [
                               ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF0F7B6C)))),
+                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF8B5E3C)))),
                             ],
                             onChanged: (val) {
                               setDialogState(() {
@@ -393,7 +404,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF0F7B6C))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF8B5E3C))),
                           ),
                         ),
                       ],
@@ -516,8 +527,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                               width: 18,
                                               height: 18,
                                               decoration: BoxDecoration(
-                                                color: isSelected ? Color(0xFF0F7B6C) : Colors.transparent,
-                                                border: Border.all(color: isSelected ? Color(0xFF0F7B6C) : Color(0xFF64748B), width: 1.5),
+                                                color: isSelected ? Color(0xFF8B5E3C) : Colors.transparent,
+                                                border: Border.all(color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF64748B), width: 1.5),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: isSelected ? Icon(Icons.check, size: 14, color: Colors.white) : null,
@@ -576,7 +587,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               _homeTabKey.currentState?._loadScheduledTasks();
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF0F7B6C)),
+                                SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF8B5E3C)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -585,7 +596,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0F7B6C),
+                            backgroundColor: Color(0xFF8B5E3C),
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -840,10 +851,10 @@ class _HomeTabContentState extends State<HomeTabContent> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Color(0xFF0F7B6C).withOpacity(0.1),
+                color: Color(0xFF8B5E3C).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.check_circle_outline, color: Color(0xFF0F7B6C), size: 20),
+              child: Icon(Icons.check_circle_outline, color: Color(0xFF8B5E3C), size: 20),
             ),
             SizedBox(width: 12),
             Expanded(
@@ -879,7 +890,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                  borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                 ),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
@@ -897,7 +908,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
               Navigator.pop(ctx, cost);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0F7B6C),
+              backgroundColor: Color(0xFF8B5E3C),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -1152,7 +1163,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                  borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                 ),
               ),
             ),
@@ -1174,17 +1185,39 @@ class _HomeTabContentState extends State<HomeTabContent> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Task completed'),
-                  backgroundColor: Color(0xFF0F7B6C),
+                  backgroundColor: Color(0xFF8B5E3C),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0F7B6C),
+              backgroundColor: Color(0xFF8B5E3C),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderLogo() {
+    final logoPath = SettingsService.instance.farmLogo;
+    if (logoPath != null && logoPath.isNotEmpty && File(logoPath).existsSync()) {
+      return ClipOval(
+        child: Image.file(
+          File(logoPath),
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return ClipOval(
+      child: Image.asset(
+        'assets/images/dynasty_logo.png',
+        width: 32,
+        height: 32,
+        fit: BoxFit.cover,
       ),
     );
   }
@@ -1198,15 +1231,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
         elevation: 0,
         surfaceTintColor: Colors.white, // ✅ ADD THIS to prevent Material 3 tint
         leading: Padding(
-          padding: EdgeInsets.all(14),
-          child: Icon(
-            Icons.pets,
-            color: Color(0xFF0F7B6C),
-            size: 28,
-          ),
+          padding: EdgeInsets.all(10),
+          child: _buildHeaderLogo(),
         ),
         title: Text(
-          'My Rabbitry',
+          SettingsService.instance.farmName,
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18,
@@ -1220,12 +1249,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Color(0xFF0F7B6C).withOpacity(0.1),
+                color: Color(0xFF8B5E3C).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.person,
-                color: Color(0xFF0F7B6C),
+                color: Color(0xFF8B5E3C),
                 size: 20,
               ),
             ),
@@ -1248,6 +1277,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 );
                 // ✅ Reload scheduled tasks after returning from Settings
                 await _loadScheduledTasks();
+                setState(() {}); // Refresh header logo/name
               }
             },
             itemBuilder: (BuildContext context) => [
@@ -1255,7 +1285,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 value: 'reports',
                 child: Row(
                   children: [
-                    Icon(Icons.bar_chart, color: Color(0xFF0F7B6C), size: 20),
+                    Icon(Icons.bar_chart, color: Color(0xFF8B5E3C), size: 20),
                     SizedBox(width: 12),
                     Text(
                       'Reports & Analytics',
@@ -1302,7 +1332,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: Color(0xFF0F7B6C),
+                        color: Color(0xFF8B5E3C),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1),
                       ),
@@ -1319,7 +1349,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF0F7B6C), strokeWidth: 2),
+                  CircularProgressIndicator(color: Color(0xFF8B5E3C), strokeWidth: 2),
                   SizedBox(height: 16),
                   Text('Loading tasks...', style: TextStyle(color: Color(0xFF787774), fontSize: 14)),
                 ],
@@ -1354,7 +1384,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
               'Tasks Due',
               _hasLoadedOnce ? '${_getFilteredTodayTasksCount()}' : '-',
               Color(
-                0xFF0F7B6C,
+                0xFF8B5E3C,
               ),
             ),
             SizedBox(
@@ -1502,7 +1532,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
         decoration: BoxDecoration(
           color: isActive
               ? Color(
-                  0xFFE8F5F3,
+                  0xFFF0E6DA,
                 )
               : Colors.transparent,
           borderRadius: BorderRadius.circular(
@@ -1511,7 +1541,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
           border: Border.all(
             color: isActive
                 ? Color(
-                    0xFF0F7B6C,
+                    0xFF8B5E3C,
                   ).withOpacity(
                     0.1,
                   )
@@ -1525,7 +1555,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             color: isActive
                 ? Color(
-                    0xFF0F7B6C,
+                    0xFF8B5E3C,
                   )
                 : Color(
                     0xFF787774,
@@ -1592,7 +1622,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
         // Show empty state if no tasks (only after loading completes)
         if (_getFilteredTodayTasks().isEmpty && !_isLoading)
           _buildEmptyState(
-            'No tasks match your filter',
+            _isFilterActive() ? 'No tasks match your filter' : 'No tasks',
           ),
 
         SizedBox(
@@ -1649,7 +1679,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
         // Show empty state if no upcoming tasks (only after loading completes)
         if (_getFilteredUpcomingTasks().isEmpty && !_isLoading)
           _buildEmptyState(
-            'No upcoming tasks match your filter',
+            _isFilterActive() ? 'No upcoming tasks match your filter' : 'No tasks',
           ),
 
         SizedBox(
@@ -1894,10 +1924,16 @@ class _HomeTabContentState extends State<HomeTabContent> {
     return count;
   }
 
+  // Check if any filter is currently active
+  bool _isFilterActive() {
+    return _selectedCategory != 'All' || _breedFilter != 'All' || _searchQuery.isNotEmpty;
+  }
+
   // Empty state widget
   Widget _buildEmptyState(
     String message,
   ) {
+    final filterActive = _isFilterActive();
     return Container(
       padding: EdgeInsets.symmetric(
         vertical: 40,
@@ -1905,7 +1941,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
       child: Column(
         children: [
           Icon(
-            Icons.filter_alt_off,
+            filterActive ? Icons.filter_alt_off : Icons.task_alt,
             size: 48,
             color: Color(
               0xFFE9E9E7,
@@ -1923,27 +1959,29 @@ class _HomeTabContentState extends State<HomeTabContent> {
               ),
             ),
           ),
-          SizedBox(
-            height: 8,
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _breedFilter = 'All';
-                _searchQuery = '';
-                _selectedCategory = 'All';
-              });
-            },
-            child: Text(
-              'Clear All Filters',
-              style: TextStyle(
-                color: Color(
-                  0xFF0F7B6C,
+          if (filterActive) ...[
+            SizedBox(
+              height: 8,
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _breedFilter = 'All';
+                  _searchQuery = '';
+                  _selectedCategory = 'All';
+                });
+              },
+              child: Text(
+                'Clear All Filters',
+                style: TextStyle(
+                  color: Color(
+                    0xFF8B5E3C,
+                  ),
+                  fontWeight: FontWeight.w600,
                 ),
-                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -2001,9 +2039,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   width: 22,
                   height: 22,
                   decoration: BoxDecoration(
-                    color: isCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
+                    color: isCompleted ? Color(0xFF8B5E3C) : Colors.transparent,
                     border: Border.all(
-                      color: isCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                      color: isCompleted ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(6),
@@ -2103,7 +2141,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   child: Icon(
                     isIgnored ? Icons.undo : Icons.block,
                     size: 20,
-                    color: isIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                    color: isIgnored ? Color(0xFF8B5E3C) : Color(0xFF9B9A97),
                   ),
                 ),
               ),
@@ -2316,9 +2354,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: isGroupCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
+                          color: isGroupCompleted ? Color(0xFF8B5E3C) : Colors.transparent,
                           border: Border.all(
-                            color: isGroupCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                            color: isGroupCompleted ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(6),
@@ -2392,7 +2430,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         child: Icon(
                           allIgnored ? Icons.undo : Icons.block,
                           size: 20,
-                          color: allIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                          color: allIgnored ? Color(0xFF8B5E3C) : Color(0xFF9B9A97),
                         ),
                       ),
                     ),
@@ -2457,9 +2495,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                 width: 18,
                                 height: 18,
                                 decoration: BoxDecoration(
-                                  color: isSubCompleted ? Color(0xFF0F7B6C) : Colors.transparent,
+                                  color: isSubCompleted ? Color(0xFF8B5E3C) : Colors.transparent,
                                   border: Border.all(
-                                    color: isSubCompleted ? Color(0xFF0F7B6C) : Color(0xFFE9E9E7),
+                                    color: isSubCompleted ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
                                     width: 2,
                                   ),
                                   borderRadius: BorderRadius.circular(4),
@@ -2502,7 +2540,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                 child: Icon(
                                   isSubIgnored ? Icons.undo : Icons.block,
                                   size: 18,
-                                  color: isSubIgnored ? Color(0xFF0F7B6C) : Color(0xFF9B9A97),
+                                  color: isSubIgnored ? Color(0xFF8B5E3C) : Color(0xFF9B9A97),
                                 ),
                               ),
                             ),
@@ -2580,7 +2618,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                    borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
@@ -2618,7 +2656,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0F7B6C),
+                        backgroundColor: Color(0xFF8B5E3C),
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -2711,7 +2749,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           setState(() => _breedFilter = 'All');
                           Navigator.pop(context);
                         },
-                        child: Text('Clear', style: TextStyle(color: Color(0xFF0F7B6C), fontWeight: FontWeight.w600)),
+                        child: Text('Clear', style: TextStyle(color: Color(0xFF8B5E3C), fontWeight: FontWeight.w600)),
                       )
                     else
                       IconButton(
@@ -2749,9 +2787,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                               padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                               margin: EdgeInsets.only(bottom: 4),
                               decoration: BoxDecoration(
-                                color: isSelected ? Color(0xFFE8F5F3) : Colors.transparent,
+                                color: isSelected ? Color(0xFFF0E6DA) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
-                                border: isSelected ? Border.all(color: Color(0xFF0F7B6C)) : null,
+                                border: isSelected ? Border.all(color: Color(0xFF8B5E3C)) : null,
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2779,12 +2817,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                          color: isSelected ? Color(0xFF0F7B6C) : Colors.black87,
+                                          color: isSelected ? Color(0xFF8B5E3C) : Colors.black87,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (isSelected) Icon(Icons.check, color: Color(0xFF0F7B6C), size: 20),
+                                  if (isSelected) Icon(Icons.check, color: Color(0xFF8B5E3C), size: 20),
                                 ],
                               ),
                             ),

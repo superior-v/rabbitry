@@ -78,7 +78,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               title: 'Yes, Pregnant',
               subtitle: 'Continue pregnancy pipeline',
               icon: Icons.check_circle,
-              color: Color(0xFF0F7B6C),
+              color: Color(0xFF8B5E3C),
               isSelected: _isPregnant == true,
               onTap: () => setState(() => _isPregnant = true),
             ),
@@ -105,7 +105,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, color: Color(0xFF0F7B6C)),
+                    Icon(Icons.calendar_today, color: Color(0xFF8B5E3C)),
                     SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +122,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F7B6C),
+                            color: Color(0xFF8B5E3C),
                           ),
                         ),
                       ],
@@ -138,7 +138,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               child: ElevatedButton(
                 onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF0F7B6C),
+                  backgroundColor: Color(0xFF8B5E3C),
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -240,7 +240,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isPregnant! ? 'Pregnancy confirmed' : 'Marked as open'),
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {

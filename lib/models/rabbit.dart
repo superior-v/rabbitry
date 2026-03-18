@@ -44,7 +44,7 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get color {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFF0F7B6C); // Green
+        return const Color(0xFF8B5E3C); // Green
       case ArchiveReason.butchered:
         return const Color(0xFF6B6B6B); // Gray
       case ArchiveReason.dead:
@@ -57,7 +57,7 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get backgroundColor {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFFE8F5F3);
+        return const Color(0xFFF0E6DA);
       case ArchiveReason.butchered:
         return const Color(0xFFF5F5F5);
       case ArchiveReason.dead:
@@ -89,6 +89,18 @@ class Rabbit {
   String? notes;
   final DateTime createdAt;
   DateTime updatedAt;
+
+  // New form fields
+  String? earNumber;
+  String? otherBreed;
+  String? otherColor;
+  bool? broken;
+  bool? viennaMarked;
+  bool? viennaCarrier;
+  String? breederPrefix;
+  String? grandChampionNumber;
+  int? grandChampionLegs;
+  bool activeInRabbitry;
 
   // Breeding related fields
   DateTime? lastBreedDate;
@@ -179,6 +191,16 @@ class Rabbit {
     this.customNestBoxDay,
     this.customGestationDay,
     this.customWeanWeek,
+    this.earNumber,
+    this.otherBreed,
+    this.otherColor,
+    this.broken,
+    this.viennaMarked,
+    this.viennaCarrier,
+    this.breederPrefix,
+    this.grandChampionNumber,
+    this.grandChampionLegs,
+    this.activeInRabbitry = true,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -294,7 +316,7 @@ class Rabbit {
   int get statusColor {
     switch (status) {
       case RabbitStatus.open:
-        return 0xFF0F7B6C;
+        return 0xFF8B5E3C;
       case RabbitStatus.palpateDue:
         return 0xFFCB8347;
       case RabbitStatus.pregnant:
@@ -304,7 +326,7 @@ class Rabbit {
       case RabbitStatus.resting:
         return 0xFF787774;
       case RabbitStatus.active:
-        return 0xFF0F7B6C;
+        return 0xFF8B5E3C;
       case RabbitStatus.inactive:
         return 0xFF9B9A97;
       case RabbitStatus.growout:
@@ -394,6 +416,16 @@ class Rabbit {
       'customNestBoxDay': customNestBoxDay,
       'customGestationDay': customGestationDay,
       'customWeanWeek': customWeanWeek,
+      'earNumber': earNumber,
+      'otherBreed': otherBreed,
+      'otherColor': otherColor,
+      'broken': broken == true ? 1 : (broken == false ? 0 : null),
+      'viennaMarked': viennaMarked == true ? 1 : (viennaMarked == false ? 0 : null),
+      'viennaCarrier': viennaCarrier == true ? 1 : (viennaCarrier == false ? 0 : null),
+      'breederPrefix': breederPrefix,
+      'grandChampionNumber': grandChampionNumber,
+      'grandChampionLegs': grandChampionLegs,
+      'activeInRabbitry': activeInRabbitry ? 1 : 0,
     };
   }
 
@@ -455,6 +487,16 @@ class Rabbit {
       customNestBoxDay: map['customNestBoxDay'] as int?,
       customGestationDay: map['customGestationDay'] as int?,
       customWeanWeek: map['customWeanWeek'] as int?,
+      earNumber: map['earNumber'],
+      otherBreed: map['otherBreed'],
+      otherColor: map['otherColor'],
+      broken: map['broken'] != null ? map['broken'] == 1 : null,
+      viennaMarked: map['viennaMarked'] != null ? map['viennaMarked'] == 1 : null,
+      viennaCarrier: map['viennaCarrier'] != null ? map['viennaCarrier'] == 1 : null,
+      breederPrefix: map['breederPrefix'],
+      grandChampionNumber: map['grandChampionNumber'],
+      grandChampionLegs: map['grandChampionLegs'] as int?,
+      activeInRabbitry: map['activeInRabbitry'] == 1 || map['activeInRabbitry'] == null,
     );
   }
 
@@ -500,6 +542,16 @@ class Rabbit {
     int? customNestBoxDay,
     int? customGestationDay,
     int? customWeanWeek,
+    String? earNumber,
+    String? otherBreed,
+    String? otherColor,
+    bool? broken,
+    bool? viennaMarked,
+    bool? viennaCarrier,
+    String? breederPrefix,
+    String? grandChampionNumber,
+    int? grandChampionLegs,
+    bool? activeInRabbitry,
   }) {
     return Rabbit(
       id: id,
@@ -547,6 +599,16 @@ class Rabbit {
       customNestBoxDay: customNestBoxDay ?? this.customNestBoxDay,
       customGestationDay: customGestationDay ?? this.customGestationDay,
       customWeanWeek: customWeanWeek ?? this.customWeanWeek,
+      earNumber: earNumber ?? this.earNumber,
+      otherBreed: otherBreed ?? this.otherBreed,
+      otherColor: otherColor ?? this.otherColor,
+      broken: broken ?? this.broken,
+      viennaMarked: viennaMarked ?? this.viennaMarked,
+      viennaCarrier: viennaCarrier ?? this.viennaCarrier,
+      breederPrefix: breederPrefix ?? this.breederPrefix,
+      grandChampionNumber: grandChampionNumber ?? this.grandChampionNumber,
+      grandChampionLegs: grandChampionLegs ?? this.grandChampionLegs,
+      activeInRabbitry: activeInRabbitry ?? this.activeInRabbitry,
     );
   }
 }

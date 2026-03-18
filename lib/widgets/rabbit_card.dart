@@ -60,9 +60,8 @@ class RabbitCard extends StatelessWidget {
                         // ✅ ADD UNIQUE KEY WITH TIMESTAMP
                         key: ValueKey('${rabbit.id}_${photoPath}_${File(photoPath).lastModifiedSync().millisecondsSinceEpoch}'),
                         errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(),
-                        // ✅ ADD CACHE OPTIONS
+                        // ✅ Only set cacheWidth to preserve aspect ratio
                         cacheWidth: 200,
-                        cacheHeight: 200,
                       ),
                     )
                   : _buildDefaultIcon(),

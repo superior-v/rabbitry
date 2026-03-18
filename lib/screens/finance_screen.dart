@@ -159,7 +159,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
         appBar: _buildAppBar(),
         body: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F7B6C)),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5E3C)),
           ),
         ),
       );
@@ -183,7 +183,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'finance_fab',
         onPressed: _addTransaction,
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         shape: CircleBorder(),
         child: Icon(
           Icons.add,
@@ -249,7 +249,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
             child: _buildSummaryCard(
               'INCOME',
               _totalIncome,
-              Color(0xFF0F7B6C),
+              Color(0xFF8B5E3C),
               isIncome: true,
             ),
           ),
@@ -269,7 +269,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(0xFF0F7B6C), width: 2),
+                border: Border.all(color: Color(0xFF8B5E3C), width: 2),
               ),
               child: Column(
                 children: [
@@ -288,7 +288,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: _netAmount >= 0 ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                      color: _netAmount >= 0 ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
                     ),
                   ),
                 ],
@@ -527,7 +527,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: monthTotal >= 0 ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                        color: monthTotal >= 0 ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
                       ),
                     ),
                     SizedBox(width: 8),
@@ -613,12 +613,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       height: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isGeneral ? Color(0xFFE9E9E7) : Color(0xFFE8F5F3),
+                        color: isGeneral ? Color(0xFFE9E9E7) : Color(0xFFF0E6DA),
                       ),
                       child: Icon(
                         isGeneral ? Icons.home : Icons.pets,
                         size: 20,
-                        color: isGeneral ? Color(0xFF787774) : Color(0xFF0F7B6C),
+                        color: isGeneral ? Color(0xFF787774) : Color(0xFF8B5E3C),
                       ),
                     ),
                     SizedBox(width: 12),
@@ -649,7 +649,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                        color: total >= 0 ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
                       ),
                     ),
                     SizedBox(width: 8),
@@ -723,7 +723,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Icon(
                       PhosphorIcons.gitBranch(PhosphorIconsStyle.duotone),
                       size: 20,
-                      color: isNoLitter ? Color(0xFF787774) : Color(0xFF0F7B6C),
+                      color: isNoLitter ? Color(0xFF787774) : Color(0xFF8B5E3C),
                     ),
                     SizedBox(width: 12),
                     Text(
@@ -748,7 +748,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                        color: total >= 0 ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
                       ),
                     ),
                     SizedBox(width: 8),
@@ -841,7 +841,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                        color: total >= 0 ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
                       ),
                     ),
                     SizedBox(width: 8),
@@ -892,16 +892,16 @@ class _FinanceScreenState extends State<FinanceScreen> {
               padding: EdgeInsets.all(16),
               margin: EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: Color(0xFFE8F5F3),
+                color: Color(0xFFF0E6DA),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(0xFF0F7B6C).withOpacity(0.3)),
+                border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
                     PhosphorIcons.tag(PhosphorIconsStyle.duotone),
                     size: 24,
-                    color: Color(0xFF0F7B6C),
+                    color: Color(0xFF8B5E3C),
                   ),
                   SizedBox(width: 12),
                   Expanded(
@@ -922,7 +922,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Color(0xFF0F7B6C),
+                                color: Color(0xFF8B5E3C),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -952,7 +952,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F7B6C),
+                      color: Color(0xFF8B5E3C),
                     ),
                   ),
                   SizedBox(width: 8),
@@ -1032,7 +1032,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Color(0xFFE8F5F3),
+                            color: Color(0xFFF0E6DA),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -1040,7 +1040,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F7B6C),
+                              color: Color(0xFF8B5E3C),
                             ),
                           ),
                         ),
@@ -1099,7 +1099,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: isIncome ? Color(0xFF0F7B6C) : Color(0xFFDC2626),
+                color: isIncome ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
               ),
             ),
           ],
@@ -1157,11 +1157,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Color _getCategoryColor(TransactionCategory category) {
     switch (category) {
       case TransactionCategory.soldKit:
-        return Color(0xFF0F7B6C);
+        return Color(0xFF8B5E3C);
       case TransactionCategory.medical:
         return Color(0xFFDC2626);
       case TransactionCategory.feed:
-        return Color(0xFF0F7B6C);
+        return Color(0xFF8B5E3C);
       case TransactionCategory.meatHarvest:
         return Color(0xFF787774);
       case TransactionCategory.showFee:
@@ -1173,13 +1173,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
       case TransactionCategory.vetVisit:
         return Color(0xFFDC2626);
       case TransactionCategory.manureSales:
-        return Color(0xFF0F7B6C);
+        return Color(0xFF8B5E3C);
       case TransactionCategory.supplies:
         return Color(0xFFDC2626);
       case TransactionCategory.otherExpense:
         return Color(0xFFDC2626);
       case TransactionCategory.otherIncome:
-        return Color(0xFF0F7B6C);
+        return Color(0xFF8B5E3C);
     }
   }
 
@@ -1221,15 +1221,15 @@ class _FinanceScreenState extends State<FinanceScreen> {
     final isSelected = _groupingMode == mode;
 
     return ListTile(
-      leading: Icon(icon, color: isSelected ? Color(0xFF0F7B6C) : Color(0xFF787774)),
+      leading: Icon(icon, color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF787774)),
       title: Text(
         label,
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          color: isSelected ? Color(0xFF0F7B6C) : Colors.black87,
+          color: isSelected ? Color(0xFF8B5E3C) : Colors.black87,
         ),
       ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF0F7B6C)) : null,
+      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF8B5E3C)) : null,
       onTap: () {
         setState(() {
           _groupingMode = mode;
@@ -1281,10 +1281,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
         label,
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          color: isSelected ? Color(0xFF0F7B6C) : Colors.black87,
+          color: isSelected ? Color(0xFF8B5E3C) : Colors.black87,
         ),
       ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF0F7B6C)) : null,
+      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF8B5E3C)) : null,
       onTap: () {
         if (filter == DateFilter.custom) {
           Navigator.pop(context);
@@ -1355,7 +1355,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.edit, color: Color(0xFF0F7B6C)),
+              leading: Icon(Icons.edit, color: Color(0xFF8B5E3C)),
               title: Text('Edit Transaction'),
               onTap: () {
                 Navigator.pop(context);

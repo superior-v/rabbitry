@@ -94,7 +94,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 title: 'Sold',
                 subtitle: 'Rabbit was sold to another breeder',
                 icon: Icons.monetization_on,
-                color: const Color(0xFF0F7B6C),
+                color: const Color(0xFF8B5E3C),
               ),
               const SizedBox(height: 12),
 
@@ -505,7 +505,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} archived successfully'),
-          backgroundColor: const Color(0xFF0F7B6C),
+          backgroundColor: const Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
 import '../models/breed.dart';
@@ -9,10 +11,26 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 
 class AddRabbitScreen extends StatefulWidget {
-  const AddRabbitScreen({Key? key}) : super(key: key);
+  final Rabbit? editRabbit;
+
+  const AddRabbitScreen({Key? key, this.editRabbit}) : super(key: key);
 
   @override
   State<AddRabbitScreen> createState() => _AddRabbitScreenState();
+}
+
+/// Forces all input to uppercase.
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
 }
 
 class _AddRabbitScreenState extends State<AddRabbitScreen> {
@@ -25,24 +43,106 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final TextEditingController _breedController = TextEditingController();
   final TextEditingController _colorController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _earNumberController = TextEditingController();
+  final TextEditingController _otherBreedController = TextEditingController();
+  final TextEditingController _otherColorController = TextEditingController();
+  final TextEditingController _breederPrefixController = TextEditingController();
+  final TextEditingController _registrationNumberController = TextEditingController();
+  final TextEditingController _grandChampionNumberController = TextEditingController();
+  final TextEditingController _grandChampionLegsController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _weightPoundsController = TextEditingController();
+  final TextEditingController _weightOuncesController = TextEditingController();
 
   RabbitType _selectedType = RabbitType.doe;
   RabbitStatus _selectedStatus = RabbitStatus.open;
   String? _selectedLocation;
   String? _selectedCage;
   DateTime? _dateOfBirth;
-  String? _profileImagePath; // ✅ ADD THIS
+  String? _profileImagePath;
   bool _isSaving = false;
   List<Breed> _availableBreeds = [];
   String? _autoGenetics;
   List<Barn> _barns = [];
+
+  // New fields
+  bool _broken = false;
+  bool _viennaMarked = false;
+  bool _viennaCarrier = false;
+  bool _activeInRabbitry = true;
+  String? _selectedSireId;
+  String? _selectedDamId;
+  String? _selectedSireName;
+  String? _selectedDamName;
+  List<Rabbit> _availableBucks = [];
+  List<Rabbit> _availableDoes = [];
+
+  // Genotype fields
+  bool _genotypeExpanded = false;
+  Map<String, String> _genotypeMap = {
+    'A': '--',
+    'B': '--',
+    'C': '--',
+    'D': '--',
+    'E': '--',
+    'En': '--',
+    'V': '--',
+    'W': '--',
+  };
+
+  bool get _isEditing => widget.editRabbit != null;
 
   @override
   void initState() {
     super.initState();
     _loadBreeds();
     _loadBarns();
-    _generateRabbitId();
+    _loadParentOptions();
+    if (_isEditing) {
+      _prefillFromRabbit(widget.editRabbit!);
+    } else {
+      _generateRabbitId();
+    }
+  }
+
+  void _prefillFromRabbit(Rabbit r) {
+    _idController.text = r.id;
+    _nameController.text = r.name;
+    _breedController.text = r.breed;
+    _colorController.text = r.color ?? '';
+    _weightController.text = r.weight != null ? r.weight.toString() : '';
+    _earNumberController.text = r.earNumber ?? '';
+    _otherBreedController.text = r.otherBreed ?? '';
+    _otherColorController.text = r.otherColor ?? '';
+    _breederPrefixController.text = r.breederPrefix ?? '';
+    _registrationNumberController.text = r.registrationNumber ?? '';
+    _grandChampionNumberController.text = r.grandChampionNumber ?? '';
+    _grandChampionLegsController.text = r.grandChampionLegs?.toString() ?? '';
+    _notesController.text = r.notes ?? '';
+    _selectedType = r.type;
+    _selectedStatus = r.status;
+    _selectedLocation = r.location;
+    _selectedCage = r.cage;
+    _dateOfBirth = r.dateOfBirth;
+    _autoGenetics = r.genetics;
+    _parseGeneticsToMap(r.genetics);
+    _broken = r.broken ?? false;
+    _viennaMarked = r.viennaMarked ?? false;
+    _viennaCarrier = r.viennaCarrier ?? false;
+    _activeInRabbitry = r.activeInRabbitry;
+    _selectedSireId = r.sireId;
+    _selectedDamId = r.damId;
+    if (r.photos != null && r.photos!.isNotEmpty) {
+      _profileImagePath = r.photos!.first;
+    }
+    // Parse weight into pounds and ounces if using lbs
+    if (r.weight != null) {
+      final totalOz = r.weight! * 16;
+      final lbs = totalOz ~/ 16;
+      final oz = (totalOz % 16).round();
+      _weightPoundsController.text = lbs > 0 ? lbs.toString() : '';
+      _weightOuncesController.text = oz > 0 ? oz.toString() : '';
+    }
   }
 
   Future<void> _generateRabbitId() async {
@@ -95,6 +195,30 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     }
   }
 
+  Future<void> _loadParentOptions() async {
+    try {
+      final bucks = await _db.getRabbitsByType(RabbitType.buck);
+      final does = await _db.getRabbitsByType(RabbitType.doe);
+      if (mounted) {
+        setState(() {
+          _availableBucks = bucks;
+          _availableDoes = does;
+          // Set parent names if editing
+          if (_selectedSireId != null) {
+            final sire = bucks.where((b) => b.id == _selectedSireId).toList();
+            if (sire.isNotEmpty) _selectedSireName = sire.first.name;
+          }
+          if (_selectedDamId != null) {
+            final dam = does.where((d) => d.id == _selectedDamId).toList();
+            if (dam.isNotEmpty) _selectedDamName = dam.first.name;
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading parent options: $e');
+    }
+  }
+
   @override
   void dispose() {
     _idController.dispose();
@@ -102,6 +226,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _breedController.dispose();
     _colorController.dispose();
     _weightController.dispose();
+    _earNumberController.dispose();
+    _otherBreedController.dispose();
+    _otherColorController.dispose();
+    _breederPrefixController.dispose();
+    _registrationNumberController.dispose();
+    _grandChampionNumberController.dispose();
+    _grandChampionLegsController.dispose();
+    _notesController.dispose();
+    _weightPoundsController.dispose();
+    _weightOuncesController.dispose();
     super.dispose();
   }
 
@@ -116,9 +250,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           icon: const Icon(Icons.close, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Add New Rabbit',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+        title: Text(
+          _isEditing ? 'Edit Rabbit' : 'Add New Rabbit',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 16),
         ),
         actions: [
           TextButton(
@@ -126,7 +260,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             child: Text(
               'SAVE',
               style: TextStyle(
-                color: _isSaving ? Colors.grey : const Color(0xFF0F7B6C),
+                color: _isSaving ? Colors.grey : const Color(0xFF8B5E3C),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -138,26 +272,18 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ ADD THIS: Profile Picture Section
+            // Profile Picture Section
             _buildProfilePictureSection(),
             const SizedBox(height: 24),
 
-            // Rabbit Type
+            // Rabbit Type (Buck / Doe)
             const Text(
               'Rabbit Type',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: _buildTypeButton(
-                    type: RabbitType.doe,
-                    label: 'Doe',
-                    icon: Icons.female,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: _buildTypeButton(
                     type: RabbitType.buck,
@@ -165,16 +291,103 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     icon: Icons.male,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTypeButton(
+                    type: RabbitType.doe,
+                    label: 'Doe',
+                    icon: Icons.female,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Rabbit ID (auto-generated)
+            // Ear Number
             _buildTextField(
-              controller: _idController,
-              label: 'Rabbit ID',
-              icon: Icons.tag,
-              readOnly: true,
+              controller: _earNumberController,
+              label: 'Ear Number',
+              icon: Icons.hearing,
+              hint: 'Enter ear number',
+            ),
+            const SizedBox(height: 16),
+
+            // Breed
+            const Text(
+              'Breed *',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
+            ),
+            const SizedBox(height: 8),
+            _buildBreedSelector(),
+            const SizedBox(height: 16),
+
+            // Select Genotype (expandable)
+            _buildGenotypeSection(),
+            const SizedBox(height: 24),
+
+            // === Optional Fields Section ===
+            const Text(
+              'Optional Fields',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFB0AFA8)),
+            ),
+            const SizedBox(height: 16),
+
+            // Other Breed
+            _buildTextField(
+              controller: _otherBreedController,
+              label: 'Other Breed',
+              icon: Icons.category_outlined,
+              hint: 'Secondary breed (if mixed)',
+            ),
+            const SizedBox(height: 16),
+
+            // Color
+            _buildTextField(
+              controller: _colorController,
+              label: 'Color',
+              icon: Icons.palette,
+              hint: 'e.g., White, Black',
+            ),
+            const SizedBox(height: 16),
+
+            // Other Color
+            _buildTextField(
+              controller: _otherColorController,
+              label: 'Other Color',
+              icon: Icons.palette_outlined,
+              hint: 'Secondary color',
+            ),
+            const SizedBox(height: 16),
+
+            // Broken / Vienna Marked / Vienna Carrier toggles
+            Row(
+              children: [
+                Expanded(
+                  child: _buildToggleRow('Broken', _broken, (val) => setState(() => _broken = val)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildToggleRow('Vienna Marked', _viennaMarked, (val) => setState(() => _viennaMarked = val)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            _buildToggleRow('Vienna Carrier', _viennaCarrier, (val) => setState(() => _viennaCarrier = val)),
+            const SizedBox(height: 16),
+
+            // Date of Birth
+            _buildDateField(),
+            const SizedBox(height: 16),
+
+            // Breeder Prefix
+            _buildTextField(
+              controller: _breederPrefixController,
+              label: 'Breeder Prefix',
+              icon: Icons.badge_outlined,
+              hint: 'Breeder prefix',
+              inputFormatters: [
+                _UpperCaseTextFormatter()
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -187,46 +400,86 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Breed - Dropdown from DB with fallback to free text
-            const Text(
-              'Breed *',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            // Sire (Select / Clear)
+            _buildParentSelector('Sire', _selectedSireId, _selectedSireName, _availableBucks, (id, name) {
+              setState(() {
+                _selectedSireId = id;
+                _selectedSireName = name;
+              });
+            }),
+            const SizedBox(height: 16),
+
+            // Dam (Select / Clear)
+            _buildParentSelector('Dam', _selectedDamId, _selectedDamName, _availableDoes, (id, name) {
+              setState(() {
+                _selectedDamId = id;
+                _selectedDamName = name;
+              });
+            }),
+            const SizedBox(height: 16),
+
+            // Weight (pounds / ounces)
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: _weightPoundsController,
+                    label: 'pounds',
+                    icon: Icons.monitor_weight,
+                    hint: '0',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTextField(
+                    controller: _weightOuncesController,
+                    label: 'ounces',
+                    icon: Icons.monitor_weight_outlined,
+                    hint: '0',
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            _buildBreedSelector(),
-            // Show auto-filled genetics if available
-            if (_autoGenetics != null && _autoGenetics!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F7F6),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF0F7B6C).withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.science_outlined, size: 16, color: Color(0xFF0F7B6C)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Genotype: $_autoGenetics',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF0F7B6C),
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            const SizedBox(height: 16),
+
+            // Registration Number
+            _buildTextField(
+              controller: _registrationNumberController,
+              label: 'Registration Number',
+              icon: Icons.card_membership,
+              hint: 'Registration #',
+            ),
+            const SizedBox(height: 16),
+
+            // Grand Champion Number
+            _buildTextField(
+              controller: _grandChampionNumberController,
+              label: 'Grand Champion Number',
+              icon: Icons.emoji_events,
+              hint: 'GC Number',
+            ),
+            const SizedBox(height: 16),
+
+            // Grand Champion Legs
+            _buildTextField(
+              controller: _grandChampionLegsController,
+              label: 'Grand Champion Legs',
+              icon: Icons.emoji_events_outlined,
+              hint: '0',
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+
+            // Active in Rabbitry toggle
+            _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) => setState(() => _activeInRabbitry = val)),
             const SizedBox(height: 16),
 
             // Status
             const Text(
               'Status',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
             ),
             const SizedBox(height: 8),
             _buildStatusDropdown(),
@@ -235,7 +488,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             // Location
             const Text(
               'Location',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
             ),
             const SizedBox(height: 8),
             _buildLocationDropdown(),
@@ -244,32 +497,45 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             // Cage
             const Text(
               'Cage',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
             ),
             const SizedBox(height: 8),
             _buildCageDropdown(),
             const SizedBox(height: 16),
 
-            // Date of Birth
-            _buildDateField(),
-            const SizedBox(height: 16),
-
-            // Color
+            // Rabbit ID (auto-generated or locked in edit mode)
             _buildTextField(
-              controller: _colorController,
-              label: 'Color',
-              icon: Icons.palette,
-              hint: 'e.g., White, Black',
+              controller: _idController,
+              label: 'Rabbit ID',
+              icon: Icons.tag,
+              readOnly: true,
             ),
             const SizedBox(height: 16),
 
-            // Weight
-            _buildTextField(
-              controller: _weightController,
-              label: FormatUtils.weightLabel(),
-              icon: Icons.monitor_weight,
-              hint: '0.0',
-              keyboardType: TextInputType.number,
+            // Notes
+            const Text(
+              'Notes',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB0AFA8)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 5,
+              decoration: InputDecoration(
+                hintText: 'Add any notes...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                ),
+              ),
             ),
             const SizedBox(height: 32),
           ],
@@ -294,7 +560,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     shape: BoxShape.circle,
                     color: const Color(0xFFF7F7F5),
                     border: Border.all(
-                      color: const Color(0xFF0F7B6C),
+                      color: _selectedType == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
                       width: 3,
                     ),
                     image: _profileImagePath != null
@@ -319,7 +585,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F7B6C),
+                      color: _selectedType == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -339,7 +605,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             child: Text(
               _profileImagePath == null ? 'Add Photo' : 'Change Photo',
               style: const TextStyle(
-                color: Color(0xFF0F7B6C),
+                color: Color(0xFF8B5E3C),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -479,7 +745,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo added successfully'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
             duration: Duration(seconds: 2),
           ),
         );
@@ -520,7 +786,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     final color = type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5);
 
     return InkWell(
-      onTap: () => setState(() => _selectedType = type),
+      onTap: _isEditing ? null : () => setState(() => _selectedType = type),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
@@ -540,7 +806,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: isSelected ? Colors.white : color,
               ),
@@ -571,7 +837,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           focusNode: focusNode,
           decoration: InputDecoration(
             hintText: 'e.g., New Zealand White',
-            prefixIcon: const Icon(Icons.category, color: Color(0xFF787774)),
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCBC8)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
@@ -582,7 +848,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
             ),
           ),
         );
@@ -592,28 +858,240 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         // Auto-fill genetics from matched breed
         final matched = _availableBreeds.where((b) => b.name == breedName);
         if (matched.isNotEmpty) {
-          setState(() => _autoGenetics = matched.first.genetics.join(', '));
+          final geneticsStr = matched.first.genetics.join(', ');
+          setState(() {
+            _autoGenetics = geneticsStr;
+            _parseGeneticsToMap(geneticsStr);
+          });
         }
       },
+    );
+  }
+
+  // === Genotype Methods ===
+
+  static const List<String> _locusKeys = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'En',
+    'V',
+    'W'
+  ];
+
+  List<String> _getAllelesForLocus(String locus) {
+    final key = locus.length == 1 ? locus : locus;
+    final upper = key.substring(0, 1).toUpperCase();
+    final lower = key.substring(0, 1).toLowerCase();
+    if (key == 'En') {
+      return [
+        '--',
+        'EnEn',
+        'Enen',
+        'enen'
+      ];
+    }
+    return [
+      '--',
+      '$upper$upper',
+      '$upper$lower',
+      '$lower$lower'
+    ];
+  }
+
+  void _parseGeneticsToMap(String? genetics) {
+    if (genetics == null || genetics.trim().isEmpty) return;
+    final parts = genetics.split(RegExp(r'[,\s]+')).where((p) => p.isNotEmpty).toList();
+    final newMap = Map<String, String>.from(_genotypeMap);
+    for (final part in parts) {
+      final lower = part.toLowerCase();
+      if (lower.startsWith('en')) {
+        newMap['En'] = part;
+      } else {
+        for (final key in _locusKeys) {
+          if (key == 'En') continue;
+          if (lower.startsWith(key.toLowerCase()) && part.length <= 3) {
+            newMap[key] = part;
+            break;
+          }
+        }
+      }
+    }
+    _genotypeMap = newMap;
+  }
+
+  String _genotypeMapToString() {
+    final parts = _genotypeMap.entries.where((e) => e.value != '--').map((e) => e.value).toList();
+    return parts.join(' ');
+  }
+
+  Widget _buildGenotypeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // "Select Genotype" header row
+        InkWell(
+          onTap: () => setState(() => _genotypeExpanded = !_genotypeExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Select Genotype',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _genotypeExpanded ? const Color(0xFF8B5E3C) : Colors.black54,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                Icon(
+                  _genotypeExpanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
+                  color: Colors.black38,
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Expanded genotype grid
+        if (_genotypeExpanded) ...[
+          const SizedBox(height: 16),
+          // Row 1: A, B, C, D, E, En
+          Row(
+            children: _locusKeys.sublist(0, 6).map((key) {
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: _buildLocusDropdown(key),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          // Row 2: V, W
+          Row(
+            children: [
+              ..._locusKeys.sublist(6).map((key) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _buildLocusDropdown(key),
+                  ),
+                );
+              }),
+              // Spacers to keep alignment
+              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox()),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLocusDropdown(String locus) {
+    final alleles = _getAllelesForLocus(locus);
+    final current = _genotypeMap[locus] ?? '--';
+    // Ensure current value is in the alleles list
+    final value = alleles.contains(current) ? current : '--';
+    return Column(
+      children: [
+        Text(
+          locus,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF787774),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 36,
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, size: 16),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF37352F), fontFamily: 'monospace'),
+              items: alleles.map((a) => DropdownMenuItem(value: a, child: Text(a, style: const TextStyle(fontSize: 12)))).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _genotypeMap[locus] = val;
+                    _autoGenetics = _genotypeMapToString();
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenotypeCheckbox(String label, bool value, ValueChanged<bool> onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: value ? const Color(0xFF8B5E3C) : const Color(0xFFD1D5DB),
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(4),
+              color: value ? const Color(0xFF8B5E3C) : Colors.transparent,
+            ),
+            child: value ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Color(0xFF37352F),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
-    required IconData icon,
+    IconData? icon,
     String? hint,
     bool readOnly = false,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       readOnly: readOnly,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xFF787774)),
+        labelStyle: const TextStyle(fontSize: 11, color: Color(0xFFBBB9B2)),
+        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFFCCCBC8)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
@@ -624,7 +1102,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
         ),
       ),
     );
@@ -634,19 +1112,44 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return DropdownButtonFormField<RabbitStatus>(
       value: _selectedStatus,
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.info_outline, color: Color(0xFF787774)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
       ),
-      items: [
-        RabbitStatus.open,
-        RabbitStatus.growout,
-      ].map((status) {
+      items: (_isEditing
+              ? [
+                  RabbitStatus.open,
+                  RabbitStatus.growout,
+                  RabbitStatus.resting,
+                  RabbitStatus.quarantine
+                ]
+              : [
+                  RabbitStatus.open,
+                  RabbitStatus.growout
+                ])
+          .map((status) {
+        String label;
+        switch (status) {
+          case RabbitStatus.open:
+            label = 'Open';
+            break;
+          case RabbitStatus.growout:
+            label = 'Growout';
+            break;
+          case RabbitStatus.resting:
+            label = 'Resting';
+            break;
+          case RabbitStatus.quarantine:
+            label = 'Quarantine';
+            break;
+          default:
+            label = status.toString().split('.').last;
+            break;
+        }
         return DropdownMenuItem(
           value: status,
-          child: Text(status == RabbitStatus.open ? 'Open' : 'Growout'),
+          child: Text(label),
         );
       }).toList(),
       onChanged: (value) => setState(() => _selectedStatus = value!),
@@ -665,7 +1168,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return DropdownButtonFormField<String>(
       value: _selectedLocation,
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.location_on, color: Color(0xFF787774)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
@@ -705,7 +1207,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       key: ValueKey(_selectedLocation), // Rebuild when location changes
       value: _selectedCage,
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.home, color: Color(0xFF787774)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
@@ -724,48 +1225,171 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildDateField() {
-    return InkWell(
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-        );
-        if (date != null) {
-          setState(() => _dateOfBirth = date);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE9E9E7)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.cake, color: Color(0xFF787774)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _dateOfBirth ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (date != null) {
+                setState(() => _dateOfBirth = date);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE9E9E7)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
                 children: [
-                  const Text(
-                    'Date of Birth',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
-                  ),
-                  Text(
-                    _dateOfBirth != null ? '${_dateOfBirth!.day}/${_dateOfBirth!.month}/${_dateOfBirth!.year}' : 'Not set',
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Date Born',
+                          style: TextStyle(fontSize: 11, color: Color(0xFFBBB9B2)),
+                        ),
+                        Text(
+                          _dateOfBirth != null ? FormatUtils.formatDate(_dateOfBirth!) : 'Not set',
+                          style: const TextStyle(fontSize: 15, color: Colors.black87),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.calendar_today, color: Color(0xFF787774), size: 20),
-          ],
+          ),
         ),
+        if (_dateOfBirth != null) ...[
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => setState(() => _dateOfBirth = null),
+            child: const Text('Clear', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildToggleRow(String label, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: const Color(0xFF8B5E3C),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildParentSelector(String label, String? selectedId, String? selectedName, List<Rabbit> options, void Function(String?, String?) onSelect) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
+        ),
+        const SizedBox(width: 12),
+        if (selectedId != null && selectedName != null) ...[
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7EDE3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF8B5E3C).withOpacity(0.3)),
+              ),
+              child: Text(
+                selectedName,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF8B5E3C), fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
+        ],
+        if (selectedId == null) const Expanded(child: SizedBox()),
+        TextButton(
+          onPressed: () {
+            _showParentPickerDialog(label, options, (id, name) {
+              onSelect(id, name);
+            });
+          },
+          child: const Text('Select', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.w600)),
+        ),
+        if (selectedId != null)
+          TextButton(
+            onPressed: () => onSelect(null, null),
+            child: const Text('Clear', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.w600)),
+          ),
+      ],
+    );
+  }
+
+  void _showParentPickerDialog(String label, List<Rabbit> options, void Function(String, String) onSelect) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select $label'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: options.isEmpty
+              ? const Text('No rabbits available')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final rabbit = options[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFFF7EDE3),
+                        child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?'),
+                      ),
+                      title: Text(rabbit.name),
+                      subtitle: Text('${rabbit.breed} • ${rabbit.id}'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(rabbit.id, rabbit.name);
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
+  }
+
+  double? _computeWeight() {
+    final lbs = double.tryParse(_weightPoundsController.text) ?? 0;
+    final oz = double.tryParse(_weightOuncesController.text) ?? 0;
+    final total = lbs + (oz / 16);
+    return total > 0 ? total : null;
+  }
+
+  Future<void> _syncGeneticsCheckboxes(String rabbitId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('genetics_broken_$rabbitId', _broken);
+    await prefs.setBool('genetics_vienna_marked_$rabbitId', _viennaMarked);
+    await prefs.setBool('genetics_vienna_carrier_$rabbitId', _viennaCarrier);
   }
 
   Future<void> _saveRabbit() async {
@@ -789,40 +1413,110 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     try {
       final rabbitId = _idController.text.isNotEmpty ? _idController.text : DateTime.now().millisecondsSinceEpoch.toString();
 
-      final rabbit = Rabbit(
-        id: rabbitId,
-        name: _nameController.text,
-        type: _selectedType,
-        status: _selectedStatus,
-        breed: _breedController.text,
-        location: _selectedLocation,
-        cage: _selectedCage,
-        dateOfBirth: _dateOfBirth,
-        color: _colorController.text.isEmpty ? null : _colorController.text,
-        weight: _weightController.text.isEmpty ? null : double.tryParse(_weightController.text),
-        genetics: _autoGenetics,
-        photos: _profileImagePath != null
-            ? [
-                _profileImagePath!
-              ]
-            : null, // ✅ ADD THIS
-      );
+      final newPhotos = _profileImagePath != null
+          ? [
+              _profileImagePath!
+            ]
+          : null;
 
-      await _db.insertRabbit(rabbit);
+      final computedWeight = _computeWeight();
 
-      // Sync cage into barn row
-      if (rabbit.location != null && rabbit.location!.isNotEmpty && rabbit.cage != null && rabbit.cage!.isNotEmpty) {
-        await _db.syncCageToBarn(rabbit.location!, rabbit.cage!);
+      if (_isEditing) {
+        final updated = widget.editRabbit!.copyWith(
+          name: _nameController.text,
+          status: _selectedStatus,
+          breed: _breedController.text,
+          location: _selectedLocation,
+          cage: _selectedCage,
+          dateOfBirth: _dateOfBirth,
+          color: _colorController.text.isEmpty ? null : _colorController.text,
+          weight: computedWeight,
+          genetics: _autoGenetics,
+          photos: newPhotos ?? widget.editRabbit!.photos,
+          earNumber: _earNumberController.text.isEmpty ? null : _earNumberController.text,
+          otherBreed: _otherBreedController.text.isEmpty ? null : _otherBreedController.text,
+          otherColor: _otherColorController.text.isEmpty ? null : _otherColorController.text,
+          broken: _broken,
+          viennaMarked: _viennaMarked,
+          viennaCarrier: _viennaCarrier,
+          breederPrefix: _breederPrefixController.text.isEmpty ? null : _breederPrefixController.text,
+          sireId: _selectedSireId,
+          damId: _selectedDamId,
+          registrationNumber: _registrationNumberController.text.isEmpty ? null : _registrationNumberController.text,
+          grandChampionNumber: _grandChampionNumberController.text.isEmpty ? null : _grandChampionNumberController.text,
+          grandChampionLegs: int.tryParse(_grandChampionLegsController.text),
+          activeInRabbitry: _activeInRabbitry,
+          notes: _notesController.text.isEmpty ? null : _notesController.text,
+        );
+        await _db.updateRabbit(updated);
+
+        // Sync broken/vienna toggles to genetics card SharedPreferences
+        await _syncGeneticsCheckboxes(updated.id);
+
+        if (updated.location != null && updated.location!.isNotEmpty && updated.cage != null && updated.cage!.isNotEmpty) {
+          await _db.syncCageToBarn(updated.location!, updated.cage!);
+        }
+
+        if (mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(context, true);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('${updated.name} updated successfully'),
+              backgroundColor: const Color(0xFF8B5E3C),
+            ),
+          );
+        }
+      } else {
+        final rabbit = Rabbit(
+          id: rabbitId,
+          name: _nameController.text,
+          type: _selectedType,
+          status: _selectedStatus,
+          breed: _breedController.text,
+          location: _selectedLocation,
+          cage: _selectedCage,
+          dateOfBirth: _dateOfBirth,
+          color: _colorController.text.isEmpty ? null : _colorController.text,
+          weight: computedWeight,
+          genetics: _autoGenetics,
+          photos: newPhotos,
+          earNumber: _earNumberController.text.isEmpty ? null : _earNumberController.text,
+          otherBreed: _otherBreedController.text.isEmpty ? null : _otherBreedController.text,
+          otherColor: _otherColorController.text.isEmpty ? null : _otherColorController.text,
+          broken: _broken,
+          viennaMarked: _viennaMarked,
+          viennaCarrier: _viennaCarrier,
+          breederPrefix: _breederPrefixController.text.isEmpty ? null : _breederPrefixController.text,
+          sireId: _selectedSireId,
+          damId: _selectedDamId,
+          registrationNumber: _registrationNumberController.text.isEmpty ? null : _registrationNumberController.text,
+          grandChampionNumber: _grandChampionNumberController.text.isEmpty ? null : _grandChampionNumberController.text,
+          grandChampionLegs: int.tryParse(_grandChampionLegsController.text),
+          activeInRabbitry: _activeInRabbitry,
+          notes: _notesController.text.isEmpty ? null : _notesController.text,
+        );
+
+        await _db.insertRabbit(rabbit);
+
+        // Sync broken/vienna toggles to genetics card SharedPreferences
+        await _syncGeneticsCheckboxes(rabbit.id);
+
+        if (rabbit.location != null && rabbit.location!.isNotEmpty && rabbit.cage != null && rabbit.cage!.isNotEmpty) {
+          await _db.syncCageToBarn(rabbit.location!, rabbit.cage!);
+        }
+
+        if (mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(context, true);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('${rabbit.name} added successfully'),
+              backgroundColor: const Color(0xFF8B5E3C),
+            ),
+          );
+        }
       }
-
-      Navigator.pop(context, true);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${rabbit.name} added successfully'),
-          backgroundColor: const Color(0xFF0F7B6C),
-        ),
-      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFD44C47)),

@@ -32,12 +32,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Rabbitry Manager',
+      title: 'Dynasty',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F7B6C),
-          primary: const Color(0xFF0F7B6C),
+          seedColor: const Color(0xFF8B5E3C),
+          primary: const Color(0xFF8B5E3C),
         ),
         scaffoldBackgroundColor: const Color(0xFFF7F7F5),
         appBarTheme: const AppBarTheme(
@@ -51,12 +51,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
           foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0F7B6C),
+            backgroundColor: const Color(0xFF8B5E3C),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -66,6 +66,14 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: HomeDashboardScreen(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(0.9),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }

@@ -358,7 +358,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFF0F7B6C), width: 2),
+        border: Border.all(color: Color(0xFF8B5E3C), width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -515,7 +515,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 content: SizedBox(
                   height: 80,
-                  child: Center(child: CircularProgressIndicator(color: Color(0xFF0F7B6C), strokeWidth: 2)),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF8B5E3C), strokeWidth: 2)),
                 ),
               );
             }
@@ -563,7 +563,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                           ),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           prefixIcon: Icon(
@@ -612,14 +612,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Pedigree updated'),
-                              backgroundColor: Color(0xFF0F7B6C),
+                              backgroundColor: Color(0xFF8B5E3C),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0F7B6C),
+                        backgroundColor: Color(0xFF8B5E3C),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text('Save', style: TextStyle(color: Colors.white)),
@@ -678,7 +678,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Preparing pedigree for printing...'),
-                          backgroundColor: Color(0xFF0F7B6C),
+                          backgroundColor: Color(0xFF8B5E3C),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -690,7 +690,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Sharing pedigree...'),
-                          backgroundColor: Color(0xFF0F7B6C),
+                          backgroundColor: Color(0xFF8B5E3C),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

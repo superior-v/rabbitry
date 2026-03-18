@@ -143,7 +143,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_addToQuarantine ? 'Health record added & moved to quarantine' : 'Health record added'),
-          backgroundColor: Color(0xFF0F7B6C),
+          backgroundColor: Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {
@@ -335,7 +335,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -415,7 +415,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                     ),
                   ),
                 ),
@@ -446,7 +446,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                     ),
                   ),
                 ),
@@ -535,7 +535,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveRecord,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0F7B6C),
+                      backgroundColor: Color(0xFF8B5E3C),
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

@@ -24,6 +24,7 @@ import '../widgets/modals/log_weight_modal.dart';
 import '../widgets/modals/health_record_modal.dart';
 import '../widgets/modals/move_cage_modal.dart';
 import '../widgets/modals/archive_modal.dart';
+import 'add_rabbit_screen.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
@@ -41,6 +42,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   final ScrollController _scrollController = ScrollController();
   bool _showTabShadow = false;
   late Rabbit _currentRabbit;
+  int _refreshCounter = 0;
 
   // Breeding stats
   List<Litter> _litters = [];
@@ -177,7 +179,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile picture updated successfully'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
             duration: Duration(seconds: 2),
           ),
         );
@@ -253,7 +255,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF0F7B6C),
+                      backgroundColor: Color(0xFF8B5E3C),
                     ),
                   );
                 },
@@ -377,7 +379,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFFF7F7F5),
-                      border: Border.all(color: const Color(0xFF0F7B6C), width: 2),
+                      border: Border.all(color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5), width: 2),
                       image: hasPhoto && photoPath != null && File(photoPath).existsSync()
                           ? DecorationImage(
                               image: FileImage(File(photoPath)),
@@ -402,12 +404,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF0F7B6C), width: 2),
+                        border: Border.all(color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5), width: 2),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.camera_alt,
                         size: 12,
-                        color: Color(0xFF0F7B6C),
+                        color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
                       ),
                     ),
                   ),
@@ -518,10 +520,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           controller: _tabController,
           isScrollable: false,
           indicator: const UnderlineTabIndicator(
-            borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
             insets: EdgeInsets.symmetric(horizontal: 12),
           ),
-          labelColor: const Color(0xFF0F7B6C),
+          labelColor: const Color(0xFF8B5E3C),
           unselectedLabelColor: const Color(0xFF1E293B),
           labelStyle: const TextStyle(
             fontSize: 13,
@@ -556,7 +558,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          QuickInfoCard(rabbit: _currentRabbit),
+          QuickInfoCard(key: ValueKey('${_currentRabbit.id}_$_refreshCounter'), rabbit: _currentRabbit),
           const SizedBox(height: 16),
           GeneticsCard(rabbit: _currentRabbit),
           const SizedBox(height: 16),
@@ -782,7 +784,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
                         ),
                       ),
                     ),
@@ -806,7 +808,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
                         ),
                       ),
                       items: const [
@@ -840,7 +842,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
                         ),
                       ),
                     ),
@@ -898,13 +900,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Transaction added successfully'),
-                        backgroundColor: Color(0xFF0F7B6C),
+                        backgroundColor: Color(0xFF8B5E3C),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F7B6C),
+                    backgroundColor: const Color(0xFF8B5E3C),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -958,7 +960,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Full transaction history - Coming soon'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -1110,13 +1112,24 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                 ],
               ),
             ),
-            _buildMenuItem(Icons.swap_horiz, 'Move Cage', _showMoveCageModal),
-            _buildMenuItem(Icons.scale, 'Log Weight', _showLogWeightModal),
-            _buildMenuItem(Icons.medical_services, 'Add Health Record', _showHealthRecordModal),
-            _buildMenuItem(Icons.camera_alt, 'Change Photo', _showImagePickerOptions),
-            const Divider(),
-            _buildMenuItem(Icons.archive, 'Archive Rabbit', _showArchiveModal, isDestructive: true),
-            const SizedBox(height: 30),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildMenuItem(Icons.edit, 'Edit Rabbit', _showEditRabbitScreen),
+                    _buildMenuItem(Icons.swap_horiz, 'Move Cage', _showMoveCageModal),
+                    _buildMenuItem(Icons.scale, 'Log Weight', _showLogWeightModal),
+                    _buildMenuItem(Icons.medical_services, 'Add Health Record', _showHealthRecordModal),
+                    _buildMenuItem(Icons.camera_alt, 'Change Photo', _showImagePickerOptions),
+                    const Divider(),
+                    _buildMenuItem(Icons.archive, 'Archive Rabbit', _showArchiveModal, isDestructive: true),
+                    _buildMenuItem(Icons.delete_forever, 'Delete Rabbit', _confirmDeleteRabbit, isDestructive: true),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),
@@ -1127,9 +1140,61 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   Future<void> _refreshRabbitData() async {
     final updated = await _db.getRabbit(_currentRabbit.id);
     if (updated != null && mounted) {
-      setState(() => _currentRabbit = updated);
+      setState(() {
+        _currentRabbit = updated;
+        _refreshCounter++;
+      });
     }
     _loadBreedingStats();
+  }
+
+  void _confirmDeleteRabbit() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Rabbit'),
+        content: Text(
+          'Are you sure you want to permanently delete "${_currentRabbit.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // close dialog
+              await _db.deleteRabbit(_currentRabbit.id);
+              if (mounted) {
+                final messenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context, true); // pop detail screen
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('${_currentRabbit.name} deleted'),
+                    backgroundColor: const Color(0xFFC47070),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditRabbitScreen() async {
+    Navigator.pop(context); // close action sheet
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit),
+      ),
+    );
+    if (result == true) {
+      await _refreshRabbitData();
+    }
   }
 
   void _showMoveCageModal() {
@@ -1197,7 +1262,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🖨️ Printing cage card...'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         behavior: SnackBarBehavior.floating,
       ),
     );

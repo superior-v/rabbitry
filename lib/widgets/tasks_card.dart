@@ -142,7 +142,7 @@ class _TasksCardState extends State<TasksCard> {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F7B6C)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B5E3C)),
                 ),
               ),
             )
@@ -234,10 +234,10 @@ class _TasksCardState extends State<TasksCard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Color(0xFF0F7B6C).withOpacity(0.1),
+                color: Color(0xFF8B5E3C).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.check_circle_outline, color: Color(0xFF0F7B6C), size: 20),
+              child: Icon(Icons.check_circle_outline, color: Color(0xFF8B5E3C), size: 20),
             ),
             SizedBox(width: 12),
             Expanded(
@@ -273,7 +273,7 @@ class _TasksCardState extends State<TasksCard> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF0F7B6C), width: 2),
+                  borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
                 ),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
@@ -291,7 +291,7 @@ class _TasksCardState extends State<TasksCard> {
               Navigator.pop(ctx, cost);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0F7B6C),
+              backgroundColor: Color(0xFF8B5E3C),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -393,8 +393,8 @@ class _TasksCardState extends State<TasksCard> {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isCompleted ? Color(0xFF0F7B6C) : Colors.white,
-                border: Border.all(color: isCompleted ? Color(0xFF0F7B6C) : Color(0xFFD1D5DB), width: 2),
+                color: isCompleted ? Color(0xFF8B5E3C) : Colors.white,
+                border: Border.all(color: isCompleted ? Color(0xFF8B5E3C) : Color(0xFFD1D5DB), width: 2),
               ),
               child: isCompleted ? Icon(Icons.check, size: 14, color: Colors.white) : null,
             ),
@@ -555,18 +555,18 @@ class _TasksCardState extends State<TasksCard> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Color(0xFFE6FFFA),
+                          color: Color(0xFFFFF5EB),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Color(0xFF0F7B6C).withOpacity(0.3)),
+                          border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
-                            Icon(PhosphorIconsRegular.link, size: 16, color: Color(0xFF0F7B6C)),
+                            Icon(PhosphorIconsRegular.link, size: 16, color: Color(0xFF8B5E3C)),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Linked to ${widget.rabbit.name}',
-                                style: TextStyle(fontSize: 13, color: Color(0xFF0F7B6C), fontWeight: FontWeight.w500),
+                                style: TextStyle(fontSize: 13, color: Color(0xFF8B5E3C), fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -614,7 +614,7 @@ class _TasksCardState extends State<TasksCard> {
                             icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                             items: [
                               ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF0F7B6C)))),
+                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF8B5E3C)))),
                             ],
                             onChanged: (val) {
                               setDialogState(() {
@@ -639,7 +639,7 @@ class _TasksCardState extends State<TasksCard> {
                             hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF0F7B6C))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF8B5E3C))),
                           ),
                         ),
                       ],
@@ -694,7 +694,7 @@ class _TasksCardState extends State<TasksCard> {
                               _loadTasks();
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                 content: Text('Schedule saved for ${widget.rabbit.name}'),
-                                backgroundColor: Color(0xFF0F7B6C),
+                                backgroundColor: Color(0xFF8B5E3C),
                                 behavior: SnackBarBehavior.floating,
                               ));
                             } catch (e) {
@@ -702,7 +702,7 @@ class _TasksCardState extends State<TasksCard> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0F7B6C),
+                            backgroundColor: Color(0xFF8B5E3C),
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -789,7 +789,7 @@ class _TasksCardState extends State<TasksCard> {
                   _loadTasks();
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(task['completedAt'] != null ? 'Task unmarked' : 'Task completed'),
-                    backgroundColor: Color(0xFF0F7B6C),
+                    backgroundColor: Color(0xFF8B5E3C),
                     behavior: SnackBarBehavior.floating,
                   ));
                 }
@@ -836,7 +836,7 @@ class _TasksCardState extends State<TasksCard> {
               _loadTasks();
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('Task deleted'),
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 behavior: SnackBarBehavior.floating,
               ));
             },
@@ -988,7 +988,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F7B6C)),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B5E3C)),
                 ),
               ),
             )
@@ -1032,7 +1032,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Row(
             children: [
-              Icon(PhosphorIconsBold.clipboardText, color: Color(0xFF0F7B6C), size: 24),
+              Icon(PhosphorIconsBold.clipboardText, color: Color(0xFF8B5E3C), size: 24),
               SizedBox(width: 10),
               Text(
                 'Recurring Schedules',
@@ -1116,7 +1116,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
               _loadSchedules();
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('Schedule deleted'),
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 behavior: SnackBarBehavior.floating,
               ));
             },
@@ -1219,18 +1219,18 @@ class _ScheduleCardState extends State<ScheduleCard> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Color(0xFFE6FFFA),
+                          color: Color(0xFFFFF5EB),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Color(0xFF0F7B6C).withOpacity(0.3)),
+                          border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
-                            Icon(PhosphorIconsRegular.link, size: 16, color: Color(0xFF0F7B6C)),
+                            Icon(PhosphorIconsRegular.link, size: 16, color: Color(0xFF8B5E3C)),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Linked to ${widget.rabbit.name}',
-                                style: TextStyle(fontSize: 13, color: Color(0xFF0F7B6C), fontWeight: FontWeight.w500),
+                                style: TextStyle(fontSize: 13, color: Color(0xFF8B5E3C), fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -1276,7 +1276,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                             icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                             items: [
                               ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF0F7B6C)))),
+                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF8B5E3C)))),
                             ],
                             onChanged: (val) {
                               setDialogState(() {
@@ -1301,7 +1301,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                             hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF0F7B6C))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF8B5E3C))),
                           ),
                         ),
                       ],
@@ -1354,7 +1354,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                               _loadSchedules();
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                 content: Text('Schedule saved for ${widget.rabbit.name}'),
-                                backgroundColor: Color(0xFF0F7B6C),
+                                backgroundColor: Color(0xFF8B5E3C),
                                 behavior: SnackBarBehavior.floating,
                               ));
                             } catch (e) {
@@ -1362,7 +1362,7 @@ class _ScheduleCardState extends State<ScheduleCard> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0F7B6C),
+                            backgroundColor: Color(0xFF8B5E3C),
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,

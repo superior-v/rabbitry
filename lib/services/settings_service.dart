@@ -46,12 +46,13 @@ class SettingsService {
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MM/dd/yyyy';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
+  String get digestTime => _prefs?.getString('digestTime') ?? '07:00';
 
   // Task logic
   bool get snowballEffect => _prefs?.getBool('snowballEffect') ?? true;
 
   // Farm info
-  String get farmName => _prefs?.getString('farmName') ?? 'My Rabbitry';
+  String get farmName => _prefs?.getString('farmName') ?? 'Dynasty';
   String get ownerName => _prefs?.getString('ownerName') ?? '';
   String? get farmLogo => _prefs?.getString('farmLogo');
   String get farmAddress => _prefs?.getString('farmAddress') ?? '';
@@ -374,6 +375,10 @@ class SettingsService {
     await _prefs?.setBool('notificationsEnabled', enabled);
   }
 
+  Future<void> setDigestTime(String time) async {
+    await _prefs?.setString('digestTime', time);
+  }
+
   Future<void> setSnowballEffect(bool enabled) async {
     await _prefs?.setBool('snowballEffect', enabled);
   }
@@ -391,6 +396,10 @@ class SettingsService {
   Future<void> setFarmLogo(String path) async {
     // ✅ ADD THIS ENTIRE METHOD
     await _prefs?.setString('farmLogo', path);
+  }
+
+  Future<void> removeFarmLogo() async {
+    await _prefs?.remove('farmLogo');
   }
 
   Future<void> setFarmAddress(String address) async {

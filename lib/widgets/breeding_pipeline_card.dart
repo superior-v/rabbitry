@@ -146,7 +146,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       child: Container(
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Color(0xFF0F7B6C),
+                          color: Color(0xFF8B5E3C),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -176,8 +176,8 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMilestone(PhosphorIconsDuotone.checkCircle, 'Bred\n${widget.rabbit.lastBreedDate != null ? _formatDate(widget.rabbit.lastBreedDate!) : "-"}', true, Color(0xFF0F7B6C)),
-                    if (_settings.palpationEnabled) _buildMilestone(PhosphorIconsDuotone.handPointing, 'Palpate\n${widget.rabbit.palpationDate != null ? (_isPalpationDue ? "Today" : _formatDate(widget.rabbit.palpationDate!)) : "-"}', _isPalpationComplete, _isPalpationComplete || _isPalpationDue ? Color(0xFF0F7B6C) : Color(0xFF9B9A97)),
+                    _buildMilestone(PhosphorIconsDuotone.checkCircle, 'Bred\n${widget.rabbit.lastBreedDate != null ? _formatDate(widget.rabbit.lastBreedDate!) : "-"}', true, Color(0xFF8B5E3C)),
+                    if (_settings.palpationEnabled) _buildMilestone(PhosphorIconsDuotone.handPointing, 'Palpate\n${widget.rabbit.palpationDate != null ? (_isPalpationDue ? "Today" : _formatDate(widget.rabbit.palpationDate!)) : "-"}', _isPalpationComplete, _isPalpationComplete || _isPalpationDue ? Color(0xFF8B5E3C) : Color(0xFF9B9A97)),
                     if (_settings.nestBoxEnabled) _buildMilestone(PhosphorIconsDuotone.package, 'Nest Box\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!.subtract(Duration(days: 3))) : "-"}', false, Color(0xFF9B9A97)),
                     _buildMilestone(PhosphorIconsDuotone.baby, 'Kindle\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!) : "-"}', false, Color(0xFF9B9A97)),
                   ],
@@ -201,7 +201,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             child: ElevatedButton(
               onPressed: () => _showPalpationDialog(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 padding: EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -248,7 +248,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             child: ElevatedButton(
               onPressed: () => _showLogBirthDialog(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0F7B6C),
+                backgroundColor: Color(0xFF8B5E3C),
                 padding: EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -381,7 +381,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Log birth functionality'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -640,7 +640,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(useDefault ? 'Using default pipeline settings' : 'Custom pipeline settings saved'),
-                              backgroundColor: Color(0xFF0F7B6C),
+                              backgroundColor: Color(0xFF8B5E3C),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -649,7 +649,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0F7B6C),
+                        backgroundColor: Color(0xFF8B5E3C),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -810,7 +810,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       _handlePalpationResult(true);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0F7B6C),
+                      backgroundColor: Color(0xFF8B5E3C),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -836,7 +836,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(positive ? '✅ Palpation positive - marked as pregnant' : '❌ Palpation negative - marked as open'),
-            backgroundColor: positive ? Color(0xFF0F7B6C) : Color(0xFFF5A623),
+            backgroundColor: positive ? Color(0xFF8B5E3C) : Color(0xFFF5A623),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -894,7 +894,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Breeding cycle ended - marked as open'),
-            backgroundColor: Color(0xFF0F7B6C),
+            backgroundColor: Color(0xFF8B5E3C),
             behavior: SnackBarBehavior.floating,
           ),
         );

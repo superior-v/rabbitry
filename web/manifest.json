@@ -1,6 +1,6 @@
 {
-    "name": "rearticle_app",
-    "short_name": "rearticle_app",
+    "name": "Dynasty",
+    "short_name": "Dynasty",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

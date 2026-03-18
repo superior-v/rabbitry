@@ -27,7 +27,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -81,7 +81,17 @@ class DatabaseService {
         customPalpationDay INTEGER,
         customNestBoxDay INTEGER,
         customGestationDay INTEGER,
-        customWeanWeek INTEGER
+        customWeanWeek INTEGER,
+        earNumber TEXT,
+        otherBreed TEXT,
+        otherColor TEXT,
+        broken INTEGER,
+        viennaMarked INTEGER,
+        viennaCarrier INTEGER,
+        breederPrefix TEXT,
+        grandChampionNumber TEXT,
+        grandChampionLegs INTEGER,
+        activeInRabbitry INTEGER DEFAULT 1
       )
     ''');
 
@@ -461,6 +471,140 @@ class DatabaseService {
         print('⚠️ completedAt column may already exist in tasks: $e');
       }
     }
+
+    if (oldVersion < 13) {
+      // Add new rabbit form fields
+      final newColumns = {
+        'earNumber': 'TEXT',
+        'otherBreed': 'TEXT',
+        'otherColor': 'TEXT',
+        'broken': 'INTEGER',
+        'viennaMarked': 'INTEGER',
+        'viennaCarrier': 'INTEGER',
+        'breederPrefix': 'TEXT',
+        'grandChampionNumber': 'TEXT',
+        'grandChampionLegs': 'INTEGER',
+        'activeInRabbitry': 'INTEGER DEFAULT 1',
+      };
+      for (final entry in newColumns.entries) {
+        try {
+          await db.execute('ALTER TABLE rabbits ADD COLUMN ${entry.key} ${entry.value}');
+          print('✅ Added ${entry.key} column to rabbits');
+        } catch (e) {
+          print('⚠️ ${entry.key} column may already exist: $e');
+        }
+      }
+    }
+  }
+
+  // ==================== UNIT CONVERSION ====================
+
+  /// Currency conversion rates relative to USD
+  static const Map<String, double> _currencyRatesFromUsd = {
+    'usd': 1.0,
+    'eur': 0.92,
+    'gbp': 0.79,
+    'inr': 83.0,
+    'aud': 1.53,
+    'cny': 7.24,
+    'rub': 92.0,
+    'mxn': 17.15,
+  };
+
+  /// Convert all monetary values in the database from one currency to another
+  Future<void> convertAllCurrencyValues(String fromCurrency, String toCurrency) async {
+    if (fromCurrency == toCurrency) return;
+
+    final fromRate = _currencyRatesFromUsd[fromCurrency] ?? 1.0;
+    final toRate = _currencyRatesFromUsd[toCurrency] ?? 1.0;
+    final conversionFactor = toRate / fromRate;
+
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // Convert transactions.amount
+      await txn.rawUpdate(
+        'UPDATE transactions SET amount = amount * ? WHERE amount IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert rabbits.salePrice
+      await txn.rawUpdate(
+        'UPDATE rabbits SET salePrice = salePrice * ? WHERE salePrice IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert rabbits.butcherCost
+      await txn.rawUpdate(
+        'UPDATE rabbits SET butcherCost = butcherCost * ? WHERE butcherCost IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert health_records.cost
+      await txn.rawUpdate(
+        'UPDATE health_records SET cost = cost * ? WHERE cost IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert tasks.cost
+      await txn.rawUpdate(
+        'UPDATE tasks SET cost = cost * ? WHERE cost IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+    });
+
+    print('✅ Converted all currency values from $fromCurrency to $toCurrency (factor: ${conversionFactor.toStringAsFixed(4)})');
+  }
+
+  /// Weight conversion factor from lbs to kg and vice versa
+  static const double _lbsToKg = 0.45359237;
+  static const double _kgToLbs = 2.20462262;
+
+  /// Convert all weight values in the database from one unit to another
+  Future<void> convertAllWeightValues(String fromUnit, String toUnit) async {
+    if (fromUnit == toUnit) return;
+
+    final conversionFactor = fromUnit == 'lbs' ? _lbsToKg : _kgToLbs;
+
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // Convert rabbits.weight
+      await txn.rawUpdate(
+        'UPDATE rabbits SET weight = weight * ? WHERE weight IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert weight_records.weight
+      await txn.rawUpdate(
+        'UPDATE weight_records SET weight = weight * ? WHERE weight IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+
+      // Convert rabbits.butcherYield
+      await txn.rawUpdate(
+        'UPDATE rabbits SET butcherYield = butcherYield * ? WHERE butcherYield IS NOT NULL',
+        [
+          conversionFactor
+        ],
+      );
+    });
+
+    print('✅ Converted all weight values from $fromUnit to $toUnit (factor: ${conversionFactor.toStringAsFixed(4)})');
   }
 
   // ==================== RABBIT CRUD ====================
@@ -1394,6 +1538,29 @@ class DatabaseService {
     final db = await database;
     await db.delete('litters');
     print('🗑️ Cleared all litters from database');
+  }
+
+  Future<void> factoryReset() async {
+    final db = await database;
+    await db.delete('rabbits');
+    await db.delete('litters');
+    await db.delete('tasks');
+    await db.delete('transactions');
+    await db.delete('barns');
+    await db.delete('breeds');
+    await db.delete('health_records');
+    await db.delete('weight_records');
+    await db.delete('schedules');
+    try {
+      await db.delete('scheduled_tasks');
+    } catch (_) {}
+    try {
+      await db.delete('task_directory');
+    } catch (_) {}
+    try {
+      await db.delete('documents');
+    } catch (_) {}
+    print('🗑️ Factory reset: all data cleared');
   }
 
   // ✅ NEW: Update specific kit in litter

@@ -196,7 +196,7 @@ class RabbitActionSheet extends StatelessWidget {
     items.add(_buildActionItem(
       context,
       icon: Icons.person_outline,
-      iconColor: const Color(0xFF0F7B6C),
+      iconColor: const Color(0xFF8B5E3C),
       label: 'View Profile',
       subtitle: 'See full details and history',
       onTap: () => _viewProfile(context),
@@ -291,7 +291,7 @@ class RabbitActionSheet extends StatelessWidget {
       items.add(_buildActionItem(
         context,
         icon: Icons.arrow_upward,
-        iconColor: const Color(0xFF0F7B6C),
+        iconColor: const Color(0xFF8B5E3C),
         label: 'Promote to Breeder',
         subtitle: subtitle,
         onTap: () => _promoteToBreeder(context),
@@ -306,6 +306,16 @@ class RabbitActionSheet extends StatelessWidget {
       label: 'Archive Rabbit',
       subtitle: 'Sold, deceased, or culled',
       onTap: () => _showArchiveModal(context),
+    ));
+
+    // Delete
+    items.add(_buildActionItem(
+      context,
+      icon: Icons.delete_forever_outlined,
+      iconColor: const Color(0xFFD44C47),
+      label: 'Delete Rabbit',
+      subtitle: 'Permanently remove from database',
+      onTap: () => _confirmDeleteRabbit(context),
     ));
 
     return items;
@@ -369,9 +379,9 @@ class RabbitActionSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: const BoxDecoration(
-          color: Color(0xFFF0F7F6),
+          color: Color(0xFFF7EDE3),
           border: Border(
-            left: BorderSide(color: Color(0xFF0F7B6C), width: 4),
+            left: BorderSide(color: Color(0xFF8B5E3C), width: 4),
           ),
         ),
         child: Row(
@@ -380,10 +390,10 @@ class RabbitActionSheet extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF0F7B6C).withOpacity(0.15),
+                color: const Color(0xFF8B5E3C).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: const Color(0xFF0F7B6C), size: 22),
+              child: Icon(icon, color: const Color(0xFF8B5E3C), size: 22),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -395,7 +405,7 @@ class RabbitActionSheet extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F7B6C),
+                      color: Color(0xFF8B5E3C),
                     ),
                   ),
                   Text(
@@ -408,7 +418,7 @@ class RabbitActionSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFF0F7B6C)),
+            const Icon(Icons.chevron_right, color: Color(0xFF8B5E3C)),
           ],
         ),
       ),
@@ -603,6 +613,43 @@ class RabbitActionSheet extends StatelessWidget {
     );
   }
 
+  void _confirmDeleteRabbit(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Rabbit'),
+        content: Text(
+          'Are you sure you want to permanently delete "${rabbit.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // close dialog
+              final db = DatabaseService();
+              await db.deleteRabbit(rabbit.id);
+              onActionComplete();
+              if (context.mounted) {
+                Navigator.pop(context); // close action sheet
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${rabbit.name} deleted'),
+                    backgroundColor: const Color(0xFFD44C47),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Color(0xFFD44C47), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showArchiveModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -622,7 +669,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked as open for breeding'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
       ),
     );
   }
@@ -634,7 +681,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Promoted to breeder'),
-        backgroundColor: Color(0xFF0F7B6C),
+        backgroundColor: Color(0xFF8B5E3C),
       ),
     );
   }
@@ -653,7 +700,7 @@ class RabbitActionSheet extends StatelessWidget {
           content: Text(
             newStatus == RabbitStatus.active ? '${rabbit.name} marked as ACTIVE' : '${rabbit.name} marked as INACTIVE',
           ),
-          backgroundColor: const Color(0xFF0F7B6C),
+          backgroundColor: const Color(0xFF8B5E3C),
         ),
       );
     } catch (e) {
@@ -718,7 +765,7 @@ class RabbitActionSheet extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Pregnancy cancelled for ${rabbit.name}'),
-                    backgroundColor: const Color(0xFF0F7B6C),
+                    backgroundColor: const Color(0xFF8B5E3C),
                   ),
                 );
               } catch (e) {
