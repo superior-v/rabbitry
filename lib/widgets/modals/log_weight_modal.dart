@@ -78,7 +78,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Weight logged: $weight $_weightUnit'),
-          backgroundColor: Color(0xFF8B5E3C),
+          backgroundColor: Color(0xFF6366F1),
         ),
       );
     } catch (e) {
@@ -250,7 +250,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                     ),
                   ),
                   validator: (value) {
@@ -290,7 +290,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                     ),
                   ),
                 ),
@@ -302,7 +302,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveWeight,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF8B5E3C),
+                      backgroundColor: Color(0xFF6366F1),
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

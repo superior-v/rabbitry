@@ -5,10 +5,12 @@ import '../models/litter.dart';
 import '../models/breed.dart';
 import '../models/rabbit_document.dart';
 import '../models/transaction.dart' as finance_model;
+import '../models/pedigree.dart';
 import 'dart:convert';
 import 'settings_service.dart';
 
 class DatabaseService {
+  static const int _databaseVersion = 15;
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
@@ -27,9 +29,32 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 13,
+      version: _databaseVersion,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
+      onOpen: (db) async {
+        // Hot-Patch missing columns safely without requiring a version bump.
+        try {
+          await db.execute('ALTER TABLE rabbits ADD COLUMN fallOffs INTEGER');
+        } catch (_) {}
+        try {
+          await db.execute('ALTER TABLE rabbits ADD COLUMN breedingNotes TEXT');
+        } catch (_) {}
+
+        final litterColumns = {
+          'missedLitter': 'INTEGER DEFAULT 0',
+          'colorsProduced': 'TEXT',
+          'patternsProduced': 'TEXT',
+          'bucksProduced': 'INTEGER',
+          'doesProduced': 'INTEGER',
+          'peanutsProduced': 'INTEGER',
+        };
+        for (final entry in litterColumns.entries) {
+          try {
+            await db.execute('ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+          } catch (_) {}
+        }
+      },
     );
   }
 
@@ -91,7 +116,9 @@ class DatabaseService {
         breederPrefix TEXT,
         grandChampionNumber TEXT,
         grandChampionLegs INTEGER,
-        activeInRabbitry INTEGER DEFAULT 1
+        activeInRabbitry INTEGER DEFAULT 1,
+        fallOffs INTEGER,
+        breedingNotes TEXT
       )
     ''');
 
@@ -121,6 +148,12 @@ class DatabaseService {
         status TEXT,
         sire TEXT,
         dam TEXT,
+        missedLitter INTEGER DEFAULT 0,
+        colorsProduced TEXT,
+        patternsProduced TEXT,
+        bucksProduced INTEGER,
+        doesProduced INTEGER,
+        peanutsProduced INTEGER,
         kits TEXT
       )
     ''');
@@ -244,6 +277,31 @@ class DatabaseService {
         filePath TEXT NOT NULL,
         fileType TEXT NOT NULL DEFAULT 'file',
         fileSize INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+    
+    // Contacts table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS contacts(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        farmName TEXT,
+        notes TEXT,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Breeding plans table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS breeding_plans(
+        id TEXT PRIMARY KEY,
+        doeId TEXT NOT NULL,
+        buckId TEXT NOT NULL,
+        plannedDate TEXT NOT NULL,
+        notes TEXT,
         createdAt TEXT NOT NULL
       )
     ''');
@@ -495,6 +553,61 @@ class DatabaseService {
         }
       }
     }
+
+    if (oldVersion < 14) {
+      try {
+        await db.execute('ALTER TABLE rabbits ADD COLUMN fallOffs INTEGER');
+        await db.execute('ALTER TABLE rabbits ADD COLUMN breedingNotes TEXT');
+        print('✅ Added breeding fields to rabbits');
+      } catch (e) {
+        print('⚠️ breeding fields may already exist: $e');
+      }
+
+      final litterColumns = {
+        'missedLitter': 'INTEGER DEFAULT 0',
+        'colorsProduced': 'TEXT',
+        'patternsProduced': 'TEXT',
+        'bucksProduced': 'INTEGER',
+        'doesProduced': 'INTEGER',
+      };
+      for (final entry in litterColumns.entries) {
+        try {
+          await db.execute('ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+          print('✅ Added ${entry.key} column to litters');
+        } catch (e) {
+          print('⚠️ ${entry.key} column may already exist: $e');
+        }
+      }
+    }
+
+    if (oldVersion < 15) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS contacts(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            farmName TEXT,
+            notes TEXT,
+            createdAt TEXT NOT NULL
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS breeding_plans(
+            id TEXT PRIMARY KEY,
+            doeId TEXT NOT NULL,
+            buckId TEXT NOT NULL,
+            plannedDate TEXT NOT NULL,
+            notes TEXT,
+            createdAt TEXT NOT NULL
+          )
+        ''');
+        print('✅ Added contacts and breeding_plans tables');
+      } catch (e) {
+        print('⚠️ Error adding new tables: $e');
+      }
+    }
   }
 
   // ==================== UNIT CONVERSION ====================
@@ -502,6 +615,7 @@ class DatabaseService {
   /// Currency conversion rates relative to USD
   static const Map<String, double> _currencyRatesFromUsd = {
     'usd': 1.0,
+    'cad': 1.36,
     'eur': 0.92,
     'gbp': 0.79,
     'inr': 83.0,
@@ -728,7 +842,7 @@ class DatabaseService {
 
   // ==================== BREEDING OPERATIONS ====================
 
-  Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays, {int? customPalpationDays, int? customNestBoxDays}) async {
+  Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays, {int? customPalpationDays, int? customNestBoxDays, int? fallOffs, String? breedingNotes}) async {
     final db = await database;
     final settings = SettingsService.instance;
     final palpDays = customPalpationDays ?? settings.palpationDays;
@@ -755,6 +869,8 @@ class DatabaseService {
         'lastBreedBuckId': buckId,
         'palpationDate': settings.palpationEnabled ? palpationDate.toIso8601String() : null,
         'dueDate': dueDate.toIso8601String(),
+        'fallOffs': fallOffs,
+        'breedingNotes': breedingNotes,
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
@@ -870,29 +986,52 @@ class DatabaseService {
       );
     }
 
+    // Mark all pending palpation tasks for this rabbit as complete
+    await db.update(
+      'tasks',
+      {
+        'completed': 1,
+        'completedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'rabbitId = ? AND taskType = ? AND completed = ?',
+      whereArgs: [doeId, 'palpation', 0],
+    );
+
     print('✅ Confirmed pregnancy for $doeId: $isPregnant');
   }
-
-  Future<void> logBirth(String doeId, int totalBorn, int aliveBorn, DateTime kindleDate, int weaningWeeks, {String? litterId, List<Map<String, dynamic>>? kits}) async {
+  Future<void> logBirth(String doeId, int totalBorn, int aliveBorn, DateTime kindleDate, int weaningWeeks, {
+    String? litterId, 
+    List<Map<String, dynamic>>? kits,
+    bool? missedLitter,
+    String? colorsProduced,
+    String? patternsProduced,
+    int? bucksProduced,
+    int? doesProduced,
+    int? peanutsProduced,
+  }) async {
     final db = await database;
     final rabbit = await getRabbit(doeId);
     if (rabbit == null) return;
 
+    final isMissed = missedLitter == true;
     final weanDate = kindleDate.add(Duration(days: weaningWeeks * 7));
+
+    final shouldBeNursing = !isMissed && aliveBorn > 0;
 
     await db.update(
       'rabbits',
       {
-        'status': RabbitStatus.nursing.toString(),
-        'kindleDate': kindleDate.toIso8601String(),
-        'currentLitterSize': aliveBorn,
-        'weanDate': weanDate.toIso8601String(),
+        'status': shouldBeNursing ? RabbitStatus.nursing.toString() : RabbitStatus.open.toString(),
+        'kindleDate': isMissed ? null : kindleDate.toIso8601String(),
+        'currentLitterSize': isMissed ? 0 : aliveBorn,
+        'weanDate': shouldBeNursing ? weanDate.toIso8601String() : null,
+        'dueDate': null,
+        'lastBreedDate': isMissed ? null : rabbit.lastBreedDate?.toIso8601String(),
+        'lastBreedBuckId': isMissed ? null : rabbit.lastBreedBuckId,
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
     );
 
     // ✅ Use custom litter ID if provided, otherwise generate sequential one
@@ -925,28 +1064,47 @@ class DatabaseService {
       'deadBorn': totalBorn - aliveBorn,
       'currentAlive': aliveBorn,
       'weanDate': weanDate.toIso8601String(),
-      'status': 'nursing',
+      'status': isMissed ? 'archived' : 'nursing',
       'location': rabbit.location ?? '',
       'cage': rabbit.cage ?? '',
       'breed': rabbit.breed,
       'sire': buckName.isNotEmpty ? buckName : (rabbit.lastBreedBuckId ?? ''),
       'dam': rabbit.name,
+      'missedLitter': isMissed ? 1 : 0,
+      'colorsProduced': colorsProduced,
+      'patternsProduced': patternsProduced,
+      'bucksProduced': bucksProduced,
+      'doesProduced': doesProduced,
+      'peanutsProduced': peanutsProduced,
       'kits': kitsJson,
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
 
-    await insertTask({
-      'id': 'task_wean_${DateTime.now().millisecondsSinceEpoch}',
-      'rabbitId': doeId,
-      'litterId': finalLitterId,
-      'title': 'Wean Litter',
-      'description': '$aliveBorn kits ready for weaning',
-      'taskType': 'wean',
-      'dueDate': weanDate.toIso8601String(),
-      'completed': 0,
-      'createdAt': DateTime.now().toIso8601String(),
-    });
+    if (!isMissed) {
+      await insertTask({
+        'id': 'task_wean_${DateTime.now().millisecondsSinceEpoch}',
+        'rabbitId': doeId,
+        'litterId': finalLitterId,
+        'title': 'Wean Litter',
+        'description': '$aliveBorn kits ready for weaning',
+        'taskType': 'wean',
+        'dueDate': weanDate.toIso8601String(),
+        'completed': 0,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    }
+
+    // Mark all pending kindle or nestbox tasks for this rabbit as complete
+    await db.update(
+      'tasks',
+      {
+        'completed': 1,
+        'completedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'rabbitId = ? AND taskType IN (?, ?) AND completed = ?',
+      whereArgs: [doeId, 'kindle', 'nestbox', 0],
+    );
 
     print('✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn (Litter ID: $finalLitterId)');
   }
@@ -1006,6 +1164,17 @@ class DatabaseService {
       'completed': 0,
       'createdAt': DateTime.now().toIso8601String(),
     });
+
+    // Mark all pending weaning tasks for this rabbit as complete
+    await db.update(
+      'tasks',
+      {
+        'completed': 1,
+        'completedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'rabbitId = ? AND taskType = ? AND completed = ?',
+      whereArgs: [doeId, 'wean', 0],
+    );
 
     print('✅ Weaned litter for $doeId: $weanedCount kits');
   }
@@ -1581,9 +1750,40 @@ class DatabaseService {
 
     // Save back to database
     final updatedLitter = litter.copyWith(kits: updatedKits);
-    await updateLitter(updatedLitter);
+    
+    // Check if all kits are now dead
+    final allKitsStatusDead = updatedKits.every((k) => 
+      k.status.toLowerCase() == 'dead' || 
+      k.status.toLowerCase() == 'died' || 
+      k.status.toLowerCase() == 'deceased'
+    );
+    
+    if (allKitsStatusDead) {
+      final db = await database;
+      // If all kits are dead, mark doe as open and clear breeding dates
+      await db.update(
+        'rabbits',
+        {
+          'status': 'open',
+          'kindleDate': null,
+          'weanDate': null,
+          'dueDate': null,
+          'lastBreedDate': null,
+          'lastBreedBuckId': null,
+          'currentLitterSize': 0,
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [litter.doeId],
+      );
+      
+      // Also archive the litter
+      await updateLitter(updatedLitter.copyWith(status: 'archived'));
+    } else {
+      await updateLitter(updatedLitter);
+    }
 
-    print('✅ Updated kit ${kit.id} in litter $litterId');
+    print('✅ Updated kit ${kit.id} in litter $litterId ${allKitsStatusDead ? '(All kits dead, doe reset to Open)' : ''}');
   }
 
   // ✅ NEW: Delete litter
@@ -3338,5 +3538,87 @@ class DatabaseService {
       id
     ]);
     print('✅ Deleted document: $id');
+  }
+
+  // ==================== PEDIGREE ====================
+
+  Future<PedigreeRabbit> buildPedigreeTree(String rabbitId, {int maxGenerations = 5, int currentGen = 0}) async {
+    final rabbit = await getRabbit(rabbitId);
+
+    if (rabbit == null) {
+      return PedigreeRabbit(
+        id: rabbitId,
+        name: 'Unknown',
+        generation: currentGen,
+      );
+    }
+
+    PedigreeRabbit node = PedigreeRabbit(
+      id: rabbit.id,
+      name: rabbit.name,
+      breed: rabbit.breed,
+      color: rabbit.color,
+      weight: rabbit.weight?.toString(),
+      registrationNumber: rabbit.registrationNumber,
+      sex: rabbit.type == RabbitType.doe ? 'Doe' : 'Buck',
+      profileImage: (rabbit.photos != null && rabbit.photos!.isNotEmpty) ? rabbit.photos!.first : null,
+      generation: currentGen,
+      isExternal: rabbit.type == RabbitType.pedigree,
+    );
+
+    if (currentGen < maxGenerations) {
+      if (rabbit.sireId != null && rabbit.sireId!.isNotEmpty) {
+        node.sire = await buildPedigreeTree(rabbit.sireId!, maxGenerations: maxGenerations, currentGen: currentGen + 1);
+      }
+      if (rabbit.damId != null && rabbit.damId!.isNotEmpty) {
+        node.dam = await buildPedigreeTree(rabbit.damId!, maxGenerations: maxGenerations, currentGen: currentGen + 1);
+      }
+    }
+
+    return node;
+  }
+
+  // ==================== CONTACTS CRUD ====================
+
+  Future<void> insertContact(Map<String, dynamic> contact) async {
+    final db = await database;
+    await db.insert('contacts', contact, conflictAlgorithm: ConflictAlgorithm.replace);
+    print('✅ Inserted contact: ${contact['name']}');
+  }
+
+  Future<List<Map<String, dynamic>>> getAllContacts() async {
+    final db = await database;
+    return await db.query('contacts', orderBy: 'name ASC');
+  }
+
+  Future<void> updateContact(Map<String, dynamic> contact) async {
+    final db = await database;
+    await db.update('contacts', contact, where: 'id = ?', whereArgs: [contact['id']]);
+    print('✅ Updated contact: ${contact['name']}');
+  }
+
+  Future<void> deleteContact(String id) async {
+    final db = await database;
+    await db.delete('contacts', where: 'id = ?', whereArgs: [id]);
+    print('✅ Deleted contact with id: $id');
+  }
+
+  // ==================== BREEDING PLANS CRUD ====================
+
+  Future<void> insertBreedingPlan(Map<String, dynamic> plan) async {
+    final db = await database;
+    await db.insert('breeding_plans', plan, conflictAlgorithm: ConflictAlgorithm.replace);
+    print('✅ Inserted breeding plan for Doe ID: ${plan['doeId']}');
+  }
+
+  Future<List<Map<String, dynamic>>> getAllBreedingPlans() async {
+    final db = await database;
+    return await db.query('breeding_plans', orderBy: 'plannedDate ASC');
+  }
+
+  Future<void> deleteBreedingPlan(String id) async {
+    final db = await database;
+    await db.delete('breeding_plans', where: 'id = ?', whereArgs: [id]);
+    print('✅ Deleted breeding plan with id: $id');
   }
 }

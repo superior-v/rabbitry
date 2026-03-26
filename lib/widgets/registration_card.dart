@@ -139,7 +139,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
       height: 12,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: earned ? Color(0xFF8B5E3C) : null,
+        color: earned ? Color(0xFF6366F1) : null,
         border: earned ? null : Border.all(color: Color(0xFFE9E9E7), width: 2),
       ),
       child: earned ? Icon(Icons.check, size: 8, color: Colors.white) : null,
@@ -161,7 +161,7 @@ class _RegistrationCardState extends State<RegistrationCard> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                  borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
               ),
             ),
@@ -189,9 +189,9 @@ class _RegistrationCardState extends State<RegistrationCard> {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: gcLegs[index] ? Color(0xFF8B5E3C) : Color(0xFFF7F7F5),
+                            color: gcLegs[index] ? Color(0xFF6366F1) : Color(0xFFF7F7F5),
                             border: Border.all(
-                              color: gcLegs[index] ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
+                              color: gcLegs[index] ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
                               width: 2,
                             ),
                           ),
@@ -233,13 +233,13 @@ class _RegistrationCardState extends State<RegistrationCard> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Registration updated'),
-                  backgroundColor: Color(0xFF8B5E3C),
+                  backgroundColor: Color(0xFF6366F1),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF8B5E3C),
+              backgroundColor: Color(0xFF6366F1),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text('Save', style: TextStyle(color: Colors.white)),

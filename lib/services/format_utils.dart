@@ -83,6 +83,8 @@ class FormatUtils {
         return '£';
       case 'inr':
         return '₹';
+      case 'cad':
+        return 'C\$';
       case 'aud':
         return 'A\$';
       case 'cny':

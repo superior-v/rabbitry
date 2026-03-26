@@ -79,12 +79,12 @@ class _CertificateCardState extends State<CertificateCard> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF8B5E3C).withOpacity(0.1),
+                    color: Color(0xFF6366F1).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.verified,
-                    color: Color(0xFF8B5E3C),
+                    color: Color(0xFF6366F1),
                     size: 24,
                   ),
                 ),
@@ -136,7 +136,7 @@ class _CertificateCardState extends State<CertificateCard> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF8B5E3C),
+                          color: Color(0xFF6366F1),
                         ),
                       ),
                       SizedBox(height: 12),
@@ -167,7 +167,7 @@ class _CertificateCardState extends State<CertificateCard> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.emoji_events, color: Color(0xFFCB8347), size: 20),
+                          Icon(Icons.emoji_events, color: Color(0xFF8B5CF6), size: 20),
                           SizedBox(width: 8),
                           Text(
                             'AWARDS & ACHIEVEMENTS',
@@ -218,7 +218,7 @@ class _CertificateCardState extends State<CertificateCard> {
                         icon: Icon(Icons.share, size: 18),
                         label: Text('Share'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF8B5E3C),
+                          backgroundColor: Color(0xFF6366F1),
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -270,17 +270,17 @@ class _CertificateCardState extends State<CertificateCard> {
       decoration: BoxDecoration(
         color: Color(0xFFFFF9E6),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0xFFCB8347).withOpacity(0.2)),
+        border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Color(0xFFCB8347).withOpacity(0.2),
+              color: Color(0xFF8B5CF6).withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.emoji_events, color: Color(0xFFCB8347), size: 16),
+            child: Icon(Icons.emoji_events, color: Color(0xFF8B5CF6), size: 16),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -305,7 +305,7 @@ class _CertificateCardState extends State<CertificateCard> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Color(0xFFCB8347),
+              color: Color(0xFF8B5CF6),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -326,7 +326,7 @@ class _CertificateCardState extends State<CertificateCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Preparing certificate for printing...'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -336,7 +336,7 @@ class _CertificateCardState extends State<CertificateCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Sharing certificate...'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
         behavior: SnackBarBehavior.floating,
       ),
     );

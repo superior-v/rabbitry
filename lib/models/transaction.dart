@@ -161,11 +161,11 @@ class Transaction {
     return Transaction(
       id: map['id'] as String,
       type: TransactionType.values.firstWhere(
-        (e) => e.toString() == map['type'],
+        (e) => e.toString() == map['type'] || e.name == map['type'],
         orElse: () => TransactionType.expense,
       ),
       category: TransactionCategory.values.firstWhere(
-        (e) => e.toString() == map['category'],
+        (e) => e.toString() == map['category'] || e.name == map['category'],
         orElse: () => TransactionCategory.otherExpense,
       ),
       amount: (map['amount'] as num).toDouble(),

@@ -222,13 +222,13 @@ class _ParentageCardState extends State<ParentageCard> {
               },
               child: Row(
                 children: [
-                  Icon(Icons.arrow_forward, size: 12, color: Color(0xFF8B5E3C)),
+                  Icon(Icons.arrow_forward, size: 12, color: Color(0xFF6366F1)),
                   SizedBox(width: 4),
                   Text(
                     'View Profile',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF8B5E3C),
+                      color: Color(0xFF6366F1),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -266,7 +266,7 @@ class _ParentageCardState extends State<ParentageCard> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 content: SizedBox(
                   height: 80,
-                  child: Center(child: CircularProgressIndicator(color: Color(0xFF8B5E3C), strokeWidth: 2)),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF6366F1), strokeWidth: 2)),
                 ),
               );
             }
@@ -286,10 +286,10 @@ class _ParentageCardState extends State<ParentageCard> {
                       Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Color(0xFF8B5E3C).withOpacity(0.1),
+                          color: Color(0xFF6366F1).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.account_tree_outlined, color: Color(0xFF8B5E3C), size: 20),
+                        child: Icon(Icons.account_tree_outlined, color: Color(0xFF6366F1), size: 20),
                       ),
                       SizedBox(width: 12),
                       Text('Edit Parentage', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -312,7 +312,7 @@ class _ParentageCardState extends State<ParentageCard> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                            borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                           ),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           prefixIcon: Icon(Icons.male, color: Color(0xFF2E7BB5), size: 20),
@@ -348,7 +348,7 @@ class _ParentageCardState extends State<ParentageCard> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                            borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                           ),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           prefixIcon: Icon(Icons.female, color: Color(0xFF9C6ADE), size: 20),
@@ -395,14 +395,14 @@ class _ParentageCardState extends State<ParentageCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Parentage updated'),
-                              backgroundColor: Color(0xFF8B5E3C),
+                              backgroundColor: Color(0xFF6366F1),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF8B5E3C),
+                        backgroundColor: Color(0xFF6366F1),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text('Save', style: TextStyle(color: Colors.white)),

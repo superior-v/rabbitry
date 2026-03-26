@@ -94,7 +94,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 title: 'Sold',
                 subtitle: 'Rabbit was sold to another breeder',
                 icon: Icons.monetization_on,
-                color: const Color(0xFF8B5E3C),
+                color: const Color(0xFF6366F1),
               ),
               const SizedBox(height: 12),
 
@@ -105,7 +105,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   title: 'Butchered',
                   subtitle: 'Processed for meat',
                   icon: Icons.restaurant,
-                  color: const Color(0xFFCB8347),
+                  color: const Color(0xFF8B5CF6),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -505,7 +505,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} archived successfully'),
-          backgroundColor: const Color(0xFF8B5E3C),
+          backgroundColor: const Color(0xFF6366F1),
         ),
       );
     } catch (e) {

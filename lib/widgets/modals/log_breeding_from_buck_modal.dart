@@ -33,6 +33,15 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   int _palpationDays = 14;
   int _nestBoxDays = 28;
   int _gestationDays = 31;
+  final TextEditingController _breedingNotesController = TextEditingController();
+  final TextEditingController _fallOffsController = TextEditingController();
+
+  @override
+  void dispose() {
+    _breedingNotesController.dispose();
+    _fallOffsController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -151,7 +160,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'No does available for breeding. All does are either pregnant, nursing, or in quarantine.',
+                          'No does available for breeding. All does are either bred, nursing, or in quarantine.',
                           style: TextStyle(color: Color(0xFF856404), fontSize: 13),
                         ),
                       ),
@@ -188,7 +197,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                               ),
                               child: Text(
                                 doe.statusText,
-                                style: TextStyle(fontSize: 11, color: Color(0xFF8B5E3C)),
+                                style: TextStyle(fontSize: 11, color: Color(0xFF6366F1)),
                               ),
                             ),
                           ],
@@ -246,7 +255,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 decoration: BoxDecoration(
                   color: Color(0xFFF7EDE3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.2)),
+                  border: Border.all(color: Color(0xFF6366F1).withOpacity(0.2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,14 +265,14 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.schedule, size: 16, color: Color(0xFF8B5E3C)),
+                            Icon(Icons.schedule, size: 16, color: Color(0xFF6366F1)),
                             SizedBox(width: 6),
                             Text(
                               'TIMELINE & REMINDERS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF8B5E3C),
+                                color: Color(0xFF6366F1),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -276,10 +285,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: _isCustomTimeline ? Color(0xFF8B5E3C).withOpacity(0.1) : Colors.white,
+                              color: _isCustomTimeline ? Color(0xFF6366F1).withOpacity(0.1) : Colors.white,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
+                                color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
                               ),
                             ),
                             child: Row(
@@ -288,7 +297,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                 Icon(
                                   _isCustomTimeline ? Icons.check_circle : Icons.edit,
                                   size: 14,
-                                  color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                                  color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFF787774),
                                 ),
                                 SizedBox(width: 4),
                                 Text(
@@ -296,7 +305,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: _isCustomTimeline ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                                    color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFF787774),
                                   ),
                                 ),
                               ],
@@ -337,14 +346,14 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         },
                         child: Text(
                           'Reset to defaults',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF8B5E3C), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 12, color: Color(0xFF6366F1), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ] else ...[
                       _buildTimelineItem(
                         '📅 Palpation Check',
                         _breedDate.add(Duration(days: _palpationDays)),
-                        'Confirm pregnancy',
+                        'Confirm bred status',
                         isHighlighted: true,
                       ),
                       _buildTimelineItem(
@@ -365,13 +374,21 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
               ),
               SizedBox(height: 24),
 
+              // Fall Offs
+              _buildFallOffsField(),
+              SizedBox(height: 16),
+
+              // Breeding Notes
+              _buildBreedingNotesField(),
+              SizedBox(height: 24),
+
               // Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF8B5E3C),
+                    backgroundColor: Color(0xFF6366F1),
                     disabledBackgroundColor: Color(0xFFE9E9E7),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -447,7 +464,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             alignment: Alignment.center,
             child: Text(
               '$days d',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF8B5E3C)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6366F1)),
             ),
           ),
           GestureDetector(
@@ -490,7 +507,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       decoration: BoxDecoration(
         color: isHighlighted ? Color(0xFFFFFFFF) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        border: isHighlighted ? Border.all(color: Color(0xFFCB8347).withOpacity(0.3)) : null,
+        border: isHighlighted ? Border.all(color: Color(0xFF8B5CF6).withOpacity(0.3)) : null,
       ),
       child: Row(
         children: [
@@ -529,7 +546,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 'in $daysFromNow days',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isHighlighted ? Color(0xFFCB8347) : Color(0xFF787774),
+                  color: isHighlighted ? Color(0xFF8B5CF6) : Color(0xFF787774),
                   fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -542,6 +559,32 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
 
   String _formatDate(DateTime date) {
     return FormatUtils.formatDate(date);
+  }
+
+  Widget _buildFallOffsField() {
+    return TextFormField(
+      controller: _fallOffsController,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Fall Offs (Optional)',
+        hintText: 'Number of successful covers',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.repeat),
+      ),
+    );
+  }
+
+  Widget _buildBreedingNotesField() {
+    return TextFormField(
+      controller: _breedingNotesController,
+      maxLines: 3,
+      decoration: const InputDecoration(
+        labelText: 'Breeding Notes (Optional)',
+        hintText: 'Any special observations...',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.notes),
+      ),
+    );
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -570,6 +613,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
         _gestationDays,
         customPalpationDays: _palpationDays,
         customNestBoxDays: _nestBoxDays,
+        fallOffs: int.tryParse(_fallOffsController.text),
+        breedingNotes: _breedingNotesController.text,
       );
 
       // Call callback FIRST to trigger parent refresh

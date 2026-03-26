@@ -41,40 +41,35 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
 
   Future<void> _loadPedigree() async {
     try {
-      // Load parents
-      if (widget.rabbit.sireId != null && widget.rabbit.sireId!.isNotEmpty) {
-        _sire = await _db.getRabbit(widget.rabbit.sireId!);
+      final tree = await _db.buildPedigreeTree(widget.rabbit.id, maxGenerations: 2);
+      
+      final sire = await _db.getRabbit(tree.sire?.id ?? '');
+      final dam = await _db.getRabbit(tree.dam?.id ?? '');
+      
+      Rabbit? ss, sd, ds, dd;
+      if (tree.sire != null) {
+        ss = await _db.getRabbit(tree.sire!.sire?.id ?? '');
+        sd = await _db.getRabbit(tree.sire!.dam?.id ?? '');
       }
-      if (widget.rabbit.damId != null && widget.rabbit.damId!.isNotEmpty) {
-        _dam = await _db.getRabbit(widget.rabbit.damId!);
+      if (tree.dam != null) {
+        ds = await _db.getRabbit(tree.dam!.sire?.id ?? '');
+        dd = await _db.getRabbit(tree.dam!.dam?.id ?? '');
       }
-
-      // Load grandparents
-      if (_sire != null) {
-        if (_sire!.sireId != null && _sire!.sireId!.isNotEmpty) {
-          _siresSire = await _db.getRabbit(_sire!.sireId!);
-        }
-        if (_sire!.damId != null && _sire!.damId!.isNotEmpty) {
-          _siresDam = await _db.getRabbit(_sire!.damId!);
-        }
-      }
-      if (_dam != null) {
-        if (_dam!.sireId != null && _dam!.sireId!.isNotEmpty) {
-          _damsSire = await _db.getRabbit(_dam!.sireId!);
-        }
-        if (_dam!.damId != null && _dam!.damId!.isNotEmpty) {
-          _damsDam = await _db.getRabbit(_dam!.damId!);
-        }
-      }
-
+      
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _sire = sire;
+          _dam = dam;
+          _siresSire = ss;
+          _siresDam = sd;
+          _damsSire = ds;
+          _damsDam = dd;
+          _isLoading = false;
+        });
       }
     } catch (e) {
       print('Error loading pedigree: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -358,7 +353,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFF8B5E3C), width: 2),
+        border: Border.all(color: Color(0xFF6366F1), width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -515,7 +510,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 content: SizedBox(
                   height: 80,
-                  child: Center(child: CircularProgressIndicator(color: Color(0xFF8B5E3C), strokeWidth: 2)),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF6366F1), strokeWidth: 2)),
                 ),
               );
             }
@@ -563,7 +558,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                            borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                           ),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           prefixIcon: Icon(
@@ -612,14 +607,14 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Pedigree updated'),
-                              backgroundColor: Color(0xFF8B5E3C),
+                              backgroundColor: Color(0xFF6366F1),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF8B5E3C),
+                        backgroundColor: Color(0xFF6366F1),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text('Save', style: TextStyle(color: Colors.white)),
@@ -678,7 +673,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Preparing pedigree for printing...'),
-                          backgroundColor: Color(0xFF8B5E3C),
+                          backgroundColor: Color(0xFF6366F1),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -690,7 +685,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Sharing pedigree...'),
-                          backgroundColor: Color(0xFF8B5E3C),
+                          backgroundColor: Color(0xFF6366F1),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

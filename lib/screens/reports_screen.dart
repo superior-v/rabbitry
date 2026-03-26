@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:ui' show FontFeature;
 import '../models/report_models.dart';
 import '../models/rabbit.dart';
@@ -6,6 +8,9 @@ import '../models/litter.dart';
 import '../models/transaction.dart' as finance_model;
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
+import 'package:path_provider/path_provider.dart'; // ✅ Add this
+import 'package:open_filex/open_filex.dart'; // ✅ Add this
+import '../services/notification_service.dart'; // ✅ Add this
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({Key? key}) : super(key: key);
@@ -425,13 +430,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           IconButton(
             icon: Icon(Icons.file_download, color: Color(0xFF1E293B)),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Export feature coming soon'),
-                  backgroundColor: Color(0xFF8B5E3C),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              _exportAnalytics();
             },
           ),
         ],
@@ -442,7 +441,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           _buildTabBar(),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: Color(0xFF8B5E3C)))
+                ? Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -485,7 +484,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   color: isSelected ? Colors.white : Color(0xFFF5F7FA),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0),
+                    color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
                   ),
                   boxShadow: isSelected
                       ? [
@@ -502,7 +501,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF64748B),
+                    color: isSelected ? Color(0xFF6366F1) : Color(0xFF64748B),
                   ),
                 ),
               ),
@@ -521,11 +520,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       ),
       child: TabBar(
         controller: _tabController,
-        labelColor: Color(0xFF8B5E3C),
+        labelColor: Color(0xFF6366F1),
         unselectedLabelColor: Color(0xFF64748B),
         labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        indicatorColor: Color(0xFF8B5E3C),
+        indicatorColor: Color(0xFF6366F1),
         indicatorWeight: 2,
         tabs: [
           Tab(text: 'Production'),
@@ -541,6 +540,127 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     if (val == 0) return '0';
     if (val == val.roundToDouble() && decimals <= 1) return val.toInt().toString();
     return val.toStringAsFixed(decimals);
+  }
+
+  Future<Directory?> _getExportDirectory() async {
+    if (Platform.isAndroid) {
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        var manageStatus = await Permission.manageExternalStorage.request();
+        if (!manageStatus.isGranted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Storage permission required to export CSV'),
+                backgroundColor: const Color(0xFFD44C47),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  textColor: Colors.white,
+                  onPressed: () => openAppSettings(),
+                ),
+              ),
+            );
+          }
+          return null;
+        }
+      }
+
+      final List<String> paths = [
+        '/storage/emulated/0/Download',
+        '/storage/emulated/0/Downloads',
+        '/sdcard/Download',
+      ];
+      for (String p in paths) {
+        final dir = Directory(p);
+        try {
+          if (await dir.exists()) return dir;
+          await dir.create(recursive: true);
+          return dir;
+        } catch (_) {}
+      }
+      return await getApplicationDocumentsDirectory();
+    } else {
+      return await getApplicationDocumentsDirectory();
+    }
+  }
+
+  String _csvEscape(String value) {
+    if (value.contains(',') || value.contains('"') || value.contains('\n')) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+    return value;
+  }
+
+  Future<void> _exportAnalytics() async {
+    try {
+      final buffer = StringBuffer();
+      
+      buffer.writeln('Analytics Report - $selectedPeriod');
+      buffer.writeln('Generated on: ${DateTime.now().toIso8601String()}');
+      buffer.writeln('');
+      
+      buffer.writeln('--- PRODUCTION ---');
+      buffer.writeln('Active Litters,$_activeLitters');
+      buffer.writeln('Live Kits Born,$_totalLiveKitsBorn');
+      buffer.writeln('Avg Litter Size,${_fmtNum(_avgLitterSize)}');
+      buffer.writeln('Gestation Days (Avg),${_avgGestationDays > 0 ? _fmtNum(_avgGestationDays) : "-"}');
+      buffer.writeln('Doe Conception Rate,$_doeConceptionRate%');
+      buffer.writeln('Buck Conception Rate,$_buckConceptionRate%');
+      buffer.writeln('');
+
+      buffer.writeln('--- GROWTH ---');
+      buffer.writeln('Total Meat Yield,${_fmtNum(_totalMeatYield)} ${FormatUtils.weightUnit}');
+      buffer.writeln('Avg Harvest Weight,${_avgHarvestWeight > 0 ? _fmtNum(_avgHarvestWeight) : "0"} ${FormatUtils.weightUnit}');
+      buffer.writeln('Dress-Out Percentage,${_dressOutPercent > 0 ? "$_dressOutPercent%" : "-"}');
+      buffer.writeln('Avg Age To Butcher,${_avgButcherAge > 0 ? "${_avgButcherAge}w" : "-"}');
+      buffer.writeln('');
+
+      buffer.writeln('--- HEALTH ---');
+      buffer.writeln('Survival Rate,${_bornTotal > 0 ? "$_survivalRate%" : "-"}');
+      buffer.writeln('Total Losses,$_totalLosses');
+      buffer.writeln('Doe Mortality,$_doeMortality%');
+      buffer.writeln('Quarantine Count,$_quarantineCount');
+      buffer.writeln('');
+
+      buffer.writeln('--- FINANCE ---');
+      buffer.writeln('Net Profit,${_netProfit != 0 ? _netProfit.toStringAsFixed(2) : "-"}');
+      buffer.writeln('Total Revenue,${_totalRevenue > 0 ? _totalRevenue.toStringAsFixed(2) : "0"}');
+      buffer.writeln('Total Expense,${_totalExpense > 0 ? _totalExpense.toStringAsFixed(2) : "0"}');
+      buffer.writeln('Cost Per Kit,${_costPerKit > 0 ? _costPerKit.toStringAsFixed(2) : "-"}');
+
+      final directory = await _getExportDirectory();
+      if (directory == null) return;
+      final file = File('${directory.path}/analytics_export_${DateTime.now().millisecondsSinceEpoch}.csv');
+      await file.writeAsString(buffer.toString());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Analytics exported to ${file.path.split('/').last}'),
+            backgroundColor: const Color(0xFF6366F1),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.white,
+              onPressed: () => OpenFilex.open(file.path),
+            ),
+          ),
+        );
+
+        // ✅ Show system notification
+        await NotificationService.instance.showFileNotification(
+          title: 'Analytics Exported',
+          body: 'Tap to open analytics_export.csv',
+          filePath: file.path,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+        );
+      }
+    }
   }
 
   Widget _buildProductionTab() {
@@ -806,7 +926,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 20),
-          _buildRatioBar('Does', _doeConceptionRate, Color(0xFF8B5E3C)),
+          _buildRatioBar('Does', _doeConceptionRate, Color(0xFF6366F1)),
           SizedBox(height: 16),
           _buildRatioBar('Bucks', _buckConceptionRate, Color(0xFF475569)),
         ],
@@ -1130,7 +1250,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 ChartData item = entry.value;
                 double heightPercent = (item.value / maxValue) * 100;
                 Color barColor = heightPercent >= 70
-                    ? Color(0xFF8B5E3C)
+                    ? Color(0xFF6366F1)
                     : heightPercent >= 40
                         ? Color(0xFF475569)
                         : Color(0xFF94A3B8);
@@ -1192,7 +1312,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildDonutChart(String title, List<ChartData> data) {
     final colors = [
-      Color(0xFF8B5E3C),
+      Color(0xFF6366F1),
       Color(0xFF475569),
       Color(0xFF94A3B8),
       Color(0xFFF59E0B),
@@ -1374,7 +1494,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           SizedBox(height: 20),
           _buildRatioBar('Light (< 4.5 ${FormatUtils.weightUnit})', _lightPercent, Color(0xFF94A3B8)),
           SizedBox(height: 16),
-          _buildRatioBar('Target (4.5 - 5.5 ${FormatUtils.weightUnit})', _targetPercent, Color(0xFF8B5E3C)),
+          _buildRatioBar('Target (4.5 - 5.5 ${FormatUtils.weightUnit})', _targetPercent, Color(0xFF6366F1)),
           SizedBox(height: 16),
           _buildRatioBar('Heavy (> 5.5 ${FormatUtils.weightUnit})', _heavyPercent, Color(0xFF475569)),
         ],
@@ -1427,7 +1547,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           SizedBox(height: 12),
           Padding(
             padding: EdgeInsets.only(left: 24),
-            child: _buildFunnelItem('Mature', _matureCount, maturePct, 0, Color(0xFF8B5E3C)),
+            child: _buildFunnelItem('Mature', _matureCount, maturePct, 0, Color(0xFF6366F1)),
           ),
         ],
       ),

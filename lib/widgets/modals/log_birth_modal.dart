@@ -6,11 +6,13 @@ import '../../services/settings_service.dart';
 
 class LogBirthModal extends StatefulWidget {
   final Rabbit doe;
+  final Litter? existingLitter;
   final VoidCallback onComplete;
 
   const LogBirthModal({
     Key? key,
     required this.doe,
+    this.existingLitter,
     required this.onComplete,
   }) : super(key: key);
 
@@ -25,34 +27,62 @@ class _LogBirthModalState extends State<LogBirthModal> {
   final TextEditingController _aliveBornController = TextEditingController();
   final TextEditingController _weightAvgController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _colorsProducedController = TextEditingController();
+  final TextEditingController _patternsProducedController = TextEditingController();
+  final TextEditingController _bucksProducedController = TextEditingController();
+  final TextEditingController _doesProducedController = TextEditingController();
+  final TextEditingController _peanutsProducedController = TextEditingController();
   DateTime _kindleDate = DateTime.now();
   bool _isSaving = false;
+  bool _isMissedLitter = false;
 
   // ✅ Step management
   int _currentStep = 1; // 1 = Basic info, 2 = Kit details
   List<Map<String, dynamic>> _kitDetails = [];
 
   // ✅ Color options
-  final List<String> _colorOptions = [
-    'Black',
-    'White',
-    'Castor',
-    'Broken',
-    'Blue',
-    'Chinchilla',
-    'Chocolate',
-    'Opal',
-    'Orange',
-    'Fawn',
-    'Red',
-    'Sable',
-    'Unknown'
-  ];
+  List<String> get _colorOptions {
+    final colors = SettingsService.instance.colors;
+    if (!colors.contains('Unknown')) {
+      return [...colors, 'Unknown'];
+    }
+    return colors;
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadNextLitterId();
+    if (widget.existingLitter != null) {
+      final l = widget.existingLitter!;
+      _litterIdController.text = l.id;
+      _kindleDate = l.dob ?? DateTime.now();
+      _aliveBornController.text = l.totalKitsCount.toString();
+      _totalBornController.text = (l.totalKitsCount + (l.deadKits ?? 0)).toString();
+      _notesController.text = l.notes ?? '';
+      _colorsProducedController.text = l.colorsProduced ?? '';
+      _patternsProducedController.text = l.patternsProduced ?? '';
+      _bucksProducedController.text = l.maleCount.toString();
+      _doesProducedController.text = l.femaleCount.toString();
+      
+      // Calculate weight avg from kits if possible
+      if (l.kits.isNotEmpty) {
+        double totalW = 0;
+        for (var k in l.kits) totalW += k.weight;
+        _weightAvgController.text = (totalW / l.kits.length).toStringAsFixed(1);
+        
+        // Populate kit details for step 2
+        _kitDetails = l.kits.map((k) => {
+          'id': k.id,
+          'sex': k.sex,
+          'color': k.color,
+          'weight': k.weight,
+          'status': k.status,
+          'imagePath': k.imagePath,
+        }).toList();
+      }
+    } else {
+      _loadNextLitterId();
+    }
   }
 
   Future<void> _loadNextLitterId() async {
@@ -69,6 +99,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
     _aliveBornController.dispose();
     _weightAvgController.dispose();
     _notesController.dispose();
+    _colorsProducedController.dispose();
+    _patternsProducedController.dispose();
+    _bucksProducedController.dispose();
+    _doesProducedController.dispose();
+    _peanutsProducedController.dispose();
     super.dispose();
   }
 
@@ -113,7 +148,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _currentStep == 1 ? 'Log Birth (Kindle)' : 'Kit Details',
+                      widget.existingLitter != null 
+                        ? (_currentStep == 1 ? 'Edit Birth Info' : 'Edit Kit Details')
+                        : (_currentStep == 1 ? 'Log Birth (Kindle)' : 'Kit Details'),
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                     ),
                     SizedBox(height: 4),
@@ -163,7 +200,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
           controller: _litterIdController,
           decoration: InputDecoration(
             hintText: 'e.g., L-001',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
             prefixIcon: Icon(Icons.tag, color: Color(0xFF787774)),
           ),
         ),
@@ -194,6 +233,25 @@ class _LogBirthModalState extends State<LogBirthModal> {
         ),
         SizedBox(height: 20),
 
+        // Missed Litter Toggle
+        SwitchListTile(
+          title: Text('Missed Litter', style: TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text('Enable if the doe did not successfully kindle'),
+          value: _isMissedLitter,
+          onChanged: (val) {
+            setState(() {
+              _isMissedLitter = val;
+              if (val) {
+                _totalBornController.text = '0';
+                _aliveBornController.text = '0';
+              }
+            });
+          },
+          contentPadding: EdgeInsets.zero,
+          activeColor: Color(0xFF6366F1),
+        ),
+        SizedBox(height: 16),
+
         // Total Born
         Text(
           'Total Kits Born',
@@ -205,7 +263,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: 'Enter total kits',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
           ),
           onChanged: (value) {
             if (_aliveBornController.text.isEmpty) {
@@ -227,7 +287,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: 'Enter alive kits',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
           ),
           onChanged: (_) => setState(() {}),
         ),
@@ -259,7 +321,95 @@ class _LogBirthModalState extends State<LogBirthModal> {
               return SizedBox.shrink();
             },
           ),
-        SizedBox(height: 16),
+        if (!_isMissedLitter) SizedBox(height: 16),
+
+        // Summary Fields
+        if (!_isMissedLitter) ...[
+          Text('Litter Summary (optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _bucksProducedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Bucks',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _doesProducedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Does',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          TextField(
+            controller: _colorsProducedController,
+            decoration: InputDecoration(
+              labelText: 'Colors Produced',
+              labelStyle: TextStyle(color: Color(0xFFCCCBC8)),
+              hintText: 'e.g., Black, Blue, Broken',
+              hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+            ),
+          ),
+          SizedBox(height: 12),
+          TextField(
+            controller: _patternsProducedController,
+            decoration: InputDecoration(
+              labelText: 'Patterns Produced',
+              labelStyle: TextStyle(color: Color(0xFFBBB9B2), fontSize: 13),
+              hintText: 'e.g., Solid',
+              hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+            ),
+          ),
+          SizedBox(height: 12),
+          // Peanuts
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Peanuts Produced', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              Container(
+                decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(10)),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.remove, size: 18),
+                      onPressed: () {
+                         final current = int.tryParse(_peanutsProducedController.text) ?? 0;
+                         if (current > 0) _peanutsProducedController.text = (current - 1).toString();
+                         setState(() {});
+                      },
+                    ),
+                    SizedBox(child: Text(_peanutsProducedController.text.isEmpty ? '0' : _peanutsProducedController.text, style: TextStyle(fontWeight: FontWeight.bold))),
+                    IconButton(
+                      icon: Icon(Icons.add, size: 18),
+                      onPressed: () {
+                         final current = int.tryParse(_peanutsProducedController.text) ?? 0;
+                         _peanutsProducedController.text = (current + 1).toString();
+                         setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+        ],
 
         // Weight Average
         Text(
@@ -272,8 +422,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             hintText: 'e.g., 50',
+            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
             suffixText: 'g',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
           ),
         ),
         SizedBox(height: 16),
@@ -289,7 +441,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
           maxLines: 2,
           decoration: InputDecoration(
             hintText: 'Any observations about the birth...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
           ),
         ),
         SizedBox(height: 20),
@@ -306,16 +460,16 @@ class _LogBirthModalState extends State<LogBirthModal> {
           decoration: BoxDecoration(
             color: Color(0xFFF7EDE3),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Color(0xFF8B5E3C).withOpacity(0.2)),
+            border: Border.all(color: Color(0xFF6366F1).withOpacity(0.2)),
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF8B5E3C), size: 20),
+              Icon(Icons.info_outline, color: Color(0xFF6366F1), size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Add details for each kit. You can skip and update later.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF8B5E3C)),
+                  style: TextStyle(fontSize: 13, color: Color(0xFF6366F1)),
                 ),
               ),
             ],
@@ -350,7 +504,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Color(0xFF8B5E3C),
+                  color: Color(0xFF6366F1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -419,12 +573,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
           SizedBox(height: 8),
           TextField(
             keyboardType: TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(fontSize: 16),
             decoration: InputDecoration(
               hintText: 'e.g., 50',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              hintStyle: const TextStyle(color: Color(0xFFCCCBC8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE9E9E7))),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             controller: TextEditingController(text: kit['weight'].toString()),
             onChanged: (value) {
@@ -442,10 +599,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF8B5E3C) : Colors.white,
+          color: isSelected ? Color(0xFF6366F1) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE2E8F0),
+            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
@@ -465,27 +622,33 @@ class _LogBirthModalState extends State<LogBirthModal> {
       return Row(
         children: [
           Expanded(
+            flex: 2,
             child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: _isMissedLitter ? null : _validateAndProceed,
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 side: BorderSide(color: Color(0xFFE2E8F0)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+              child: Text('Add Kit Details', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600)),
             ),
           ),
           SizedBox(width: 12),
           Expanded(
-            flex: 2,
             child: ElevatedButton(
-              onPressed: _validateAndProceed,
+              onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF8B5E3C),
+                backgroundColor: Color(0xFF6366F1),
                 padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Next: Add Kit Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: _isSaving
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -510,7 +673,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF8B5E3C),
+                backgroundColor: Color(0xFF6366F1),
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -579,23 +742,52 @@ class _LogBirthModalState extends State<LogBirthModal> {
       await SettingsService.instance.init();
       final weaningWeeks = 8;
 
-      await _db.logBirth(
-        widget.doe.id,
-        totalBorn,
-        aliveBorn,
-        _kindleDate,
-        weaningWeeks,
-        litterId: _litterIdController.text.trim(),
-        kits: _kitDetails,
-      );
+      if (widget.existingLitter != null) {
+        // Prepare updated litter object
+        final updatedLitter = widget.existingLitter!.copyWith(
+          dob: _kindleDate,
+          notes: _notesController.text,
+          kits: _kitDetails.map((k) => Kit(
+            id: k['id'],
+            sex: k['sex'],
+            color: k['color'],
+            weight: k['weight'],
+            status: k['status'],
+          )).toList(),
+          colorsProduced: _colorsProducedController.text,
+          patternsProduced: _patternsProducedController.text,
+          bucksProduced: int.tryParse(_bucksProducedController.text) ?? 0,
+          doesProduced: int.tryParse(_doesProducedController.text) ?? 0,
+          deadKits: (int.tryParse(_totalBornController.text) ?? 0) - (int.tryParse(_aliveBornController.text) ?? 0),
+        );
+        await _db.updateLitter(updatedLitter);
+      } else {
+        await _db.logBirth(
+          widget.doe.id,
+          totalBorn,
+          aliveBorn,
+          _kindleDate,
+          weaningWeeks,
+          litterId: _litterIdController.text.trim(),
+          kits: _kitDetails,
+          missedLitter: _isMissedLitter,
+          colorsProduced: _colorsProducedController.text,
+          patternsProduced: _patternsProducedController.text,
+          bucksProduced: int.tryParse(_bucksProducedController.text),
+          doesProduced: int.tryParse(_doesProducedController.text),
+          peanutsProduced: int.tryParse(_peanutsProducedController.text),
+        );
+      }
 
       Navigator.pop(context);
       widget.onComplete();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Birth logged: ${_litterIdController.text} with $aliveBorn kits'),
-          backgroundColor: Color(0xFF8B5E3C),
+          content: Text(widget.existingLitter != null 
+            ? 'Litter ${_litterIdController.text} updated successfully'
+            : 'Birth logged: ${_litterIdController.text} with $aliveBorn kits'),
+          backgroundColor: Color(0xFF6366F1),
         ),
       );
     } catch (e) {

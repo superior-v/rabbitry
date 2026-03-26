@@ -70,7 +70,7 @@ class _NotesCardState extends State<NotesCard> {
                     _isEditing ? 'Done' : 'Edit',
                     style: TextStyle(
                       fontSize: 12,
-                      color: _isEditing ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                      color: _isEditing ? Color(0xFF6366F1) : Color(0xFF787774),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -92,7 +92,7 @@ class _NotesCardState extends State<NotesCard> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                        borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
                       ),
                     ),
                   )

@@ -291,7 +291,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveWean,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF8B5E3C),
+                    backgroundColor: Color(0xFF6366F1),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
+import '../services/format_utils.dart';
+
+const kPrimary = Color(0xFF6366F1);
+const kPink = Color(0xFFEC4899);
+const kPurple = Color(0xFF8B5CF6);
 
 class RabbitCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -20,74 +25,74 @@ class RabbitCard extends StatelessWidget {
     final String? photoPath = hasPhoto ? rabbit.photos!.first : null;
     final bool isPhotoValid = photoPath != null && File(photoPath).existsSync();
 
+    // Use your existing palette for the header background
+    final Color headerColor = rabbit.type == RabbitType.doe
+        ? const Color(0xFFFCE7F3) // Light Pink for Does
+        : const Color(0xFFE8F4FA); // Light Blue for Bucks
+
     return GestureDetector(
       onTap: onLongPress,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white, // Kept the full structure color white as requested
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE9E9E7)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2)
+            )
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // PROFILE PICTURE
+            // TOP HEADER SECTION (Colored matching the reference image)
             Container(
-              width: 56,
-              height: 56,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: rabbit.type == RabbitType.doe ? const Color(0xFFF3E8FF) : const Color(0xFFE8F4FA),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: rabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
-                  width: 2,
+                color: headerColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
                 ),
               ),
-              child: isPhotoValid
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // PROFILE PICTURE (Rounded square as per screenshot)
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: isPhotoValid
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
                       child: Image.file(
                         File(photoPath!),
                         fit: BoxFit.cover,
-                        // ✅ ADD UNIQUE KEY WITH TIMESTAMP
                         key: ValueKey('${rabbit.id}_${photoPath}_${File(photoPath).lastModifiedSync().millisecondsSinceEpoch}'),
                         errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(),
-                        // ✅ Only set cacheWidth to preserve aspect ratio
                         cacheWidth: 200,
                       ),
                     )
-                  : _buildDefaultIcon(),
-            ),
-            const SizedBox(width: 12),
+                        : _buildDefaultIcon(),
+                  ),
+                  const SizedBox(width: 12),
 
-            // RABBIT INFO
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name and ID
-                  Row(
-                    children: [
-                      Text(
-                        rabbit.id,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          rabbit.name,
+                  // HEADER INFO: Prefix, Name, Breed, Color
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${rabbit.breederPrefix != null ? '${rabbit.breederPrefix} ' : ''}${rabbit.name}',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -96,90 +101,95 @@ class RabbitCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Location
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, size: 12, color: Color(0xFF787774)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${rabbit.location ?? 'Unassigned'} • ${rabbit.cage ?? '-'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF787774),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Status Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Color(rabbit.statusColor).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      rabbit.statusText,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(rabbit.statusColor),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Details
-                  if (rabbit.statusDetails != null)
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline, size: 12, color: Color(0xFF9B9A97)),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            rabbit.statusDetails!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF9B9A97),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.pets, size: 12, color: Color(0xFF9B9A97)),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          rabbit.breed,
+                          '${rabbit.breed}${rabbit.color != null ? '\n${rabbit.color}' : ''}',
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF9B9A97),
+                            fontSize: 12,
+                            color: Color(0xFF787774),
+                            height: 1.3,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
+                  ),
+
+                  // STATUS BADGE & MENU
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          rabbit.statusText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(rabbit.statusColor),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: onTap,
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
 
-            // THREE DOTS MENU
-            InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: const Icon(
-                  Icons.more_vert,
-                  color: Color(0xFF787774),
-                  size: 20,
-                ),
+            // BOTTOM DETAILS SECTION (White background, 2 columns)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Column 1
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoRow('Born:', rabbit.dateOfBirth != null ? FormatUtils.formatDate(rabbit.dateOfBirth!) : '-'),
+                        const SizedBox(height: 4),
+                        _buildInfoRow('Ear #:', rabbit.earNumber ?? rabbit.id),
+                        const SizedBox(height: 4),
+                        _buildInfoRow('Parents:', (rabbit.sireId != null || rabbit.damId != null) 
+                            ? '${rabbit.sireId ?? '?'} x ${rabbit.damId ?? '?'}' 
+                            : '-'),
+                        const SizedBox(height: 4),
+                        _buildInfoRow('Regn:', rabbit.registrationNumber ?? '-'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Column 2
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoRow('Age:', rabbit.dateOfBirth != null ? rabbit.age : '-'),
+                        const SizedBox(height: 4),
+                        _buildInfoRow('Weight:', rabbit.weight != null ? FormatUtils.formatWeight(rabbit.weight!) : '-'),
+                        const SizedBox(height: 4),
+                        if (rabbit.statusDetails != null && rabbit.statusDetails!.isNotEmpty)
+                          _buildInfoRow('Note:', rabbit.statusDetails!),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -188,12 +198,43 @@ class RabbitCard extends StatelessWidget {
     );
   }
 
-  // 🎨 Helper method for default icon
   Widget _buildDefaultIcon() {
     return Icon(
       rabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-      color: rabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+      color: rabbit.type == RabbitType.doe ? kPurple : kPrimary,
       size: 28,
+    );
+  }
+
+  // Helper widget to align the labels and values perfectly
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 55, // Fixed width keeps the columns aligned
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF9B9A97),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

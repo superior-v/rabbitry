@@ -177,7 +177,7 @@ class _StatsCardsState extends State<StatsCards> {
       children: [
         Expanded(child: _buildPerformanceBox(survival, 'Survival', const Color(0xFF6B9E78))),
         const SizedBox(width: 12),
-        Expanded(child: _buildPerformanceBox(avgLitter, 'Avg Litter', const Color(0xFF8B5E3C))),
+        Expanded(child: _buildPerformanceBox(avgLitter, 'Avg Litter', const Color(0xFF6366F1))),
         const SizedBox(width: 12),
         Expanded(child: _buildPerformanceBox(avgGest, 'Avg Gest.', const Color(0xFF5B8AD0))),
         const SizedBox(width: 12),
@@ -388,7 +388,7 @@ class _StatsCardsState extends State<StatsCards> {
       barRods: [
         BarChartRodData(
           toY: y,
-          color: const Color(0xFF8B5E3C),
+          color: const Color(0xFF6366F1),
           width: 16,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
         ),
@@ -406,10 +406,10 @@ class _StatsCardsState extends State<StatsCards> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF8B5E3C).withOpacity(0.1) : Colors.transparent,
+          color: isActive ? const Color(0xFF6366F1).withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: isActive ? const Color(0xFF8B5E3C) : const Color(0xFFE9E9E7),
+            color: isActive ? const Color(0xFF6366F1) : const Color(0xFFE9E9E7),
           ),
         ),
         child: Text(
@@ -417,7 +417,7 @@ class _StatsCardsState extends State<StatsCards> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isActive ? const Color(0xFF8B5E3C) : const Color(0xFF787774),
+            color: isActive ? const Color(0xFF6366F1) : const Color(0xFF787774),
           ),
         ),
       ),
@@ -474,7 +474,7 @@ class _StatsCardsState extends State<StatsCards> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildOutcomeRow('Sold', sold, const Color(0xFF8B5E3C), totalOutcomes > 0 ? sold / totalOutcomes : 0),
+          _buildOutcomeRow('Sold', sold, const Color(0xFF6366F1), totalOutcomes > 0 ? sold / totalOutcomes : 0),
           const SizedBox(height: 12),
           _buildOutcomeRow('Breeder', breeder, const Color(0xFF5B8AD0), totalOutcomes > 0 ? breeder / totalOutcomes : 0),
           if (SettingsService.instance.meatProductionEnabled) ...[
@@ -482,7 +482,7 @@ class _StatsCardsState extends State<StatsCards> {
             _buildOutcomeRow('Butchered', butchered, const Color(0xFF9C6ADE), totalOutcomes > 0 ? butchered / totalOutcomes : 0),
           ],
           const SizedBox(height: 12),
-          _buildOutcomeRow('Died', died, const Color(0xFFCB8347), totalOutcomes > 0 ? died / totalOutcomes : 0),
+          _buildOutcomeRow('Died', died, const Color(0xFF8B5CF6), totalOutcomes > 0 ? died / totalOutcomes : 0),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -577,8 +577,8 @@ class _StatsCardsState extends State<StatsCards> {
     final maxSize = _litters.isEmpty ? 1 : _litters.map((l) => l.totalKits ?? 0).reduce((a, b) => a > b ? a : b);
 
     final statusColors = {
-      'nursing': const Color(0xFF8B5E3C),
-      'Nursing': const Color(0xFF8B5E3C),
+      'nursing': const Color(0xFF6366F1),
+      'Nursing': const Color(0xFF6366F1),
       'weaned': const Color(0xFF5B8AD0),
       'Weaned': const Color(0xFF5B8AD0),
       'growing': const Color(0xFF6B9E78),
@@ -664,7 +664,7 @@ class _StatsCardsState extends State<StatsCards> {
                     child: LinearProgressIndicator(
                       value: progress,
                       backgroundColor: const Color(0xFFF7F7F5),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5E3C)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                       minHeight: 20,
                     ),
                   ),
@@ -753,14 +753,14 @@ class _StatsCardsState extends State<StatsCards> {
                 onTap: widget.onAddTransaction,
                 child: const Row(
                   children: [
-                    Icon(Icons.add, size: 16, color: Color(0xFF8B5E3C)),
+                    Icon(Icons.add, size: 16, color: Color(0xFF6366F1)),
                     SizedBox(width: 4),
                     Text(
                       'ADD',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF8B5E3C),
+                        color: Color(0xFF6366F1),
                       ),
                     ),
                   ],
@@ -776,14 +776,14 @@ class _StatsCardsState extends State<StatsCards> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildFinancialBox(FormatUtils.formatCurrencyShort(expenses), 'EXPENSES', const Color(0xFFCB8347)),
+                child: _buildFinancialBox(FormatUtils.formatCurrencyShort(expenses), 'EXPENSES', const Color(0xFF8B5CF6)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildFinancialBox(
                   FormatUtils.formatCurrencySigned(net),
                   'NET',
-                  net >= 0 ? const Color(0xFF8B5E3C) : const Color(0xFFCB8347),
+                  net >= 0 ? const Color(0xFF6366F1) : const Color(0xFF8B5CF6),
                 ),
               ),
             ],
@@ -819,7 +819,7 @@ class _StatsCardsState extends State<StatsCards> {
                   t.categoryName,
                   t.description ?? '',
                   '${isIncome ? '+' : '-'}${FormatUtils.formatCurrencyShort(t.amount)}',
-                  isIncome ? const Color(0xFF6B9E78) : const Color(0xFFCB8347),
+                  isIncome ? const Color(0xFF6B9E78) : const Color(0xFF8B5CF6),
                 ),
               );
             }),
@@ -835,11 +835,11 @@ class _StatsCardsState extends State<StatsCards> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF8B5E3C),
+                      color: Color(0xFF6366F1),
                     ),
                   ),
                   SizedBox(width: 4),
-                  Icon(Icons.arrow_forward, size: 16, color: Color(0xFF8B5E3C)),
+                  Icon(Icons.arrow_forward, size: 16, color: Color(0xFF6366F1)),
                 ],
               ),
             ),

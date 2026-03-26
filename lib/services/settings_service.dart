@@ -50,6 +50,7 @@ class SettingsService {
 
   // Task logic
   bool get snowballEffect => _prefs?.getBool('snowballEffect') ?? true;
+  bool get autoRemoveCompletedTasks => _prefs?.getBool('autoRemoveCompletedTasks') ?? false;
 
   // Farm info
   String get farmName => _prefs?.getString('farmName') ?? 'Dynasty';
@@ -381,6 +382,10 @@ class SettingsService {
 
   Future<void> setSnowballEffect(bool enabled) async {
     await _prefs?.setBool('snowballEffect', enabled);
+  }
+
+  Future<void> setAutoRemoveCompletedTasks(bool enabled) async {
+    await _prefs?.setBool('autoRemoveCompletedTasks', enabled);
   }
 
   // Setters for farm info

@@ -40,7 +40,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Confirm Pregnancy',
+                  'Confirm Bred',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -64,7 +64,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
 
             // Pregnancy Options
             Text(
-              'Is the doe pregnant?',
+              'Is the doe bred?',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -75,10 +75,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
 
             // Pregnant Option
             _buildOption(
-              title: 'Yes, Pregnant',
-              subtitle: 'Continue pregnancy pipeline',
+              title: 'Yes, Bred',
+              subtitle: 'Continue gestation pipeline',
               icon: Icons.check_circle,
-              color: Color(0xFF8B5E3C),
+              color: Color(0xFF6366F1),
               isSelected: _isPregnant == true,
               onTap: () => setState(() => _isPregnant = true),
             ),
@@ -86,7 +86,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
 
             // Not Pregnant Option
             _buildOption(
-              title: 'No, Not Pregnant (Open)',
+              title: 'No, Not Bred (Open)',
               subtitle: 'Reset to open status',
               icon: Icons.cancel,
               color: Color(0xFFD44C47),
@@ -105,7 +105,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, color: Color(0xFF8B5E3C)),
+                    Icon(Icons.calendar_today, color: Color(0xFF6366F1)),
                     SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +122,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF8B5E3C),
+                            color: Color(0xFF6366F1),
                           ),
                         ),
                       ],
@@ -138,7 +138,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               child: ElevatedButton(
                 onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF8B5E3C),
+                  backgroundColor: Color(0xFF6366F1),
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -239,8 +239,8 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isPregnant! ? 'Pregnancy confirmed' : 'Marked as open'),
-          backgroundColor: Color(0xFF8B5E3C),
+          content: Text(_isPregnant! ? 'Bred status confirmed' : 'Marked as open'),
+          backgroundColor: Color(0xFF6366F1),
         ),
       );
     } catch (e) {

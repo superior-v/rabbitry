@@ -6,8 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class GeneticsCard extends StatefulWidget {
   final Rabbit rabbit;
+  final bool isEditing;
 
-  const GeneticsCard({Key? key, required this.rabbit}) : super(key: key);
+  const GeneticsCard({Key? key, required this.rabbit, this.isEditing = false}) : super(key: key);
 
   @override
   State<GeneticsCard> createState() => _GeneticsCardState();
@@ -175,22 +176,22 @@ class _GeneticsCardState extends State<GeneticsCard> {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    _buildCheckbox('Broken', isBroken, (value) {
+                    _buildCheckbox('Broken', isBroken, widget.isEditing ? (value) {
                       setState(() => isBroken = value ?? false);
                       _saveCheckboxState('broken', value ?? false);
-                    }, color: Color(0xFF8B5E3C)),
+                    } : null, color: Color(0xFF6366F1)),
                     SizedBox(width: 16),
-                    _buildCheckbox('Vienna Marked', isViennaMarked, (value) {
+                    _buildCheckbox('Vienna Marked', isViennaMarked, widget.isEditing ? (value) {
                       setState(() => isViennaMarked = value ?? false);
                       _saveCheckboxState('vienna_marked', value ?? false);
-                    }, color: Color(0xFF8B5E3C)),
+                    } : null, color: Color(0xFF6366F1)),
                   ],
                 ),
                 SizedBox(height: 8),
-                _buildCheckbox('Vienna Carrier', isViennaCarrier, (value) {
+                _buildCheckbox('Vienna Carrier', isViennaCarrier, widget.isEditing ? (value) {
                   setState(() => isViennaCarrier = value ?? false);
                   _saveCheckboxState('vienna_carrier', value ?? false);
-                }, color: Color(0xFF8B5E3C)),
+                } : null, color: Color(0xFF6366F1)),
               ],
             ),
           ),
@@ -201,7 +202,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
 
   Widget _buildLocusBox(String name, String value) {
     return GestureDetector(
-      onTap: () => _showEditLocusDialog(name, value),
+      onTap: widget.isEditing ? () => _showEditLocusDialog(name, value) : null,
       child: Container(
         decoration: BoxDecoration(
           color: Color(0xFFF7F7F5),
@@ -236,9 +237,9 @@ class _GeneticsCardState extends State<GeneticsCard> {
     );
   }
 
-  Widget _buildCheckbox(String label, bool value, ValueChanged<bool?> onChanged, {Color? color}) {
+  Widget _buildCheckbox(String label, bool value, ValueChanged<bool?>? onChanged, {Color? color}) {
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: onChanged != null ? () => onChanged(!value) : null,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -318,10 +319,10 @@ class _GeneticsCardState extends State<GeneticsCard> {
         margin: EdgeInsets.symmetric(vertical: 4),
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF8B5E3C).withOpacity(0.1) : Color(0xFFF7F7F5),
+          color: isSelected ? Color(0xFF6366F1).withOpacity(0.1) : Color(0xFFF7F7F5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
+            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -329,7 +330,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
           children: [
             Icon(
               isSelected ? PhosphorIcons.radioButton(PhosphorIconsStyle.fill) : PhosphorIcons.circle(),
-              color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF9B9A97),
+              color: isSelected ? Color(0xFF6366F1) : Color(0xFF9B9A97),
               size: 20,
             ),
             SizedBox(width: 12),

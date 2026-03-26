@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/database_service.dart';
 import 'services/settings_service.dart';
+import 'services/notification_service.dart';
 import 'screens/home_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await SettingsService.instance.init();
+  await NotificationService.instance.init();
   await DatabaseService().database;
 
   // Backfill finance transactions for kits/rabbits sold before the fix
@@ -36,10 +38,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B5E3C),
-          primary: const Color(0xFF8B5E3C),
+          seedColor: const Color(0xFF7B6BA0),
+          primary: const Color(0xFF7B6BA0),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF7F7F5),
+        scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -51,12 +53,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF8B5E3C),
+          backgroundColor: Color(0xFF7B6BA0),
           foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF8B5E3C),
+            backgroundColor: const Color(0xFF7B6BA0),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

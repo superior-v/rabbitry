@@ -10,6 +10,7 @@ class PedigreeRabbit {
   PedigreeRabbit? sire;
   PedigreeRabbit? dam;
   final int generation;
+  final bool isExternal;
 
   PedigreeRabbit({
     required this.id,
@@ -23,6 +24,7 @@ class PedigreeRabbit {
     this.sire,
     this.dam,
     this.generation = 0,
+    this.isExternal = false,
   });
 
   // Add method to update profile image
@@ -42,6 +44,7 @@ class PedigreeRabbit {
     PedigreeRabbit? sire,
     PedigreeRabbit? dam,
     int? generation,
+    bool? isExternal,
   }) {
     return PedigreeRabbit(
       id: id ?? this.id,
@@ -55,6 +58,7 @@ class PedigreeRabbit {
       sire: sire ?? this.sire,
       dam: dam ?? this.dam,
       generation: generation ?? this.generation,
+      isExternal: isExternal ?? this.isExternal,
     );
   }
 
@@ -71,6 +75,7 @@ class PedigreeRabbit {
       'sire': sire?.toJson(),
       'dam': dam?.toJson(),
       'generation': generation,
+      'isExternal': isExternal,
     };
   }
 
@@ -87,6 +92,7 @@ class PedigreeRabbit {
       sire: json['sire'] != null ? PedigreeRabbit.fromJson(json['sire']) : null,
       dam: json['dam'] != null ? PedigreeRabbit.fromJson(json['dam']) : null,
       generation: json['generation'] ?? 0,
+      isExternal: json['isExternal'] ?? false,
     );
   }
 }

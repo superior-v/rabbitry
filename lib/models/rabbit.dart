@@ -5,6 +5,7 @@ enum RabbitType {
   buck,
   kit,
   archive,
+  pedigree,
 }
 
 enum RabbitStatus {
@@ -44,7 +45,7 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get color {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFF8B5E3C); // Green
+        return const Color(0xFF6366F1); // Green
       case ArchiveReason.butchered:
         return const Color(0xFF6B6B6B); // Gray
       case ArchiveReason.dead:
@@ -57,7 +58,7 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get backgroundColor {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFFF0E6DA);
+        return const Color(0xFFEDE9FE);
       case ArchiveReason.butchered:
         return const Color(0xFFF5F5F5);
       case ArchiveReason.dead:
@@ -111,6 +112,10 @@ class Rabbit {
   DateTime? kindleDate;
   int? currentLitterSize;
   DateTime? weanDate;
+
+  // New Breeding fields
+  int? fallOffs;
+  String? breedingNotes;
 
   // Growout fields
   DateTime? maturityDate;
@@ -191,6 +196,8 @@ class Rabbit {
     this.customNestBoxDay,
     this.customGestationDay,
     this.customWeanWeek,
+    this.fallOffs,
+    this.breedingNotes,
     this.earNumber,
     this.otherBreed,
     this.otherColor,
@@ -235,13 +242,13 @@ class Rabbit {
     final weeks = ((difference.inDays % 30) / 7).floor();
 
     if (years > 0) {
-      return '${years}y ${months}m';
+      return '${years} yr ${months} mo';
     } else if (months > 0) {
-      return '${months}m ${weeks}w';
+      return '${months} mo ${weeks} w';
     } else if (weeks > 0) {
-      return '${weeks}w';
+      return '${weeks} w';
     } else {
-      return '${difference.inDays}d';
+      return '${difference.inDays} d';
     }
   }
 
@@ -253,7 +260,7 @@ class Rabbit {
       case RabbitStatus.palpateDue:
         return 'Palpate Due';
       case RabbitStatus.pregnant:
-        return 'Pregnant';
+        return 'Bred';
       case RabbitStatus.nursing:
         return 'Nursing';
       case RabbitStatus.resting:
@@ -316,9 +323,9 @@ class Rabbit {
   int get statusColor {
     switch (status) {
       case RabbitStatus.open:
-        return 0xFF8B5E3C;
+        return 0xFF6366F1;
       case RabbitStatus.palpateDue:
-        return 0xFFCB8347;
+        return 0xFF8B5CF6;
       case RabbitStatus.pregnant:
         return 0xFF9C6ADE;
       case RabbitStatus.nursing:
@@ -326,11 +333,11 @@ class Rabbit {
       case RabbitStatus.resting:
         return 0xFF787774;
       case RabbitStatus.active:
-        return 0xFF8B5E3C;
+        return 0xFF6366F1;
       case RabbitStatus.inactive:
         return 0xFF9B9A97;
       case RabbitStatus.growout:
-        return 0xFFCB8347;
+        return 0xFF8B5CF6;
       case RabbitStatus.quarantine:
         return 0xFFD44C47;
       case RabbitStatus.archived:
@@ -347,7 +354,7 @@ class Rabbit {
         if (daysUntilDue != null) {
           return 'Due: ${dueDate?.day}/${dueDate?.month} • $daysUntilDue Days left';
         }
-        return 'Pregnant';
+        return 'Bred';
       case RabbitStatus.nursing:
         if (currentLitterSize != null) {
           final weeksOld = weanDate != null ? ((weanDate!.difference(DateTime.now()).inDays.abs()) / 7).floor() : 0;
@@ -399,6 +406,8 @@ class Rabbit {
       'kindleDate': kindleDate?.toIso8601String(),
       'currentLitterSize': currentLitterSize,
       'weanDate': weanDate?.toIso8601String(),
+      'fallOffs': fallOffs,
+      'breedingNotes': breedingNotes,
       'maturityDate': maturityDate?.toIso8601String(),
       'quarantineStartDate': quarantineStartDate?.toIso8601String(),
       'quarantineEndDate': quarantineEndDate?.toIso8601String(),
@@ -435,7 +444,7 @@ class Rabbit {
       name: map['name'],
       type: RabbitType.values.firstWhere(
         (e) => e.toString() == map['type'],
-        orElse: () => RabbitType.doe,
+        orElse: () => map['type'] == 'RabbitType.pedigree' ? RabbitType.pedigree : RabbitType.doe,
       ),
       status: RabbitStatus.values.firstWhere(
         (e) => e.toString() == map['status'],
@@ -465,6 +474,8 @@ class Rabbit {
       kindleDate: map['kindleDate'] != null ? DateTime.parse(map['kindleDate']) : null,
       currentLitterSize: map['currentLitterSize'],
       weanDate: map['weanDate'] != null ? DateTime.parse(map['weanDate']) : null,
+      fallOffs: map['fallOffs'] as int?,
+      breedingNotes: map['breedingNotes'] as String?,
       maturityDate: map['maturityDate'] != null ? DateTime.parse(map['maturityDate']) : null,
       quarantineStartDate: map['quarantineStartDate'] != null ? DateTime.parse(map['quarantineStartDate']) : null,
       quarantineEndDate: map['quarantineEndDate'] != null ? DateTime.parse(map['quarantineEndDate']) : null,
@@ -542,6 +553,8 @@ class Rabbit {
     int? customNestBoxDay,
     int? customGestationDay,
     int? customWeanWeek,
+    int? fallOffs,
+    String? breedingNotes,
     String? earNumber,
     String? otherBreed,
     String? otherColor,
@@ -599,6 +612,8 @@ class Rabbit {
       customNestBoxDay: customNestBoxDay ?? this.customNestBoxDay,
       customGestationDay: customGestationDay ?? this.customGestationDay,
       customWeanWeek: customWeanWeek ?? this.customWeanWeek,
+      fallOffs: fallOffs ?? this.fallOffs,
+      breedingNotes: breedingNotes ?? this.breedingNotes,
       earNumber: earNumber ?? this.earNumber,
       otherBreed: otherBreed ?? this.otherBreed,
       otherColor: otherColor ?? this.otherColor,

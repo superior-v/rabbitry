@@ -194,7 +194,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 decoration: BoxDecoration(
                   color: _type == TransactionType.income ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  border: _type == TransactionType.income ? Border.all(color: Color(0xFF8B5E3C), width: 2) : null,
+                  border: _type == TransactionType.income ? Border.all(color: Color(0xFF6366F1), width: 2) : null,
                 ),
                 child: Center(
                   child: Text(
@@ -202,7 +202,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: _type == TransactionType.income ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                      color: _type == TransactionType.income ? Color(0xFF6366F1) : Color(0xFF787774),
                     ),
                   ),
                 ),
@@ -282,7 +282,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: isSelected ? Border.all(color: Color(0xFF8B5E3C)) : null,
+            border: isSelected ? Border.all(color: Color(0xFF6366F1)) : null,
           ),
           child: Center(
             child: Text(
@@ -290,7 +290,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                color: isSelected ? Color(0xFF6366F1) : Color(0xFF787774),
               ),
             ),
           ),
@@ -399,7 +399,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: isSelected ? Border.all(color: Color(0xFF8B5E3C)) : null,
+            border: isSelected ? Border.all(color: Color(0xFF6366F1)) : null,
           ),
           child: Center(
             child: Text(
@@ -407,7 +407,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                color: isSelected ? Color(0xFF6366F1) : Color(0xFF787774),
               ),
             ),
           ),
@@ -504,9 +504,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       padding: EdgeInsets.all(16),
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Color(0xFFF0E6DA),
+        color: Color(0xFFEDE9FE),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFF8B5E3C)),
+        border: Border.all(color: Color(0xFF6366F1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +516,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF8B5E3C),
+              color: Color(0xFF6366F1),
               letterSpacing: 0.5,
             ),
           ),
@@ -553,7 +553,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             prefixStyle: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: _type == TransactionType.income ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
+              color: _type == TransactionType.income ? Color(0xFF6366F1) : Color(0xFFDC2626),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -566,7 +566,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: _type == TransactionType.income ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
+                color: _type == TransactionType.income ? Color(0xFF6366F1) : Color(0xFFDC2626),
                 width: 2,
               ),
             ),
@@ -574,7 +574,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: _type == TransactionType.income ? Color(0xFF8B5E3C) : Color(0xFFDC2626),
+            color: _type == TransactionType.income ? Color(0xFF6366F1) : Color(0xFFDC2626),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -607,7 +607,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 decoration: BoxDecoration(
                   color: _usePerItem ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
-                  border: _usePerItem ? Border.all(color: Color(0xFF8B5E3C)) : null,
+                  border: _usePerItem ? Border.all(color: Color(0xFF6366F1)) : null,
                 ),
                 child: Center(
                   child: Text(
@@ -615,7 +615,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: _usePerItem ? FontWeight.w600 : FontWeight.w500,
-                      color: _usePerItem ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                      color: _usePerItem ? Color(0xFF6366F1) : Color(0xFF787774),
                     ),
                   ),
                 ),
@@ -630,7 +630,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 decoration: BoxDecoration(
                   color: !_usePerItem ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
-                  border: !_usePerItem ? Border.all(color: Color(0xFF8B5E3C)) : null,
+                  border: !_usePerItem ? Border.all(color: Color(0xFF6366F1)) : null,
                 ),
                 child: Center(
                   child: Text(
@@ -638,7 +638,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: !_usePerItem ? FontWeight.w600 : FontWeight.w500,
-                      color: !_usePerItem ? Color(0xFF8B5E3C) : Color(0xFF787774),
+                      color: !_usePerItem ? Color(0xFF6366F1) : Color(0xFF787774),
                     ),
                   ),
                 ),
@@ -776,7 +776,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return ElevatedButton(
       onPressed: _saveTransaction,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
         foregroundColor: Colors.white,
         padding: EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(

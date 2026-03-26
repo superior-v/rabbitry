@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/pedigree.dart';
+import '../models/rabbit.dart';
+import '../services/database_service.dart';
 
 class PedigreeScreen extends StatefulWidget {
   final String rabbitId;
@@ -15,9 +17,10 @@ class PedigreeScreen extends StatefulWidget {
 }
 
 class _PedigreeScreenState extends State<PedigreeScreen> {
-  int _generations = 3;
   late PedigreeRabbit _rabbit;
   bool _isEditing = false;
+  bool _isLoading = true;
+  final DatabaseService _db = DatabaseService();
   final ImagePicker _imagePicker = ImagePicker();
 
   Future<bool> _requestPermission(ImageSource source) async {
@@ -42,15 +45,22 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     _loadPedigreeData();
   }
 
-  void _loadPedigreeData() {
-    _rabbit = PedigreeRabbit(
-      id: widget.rabbitId,
-      name: 'Unknown',
-      breed: 'Unknown',
-      color: 'Unknown',
-      sex: 'Unknown',
-      generation: 0,
-    );
+  Future<void> _loadPedigreeData() async {
+    setState(() => _isLoading = true);
+    try {
+      final tree = await _db.buildPedigreeTree(widget.rabbitId, maxGenerations: 5);
+      if (mounted) {
+        setState(() {
+          _rabbit = tree;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading pedigree: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -76,7 +86,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           IconButton(
             icon: Icon(
               _isEditing ? Icons.check : Icons.edit,
-              color: _isEditing ? Color(0xFF8B5E3C) : Colors.black87,
+              color: _isEditing ? Color(0xFF6366F1) : Colors.black87,
             ),
             onPressed: () {
               setState(() => _isEditing = !_isEditing);
@@ -115,23 +125,25 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildGenerationSelector(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildSubjectCard(),
-                  SizedBox(height: 24),
-                  _buildPedigreeTree(),
-                  SizedBox(height: 40),
-                ],
-              ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
+          : Column(
+              children: [
+                _buildGenerationSelector(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildSubjectCard(),
+                        SizedBox(height: 24),
+                        _buildPedigreeTree(),
+                        SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -163,9 +175,9 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 margin: EdgeInsets.only(right: 8),
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isActive ? Color(0xFF8B5E3C) : Colors.white,
+                  color: isActive ? Color(0xFF6366F1) : Colors.white,
                   border: Border.all(
-                    color: isActive ? Color(0xFF8B5E3C) : Color(0xFFE9E9E7),
+                    color: isActive ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -192,7 +204,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFF8B5E3C),
+            Color(0xFF6366F1),
             Color(0xFF14B8A6)
           ],
           begin: Alignment.topLeft,
@@ -201,7 +213,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF8B5E3C).withOpacity(0.3),
+            color: Color(0xFF6366F1).withOpacity(0.3),
             blurRadius: 12,
             offset: Offset(0, 4),
           ),
@@ -247,12 +259,12 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Color(0xFF8B5E3C), width: 2),
+                          border: Border.all(color: Color(0xFF6366F1), width: 2),
                         ),
                         child: Icon(
                           Icons.camera_alt,
                           size: 12,
-                          color: Color(0xFF8B5E3C),
+                          color: Color(0xFF6366F1),
                         ),
                       ),
                     ),
@@ -335,7 +347,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             padding: EdgeInsets.only(bottom: 16),
             child: Row(
               children: [
-                Icon(Icons.account_tree, color: Color(0xFF8B5E3C), size: 20),
+                Icon(Icons.account_tree, color: Color(0xFF6366F1), size: 20),
                 SizedBox(width: 8),
                 Text(
                   'Ancestry Tree',
@@ -378,8 +390,8 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildTreeCard(_rabbit.sire, label: 'SIRE'),
-              _buildTreeCard(_rabbit.dam, label: 'DAM'),
+              _buildTreeCard(_rabbit.sire, label: 'SIRE', childId: _rabbit.id, isSire: true),
+              _buildTreeCard(_rabbit.dam, label: 'DAM', childId: _rabbit.id, isSire: false),
             ],
           ),
         ),
@@ -390,10 +402,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildTreeCard(_rabbit.sire?.sire, label: 'SIRE'),
-                _buildTreeCard(_rabbit.sire?.dam, label: 'DAM'),
-                _buildTreeCard(_rabbit.dam?.sire, label: 'SIRE'),
-                _buildTreeCard(_rabbit.dam?.dam, label: 'DAM'),
+                _buildTreeCard(_rabbit.sire?.sire, label: 'SIRE', childId: _rabbit.sire?.id, isSire: true),
+                _buildTreeCard(_rabbit.sire?.dam, label: 'DAM', childId: _rabbit.sire?.id, isSire: false),
+                _buildTreeCard(_rabbit.dam?.sire, label: 'SIRE', childId: _rabbit.dam?.id, isSire: true),
+                _buildTreeCard(_rabbit.dam?.dam, label: 'DAM', childId: _rabbit.dam?.id, isSire: false),
               ],
             ),
           ),
@@ -405,14 +417,14 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildTreeCard(_rabbit.sire?.sire?.sire, label: 'SIRE', isCompact: true),
-                _buildTreeCard(_rabbit.sire?.sire?.dam, label: 'DAM', isCompact: true),
-                _buildTreeCard(_rabbit.sire?.dam?.sire, label: 'SIRE', isCompact: true),
-                _buildTreeCard(_rabbit.sire?.dam?.dam, label: 'DAM', isCompact: true),
-                _buildTreeCard(_rabbit.dam?.sire?.sire, label: 'SIRE', isCompact: true),
-                _buildTreeCard(_rabbit.dam?.sire?.dam, label: 'DAM', isCompact: true),
-                _buildTreeCard(_rabbit.dam?.dam?.sire, label: 'SIRE', isCompact: true),
-                _buildTreeCard(_rabbit.dam?.dam?.dam, label: 'DAM', isCompact: true),
+                _buildTreeCard(_rabbit.sire?.sire?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.sire?.sire?.id, isSire: true),
+                _buildTreeCard(_rabbit.sire?.sire?.dam, label: 'DAM', isCompact: true, childId: _rabbit.sire?.sire?.id, isSire: false),
+                _buildTreeCard(_rabbit.sire?.dam?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.sire?.dam?.id, isSire: true),
+                _buildTreeCard(_rabbit.sire?.dam?.dam, label: 'DAM', isCompact: true, childId: _rabbit.sire?.dam?.id, isSire: false),
+                _buildTreeCard(_rabbit.dam?.sire?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.dam?.sire?.id, isSire: true),
+                _buildTreeCard(_rabbit.dam?.sire?.dam, label: 'DAM', isCompact: true, childId: _rabbit.dam?.sire?.id, isSire: false),
+                _buildTreeCard(_rabbit.dam?.dam?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.dam?.dam?.id, isSire: true),
+                _buildTreeCard(_rabbit.dam?.dam?.dam, label: 'DAM', isCompact: true, childId: _rabbit.dam?.dam?.id, isSire: false),
               ],
             ),
           ),
@@ -428,14 +440,14 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     );
   }
 
-  Widget _buildTreeCard(PedigreeRabbit? rabbit, {String? label, bool isSubject = false, bool isCompact = false}) {
-    final isEmpty = rabbit == null;
+  Widget _buildTreeCard(PedigreeRabbit? rabbit, {String? label, bool isSubject = false, bool isCompact = false, String? childId, bool? isSire}) {
+    final isEmpty = rabbit == null || rabbit.name == 'Unknown';
     final cardWidth = isCompact ? 140.0 : (isSubject ? 200.0 : 180.0);
     final cardHeight = isCompact ? 58.0 : (isSubject ? 90.0 : 82.0);
 
     return GestureDetector(
-      onTap: _isEditing && !isSubject ? () => _editAncestor(rabbit) : null,
-      onLongPress: !isSubject ? () => _showAncestorMenu(rabbit) : null,
+      onTap: _isEditing && !isSubject ? () => _editAncestor(rabbit, childId, isSire ?? true) : null,
+      onLongPress: !isSubject && !isEmpty ? () => _showAncestorMenu(rabbit) : null,
       child: Container(
         width: cardWidth,
         height: cardHeight,
@@ -444,13 +456,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           color: isEmpty ? Color(0xFFF7F7F5) : Colors.white,
           borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
           border: Border.all(
-            color: isSubject ? Color(0xFF8B5E3C) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
+            color: isSubject ? Color(0xFF6366F1) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
             width: isSubject ? 2 : 1,
           ),
           boxShadow: isSubject
               ? [
                   BoxShadow(
-                    color: Color(0xFF8B5E3C).withOpacity(0.2),
+                    color: Color(0xFF6366F1).withOpacity(0.2),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
@@ -502,7 +514,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                                 width: 16,
                                 height: 16,
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF8B5E3C),
+                                  color: Color(0xFF6366F1),
                                   shape: BoxShape.circle,
                                   border: Border.all(color: Colors.white, width: 1.5),
                                 ),
@@ -593,7 +605,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: Color(0xFF8B5E3C),
+                      color: Color(0xFF6366F1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -699,7 +711,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF8B5E3C),
+                      backgroundColor: Color(0xFF6366F1),
                     ),
                   );
                 },
@@ -755,21 +767,22 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         imageQuality: 85,
       );
 
-      if (image != null) {
-        // Update the rabbit's profile image
-        setState(() {
-          rabbit.updateProfileImage(image.path);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Profile picture updated successfully'),
-            backgroundColor: Color(0xFF8B5E3C),
-            duration: Duration(seconds: 2),
-          ),
-        );
+    if (image != null) {
+      setState(() => _isLoading = true);
+      try {
+        final existing = await _db.getRabbit(rabbit.id);
+        if (existing != null) {
+          final updated = existing.copyWith(photos: [image.path]);
+          await _db.updateRabbit(updated);
+          await _loadPedigreeData();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated successfully'), backgroundColor: Color(0xFF6366F1)));
+        }
+      } catch (e) {
+        print('Error updating photo: $e');
+        setState(() => _isLoading = false);
       }
-    } on PlatformException catch (e) {
+    }
+  } on PlatformException catch (e) {
       print('Platform Exception: ${e.code} - ${e.message}');
 
       String errorMessage = 'Failed to pick image';
@@ -814,95 +827,191 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     // Example: _saveToDatabase(rabbit);
   }
 
-  void _editAncestor(PedigreeRabbit? current) {
-    final TextEditingController nameController = TextEditingController(text: current?.name ?? '');
-    final TextEditingController idController = TextEditingController(text: current?.id ?? '');
-    final TextEditingController breedController = TextEditingController(text: current?.breed ?? '');
-    final TextEditingController colorController = TextEditingController(text: current?.color ?? '');
-    final TextEditingController regController = TextEditingController(text: current?.registrationNumber ?? '');
+  void _editAncestor(PedigreeRabbit? current, String? childId, bool isSire) {
+    if (childId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cannot add parent to unknown child')));
+      return;
+    }
+
+    final TextEditingController nameController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.name : '');
+    final TextEditingController idController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.id : '');
+    final TextEditingController breedController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.breed : '');
+    final TextEditingController colorController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.color : '');
+    final TextEditingController regController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.registrationNumber : '');
+
+    bool isExternal = current?.isExternal ?? true;
+    Rabbit? selectedHerdRabbit;
+    List<Rabbit> herdOptions = [];
+    bool optionsLoaded = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      current == null ? 'Add Ancestor' : 'Edit Ancestor',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                _buildTextField('Name', nameController),
-                SizedBox(height: 12),
-                _buildTextField('ID / Ear Tag', idController),
-                SizedBox(height: 12),
-                _buildTextField('Breed', breedController),
-                SizedBox(height: 12),
-                _buildTextField('Color', colorController),
-                SizedBox(height: 12),
-                _buildTextField('Registration #', regController),
-                SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ancestor updated successfully'),
-                          backgroundColor: Color(0xFF8B5E3C),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF8B5E3C),
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          if (!optionsLoaded) {
+            _db.getAllRabbits().then((all) {
+              if (mounted) {
+                setModalState(() {
+                  herdOptions = all.where((r) => (isSire ? r.type == RabbitType.buck : r.type == RabbitType.doe) && r.id != childId).toList();
+                  optionsLoaded = true;
+                });
+              }
+            });
+          }
+
+          return Container(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(isEmpty(current) ? 'Add ${isSire ? 'Sire' : 'Dam'}' : 'Edit ${isSire ? 'Sire' : 'Dam'}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      children: [
+                        _buildTabButton('Search Herd', !isExternal, () => setModalState(() => isExternal = false)),
+                        _buildTabButton('Manual Entry', isExternal, () => setModalState(() => isExternal = true)),
+                      ],
                     ),
                   ),
-                ),
-                SizedBox(height: 20),
-              ],
+                  SizedBox(height: 20),
+                  if (!isExternal) ...[
+                    Text('Select from Herd', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF787774))),
+                    SizedBox(height: 6),
+                    DropdownButtonFormField<Rabbit>(
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Color(0xFFF7F7F5),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      hint: Text('Choose a rabbit'),
+                      value: selectedHerdRabbit,
+                      items: herdOptions.map((r) => DropdownMenuItem(value: r, child: Text('${r.name} (${r.id})'))).toList(),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedHerdRabbit = val;
+                          if (val != null) {
+                            nameController.text = val.name;
+                            idController.text = val.id;
+                            breedController.text = val.breed;
+                            colorController.text = val.color ?? '';
+                          }
+                        });
+                      },
+                    ),
+                    SizedBox(height: 16),
+                  ],
+                  _buildTextField('Name', nameController),
+                  SizedBox(height: 12),
+                  if (isExternal) ...[
+                    _buildTextField('ID / Ear Tag', idController),
+                    SizedBox(height: 12),
+                  ],
+                  _buildTextField('Breed', breedController),
+                  SizedBox(height: 12),
+                  _buildTextField('Color', colorController),
+                  SizedBox(height: 12),
+                  _buildTextField('Registration #', regController),
+                  SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
+                      style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF6366F1), padding: EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                ],
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  bool isEmpty(PedigreeRabbit? r) => r == null || r.name == 'Unknown';
+
+  Widget _buildTabButton(String label, bool isActive, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isActive ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
           ),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? Color(0xFF6366F1) : Color(0xFF787774))),
         ),
       ),
     );
+  }
+
+  Future<void> _saveAncestorUpdate(String childId, bool isSire, bool isExternal, Rabbit? selectedHerd, String name, String id, String breed, String color, String reg) async {
+    Navigator.pop(context);
+    setState(() => _isLoading = true);
+
+    try {
+      String finalParentId = id;
+
+      if (!isExternal && selectedHerd != null) {
+        finalParentId = selectedHerd.id;
+      } else if (isExternal) {
+        // Create an external rabbit entry if it doesn't exist
+        final existing = await _db.getRabbit(id);
+        if (existing == null) {
+          final newPedRabbit = Rabbit(
+            id: id,
+            name: name,
+            type: RabbitType.pedigree,
+            status: RabbitStatus.active,
+            breed: breed,
+            color: color,
+            registrationNumber: reg,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          await _db.insertRabbit(newPedRabbit);
+        } else {
+          // Update existing external rabbit
+          final updated = existing.copyWith(name: name, breed: breed, color: color, registrationNumber: reg);
+          await _db.updateRabbit(updated);
+        }
+      }
+
+      // Link to child
+      final child = await _db.getRabbit(childId);
+      if (child != null) {
+        final updatedChild = isSire ? child.copyWith(sireId: finalParentId) : child.copyWith(damId: finalParentId);
+        await _db.updateRabbit(updatedChild);
+      }
+
+      await _loadPedigreeData();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pedigree updated successfully'), backgroundColor: Color(0xFF6366F1)));
+    } catch (e) {
+      print('Error updating ancestor: $e');
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update pedigree'), backgroundColor: Color(0xFFD44C47)));
+    }
   }
 
   Widget _buildTextField(String label, TextEditingController controller) {
@@ -934,7 +1043,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
@@ -944,16 +1053,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
   }
 
   void _showAncestorMenu(PedigreeRabbit? rabbit) {
-    if (rabbit == null) return;
+    if (rabbit == null || rabbit.name == 'Unknown') return;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -964,40 +1070,55 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        rabbit.name,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        rabbit.id,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF787774),
-                        ),
-                      ),
+                      Text(rabbit.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      Text(rabbit.id, style: TextStyle(fontSize: 14, color: Color(0xFF787774))),
                     ],
                   ),
                   Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
             ),
-            _buildMenuOption(Icons.edit, 'Edit Details', () {
+            _buildMenuOption(Icons.camera_alt, 'Change Photo', () {
               Navigator.pop(context);
-              _editAncestor(rabbit);
+              _changeProfilePicture(rabbit);
             }),
             _buildMenuOption(Icons.delete_outline, 'Remove from Pedigree', () {
               Navigator.pop(context);
+              _confirmRemoveAncestor(rabbit);
             }, isDestructive: true),
             SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _confirmRemoveAncestor(PedigreeRabbit rabbit) async {
+    final all = await _db.getAllRabbits();
+    final children = all.where((r) => r.sireId == rabbit.id || r.damId == rabbit.id).toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove Ancestor'),
+        content: Text('Are you sure you want to remove ${rabbit.name} from the pedigree? This only removes the link, it doesn\'t delete the record.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              for (var child in children) {
+                final updated = child.sireId == rabbit.id ? child.copyWith(sireId: '') : child.copyWith(damId: '');
+                await _db.updateRabbit(updated);
+              }
+              await _loadPedigreeData();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Removed ${rabbit.name} from pedigree')));
+            },
+            child: Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

@@ -62,69 +62,80 @@ class RabbitActionSheet extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final themeColor = rabbit.type == RabbitType.doe ? const Color(0xFFFCE7F3) : const Color(0xFFE0F2FE);
+    final iconColor = rabbit.type == RabbitType.doe ? const Color(0xFFDB2777) : const Color(0xFF0284C7);
+    final textColor = rabbit.type == RabbitType.doe ? const Color(0xFF9D174D) : const Color(0xFF075985);
+
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
       child: Row(
         children: [
           // Avatar
           Container(
-            width: 50,
-            height: 50,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFF5F5F5),
+              color: Colors.white,
+              border: Border.all(color: themeColor, width: 2),
               image: rabbit.photos != null && rabbit.photos!.isNotEmpty
                   ? DecorationImage(
                       image: FileImage(File(rabbit.photos!.first)),
                       fit: BoxFit.cover,
                     )
                   : null,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
             ),
             child: rabbit.photos == null || rabbit.photos!.isEmpty
                 ? Icon(
                     rabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-                    color: rabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
-                    size: 28,
+                    color: iconColor,
+                    size: 32,
                   )
                 : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${rabbit.id} • ${rabbit.name}',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                  '${(rabbit.earNumber ?? (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id)).toUpperCase()} • ${rabbit.name}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Color(rabbit.statusColor).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Color(rabbit.statusColor).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Color(rabbit.statusColor).withOpacity(0.2)),
                       ),
                       child: Text(
-                        rabbit.statusText,
+                        rabbit.statusText.toUpperCase(),
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                           color: Color(rabbit.statusColor),
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       rabbit.breed,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF787774),
+                        fontWeight: FontWeight.w500,
+                        color: textColor.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -133,7 +144,7 @@ class RabbitActionSheet extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Color(0xFF787774)),
+            icon: Icon(Icons.close, color: textColor.withOpacity(0.4)),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -167,7 +178,7 @@ class RabbitActionSheet extends StatelessWidget {
         items.add(_buildActionItem(
           context,
           icon: Icons.pause_circle_outline,
-          iconColor: const Color(0xFFCB8347),
+          iconColor: const Color(0xFF8B5CF6),
           label: 'Mark as Inactive',
           subtitle: 'Temporarily unavailable for breeding',
           onTap: () => _toggleBuckStatus(context),
@@ -196,7 +207,7 @@ class RabbitActionSheet extends StatelessWidget {
     items.add(_buildActionItem(
       context,
       icon: Icons.person_outline,
-      iconColor: const Color(0xFF8B5E3C),
+      iconColor: const Color(0xFF6366F1),
       label: 'View Profile',
       subtitle: 'See full details and history',
       onTap: () => _viewProfile(context),
@@ -238,7 +249,7 @@ class RabbitActionSheet extends StatelessWidget {
       items.add(_buildActionItem(
         context,
         icon: Icons.shield_outlined,
-        iconColor: const Color(0xFFCB8347),
+        iconColor: const Color(0xFF8B5CF6),
         label: 'Add to Quarantine',
         subtitle: 'Isolate for health/observation',
         onTap: () => _showQuarantineModal(context),
@@ -274,8 +285,8 @@ class RabbitActionSheet extends StatelessWidget {
         context,
         icon: Icons.cancel_outlined,
         iconColor: const Color(0xFFD44C47),
-        label: 'Cancel Pregnancy',
-        subtitle: 'Remove pregnancy and related tasks',
+        label: 'Cancel Bred Status',
+        subtitle: 'Remove bred record and related tasks',
         onTap: () => _showCancelPregnancyDialog(context),
       ));
     }
@@ -291,7 +302,7 @@ class RabbitActionSheet extends StatelessWidget {
       items.add(_buildActionItem(
         context,
         icon: Icons.arrow_upward,
-        iconColor: const Color(0xFF8B5E3C),
+        iconColor: const Color(0xFF6366F1),
         label: 'Promote to Breeder',
         subtitle: subtitle,
         onTap: () => _promoteToBreeder(context),
@@ -336,7 +347,7 @@ class RabbitActionSheet extends StatelessWidget {
         return _buildPrimaryActionItem(
           context,
           icon: Icons.pregnant_woman,
-          label: 'Confirm Pregnancy',
+          label: 'Confirm Bred Status',
           subtitle: 'Record palpation result',
           onTap: () => _showConfirmPregnancyModal(context),
         );
@@ -371,54 +382,59 @@ class RabbitActionSheet extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final primaryColor = rabbit.type == RabbitType.doe ? const Color(0xFFDB2777) : const Color(0xFF0284C7);
+    final bgColor = rabbit.type == RabbitType.doe ? const Color(0xFFFFF1F2) : const Color(0xFFEFF6FF);
+
     return InkWell(
       onTap: () {
         Navigator.pop(context);
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF7EDE3),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: bgColor,
           border: Border(
-            left: BorderSide(color: Color(0xFF8B5E3C), width: 4),
+            left: BorderSide(color: primaryColor, width: 4),
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFF8B5E3C).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
+                color: primaryColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF8B5E3C), size: 22),
+              child: Icon(icon, color: primaryColor, size: 22),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8B5E3C),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: primaryColor,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF787774),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: primaryColor.withOpacity(0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFF8B5E3C)),
+            Icon(Icons.chevron_right, color: primaryColor.withOpacity(0.4)),
           ],
         ),
       ),
@@ -440,19 +456,19 @@ class RabbitActionSheet extends StatelessWidget {
         onTap();
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: iconColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,20 +478,22 @@ class RabbitActionSheet extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: Color(0xFF1F2937),
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF9B9A97),
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF6B7280),
                     ),
                   ),
                 ],
               ),
             ),
-            if (showArrow) const Icon(Icons.chevron_right, color: Color(0xFFD0D0D0)),
+            if (showArrow) const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB), size: 18),
           ],
         ),
       ),
@@ -669,7 +687,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked as open for breeding'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
       ),
     );
   }
@@ -681,7 +699,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Promoted to breeder'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
       ),
     );
   }
@@ -700,7 +718,7 @@ class RabbitActionSheet extends StatelessWidget {
           content: Text(
             newStatus == RabbitStatus.active ? '${rabbit.name} marked as ACTIVE' : '${rabbit.name} marked as INACTIVE',
           ),
-          backgroundColor: const Color(0xFF8B5E3C),
+          backgroundColor: const Color(0xFF6366F1),
         ),
       );
     } catch (e) {
@@ -718,13 +736,13 @@ class RabbitActionSheet extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cancel Pregnancy'),
+        title: const Text('Cancel Bred Status'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Are you sure you want to cancel the pregnancy for ${rabbit.name}?',
+              'Are you sure you want to cancel the bred status for ${rabbit.name}?',
               style: const TextStyle(fontSize: 14, color: Color(0xFF37352F)),
             ),
             const SizedBox(height: 12),
@@ -733,16 +751,16 @@ class RabbitActionSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF8E6),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFCB8347).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFCB8347), size: 20),
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFF8B5CF6), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This will also delete all related tasks (palpation, nest box, kindle, wean)',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFFCB8347).withOpacity(0.9)),
+                      style: TextStyle(fontSize: 12, color: const Color(0xFF8B5CF6).withOpacity(0.9)),
                     ),
                   ),
                 ],
@@ -753,7 +771,7 @@ class RabbitActionSheet extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Keep Pregnancy', style: TextStyle(color: Color(0xFF787774))),
+            child: const Text('Keep Status', style: TextStyle(color: Color(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -764,8 +782,8 @@ class RabbitActionSheet extends StatelessWidget {
                 onActionComplete();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Pregnancy cancelled for ${rabbit.name}'),
-                    backgroundColor: const Color(0xFF8B5E3C),
+                    content: Text('Bred status cancelled for ${rabbit.name}'),
+                    backgroundColor: const Color(0xFF6366F1),
                   ),
                 );
               } catch (e) {

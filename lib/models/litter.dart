@@ -103,6 +103,12 @@ class Litter {
   final List<Kit> kits;
   final String sire;
   final String dam;
+  final bool? missedLitter;
+  final String? colorsProduced;
+  final String? patternsProduced;
+  final int? bucksProduced;
+  final int? doesProduced;
+  final int? peanutsProduced;
 
   Litter({
     required this.id,
@@ -127,6 +133,12 @@ class Litter {
     this.kits = const [],
     required this.sire,
     required this.dam,
+    this.missedLitter,
+    this.colorsProduced,
+    this.patternsProduced,
+    this.bucksProduced,
+    this.doesProduced,
+    this.peanutsProduced,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Computed properties
@@ -175,6 +187,12 @@ class Litter {
     List<Kit>? kits,
     String? sire,
     String? dam,
+    bool? missedLitter,
+    String? colorsProduced,
+    String? patternsProduced,
+    int? bucksProduced,
+    int? doesProduced,
+    int? peanutsProduced,
   }) {
     return Litter(
       id: id ?? this.id,
@@ -199,6 +217,12 @@ class Litter {
       kits: kits ?? this.kits,
       sire: sire ?? this.sire,
       dam: dam ?? this.dam,
+      missedLitter: missedLitter ?? this.missedLitter,
+      colorsProduced: colorsProduced ?? this.colorsProduced,
+      patternsProduced: patternsProduced ?? this.patternsProduced,
+      bucksProduced: bucksProduced ?? this.bucksProduced,
+      doesProduced: doesProduced ?? this.doesProduced,
+      peanutsProduced: peanutsProduced ?? this.peanutsProduced,
     );
   }
 
@@ -227,6 +251,12 @@ class Litter {
       'status': status,
       'sire': sire,
       'dam': dam,
+      'missedLitter': missedLitter == true ? 1 : 0,
+      'colorsProduced': colorsProduced,
+      'patternsProduced': patternsProduced,
+      'bucksProduced': bucksProduced,
+      'doesProduced': doesProduced,
+      'peanutsProduced': peanutsProduced,
       'kits': jsonEncode(kits.map((k) => k.toMap()).toList()),
     };
   }
@@ -285,6 +315,12 @@ class Litter {
       status: map['status'] as String? ?? 'nursing', // ✅ Handle null
       sire: map['sire'] as String? ?? (map['buckName'] as String? ?? 'Unknown'), // ✅ Fallback to buckName
       dam: map['dam'] as String? ?? (map['doeName'] as String? ?? 'Unknown'), // ✅ Fallback to doeName
+      missedLitter: map['missedLitter'] == 1,
+      colorsProduced: map['colorsProduced'] as String?,
+      patternsProduced: map['patternsProduced'] as String?,
+      bucksProduced: map['bucksProduced'] as int?,
+      doesProduced: map['doesProduced'] as int?,
+      peanutsProduced: map['peanutsProduced'] as int?,
       kits: kitsList,
     );
   }

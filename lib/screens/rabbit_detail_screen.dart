@@ -43,6 +43,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   bool _showTabShadow = false;
   late Rabbit _currentRabbit;
   int _refreshCounter = 0;
+  bool _isEditingMode = false;
 
   // Breeding stats
   List<Litter> _litters = [];
@@ -179,7 +180,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile picture updated successfully'),
-            backgroundColor: Color(0xFF8B5E3C),
+            backgroundColor: Color(0xFF6366F1),
             duration: Duration(seconds: 2),
           ),
         );
@@ -255,7 +256,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF8B5E3C),
+                      backgroundColor: Color(0xFF6366F1),
                     ),
                   );
                 },
@@ -520,10 +521,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           controller: _tabController,
           isScrollable: false,
           indicator: const UnderlineTabIndicator(
-            borderSide: BorderSide(color: Color(0xFF8B5E3C), width: 2),
+            borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
             insets: EdgeInsets.symmetric(horizontal: 12),
           ),
-          labelColor: const Color(0xFF8B5E3C),
+          labelColor: const Color(0xFF6366F1),
           unselectedLabelColor: const Color(0xFF1E293B),
           labelStyle: const TextStyle(
             fontSize: 13,
@@ -558,9 +559,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          QuickInfoCard(key: ValueKey('${_currentRabbit.id}_$_refreshCounter'), rabbit: _currentRabbit),
+          QuickInfoCard(
+            key: ValueKey('${_currentRabbit.id}_$_refreshCounter'),
+            rabbit: _currentRabbit,
+            isEditing: false,
+          ),
           const SizedBox(height: 16),
-          GeneticsCard(rabbit: _currentRabbit),
+          GeneticsCard(rabbit: _currentRabbit, isEditing: false),
           const SizedBox(height: 16),
           ParentageCard(
             rabbit: _currentRabbit,
@@ -757,7 +762,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTypeButton('Expense', false, const Color(0xFFCB8347)),
+                          child: _buildTypeButton('Expense', false, const Color(0xFF8B5CF6)),
                         ),
                       ],
                     ),
@@ -784,7 +789,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                         ),
                       ),
                     ),
@@ -808,7 +813,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                         ),
                       ),
                       items: const [
@@ -842,7 +847,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                         ),
                       ),
                     ),
@@ -900,13 +905,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Transaction added successfully'),
-                        backgroundColor: Color(0xFF8B5E3C),
+                        backgroundColor: Color(0xFF6366F1),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5E3C),
+                    backgroundColor: const Color(0xFF6366F1),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -960,7 +965,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Full transaction history - Coming soon'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -997,9 +1002,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       case RabbitStatus.open:
         return 'Open';
       case RabbitStatus.pregnant:
-        return 'Pregnant';
+        return 'Bred';
       case RabbitStatus.palpateDue:
-        return 'Palpate Due';
+        return 'Bred';
       case RabbitStatus.nursing:
         return 'Nursing';
       case RabbitStatus.resting:
@@ -1049,7 +1054,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       case RabbitStatus.pregnant:
         return const Color(0xFF9C6ADE);
       case RabbitStatus.palpateDue:
-        return const Color(0xFFCB8347);
+        return const Color(0xFF8B5CF6);
       case RabbitStatus.nursing:
         return const Color(0xFF5B8AD0);
       case RabbitStatus.resting:
@@ -1059,7 +1064,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       case RabbitStatus.inactive:
         return const Color(0xFF787774);
       case RabbitStatus.growout:
-        return const Color(0xFFCB8347);
+        return const Color(0xFF8B5CF6);
       case RabbitStatus.quarantine:
         return const Color(0xFFC47070);
       case RabbitStatus.archived:
@@ -1262,7 +1267,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🖨️ Printing cage card...'),
-        backgroundColor: Color(0xFF8B5E3C),
+        backgroundColor: Color(0xFF6366F1),
         behavior: SnackBarBehavior.floating,
       ),
     );

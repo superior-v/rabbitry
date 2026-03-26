@@ -91,7 +91,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
             if (widget.rabbit.location != null || widget.rabbit.cage != null)
               Text(
                 'Current: ${widget.rabbit.location ?? 'N/A'} • ${widget.rabbit.cage ?? 'N/A'}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF8B5E3C)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6366F1)),
               ),
             const SizedBox(height: 24),
 
@@ -126,12 +126,12 @@ class _MoveCageModalState extends State<MoveCageModal> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           child: Row(
                             children: const [
-                              Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF8B5E3C)),
+                              Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF6366F1)),
                               SizedBox(width: 10),
                               Text(
                                 'Add New Location',
                                 style: TextStyle(
-                                  color: Color(0xFF8B5E3C),
+                                  color: Color(0xFF6366F1),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -169,7 +169,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveCage,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5E3C),
+                    backgroundColor: const Color(0xFF6366F1),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -238,7 +238,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                   Icon(
                     isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                     size: 20,
-                    color: isSelected ? const Color(0xFF8B5E3C) : const Color(0xFFCCCCCC),
+                    color: isSelected ? const Color(0xFF6366F1) : const Color(0xFFCCCCCC),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -247,7 +247,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? const Color(0xFF8B5E3C) : const Color(0xFF37352F),
+                        color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF37352F),
                       ),
                     ),
                   ),
@@ -306,7 +306,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                         )),
                     const DropdownMenuItem(
                       value: '__new_barn__',
-                      child: Text('+ Create New Barn', style: TextStyle(color: Color(0xFF8B5E3C), fontWeight: FontWeight.w600)),
+                      child: Text('+ Create New Barn', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600)),
                     ),
                   ],
                   onChanged: (val) {
@@ -334,7 +334,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                     ),
                   ),
                 ),
@@ -352,7 +352,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                    borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                   ),
                 ),
               ),
@@ -404,7 +404,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 setState(() => _selectedLocation = rowName);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5E3C),
+                backgroundColor: const Color(0xFF6366F1),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: const Text('Add', style: TextStyle(color: Colors.white)),
@@ -434,7 +434,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Moved to $_selectedLocation • $_selectedCage'),
-          backgroundColor: const Color(0xFF8B5E3C),
+          backgroundColor: const Color(0xFF6366F1),
         ),
       );
     } catch (e) {

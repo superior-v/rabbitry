@@ -8,8 +8,15 @@ import 'dart:convert'; // ✅ Add this import for jsonDecode
 
 class QuickInfoCard extends StatefulWidget {
   final Rabbit rabbit;
+  final bool isEditing;
+  final VoidCallback? onEditToggle;
 
-  const QuickInfoCard({Key? key, required this.rabbit}) : super(key: key);
+  const QuickInfoCard({
+    Key? key,
+    required this.rabbit,
+    this.isEditing = false,
+    this.onEditToggle,
+  }) : super(key: key);
 
   @override
   State<QuickInfoCard> createState() => _QuickInfoCardState();
@@ -57,9 +64,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               color: Color(0xFFF7F7F5),
               borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
-            child: const Row(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'QUICK INFO',
                   style: TextStyle(
                     fontSize: 11,
@@ -71,19 +79,19 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               ],
             ),
           ),
-          _buildEditableInfoRow(context, 'Cage', _currentRabbit.cage ?? 'Unassigned', () => _showCageSelector(context)),
-          _buildEditableInfoRow(context, 'Breed', _currentRabbit.breed, () => _showBreedSelector(context)),
+          _buildEditableInfoRow(context, 'Cage', _currentRabbit.cage ?? 'Unassigned', widget.isEditing ? () => _showCageSelector(context) : null),
+          _buildEditableInfoRow(context, 'Breed', _currentRabbit.breed, widget.isEditing ? () => _showBreedSelector(context) : null),
           if (_currentRabbit.otherBreed != null && _currentRabbit.otherBreed!.isNotEmpty) _buildStaticInfoRow('Other Breed', _currentRabbit.otherBreed!),
-          _buildEditableInfoRow(context, 'Color', _currentRabbit.color ?? 'Not set', () => _showColorSelector(context)),
+          _buildEditableInfoRow(context, 'Color', _currentRabbit.color ?? 'Not set', widget.isEditing ? () => _showColorSelector(context) : null),
           if (_currentRabbit.otherColor != null && _currentRabbit.otherColor!.isNotEmpty) _buildStaticInfoRow('Other Color', _currentRabbit.otherColor!),
           if (_currentRabbit.earNumber != null && _currentRabbit.earNumber!.isNotEmpty) _buildStaticInfoRow('Ear Number', _currentRabbit.earNumber!),
-          _buildEditableInfoRow(context, 'Weight', _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : 'Not recorded', () async {
+          _buildEditableInfoRow(context, 'Weight', _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : 'Not recorded', widget.isEditing ? () async {
             await _showWeightModal(context);
             await _refreshRabbitData();
-          }, showInfoIcon: true),
+          } : null, showInfoIcon: widget.isEditing),
           _buildStaticInfoRow('Born', _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : 'Not set'),
           _buildStaticInfoRow('Age', _calculateAge()),
-          _buildEditableInfoRow(context, 'Origin', _currentRabbit.origin ?? 'Not set', () => _showOriginSelector(context)),
+          _buildEditableInfoRow(context, 'Origin', _currentRabbit.origin ?? 'Not set', widget.isEditing ? () => _showOriginSelector(context) : null),
           if (_currentRabbit.breederPrefix != null && _currentRabbit.breederPrefix!.isNotEmpty) _buildStaticInfoRow('Breeder Prefix', _currentRabbit.breederPrefix!),
           if (_currentRabbit.broken == true) _buildStaticInfoRow('Broken', 'Yes'),
           if (_currentRabbit.viennaMarked == true) _buildStaticInfoRow('Vienna Marked', 'Yes'),
@@ -95,7 +103,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   }
 
   // Editable row with chevron
-  Widget _buildEditableInfoRow(BuildContext context, String label, String value, VoidCallback onTap, {bool showInfoIcon = false}) {
+  Widget _buildEditableInfoRow(BuildContext context, String label, String value, VoidCallback? onTap, {bool showInfoIcon = false}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -124,8 +132,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   const SizedBox(width: 8),
                   const Icon(Icons.info_outline, size: 16, color: Color(0xFF9B9A97)),
                 ],
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9B9A97)),
+                if (onTap != null) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9B9A97)),
+                ],
               ],
             ),
           ],
@@ -161,15 +171,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   }
 
   String _calculateAge() {
-    if (_currentRabbit.dateOfBirth == null) return 'Unknown';
-    final now = DateTime.now();
-    final dob = _currentRabbit.dateOfBirth!;
-    final months = (now.year - dob.year) * 12 + now.month - dob.month;
-    final days = now.day - dob.day;
-    if (months > 0) {
-      return '${months}m ${days.abs()}d';
-    }
-    return '${now.difference(dob).inDays}d';
+    return _currentRabbit.age;
   }
 
   String _formatDate(DateTime date) {
@@ -454,14 +456,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Cage updated to $selectedCage'),
-                                      backgroundColor: const Color(0xFF8B5E3C),
+                                      backgroundColor: const Color(0xFF6366F1),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5E3C),
+                          backgroundColor: const Color(0xFF6366F1),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -527,10 +529,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFF0E6DA) : const Color(0xFFF7F7F5),
+                          color: isSelected ? const Color(0xFFEDE9FE) : const Color(0xFFF7F7F5),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF8B5E3C) : Colors.transparent,
+                            color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
                           ),
                         ),
                         child: Text(
@@ -538,7 +540,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: isSelected ? const Color(0xFF8B5E3C) : const Color(0xFF64748B),
+                            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF64748B),
                           ),
                         ),
                       ),
@@ -688,7 +690,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6),
-                            borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                           ),
                           suffixIcon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF37352F)),
                         ),
@@ -739,7 +741,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF7EDE3),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF8B5E3C).withOpacity(0.2)),
+                        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,7 +761,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF8B5E3C),
+                              color: Color(0xFF6366F1),
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -806,14 +808,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Breed updated to $breedName'),
-                                      backgroundColor: const Color(0xFF8B5E3C),
+                                      backgroundColor: const Color(0xFF6366F1),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5E3C),
+                          backgroundColor: const Color(0xFF6366F1),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -958,7 +960,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(6),
-                          borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                         ),
                       ),
                       onChanged: (value) {
@@ -1005,14 +1007,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Color updated to $colorToSave'),
-                                      backgroundColor: const Color(0xFF8B5E3C),
+                                      backgroundColor: const Color(0xFF6366F1),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5E3C),
+                          backgroundColor: const Color(0xFF6366F1),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1178,14 +1180,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Origin updated to $selectedOrigin'),
-                                      backgroundColor: const Color(0xFF8B5E3C),
+                                      backgroundColor: const Color(0xFF6366F1),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5E3C),
+                          backgroundColor: const Color(0xFF6366F1),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1301,7 +1303,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                     _showAddWeightDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5E3C),
+                    backgroundColor: const Color(0xFF6366F1),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -1371,7 +1373,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF8B5E3C), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
                 ),
               ),
               autofocus: true,
@@ -1419,14 +1421,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Weight logged successfully'),
-                    backgroundColor: Color(0xFF8B5E3C),
+                    backgroundColor: Color(0xFF6366F1),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5E3C),
+              backgroundColor: const Color(0xFF6366F1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

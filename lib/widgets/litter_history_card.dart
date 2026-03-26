@@ -129,7 +129,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               padding: EdgeInsets.all(32),
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(Color(0xFF8B5E3C)),
+                valueColor: AlwaysStoppedAnimation(Color(0xFF6366F1)),
               ),
             )
           else if (_litters.isEmpty)

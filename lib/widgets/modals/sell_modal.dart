@@ -159,7 +159,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _addToLedger,
                           onChanged: (value) => setState(() => _addToLedger = value),
-                          activeColor: Color(0xFF8B5E3C),
+                          activeColor: Color(0xFF6366F1),
                         ),
                       ],
                     ),
@@ -176,7 +176,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _generatePedigree,
                           onChanged: (value) => setState(() => _generatePedigree = value),
-                          activeColor: Color(0xFF8B5E3C),
+                          activeColor: Color(0xFF6366F1),
                         ),
                       ],
                     ),
@@ -191,7 +191,7 @@ class _SellModalState extends State<SellModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveSale,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF8B5E3C),
+                    backgroundColor: Color(0xFF6366F1),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -239,6 +239,10 @@ class _SellModalState extends State<SellModal> {
         _notesController.text.isEmpty ? null : _notesController.text,
         price,
         _buyerController.text.isEmpty ? null : _buyerController.text,
+        null, // butcherYield
+        null, // butcherCost
+        null, // deathCause
+        null, // cullReason
       );
 
       // Create finance transaction if price is set and ledger toggle is on
@@ -264,7 +268,7 @@ class _SellModalState extends State<SellModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} sold${price != null ? " for ${FormatUtils.formatCurrency(price)}" : ""}'),
-          backgroundColor: Color(0xFF8B5E3C),
+          backgroundColor: Color(0xFF6366F1),
         ),
       );
     } catch (e) {
