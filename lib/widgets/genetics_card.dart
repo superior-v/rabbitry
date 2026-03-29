@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_colors.dart';
 
 class GeneticsCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -115,27 +116,28 @@ class _GeneticsCardState extends State<GeneticsCard> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'GENETICS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF787774),
-                    letterSpacing: 0.5,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral500,
+                    letterSpacing: 0.6,
                   ),
                 ),
               ],
@@ -146,24 +148,32 @@ class _GeneticsCardState extends State<GeneticsCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  genetics.values.join(' '),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'monospace',
-                    color: Color(0xFF37352F),
-                    letterSpacing: 1.5,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: kNeutral100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    genetics.values.join('  ').toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
+                      color: kNeutral900,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                 ),
                 SizedBox(height: 16),
                 GridView.builder(
                   shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 6,
+                    crossAxisSpacing: 6,
                     childAspectRatio: 1.1,
                   ),
                   itemCount: genetics.length,
@@ -174,24 +184,56 @@ class _GeneticsCardState extends State<GeneticsCard> {
                   },
                 ),
                 SizedBox(height: 16),
-                Row(
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: kNeutral100),
+                ),
+                const Text(
+                  'MARKERS',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral400,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    _buildCheckbox('Broken', isBroken, widget.isEditing ? (value) {
-                      setState(() => isBroken = value ?? false);
-                      _saveCheckboxState('broken', value ?? false);
-                    } : null, color: Color(0xFF6366F1)),
-                    SizedBox(width: 16),
-                    _buildCheckbox('Vienna Marked', isViennaMarked, widget.isEditing ? (value) {
-                      setState(() => isViennaMarked = value ?? false);
-                      _saveCheckboxState('vienna_marked', value ?? false);
-                    } : null, color: Color(0xFF6366F1)),
+                    _buildMarkerChip(
+                      'Broken',
+                      isBroken,
+                      widget.isEditing
+                          ? (value) {
+                              setState(() => isBroken = value);
+                              _saveCheckboxState('broken', value);
+                            }
+                          : null,
+                    ),
+                    _buildMarkerChip(
+                      'Vienna Marked',
+                      isViennaMarked,
+                      widget.isEditing
+                          ? (value) {
+                              setState(() => isViennaMarked = value);
+                              _saveCheckboxState('vienna_marked', value);
+                            }
+                          : null,
+                    ),
+                    _buildMarkerChip(
+                      'Vienna Carrier',
+                      isViennaCarrier,
+                      widget.isEditing
+                          ? (value) {
+                              setState(() => isViennaCarrier = value);
+                              _saveCheckboxState('vienna_carrier', value);
+                            }
+                          : null,
+                    ),
                   ],
                 ),
-                SizedBox(height: 8),
-                _buildCheckbox('Vienna Carrier', isViennaCarrier, widget.isEditing ? (value) {
-                  setState(() => isViennaCarrier = value ?? false);
-                  _saveCheckboxState('vienna_carrier', value ?? false);
-                } : null, color: Color(0xFF6366F1)),
               ],
             ),
           ),
@@ -205,30 +247,85 @@ class _GeneticsCardState extends State<GeneticsCard> {
       onTap: widget.isEditing ? () => _showEditLocusDialog(name, value) : null,
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xFFF7F7F5),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Color(0xFFE9E9E7)),
+          color: kNeutral100,
+          borderRadius: BorderRadius.circular(10),
         ),
-        padding: EdgeInsets.all(8),
+        padding: const EdgeInsets.all(6),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              name,
-              style: TextStyle(
+              name.toUpperCase(),
+              style: const TextStyle(
                 fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                fontWeight: FontWeight.w800,
+                color: kNeutral500,
+                letterSpacing: 0.5,
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              width: double.infinity,
+              alignment: Alignment.center,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: kNeutral900,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarkerChip(String label, bool value, Function(bool)? onToggle) {
+    return GestureDetector(
+      onTap: onToggle != null ? () => onToggle(!value) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: kNeutral200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: value ? kPinkDeep : Colors.transparent,
+                border: Border.all(color: value ? kPinkDeep : kNeutral300, width: 2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: value
+                  ? const Center(
+                      child: Icon(
+                        Icons.check,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
             Text(
-              value,
+              label,
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-                color: Color(0xFF37352F),
+                fontSize: 12,
+                color: value ? kNeutral900 : kNeutral500,
+                fontWeight: value ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],

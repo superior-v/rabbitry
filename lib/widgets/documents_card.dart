@@ -5,14 +5,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../models/rabbit_document.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
+import '../constants/app_colors.dart';
 
 class DocumentsCard extends StatefulWidget {
   final Rabbit rabbit;
-
   const DocumentsCard({Key? key, required this.rabbit}) : super(key: key);
 
   @override
@@ -42,417 +43,247 @@ class _DocumentsCardState extends State<DocumentsCard> {
     }
   }
 
-  Future<String> _getDocumentsDir() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final docsDir = Directory(p.join(appDir.path, 'rabbit_documents', widget.rabbit.id));
-    if (!await docsDir.exists()) {
-      await docsDir.create(recursive: true);
-    }
-    return docsDir.path;
-  }
-
-  Future<void> _pickFromCamera() async {
-    try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
-      if (photo != null) {
-        await _saveFile(File(photo.path), photo.name);
-      }
-    } catch (e) {
-      _showError('Failed to take photo: $e');
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (image != null) {
-        await _saveFile(File(image.path), image.name);
-      }
-    } catch (e) {
-      _showError('Failed to pick image: $e');
-    }
-  }
-
-  Future<void> _pickFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles();
-      if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        await _saveFile(file, result.files.single.name);
-      }
-    } catch (e) {
-      _showError('Failed to pick file: $e');
-    }
-  }
-
   Future<void> _saveFile(File sourceFile, String originalName) async {
     try {
-      final docsDir = await _getDocumentsDir();
+      final appDir = await getApplicationDocumentsDirectory();
+      final docsDir = Directory(p.join(appDir.path, 'rabbit_documents', widget.rabbit.id));
+      if (!await docsDir.exists()) await docsDir.create(recursive: true);
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final safeName = '${timestamp}_${originalName.replaceAll(RegExp(r'[^\w\.\-]'), '_')}';
-      final destPath = p.join(docsDir, safeName);
+      final destPath = p.join(docsDir.path, safeName);
 
-      // Copy file to app storage
       await sourceFile.copy(destPath);
-
-      final fileSize = await sourceFile.length();
-      final ext = p.extension(originalName);
-      final fileType = _detectFileType(ext);
 
       final doc = RabbitDocument(
         id: '${widget.rabbit.id}_$timestamp',
         rabbitId: widget.rabbit.id,
         name: originalName,
         filePath: destPath,
-        fileType: fileType,
-        fileSize: fileSize,
+        fileType: _detectFileType(p.extension(originalName)),
+        fileSize: await sourceFile.length(),
         createdAt: DateTime.now().toIso8601String(),
       );
 
       await _db.insertDocument(doc);
       await _loadDocuments();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Document uploaded successfully'),
-            backgroundColor: Color(0xFF6366F1),
-          ),
-        );
-      }
     } catch (e) {
-      _showError('Failed to save file: $e');
+      print(e);
     }
   }
 
   String _detectFileType(String ext) {
     ext = ext.toLowerCase();
-    if ([
-      '.jpg',
-      '.jpeg',
-      '.png',
-      '.gif',
-      '.bmp',
-      '.webp',
-      '.heic'
-    ].contains(ext)) {
-      return 'image';
-    } else if (ext == '.pdf') {
-      return 'pdf';
-    } else {
-      return 'file';
-    }
-  }
-
-  void _showError(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  Future<void> _deleteDocument(RabbitDocument doc) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete Document'),
-        content: Text('Are you sure you want to delete "${doc.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        final file = File(doc.filePath);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (_) {}
-
-      await _db.deleteDocument(doc.id);
-      await _loadDocuments();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Document deleted'),
-            backgroundColor: Color(0xFF6366F1),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _renameDocument(RabbitDocument doc) async {
-    final controller = TextEditingController(text: doc.name);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Rename Document'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'Enter new name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text('Rename', style: TextStyle(color: Color(0xFF6366F1))),
-          ),
-        ],
-      ),
-    );
-
-    if (newName != null && newName.isNotEmpty && newName != doc.name) {
-      final updated = doc.copyWith(name: newName);
-      await _db.updateDocument(updated);
-      await _loadDocuments();
-    }
-  }
-
-  void _viewDocument(RabbitDocument doc) {
-    final file = File(doc.filePath);
-    if (!file.existsSync()) {
-      _showError('File not found');
-      return;
-    }
-
-    if (doc.fileType == 'image') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => _ImageViewerScreen(doc: doc),
-        ),
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(doc.name),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Type: ${doc.fileType.toUpperCase()}'),
-              SizedBox(height: 4),
-              Text('Size: ${doc.formattedSize}'),
-              SizedBox(height: 4),
-              Text('Added: ${FormatUtils.formatDate(DateTime.parse(doc.createdAt))}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Future<void> _shareDocument(RabbitDocument doc) async {
-    final file = File(doc.filePath);
-    if (!file.existsSync()) {
-      _showError('File not found');
-      return;
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('File stored at: ${doc.filePath}'),
-          backgroundColor: Color(0xFF6366F1),
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
+    if (['.jpg', '.jpeg', '.png', '.webp'].contains(ext)) return 'image';
+    if (ext == '.pdf') return 'pdf';
+    return 'file';
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
+    }
+
+    // Counts for folders
+    final imgCount = _documents.where((d) => d.fileType == 'image').length;
+    final pdfCount = _documents.where((d) => d.fileType == 'pdf').length;
+    final otherCount = _documents.where((d) => d.fileType == 'file').length;
+
+    // MB total
+    final totalBytes = _documents.fold<int>(0, (sum, d) => sum + d.fileSize);
+    final totalMB = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kNeutral200),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'DOCUMENTS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF787774),
-                    letterSpacing: 0.5,
+                Icon(PhosphorIconsFill.folderSimple, size: 18, color: kNeutral500),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'DOCUMENTS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: kNeutral500,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _showUploadDialog(context),
-                  child: Row(
-                    children: [
-                      Icon(Icons.upload_file, size: 16, color: Color(0xFF787774)),
-                      SizedBox(width: 4),
-                      Text(
-                        'Upload',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF787774),
-                          fontWeight: FontWeight.w500,
+                  onTap: _showUploadBottomSheet,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kNeutral100,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(PhosphorIconsBold.uploadSimple, size: 14, color: kNeutral600),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Upload',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: kNeutral600,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          if (_isLoading)
-            Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1)),
-                ),
-              ),
-            )
-          else if (_documents.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No documents uploaded yet.\nTap Upload to add files.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF787774),
+
+          // Count Overview
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${_documents.length}',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1F2937),
+                    height: 1,
                   ),
                 ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'files',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: kNeutral500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDF2F8),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Text(
+                      '4 folders',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: kPinkDeep,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Folder Grid
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildFolderItem('Regist.', '(0)', const Color(0xFFFEF2F2), const Color(0xFFEF4444)),
+                const SizedBox(width: 8),
+                _buildFolderItem('Health', '($pdfCount)', const Color(0xFFFDF2F8), kPinkDeep),
+                const SizedBox(width: 8),
+                _buildFolderItem('Photos', '($imgCount)', const Color(0xFFEFF6FF), const Color(0xFF3B82F6)),
+                const SizedBox(width: 8),
+                _buildFolderItem('Other', '($otherCount)', const Color(0xFFF5F5F5), kNeutral500),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Recent Files
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Recent Files',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF374151),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_documents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: Text('No files yet', style: TextStyle(color: kNeutral400))),
             )
           else
-            ..._documents.map((doc) => _buildDocumentItem(context, doc)),
+            ..._documents.take(5).map((d) => _buildFileListItem(d)),
+
+          const SizedBox(height: 12),
+
+          // Bottom Stats Grid
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: kNeutral100)),
+              color: Color(0xFFFAFAFA),
+            ),
+            child: Row(
+              children: [
+                _buildBottomStatItem('4', 'FOLDERS'),
+                _buildDivider(),
+                _buildBottomStatItem('${_documents.length}', 'FILES'),
+                _buildDivider(),
+                _buildBottomStatItem(totalMB, 'MB TOTAL'),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDocumentItem(BuildContext context, RabbitDocument doc) {
-    IconData icon;
-    Color color;
-    switch (doc.fileType) {
-      case 'image':
-        icon = Icons.image;
-        color = Color(0xFF6366F1);
-        break;
-      case 'pdf':
-        icon = Icons.picture_as_pdf;
-        color = Color(0xFFC47070);
-        break;
-      default:
-        icon = Icons.insert_drive_file;
-        color = Color(0xFF5B9BD5);
-    }
-
-    final dateStr = FormatUtils.formatDate(DateTime.parse(doc.createdAt));
-
-    return InkWell(
-      onTap: () => _viewDocument(doc),
+  Widget _buildFolderItem(String label, String count, Color bgColor, Color iconColor) {
+    return Expanded(
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
+          color: bgColor.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: doc.fileType == 'image' && File(doc.filePath).existsSync()
-                  ? Image.file(
-                      File(doc.filePath),
-                      fit: BoxFit.cover,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (_, __, ___) => Icon(icon, color: color, size: 20),
-                    )
-                  : Icon(icon, color: color, size: 20),
+            Icon(PhosphorIconsFill.folder, size: 24, color: iconColor),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.name,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF37352F),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    '${doc.fileType.toUpperCase()} • ${doc.formattedSize}',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  dateStr,
-                  style: TextStyle(fontSize: 11, color: Color(0xFF9B9A97)),
-                ),
-                SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () => _showDocumentOptions(context, doc),
-                  child: Icon(Icons.more_vert, size: 16, color: Color(0xFF9B9A97)),
-                ),
-              ],
+            Text(
+              count,
+              style: TextStyle(fontSize: 10, color: kNeutral500, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -460,186 +291,123 @@ class _DocumentsCardState extends State<DocumentsCard> {
     );
   }
 
-  void _showUploadDialog(BuildContext context) {
+  Widget _buildFileListItem(RabbitDocument doc) {
+    IconData iconData = PhosphorIconsFill.file;
+    Color iconColor = kNeutral400;
+    Color bgColor = kNeutral100;
+
+    if (doc.fileType == 'pdf') {
+      iconData = PhosphorIconsFill.filePdf;
+      iconColor = const Color(0xFFEF4444);
+      bgColor = const Color(0xFFFEF2F2);
+    } else if (doc.fileType == 'image') {
+      iconData = PhosphorIconsFill.fileImage;
+      iconColor = const Color(0xFF3B82F6);
+      bgColor = const Color(0xFFEFF6FF);
+    }
+
+    final date = DateTime.tryParse(doc.createdAt) ?? DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+            child: Icon(iconData, size: 20, color: iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  doc.name,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${doc.formattedSize} • ${DateFormat('MMM d, yyyy').format(date)}',
+                  style: TextStyle(fontSize: 12, color: kNeutral400),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.more_horiz, size: 20, color: kNeutral300),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomStatItem(String val, String label) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            Text(val, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(height: 30, width: 1, color: kNeutral100);
+  }
+
+  void _showUploadBottomSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Upload Document',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            _buildUploadOption(context, Icons.camera_alt, 'Take Photo', () {
-              Navigator.pop(context);
-              _pickFromCamera();
-            }),
-            _buildUploadOption(context, Icons.photo_library, 'Choose from Gallery', () {
-              Navigator.pop(context);
-              _pickFromGallery();
-            }),
-            _buildUploadOption(context, Icons.insert_drive_file, 'Choose File', () {
-              Navigator.pop(context);
-              _pickFile();
-            }),
-            SizedBox(height: 30),
+            Container(height: 4, width: 40, margin: const EdgeInsets.only(top: 12, bottom: 8), decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2))),
+            _buildOption(PhosphorIconsBold.camera, 'Take Photo', _pickFromCamera),
+            _buildOption(PhosphorIconsBold.image, 'Choose from Gallery', _pickFromGallery),
+            _buildOption(PhosphorIconsBold.file, 'Choose File', _pickFile),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildUploadOption(BuildContext context, IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: Color(0xFF787774), size: 24),
-            SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(fontSize: 15, color: Color(0xFF37352F)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showDocumentOptions(BuildContext context, RabbitDocument doc) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      doc.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-            ),
-            _buildDocOption(ctx, Icons.visibility, 'View', () => _viewDocument(doc)),
-            _buildDocOption(ctx, Icons.share, 'Share', () => _shareDocument(doc)),
-            _buildDocOption(ctx, Icons.edit, 'Rename', () => _renameDocument(doc)),
-            Divider(),
-            _buildDocOption(ctx, Icons.delete_outline, 'Delete', () => _deleteDocument(doc), isDestructive: true),
-            SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDocOption(BuildContext context, IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    return InkWell(
+  Widget _buildOption(IconData icon, String label, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: kNeutral600),
+      title: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
       onTap: () {
         Navigator.pop(context);
         onTap();
       },
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isDestructive ? Color(0xFFC47070) : Color(0xFF787774),
-              size: 24,
-            ),
-            SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDestructive ? Color(0xFFC47070) : Color(0xFF37352F),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
-}
 
-/// Full-screen image viewer
-class _ImageViewerScreen extends StatelessWidget {
-  final RabbitDocument doc;
+  Future<void> _pickFromCamera() async {
+    final XFile? photo = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (photo != null) await _saveFile(File(photo.path), photo.name);
+  }
 
-  const _ImageViewerScreen({required this.doc});
+  Future<void> _pickFromGallery() async {
+    final XFile? image = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image != null) await _saveFile(File(image.path), image.name);
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(
-          doc.name,
-          style: TextStyle(fontSize: 16),
-        ),
-      ),
-      body: Center(
-        child: InteractiveViewer(
-          child: Image.file(
-            File(doc.filePath),
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.broken_image, size: 64, color: Colors.white54),
-                SizedBox(height: 16),
-                Text('Unable to load image', style: TextStyle(color: Colors.white54)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.single.path != null) {
+      await _saveFile(File(result.files.single.path!), result.files.single.name);
+    }
   }
 }

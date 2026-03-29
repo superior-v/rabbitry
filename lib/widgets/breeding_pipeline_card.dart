@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../constants/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../models/rabbit.dart';
 import '../services/settings_service.dart';
@@ -82,24 +83,34 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                const Text(
+                  'BREEDING PIPELINE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral500,
+                    letterSpacing: 0.6,
+                  ),
+                ),
                 GestureDetector(
                   onTap: () => _showPipelineSettings(context),
-                  child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 20),
+                  child: const Icon(Icons.settings_outlined, color: kNeutral400, size: 20),
                 ),
               ],
             ),
@@ -111,16 +122,19 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                    style: const TextStyle(fontSize: 14, color: kNeutral600),
                     children: [
-                      TextSpan(text: 'with '),
+                      const TextSpan(text: 'with '),
                       TextSpan(
                         text: _buckName ?? widget.rabbit.lastBreedBuckId ?? 'Unknown',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF37352F)),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: kNeutral900),
                       ),
                       if (widget.rabbit.lastBreedDate != null) ...[
-                        TextSpan(text: ' • Bred '),
-                        TextSpan(text: _formatDate(widget.rabbit.lastBreedDate!)),
+                        const TextSpan(text: ' • Bred '),
+                        TextSpan(
+                          text: _formatDate(widget.rabbit.lastBreedDate!),
+                          style: const TextStyle(color: kNeutral900, fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ],
                   ),
@@ -130,19 +144,19 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 Stack(
                   children: [
                     Container(
-                      height: 4,
+                      height: 6,
                       decoration: BoxDecoration(
-                        color: Color(0xFFE9E9E7),
-                        borderRadius: BorderRadius.circular(2),
+                        color: kNeutral100,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     FractionallySizedBox(
                       widthFactor: _progressFraction,
                       child: Container(
-                        height: 4,
+                        height: 6,
                         decoration: BoxDecoration(
-                          color: Color(0xFF6366F1),
-                          borderRadius: BorderRadius.circular(2),
+                          color: kPinkDeep,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
@@ -151,19 +165,20 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 SizedBox(height: 12),
                 Text(
                   'Day $_daysSinceBred of ${_settings.gestationDays}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral900,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 if (widget.rabbit.dueDate != null)
                   Text(
                     'Kindle expected ${_formatDate(widget.rabbit.dueDate!)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF787774),
+                      color: kNeutral500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 SizedBox(height: 24),
@@ -171,10 +186,10 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMilestone(PhosphorIconsDuotone.checkCircle, 'Bred\n${widget.rabbit.lastBreedDate != null ? _formatDate(widget.rabbit.lastBreedDate!) : "-"}', true, Color(0xFF6366F1)),
-                    if (_settings.palpationEnabled) _buildMilestone(PhosphorIconsDuotone.handPointing, 'Palpate\n${widget.rabbit.palpationDate != null ? (_isPalpationDue ? "Today" : _formatDate(widget.rabbit.palpationDate!)) : "-"}', _isPalpationComplete, _isPalpationComplete || _isPalpationDue ? Color(0xFF6366F1) : Color(0xFF9B9A97)),
-                    if (_settings.nestBoxEnabled) _buildMilestone(PhosphorIconsDuotone.package, 'Nest Box\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!.subtract(Duration(days: 3))) : "-"}', false, Color(0xFF9B9A97)),
-                    _buildMilestone(PhosphorIconsDuotone.baby, 'Kindle\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!) : "-"}', false, Color(0xFF9B9A97)),
+                    _buildMilestone(PhosphorIconsDuotone.checkCircle, 'Bred\n${widget.rabbit.lastBreedDate != null ? _formatDate(widget.rabbit.lastBreedDate!) : "-"}', true, kPinkDeep),
+                    if (_settings.palpationEnabled) _buildMilestone(PhosphorIconsDuotone.handPointing, 'Palpate\n${widget.rabbit.palpationDate != null ? (_isPalpationDue ? "Today" : _formatDate(widget.rabbit.palpationDate!)) : "-"}', _isPalpationComplete, _isPalpationComplete || _isPalpationDue ? kPinkDeep : kNeutral400),
+                    if (_settings.nestBoxEnabled) _buildMilestone(PhosphorIconsDuotone.package, 'Nest Box\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!.subtract(Duration(days: 3))) : "-"}', false, kNeutral400),
+                    _buildMilestone(PhosphorIconsDuotone.baby, 'Kindle\n${widget.rabbit.dueDate != null ? _formatDate(widget.rabbit.dueDate!) : "-"}', false, kNeutral400),
                   ],
                 ),
                 SizedBox(height: 24),
@@ -197,64 +212,64 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               child: ElevatedButton(
                 onPressed: () => _showPalpationDialog(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6366F1),
-                  padding: EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: kPinkDeep,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 ),
-                child: Text(
-                  'Log Palpation',
+                child: const Text(
+                  'Log Palpate',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
           ],
           Expanded(
             child: ElevatedButton(
               onPressed: () => _showLogBirthDialog(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.rabbit.status == RabbitStatus.pregnant ? Color(0xFF6366F1) : Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: widget.rabbit.status == RabbitStatus.pregnant ? kPinkDeep : kNeutral100,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 elevation: 0,
-                side: widget.rabbit.status == RabbitStatus.pregnant ? null : BorderSide(color: Color(0xFF6366F1)),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(100),
                 ),
               ),
               child: Text(
                 'Log Birth',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: widget.rabbit.status == RabbitStatus.pregnant ? Colors.white : Color(0xFF6366F1),
+                  fontWeight: FontWeight.w700,
+                  color: widget.rabbit.status == RabbitStatus.pregnant ? Colors.white : kNeutral600,
                 ),
               ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
-            child: OutlinedButton(
-              onPressed: () => _showMarkOpenDialog(context),
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: Color(0xFFE9E9E7)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            child: GestureDetector(
+              onTap: () => _showMarkOpenDialog(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: kNeutral100,
+                  borderRadius: BorderRadius.circular(100),
                 ),
-              ),
-              child: Text(
-                'Delete Breeding',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
+                alignment: Alignment.center,
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral600,
+                  ),
                 ),
               ),
             ),
@@ -269,25 +284,34 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const SizedBox.shrink(),
+                const Text(
+                  'BREEDING PIPELINE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral500,
+                    letterSpacing: 0.6,
+                  ),
+                ),
                 GestureDetector(
                   onTap: () => _showPipelineSettings(context),
-                  child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 20),
+                  child: const Icon(Icons.settings_outlined, color: kNeutral400, size: 20),
                 ),
               ],
             ),
@@ -297,26 +321,26 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             child: Center(
               child: Column(
                 children: [
-                  Icon(
+                  const Icon(
                     PhosphorIconsDuotone.heartbeat,
                     size: 48,
-                    color: Color(0xFFE9E9E7),
+                    color: kNeutral100,
                   ),
-                  SizedBox(height: 12),
-                  Text(
+                  const SizedBox(height: 12),
+                  const Text(
                     'No Active Breeding Cycle',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF787774),
+                      fontWeight: FontWeight.w700,
+                      color: kNeutral900,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     'Status: ${_getStatusLabel(widget.rabbit.status)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF9B9A97),
+                      color: kNeutral500,
                     ),
                   ),
                 ],
@@ -364,27 +388,29 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: completed ? color.withOpacity(0.1) : Colors.transparent,
+            color: completed ? color : kNeutral50,
             shape: BoxShape.circle,
             border: Border.all(
-              color: completed ? color : Color(0xFFE9E9E7),
+              color: completed ? color : kNeutral200,
               width: 2,
             ),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: color,
+            color: completed ? Colors.white : kNeutral400,
           ),
         ),
-        SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
-          label,
+          label.toUpperCase(),
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9,
+          style: const TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.w700,
             height: 1.2,
-            color: Color(0xFF787774),
+            color: kNeutral500,
+            letterSpacing: 0.1,
           ),
         ),
       ],

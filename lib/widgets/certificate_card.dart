@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../constants/app_colors.dart';
 
 class CertificateCard extends StatefulWidget {
   final Rabbit rabbit;
-
   const CertificateCard({Key? key, required this.rabbit}) : super(key: key);
 
   @override
@@ -16,6 +17,10 @@ class _CertificateCardState extends State<CertificateCard> {
   String _sireName = 'Not set';
   String _damName = 'Not set';
 
+  // Theme Helpers
+  Color get _primaryColor => widget.rabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+  Color get _washColor => widget.rabbit.type == RabbitType.buck ? kBlueWash : kPinkWash;
+
   @override
   void initState() {
     super.initState();
@@ -24,210 +29,117 @@ class _CertificateCardState extends State<CertificateCard> {
 
   Future<void> _loadParentNames() async {
     try {
-      if (widget.rabbit.sireId != null && widget.rabbit.sireId!.isNotEmpty) {
+      if (widget.rabbit.sireId?.isNotEmpty ?? false) {
         final sire = await _db.getRabbit(widget.rabbit.sireId!);
-        if (sire != null && mounted) {
-          setState(() => _sireName = sire.name);
-        }
+        if (sire != null && mounted) setState(() => _sireName = sire.name);
       }
-      if (widget.rabbit.damId != null && widget.rabbit.damId!.isNotEmpty) {
+      if (widget.rabbit.damId?.isNotEmpty ?? false) {
         final dam = await _db.getRabbit(widget.rabbit.damId!);
-        if (dam != null && mounted) {
-          setState(() => _damName = dam.name);
-        }
+        if (dam != null && mounted) setState(() => _damName = dam.name);
       }
-    } catch (e) {
-      print('Error loading parent names: $e');
-    }
+    } catch (e) {}
   }
-
-  Rabbit get rabbit => widget.rabbit;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF7F7F5),
-            Color(0xFFFFFFFF),
-          ],
-        ),
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kNeutral200),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFE9E9E7)),
-              ),
-            ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF6366F1).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.verified,
-                    color: Color(0xFF6366F1),
-                    size: 24,
+                Icon(PhosphorIconsFill.certificate, size: 18, color: kNeutral500),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'CERTIFICATE',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.6),
                   ),
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'REGISTRATION CERTIFICATE',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'American Rabbit Breeders Association',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF37352F),
-                        ),
-                      ),
-                    ],
-                  ),
+                Text(
+                  'ARBA OFFICIAL',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: _primaryColor.withOpacity(0.6), letterSpacing: 0.5),
                 ),
               ],
             ),
           ),
+
           Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kNeutral100),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    widget.rabbit.breed.toUpperCase(),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _primaryColor, letterSpacing: 0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCertRow('Name', widget.rabbit.name),
+                  _buildCertRow('ID', widget.rabbit.id),
+                  _buildCertRow('Registration #', widget.rabbit.registrationNumber ?? 'Not set'),
+                  _buildCertRow('Color', widget.rabbit.color ?? 'Not set'),
+                  const Divider(height: 24, color: kNeutral100),
+                  _buildCertRow('Sire', _sireName),
+                  _buildCertRow('Dam', _damName),
+                ],
+              ),
+            ),
+          ),
+
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
               children: [
-                // Certificate Header
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Color(0xFFE9E9E7)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        rabbit.breed,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6366F1),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      _buildCertRow('Name', rabbit.name),
-                      _buildCertRow('ID', rabbit.id),
-                      _buildCertRow('Registration #', rabbit.registrationNumber ?? 'Not set'),
-                      _buildCertRow('Color', rabbit.color ?? 'Not set'),
-                      _buildCertRow('Born', rabbit.dateOfBirth != null ? '${rabbit.dateOfBirth!.month}/${rabbit.dateOfBirth!.day}/${rabbit.dateOfBirth!.year}' : 'Not set'),
-                      Divider(height: 24),
-                      _buildCertRow('Sire', _sireName),
-                      _buildCertRow('Dam', _damName),
-                      Divider(height: 24),
-                      _buildCertRow('Origin', rabbit.origin ?? 'Not set'),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 16),
-                // Awards Section
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Color(0xFFE9E9E7)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.emoji_events, color: Color(0xFF8B5CF6), size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'AWARDS & ACHIEVEMENTS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF787774),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                          Icon(PhosphorIconsBold.printer, size: 14, color: kNeutral600),
+                          const SizedBox(width: 4),
+                          const Text('Print', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral600)),
                         ],
                       ),
-                      SizedBox(height: 12),
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No awards recorded',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF787774)),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                SizedBox(height: 16),
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _printCertificate(context),
-                        icon: Icon(Icons.print, size: 18),
-                        label: Text('Print'),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          side: BorderSide(color: Color(0xFFE9E9E7)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(color: _primaryColor, borderRadius: BorderRadius.circular(100)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(PhosphorIconsBold.shareNetwork, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          const Text('Share', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _shareCertificate(context),
-                        icon: Icon(Icons.share, size: 18),
-                        label: Text('Share'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -239,105 +151,13 @@ class _CertificateCardState extends State<CertificateCard> {
 
   Widget _buildCertRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF787774),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF37352F),
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral400)),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAwardItem(String title, String event, String place) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color(0xFFFFF9E6),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Color(0xFF8B5CF6).withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Color(0xFF8B5CF6).withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.emoji_events, color: Color(0xFF8B5CF6), size: 16),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
-                  ),
-                ),
-                Text(
-                  event,
-                  style: TextStyle(fontSize: 11, color: Color(0xFF787774)),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Color(0xFF8B5CF6),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              place,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _printCertificate(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Preparing certificate for printing...'),
-        backgroundColor: Color(0xFF6366F1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _shareCertificate(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sharing certificate...'),
-        backgroundColor: Color(0xFF6366F1),
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

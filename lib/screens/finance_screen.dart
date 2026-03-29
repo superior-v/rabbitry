@@ -6,6 +6,7 @@ import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
+import '../constants/app_colors.dart';
 import 'add_transaction_screen.dart';
 
 enum GroupingMode {
@@ -25,7 +26,12 @@ enum DateFilter {
   custom,
 }
 
+enum TransactionTypeFilter { all, income, expense }
+
 class FinanceScreen extends StatefulWidget {
+  final String? initialRabbitId;
+  const FinanceScreen({Key? key, this.initialRabbitId}) : super(key: key);
+
   @override
   _FinanceScreenState createState() => _FinanceScreenState();
 }
@@ -42,6 +48,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   String _searchQuery = '';
   GroupingMode _groupingMode = GroupingMode.chronological;
   DateFilter _dateFilter = DateFilter.allTime;
+  TransactionTypeFilter _typeFilter = TransactionTypeFilter.all;
   DateTime? _customStartDate;
   DateTime? _customEndDate;
 
@@ -56,6 +63,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialRabbitId != null) {
+      _groupingMode = GroupingMode.byRabbit;
+      _expandedGroups.add(widget.initialRabbitId!);
+    }
+    _loadData();
+  }
+
+  void setRabbitFilter(String rabbitId) {
+    setState(() {
+      _groupingMode = GroupingMode.byRabbit;
+      _expandedGroups.add(rabbitId);
+    });
     _loadData();
   }
 
@@ -115,6 +134,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
         }
       }
 
+      // Type filter
+      if (_typeFilter != TransactionTypeFilter.all) {
+        if (_typeFilter == TransactionTypeFilter.income && t.type != TransactionType.income) return false;
+        if (_typeFilter == TransactionTypeFilter.expense && t.type != TransactionType.expense) return false;
+      }
+
       // Search filter
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
@@ -157,9 +182,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: _buildAppBar(),
-        body: Center(
+        body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+            valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep),
           ),
         ),
       );
@@ -183,10 +208,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'finance_fab',
         onPressed: _addTransaction,
-        backgroundColor: Color(0xFF6366F1),
-        shape: CircleBorder(),
+        backgroundColor: kLilacDeep,
+        shape: const CircleBorder(),
+        elevation: 4,
         child: Icon(
-          Icons.add,
+          PhosphorIcons.plus(PhosphorIconsStyle.bold),
           size: 28,
           color: Colors.white,
         ),
@@ -196,29 +222,57 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: kLilacWash,
       elevation: 0,
-      title: Text(
-        'Finance & Ledger',
-        style: TextStyle(
-          color: Colors.black87,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      title: Row(
+        children: [
+          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 24),
+          const SizedBox(width: 8),
+          const Text(
+            'Finance & Ledger',
+            style: TextStyle(
+              color: kLilacText,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
       ),
       actions: [
         // Date filter button
-        TextButton.icon(
-          onPressed: _showDateFilterDialog,
-          icon: Icon(Icons.calendar_today, size: 16, color: Colors.black87),
-          label: Text(
-            _getDateFilterLabel(),
-            style: TextStyle(color: Colors.black87, fontSize: 14),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: _showDateFilterDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: kLilacLight,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Row(
+                children: [
+                  Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: kLilacText),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getDateFilterLabel(),
+                    style: const TextStyle(
+                      color: kLilacText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         // Export button
         IconButton(
-          icon: Icon(PhosphorIcons.export(PhosphorIconsStyle.regular), color: Colors.black87),
+          icon: Icon(PhosphorIcons.export(PhosphorIconsStyle.duotone), color: kLilacDeep),
           onPressed: _exportData,
         ),
       ],
@@ -242,57 +296,47 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   Widget _buildSummaryCards() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: kNeutral200)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: _buildSummaryCard(
               'INCOME',
               _totalIncome,
-              Color(0xFF6366F1),
-              isIncome: true,
+              kBlueDeep,
+              kBlueWash,
+              kBlueLight,
+              kBlueText,
+              true,
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: _buildSummaryCard(
               'EXPENSE',
               _totalExpense,
-              Color(0xFFDC2626),
-              isIncome: false,
+              kPinkDeep,
+              kPinkWash,
+              kPinkLight,
+              kPinkText,
+              false,
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(0xFF6366F1), width: 2),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'NET',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF787774),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    '${_netAmount >= 0 ? '+' : ''}${FormatUtils.formatCurrencyShort(_netAmount.abs())}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: _netAmount >= 0 ? Color(0xFF6366F1) : Color(0xFFDC2626),
-                    ),
-                  ),
-                ],
-              ),
+            child: _buildSummaryCard(
+              'NET',
+              _netAmount.abs(),
+              kLilacDeep,
+              kLilacWash,
+              kLilacLight,
+              kLilacText,
+              true,
+              isNet: true,
             ),
           ),
         ],
@@ -300,31 +344,38 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String label, double amount, Color color, {required bool isIncome}) {
+  Widget _buildSummaryCard(String label, double amount, Color deep, Color wash, Color light, Color text, bool isIncome, {bool isNet = false}) {
+    bool isNegNet = isNet && _netAmount < 0;
+    Color displayColor = isNegNet ? kPinkText : deep;
+    
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: wash,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: light),
       ),
       child: Column(
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF787774),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: text,
               letterSpacing: 0.5,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 5),
           Text(
-            '${isIncome ? '+' : '-'}${FormatUtils.formatCurrencyShort(amount)}',
+            isNet 
+                ? '${_netAmount >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}'
+                : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: color,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: displayColor,
+              letterSpacing: -0.5,
             ),
           ),
         ],
@@ -334,71 +385,101 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   Widget _buildSearchAndGrouping() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: kNeutral200)),
+      ),
       child: Row(
         children: [
           // Search field
           Expanded(
             child: Container(
-              height: 44,
+              height: 40,
               decoration: BoxDecoration(
-                color: Color(0xFFF7F7F5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Color(0xFFE9E9E7)),
+                color: kNeutral100,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: kNeutral300),
               ),
               child: TextField(
                 onChanged: (value) => setState(() => _searchQuery = value),
-                style: TextStyle(fontSize: 15),
+                style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Search...',
-                  hintStyle: TextStyle(color: Color(0xFF9B9A97), fontSize: 15),
-                  prefixIcon: Icon(Icons.search, color: Color(0xFF787774), size: 20),
+                  hintText: 'Search entries...',
+                  hintStyle: TextStyle(color: kNeutral500, fontSize: 13),
+                  prefixIcon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold), color: kNeutral500, size: 16),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
               ),
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           // Grouping button
           GestureDetector(
             onTap: _showGroupingMenu,
             child: Container(
-              height: 44,
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: Color(0xFF37352F),
-                borderRadius: BorderRadius.circular(10),
+                color: kLilacWash,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: kLilacLight),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.view_agenda, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
+                  Icon(PhosphorIcons.rows(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+                  const SizedBox(width: 6),
                   Text(
                     _getGroupingLabel(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      color: kLilacDeep,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           // Filter button
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Color(0xFFE9E9E7)),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.filter_list, color: Colors.black87, size: 20),
-              onPressed: _showFilterDialog,
+          GestureDetector(
+            onTap: _showFilterDialog,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 40,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kLilacLight : kNeutral300),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      PhosphorIcons.funnel(PhosphorIconsStyle.bold), 
+                      color: _typeFilter != TransactionTypeFilter.all ? kLilacDeep : kNeutral700, 
+                      size: 18
+                    ),
+                  ),
+                ),
+                if (_typeFilter != TransactionTypeFilter.all)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: kLilacDeep,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -470,7 +551,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: grouped.length,
       itemBuilder: (context, index) {
         final monthKey = grouped.keys.elementAt(index);
@@ -495,45 +576,48 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 });
               },
               child: Container(
-                padding: EdgeInsets.all(16),
-                margin: EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F5),
+                  color: kNeutral100,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kNeutral200),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 18, color: Color(0xFF787774)),
-                    SizedBox(width: 12),
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: kNeutral500),
+                    const SizedBox(width: 12),
                     Text(
                       monthKey,
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: kNeutral900,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       '${monthTransactions.length} entries',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9B9A97),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: kNeutral600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Text(
-                      '${monthTotal >= 0 ? '+' : ''}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
+                      '${monthTotal >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: monthTotal >= 0 ? Color(0xFF6366F1) : Color(0xFFDC2626),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: monthTotal >= 0 ? kBlueDeep : kPinkText,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Icon(
-                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Color(0xFF787774),
+                      isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: kNeutral400,
                     ),
                   ],
                 ),
@@ -598,47 +682,49 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 });
               },
               child: Container(
-                padding: EdgeInsets.all(16),
-                margin: EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: isGeneral ? Color(0xFFF7F7F5) : Colors.white,
+                  color: kNeutral50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFFE9E9E7)),
+                  border: Border.all(color: kNeutral200),
                 ),
                 child: Row(
                   children: [
                     // Avatar
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isGeneral ? Color(0xFFE9E9E7) : Color(0xFFEDE9FE),
+                        color: isGeneral ? kNeutral100 : kLilacWash,
+                        border: Border.all(color: isGeneral ? kNeutral200 : kLilacLight),
                       ),
                       child: Icon(
-                        isGeneral ? Icons.home : Icons.pets,
-                        size: 20,
-                        color: isGeneral ? Color(0xFF787774) : Color(0xFF6366F1),
+                        isGeneral ? PhosphorIcons.house(PhosphorIconsStyle.fill) : PhosphorIcons.pawPrint(PhosphorIconsStyle.fill),
+                        size: 18,
+                        color: isGeneral ? kNeutral500 : kLilacDeep,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             isGeneral ? 'General Herd' : _getRabbitName(key),
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: kNeutral900,
                             ),
                           ),
                           Text(
                             '${rabbitTransactions.length} entries',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF9B9A97),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: kNeutral600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -647,15 +733,16 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF6366F1) : Color(0xFFDC2626),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: total >= 0 ? kBlueDeep : kPinkText,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Icon(
-                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Color(0xFF787774),
+                      isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: kNeutral400,
                     ),
                   ],
                 ),
@@ -712,49 +799,52 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 });
               },
               child: Container(
-                padding: EdgeInsets.all(16),
-                margin: EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F5),
+                  color: kNeutral100,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kNeutral200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       PhosphorIcons.gitBranch(PhosphorIconsStyle.duotone),
-                      size: 20,
-                      color: isNoLitter ? Color(0xFF787774) : Color(0xFF6366F1),
+                      size: 18,
+                      color: isNoLitter ? kNeutral500 : kLilacDeep,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text(
                       isNoLitter ? 'No Litter' : key,
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: kNeutral900,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       '${litterTransactions.length} entries',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9B9A97),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: kNeutral600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF6366F1) : Color(0xFFDC2626),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: total >= 0 ? kBlueDeep : kPinkText,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Icon(
-                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Color(0xFF787774),
+                      isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: kNeutral400,
                     ),
                   ],
                 ),
@@ -809,45 +899,48 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 });
               },
               child: Container(
-                padding: EdgeInsets.all(16),
-                margin: EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F5),
+                  color: kNeutral50,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kNeutral200),
                 ),
                 child: Row(
                   children: [
-                    _getCategoryIcon(category),
-                    SizedBox(width: 12),
+                    _getCategoryIcon(category, isIncome: total >= 0),
+                    const SizedBox(width: 12),
                     Text(
                       categoryTransactions.first.categoryName,
-                      style: TextStyle(
-                        fontSize: 16,
+                      style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: kNeutral900,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       '${categoryTransactions.length} entries',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF9B9A97),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: kNeutral600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: total >= 0 ? Color(0xFF6366F1) : Color(0xFFDC2626),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: total >= 0 ? kBlueDeep : kPinkText,
                       ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Icon(
-                      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Color(0xFF787774),
+                      isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
+                      size: 16,
+                      color: kNeutral400,
                     ),
                   ],
                 ),
@@ -889,21 +982,31 @@ class _FinanceScreenState extends State<FinanceScreen> {
               // Show batch details
             },
             child: Container(
-              padding: EdgeInsets.all(16),
-              margin: EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: Color(0xFFEDE9FE),
+                color: kLilacWash,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(0xFF6366F1).withOpacity(0.3)),
+                border: Border.all(color: kLilacLight),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    PhosphorIcons.tag(PhosphorIconsStyle.duotone),
-                    size: 24,
-                    color: Color(0xFF6366F1),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        PhosphorIcons.stack(PhosphorIconsStyle.bold),
+                        size: 20,
+                        color: kLilacDeep,
+                      ),
+                    ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -912,51 +1015,35 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           children: [
                             Text(
                               '${firstTxn.categoryName} (×${batchTransactions.length})',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF6366F1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                'Batch',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: kNeutral900,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 2),
                         Text(
-                          '$dateStr • ${firstTxn.litterId ?? 'Unknown Litter'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9B9A97),
+                          '$dateStr • ${firstTxn.litterId ?? 'Litter'}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: kNeutral500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Text(
-                    '+${FormatUtils.formatCurrencyShort(total)}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF6366F1),
+                    FormatUtils.formatCurrencyShort(total),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: kLilacDeep,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.chevron_right, color: Color(0xFF787774)),
+                  const SizedBox(width: 8),
+                  Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: kNeutral400, size: 16),
                 ],
               ),
             ),
@@ -986,31 +1073,34 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Widget _buildTransactionCard(Transaction t, {bool showRabbit = true, bool showCategory = true}) {
     final isIncome = t.type == TransactionType.income;
     final dateStr = FormatUtils.formatDateShort(t.date);
+    final themeColor = isIncome ? kBlueDeep : kPinkDeep;
+    final themeWash = isIncome ? kBlueWash : kPinkWash;
+    final themeLight = isIncome ? kBlueLight : kPinkLight;
 
     return GestureDetector(
       onTap: () => _editTransaction(t),
       onLongPress: () => _showTransactionOptions(t),
       child: Container(
-        padding: EdgeInsets.all(16),
-        margin: EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Color(0xFFE9E9E7)),
+          border: Border(bottom: BorderSide(color: kNeutral200)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Category icon
+            // Category icon box
             if (showCategory)
               Container(
-                width: 40,
-                height: 40,
-                margin: EdgeInsets.only(right: 12),
+                width: 42,
+                height: 42,
+                margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
-                  color: _getCategoryColor(t.category).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: themeWash,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: themeLight),
                 ),
-                child: _getCategoryIcon(t.category),
+                child: _getCategoryIcon(t.category, isIncome: isIncome),
               ),
             // Details
             Expanded(
@@ -1021,85 +1111,111 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     children: [
                       Text(
                         t.categoryName,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: kNeutral900,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       if (t.isBatchTransaction) ...[
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Color(0xFFEDE9FE),
-                            borderRadius: BorderRadius.circular(4),
+                            color: kLilacWash,
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: kLilacLight),
                           ),
-                          child: Text(
+                          child: const Text(
                             'Batch',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF6366F1),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: kLilacDeep,
                             ),
                           ),
                         ),
                       ],
                     ],
                   ),
-                  SizedBox(height: 2),
-                  if (showRabbit && t.rabbitId != null)
-                    Row(
-                      children: [
-                        Icon(
-                          t.linkType == LinkType.litter ? PhosphorIcons.gitBranch(PhosphorIconsStyle.regular) : Icons.pets,
-                          size: 12,
-                          color: Color(0xFF9B9A97),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (showRabbit && t.rabbitId != null)
+                        Row(
+                          children: [
+                            Icon(
+                              t.linkType == LinkType.litter ? PhosphorIcons.gitBranch(PhosphorIconsStyle.bold) : PhosphorIcons.pawPrint(PhosphorIconsStyle.bold),
+                              size: 11,
+                              color: kNeutral500,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              t.linkType == LinkType.litter ? t.litterId ?? '' : _getRabbitName(t.rabbitId),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: kNeutral600,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (t.linkType == LinkType.general)
+                        Row(
+                          children: [
+                            Icon(PhosphorIcons.house(PhosphorIconsStyle.bold), size: 11, color: kNeutral500),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'General Herd',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: kNeutral600,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 4),
-                        Text(
-                          t.linkType == LinkType.litter ? t.litterId ?? '' : _getRabbitName(t.rabbitId),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9B9A97),
+                      if (t.description != null && t.description!.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        const Text('•', style: TextStyle(color: kNeutral400, fontSize: 11)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            t.description!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: kNeutral500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
-                    )
-                  else if (t.linkType == LinkType.general)
-                    Row(
-                      children: [
-                        Icon(Icons.home, size: 12, color: Color(0xFF9B9A97)),
-                        SizedBox(width: 4),
-                        Text(
-                          'General Herd',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9B9A97),
-                          ),
-                        ),
-                      ],
-                    ),
-                  SizedBox(height: 2),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
                   Text(
-                    '$dateStr${t.description != null ? ' • ${t.description}' : ''}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF9B9A97),
+                    dateStr,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: kNeutral400,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             // Amount
+            const SizedBox(width: 12),
             Text(
-              '${isIncome ? '+' : '-'}${FormatUtils.formatCurrency(t.amount)}',
+              '${isIncome ? '+' : '−'}${FormatUtils.formatCurrency(t.amount)}',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isIncome ? Color(0xFF6366F1) : Color(0xFFDC2626),
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: isIncome ? kBlueDeep : kPinkText,
+                letterSpacing: -0.5,
               ),
             ),
           ],
@@ -1108,9 +1224,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _getCategoryIcon(TransactionCategory category) {
+  Widget _getCategoryIcon(TransactionCategory category, {required bool isIncome}) {
     IconData iconData;
-    Color color = _getCategoryColor(category);
+    Color color = isIncome ? kBlueDeep : kPinkDeep;
 
     switch (category) {
       case TransactionCategory.soldKit:
@@ -1151,92 +1267,92 @@ class _FinanceScreenState extends State<FinanceScreen> {
         break;
     }
 
-    return Icon(iconData, size: 22, color: color);
+    return Icon(iconData, size: 20, color: color);
   }
 
   Color _getCategoryColor(TransactionCategory category) {
-    switch (category) {
-      case TransactionCategory.soldKit:
-        return Color(0xFF6366F1);
-      case TransactionCategory.medical:
-        return Color(0xFFDC2626);
-      case TransactionCategory.feed:
-        return Color(0xFF6366F1);
-      case TransactionCategory.meatHarvest:
-        return Color(0xFF787774);
-      case TransactionCategory.showFee:
-        return Color(0xFFDC2626);
-      case TransactionCategory.studFee:
-        return Color(0xFF2E7BB5);
-      case TransactionCategory.equipment:
-        return Color(0xFFDC2626);
-      case TransactionCategory.vetVisit:
-        return Color(0xFFDC2626);
-      case TransactionCategory.manureSales:
-        return Color(0xFF6366F1);
-      case TransactionCategory.supplies:
-        return Color(0xFFDC2626);
-      case TransactionCategory.otherExpense:
-        return Color(0xFFDC2626);
-      case TransactionCategory.otherIncome:
-        return Color(0xFF6366F1);
+    if (category.index <= 2 || category == TransactionCategory.otherIncome || category == TransactionCategory.manureSales) {
+      return kBlueDeep;
     }
+    return kPinkDeep;
   }
 
   void _showGroupingMenu() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Group By',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Group By',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: kNeutral900,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            SizedBox(height: 16),
-            _buildGroupingOption(GroupingMode.chronological, 'Chronological', Icons.list),
-            _buildGroupingOption(GroupingMode.byRabbit, 'By Rabbit', Icons.pets),
-            _buildGroupingOption(GroupingMode.byLitter, 'By Litter', PhosphorIcons.gitBranch(PhosphorIconsStyle.regular)),
-            _buildGroupingOption(GroupingMode.byCategory, 'By Category', Icons.category),
-            _buildGroupingOption(GroupingMode.byMonth, 'By Month', Icons.calendar_today),
-            _buildGroupingOption(GroupingMode.byBatch, 'By Batch', PhosphorIcons.stack(PhosphorIconsStyle.regular)),
-          ],
+              const SizedBox(height: 20),
+              _buildGroupingOption(GroupingMode.chronological, 'Chronological', PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byMonth, 'By Month', PhosphorIcons.calendar(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byRabbit, 'By Rabbit', PhosphorIcons.pawPrint(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byLitter, 'By Litter', PhosphorIcons.gitBranch(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byCategory, 'By Category', PhosphorIcons.tag(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byBatch, 'By Batch', PhosphorIcons.stack(PhosphorIconsStyle.bold), setModalState),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGroupingOption(GroupingMode mode, String label, IconData icon) {
+  Widget _buildGroupingOption(GroupingMode mode, String label, IconData icon, StateSetter setModalState) {
     final isSelected = _groupingMode == mode;
 
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Color(0xFF6366F1) : Color(0xFF787774)),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          color: isSelected ? Color(0xFF6366F1) : Colors.black87,
-        ),
-      ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF6366F1)) : null,
+    return GestureDetector(
       onTap: () {
-        setState(() {
+        setModalState(() => _groupingMode = mode); // Update modal's local state
+        setState(() { // Update main state and trigger rebuild of the underlying screen
           _groupingMode = mode;
           _expandedGroups.clear();
         });
-        Navigator.pop(context);
+        Navigator.pop(context); // Close the modal
       },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? kLilacWash : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? kLilacDeep : kNeutral500, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color: isSelected ? kLilacDeep : kNeutral700,
+                fontSize: 15,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1244,29 +1360,32 @@ class _FinanceScreenState extends State<FinanceScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Date Range',
               style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
+                fontWeight: FontWeight.w800,
+                color: kNeutral900,
+                letterSpacing: -0.5,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildDateFilterOption(DateFilter.allTime, 'All Time'),
             _buildDateFilterOption(DateFilter.thisMonth, 'This Month'),
             _buildDateFilterOption(DateFilter.lastMonth, 'Last Month'),
             _buildDateFilterOption(DateFilter.thisYear, 'This Year'),
             _buildDateFilterOption(DateFilter.custom, 'Custom Range'),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -1276,15 +1395,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Widget _buildDateFilterOption(DateFilter filter, String label) {
     final isSelected = _dateFilter == filter;
 
-    return ListTile(
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          color: isSelected ? Color(0xFF6366F1) : Colors.black87,
-        ),
-      ),
-      trailing: isSelected ? Icon(Icons.check, color: Color(0xFF6366F1)) : null,
+    return GestureDetector(
       onTap: () {
         if (filter == DateFilter.custom) {
           Navigator.pop(context);
@@ -1294,6 +1405,29 @@ class _FinanceScreenState extends State<FinanceScreen> {
           Navigator.pop(context);
         }
       },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? kLilacWash : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                color: isSelected ? kLilacDeep : kNeutral700,
+                fontSize: 15,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1315,7 +1449,164 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   void _showFilterDialog() {
-    // TODO: Implement filter dialog for income/expense type filtering
+    // Current selection for the modal
+    TransactionTypeFilter tempFilter = _typeFilter;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Filters',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: kNeutral900,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: kNeutral600, size: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'TRANSACTION TYPE',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: kNeutral500,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildFilterChip(TransactionTypeFilter.all, 'All', PhosphorIcons.list(PhosphorIconsStyle.bold), tempFilter, (newFilter) {
+                    setModalState(() => tempFilter = newFilter);
+                  }),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(TransactionTypeFilter.income, 'Income', PhosphorIcons.trendUp(PhosphorIconsStyle.bold), tempFilter, (newFilter) {
+                    setModalState(() => tempFilter = newFilter);
+                  }),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(TransactionTypeFilter.expense, 'Expense', PhosphorIcons.trendDown(PhosphorIconsStyle.bold), tempFilter, (newFilter) {
+                    setModalState(() => tempFilter = newFilter);
+                  }),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setModalState(() => tempFilter = TransactionTypeFilter.all);
+                        setState(() => _typeFilter = TransactionTypeFilter.all);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: kNeutral100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Clear All',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: kNeutral600),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() => _typeFilter = tempFilter);
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: kLilacDeep,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kLilacDeep.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Apply',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(TransactionTypeFilter type, String label, IconData icon, TransactionTypeFilter current, Function(TransactionTypeFilter) onSelect) {
+    bool isSelected = current == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onSelect(type),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? kLilacWash : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isSelected ? kLilacLight : kNeutral200),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? kLilacDeep : kNeutral500,
+                size: 18,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? kLilacText : kNeutral500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _addTransaction() async {
@@ -1355,15 +1646,15 @@ class _FinanceScreenState extends State<FinanceScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.edit, color: Color(0xFF6366F1)),
-              title: Text('Edit Transaction'),
+              leading: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold), color: kNeutral700),
+              title: const Text('Edit Transaction', style: TextStyle(fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 _editTransaction(t);
               },
             ),
             ListTile(
-              leading: Icon(Icons.copy, color: Color(0xFF787774)),
+              leading: Icon(PhosphorIcons.copy(PhosphorIconsStyle.bold), color: Color(0xFF787774)),
               title: Text('Duplicate'),
               onTap: () {
                 Navigator.pop(context);

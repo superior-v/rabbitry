@@ -4,6 +4,7 @@ import '../models/rabbit.dart';
 import '../services/format_utils.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
+import '../constants/app_colors.dart';
 
 class HealthRecordsCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -15,54 +16,56 @@ class HealthRecordsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'HEALTH RECORDS',
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
-                    letterSpacing: 0.8,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: kNeutral500,
+                    letterSpacing: 0.6,
                   ),
                 ),
                 GestureDetector(
                   onTap: () => _showAddRecordDialog(context),
-                  child: Row(
-                    children: [
-                      Icon(Icons.add, size: 16, color: Color(0xFF64748B)),
-                      SizedBox(width: 4),
-                      Text(
-                        'ADD',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF64748B),
-                          letterSpacing: 0.5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: kNeutral100,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.add, size: 14, color: kNeutral600),
+                        SizedBox(width: 4),
+                        Text(
+                          'ADD',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: kNeutral600,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+          const Divider(height: 1, color: kNeutral100),
 
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),

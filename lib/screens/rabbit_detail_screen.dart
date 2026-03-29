@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
@@ -25,6 +26,9 @@ import '../widgets/modals/health_record_modal.dart';
 import '../widgets/modals/move_cage_modal.dart';
 import '../widgets/modals/archive_modal.dart';
 import 'add_rabbit_screen.dart';
+import 'finance_screen.dart';
+import 'home_dashboard_screen.dart' show HomeDashboardScreen;
+import '../constants/app_colors.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
@@ -43,7 +47,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   bool _showTabShadow = false;
   late Rabbit _currentRabbit;
   int _refreshCounter = 0;
-  bool _isEditingMode = false;
+
+  // Theme Helpers
+  Color get _primaryColor => _currentRabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+  Color get _lightColor => _currentRabbit.type == RabbitType.buck ? kBlueLight : kPinkLight;
+  Color get _washColor => _currentRabbit.type == RabbitType.buck ? kBlueWash : kPinkWash;
+  Color get _pastelColor => _currentRabbit.type == RabbitType.buck ? kBluePastel : kPinkPastel;
+  Color get _textColor => _currentRabbit.type == RabbitType.buck ? kBlueText : kPinkText;
 
   // Breeding stats
   List<Litter> _litters = [];
@@ -333,22 +343,37 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return SliverAppBar(
       pinned: true,
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: _washColor,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF37352F)),
+        icon: Icon(Icons.arrow_back, color: _primaryColor, size: 22),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Text(
-        '${_currentRabbit.name} (${_currentRabbit.id})',
-        style: const TextStyle(
-          color: Color(0xFF37352F),
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+      centerTitle: false,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(PhosphorIcons.rabbit(), color: _primaryColor, size: 20),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              _currentRabbit.name,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: _primaryColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, color: Color(0xFF37352F)),
+          icon: Icon(PhosphorIcons.pencil(), color: _primaryColor, size: 22),
+          onPressed: _handleEdit,
+        ),
+        IconButton(
+          icon: Icon(PhosphorIcons.dotsThreeVertical(), color: _primaryColor, size: 24),
           onPressed: _openActionSheet,
         ),
       ],
@@ -362,12 +387,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: _washColor,
+          border: Border(bottom: BorderSide(color: _lightColor)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ✅ Avatar with Tap to Change
             GestureDetector(
@@ -378,9 +404,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFF7F7F5),
-                      border: Border.all(color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5), width: 2),
+                      borderRadius: BorderRadius.circular(10),
+                      color: kNeutral200,
+                      border: Border.all(color: _pastelColor, width: 2.5),
                       image: hasPhoto && photoPath != null && File(photoPath).existsSync()
                           ? DecorationImage(
                               image: FileImage(File(photoPath)),
@@ -393,7 +419,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         : Icon(
                             _currentRabbit.type == RabbitType.doe ? Icons.female : Icons.male,
                             size: 36,
-                            color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+                            color: _currentRabbit.type == RabbitType.doe ? kPinkDeep : kBlueDeep,
                           ),
                   ),
                   Positioned(
@@ -405,12 +431,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        border: Border.all(color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5), width: 2),
+                        border: Border.all(color: kNeutral300, width: 1),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.camera_alt,
-                        size: 12,
-                        color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+                        size: 13,
+                        color: kNeutral500,
                       ),
                     ),
                   ),
@@ -423,47 +449,59 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'RABBIT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: kNeutral500,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 3,
+                        height: 3,
+                        decoration: const BoxDecoration(color: kNeutral400, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _calculateAge(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: kNeutral600,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                   Text(
                     _currentRabbit.name,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF37352F),
+                      color: kNeutral900,
+                      height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
+                  Row(
                     children: [
-                      Text(
-                        '#${_currentRabbit.id}',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                      Icon(
+                        _currentRabbit.type == RabbitType.doe ? Icons.female : Icons.male,
+                        size: 15,
+                        color: _primaryColor,
                       ),
-                      const Text('•', style: TextStyle(color: Color(0xFF787774))),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _currentRabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-                            size: 14,
-                            color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _currentRabbit.type == RabbitType.doe ? 'Doe' : 'Buck',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: _currentRabbit.type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Text('•', style: TextStyle(color: Color(0xFF787774))),
+                      const SizedBox(width: 4),
                       Text(
                         _currentRabbit.breed,
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _primaryColor,
+                        ),
                       ),
                     ],
                   ),
@@ -471,7 +509,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   // Badges
                   Wrap(
                     spacing: 8,
-                    runSpacing: 8,
+                    runSpacing: 4,
                     children: [
                       _buildBadge(
                         _getStatusText(_currentRabbit.status),
@@ -480,8 +518,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       ),
                       _buildBadge(
                         _currentRabbit.location ?? 'Unassigned',
-                        const Color(0xFFF7F7F5),
-                        const Color(0xFF787774),
+                        kNeutral100,
+                        kNeutral500,
                       ),
                     ],
                   ),
@@ -496,17 +534,18 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Widget _buildBadge(String text, Color bg, Color textColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
-        text,
+        text.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
           color: textColor,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -517,35 +556,38 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return SliverPersistentHeader(
       pinned: true,
       delegate: _TabBarDelegate(
-        TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          indicator: const UnderlineTabIndicator(
-            borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
-            insets: EdgeInsets.symmetric(horizontal: 12),
+        PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: false,
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(color: _primaryColor, width: 2),
+              insets: const EdgeInsets.symmetric(horizontal: 32),
+            ),
+            labelColor: _primaryColor,
+            unselectedLabelColor: kNeutral600,
+            labelStyle: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0,
+            ),
+            labelPadding: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
+            indicatorPadding: EdgeInsets.zero,
+            tabs: const [
+              Tab(icon: Icon(PhosphorIconsDuotone.rabbit, size: 18), text: 'Profile', iconMargin: EdgeInsets.only(bottom: 2)),
+              Tab(icon: Icon(PhosphorIconsDuotone.heart, size: 18), text: 'Breeding', iconMargin: EdgeInsets.only(bottom: 2)),
+              Tab(icon: Icon(PhosphorIconsDuotone.checkSquare, size: 18), text: 'Tasks', iconMargin: EdgeInsets.only(bottom: 2)),
+              Tab(icon: Icon(PhosphorIconsDuotone.chartBar, size: 18), text: 'Stats', iconMargin: EdgeInsets.only(bottom: 2)),
+              Tab(icon: Icon(PhosphorIconsDuotone.folderSimple, size: 18), text: 'Records', iconMargin: EdgeInsets.only(bottom: 2)),
+            ],
           ),
-          labelColor: const Color(0xFF6366F1),
-          unselectedLabelColor: const Color(0xFF1E293B),
-          labelStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0,
-          ),
-          labelPadding: EdgeInsets.zero, // ✅ Remove label padding
-          padding: EdgeInsets.zero, // ✅ Remove tab bar padding
-          indicatorPadding: EdgeInsets.zero,
-          tabs: const [
-            Tab(text: 'Profile'),
-            Tab(text: 'Breeding'),
-            Tab(text: 'Tasks'),
-            Tab(text: 'Stats'),
-            Tab(text: 'Records'),
-          ],
         ),
         showShadow: _showTabShadow,
       ),
@@ -559,14 +601,17 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSectionHeader('QUICK INFO'),
           QuickInfoCard(
             key: ValueKey('${_currentRabbit.id}_$_refreshCounter'),
             rabbit: _currentRabbit,
             isEditing: false,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          _buildSectionHeader('GENETICS'),
           GeneticsCard(rabbit: _currentRabbit, isEditing: false),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          _buildSectionHeader('PARENTAGE'),
           ParentageCard(
             rabbit: _currentRabbit,
             onUpdated: () async {
@@ -577,10 +622,63 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             },
           ),
           if (SettingsService.instance.showRabbitryEnabled) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            _buildSectionHeader('REGISTRATION'),
             RegistrationCard(rabbit: _currentRabbit),
           ],
+          const SizedBox(height: 32),
+          // Edit Profile Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit)),
+                ).then((_) async {
+                  final refreshed = await _db.getRabbit(_currentRabbit.id);
+                  if (refreshed != null && mounted) {
+                    setState(() {
+                      _currentRabbit = refreshed;
+                      _refreshCounter++;
+                    });
+                  }
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Edit Profile',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: kNeutral500,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }
@@ -589,11 +687,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          
           BreedingPipelineCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          _buildSectionHeader('BREEDING STATS'),
           _buildBreedingStats(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           LitterHistoryCard(rabbit: _currentRabbit),
         ],
       ),
@@ -637,41 +738,57 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       }
     }
 
-    return Row(
+    return Column(
       children: [
-        Expanded(child: _buildStatCard(_littersLoaded ? '$litterCount' : '--', 'Litters')),
-        const SizedBox(width: 8),
-        Expanded(child: _buildStatCard(_littersLoaded ? avgSize : '--', 'Avg Size')),
-        const SizedBox(width: 8),
-        Expanded(child: _buildStatCard(_littersLoaded ? survival : '--', 'Survival')),
-        const SizedBox(width: 8),
-        Expanded(child: _buildStatCard(_littersLoaded ? avgGest : '--', 'Avg Gest.')),
+        Row(
+          children: [
+            Expanded(child: _buildStatCard(_littersLoaded ? '$litterCount' : '--', 'TOTAL LITTERS', PhosphorIconsFill.smileySad)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatCard(_littersLoaded ? avgSize : '--', 'AVERAGE SIZE', PhosphorIconsFill.hash)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildStatCard(_littersLoaded ? survival : '--', 'SURVIVAL RATE', PhosphorIconsFill.heart)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatCard(_littersLoaded ? avgGest : '--', 'AVG GESTATION', PhosphorIconsFill.calendar)),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String value, String label) {
+  Widget _buildStatCard(String value, String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F5),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF37352F),
-            ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: _washColor, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 20, color: _primaryColor.withOpacity(0.6)),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF787774)),
-            textAlign: TextAlign.center,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), height: 1.1),
+                ),
+                Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.5),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -682,11 +799,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSectionHeader('UPCOMING TASKS'),
           TasksCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
-          ScheduleCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          _buildSectionHeader('HEALTH RECORDS'),
           HealthRecordsCard(rabbit: _currentRabbit),
         ],
       ),
@@ -696,15 +814,48 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   Widget _buildStatsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: StatsCards(
-        rabbit: _currentRabbit,
-        onAddTransaction: () => _showAddTransactionDialog(),
-        onViewAllTransactions: () => _navigateToTransactions(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('ANALYTICS'),
+          StatsCards(
+            rabbit: _currentRabbit,
+            onAddTransaction: () => _showAddTransactionDialog(),
+            onViewAllTransactions: () => _navigateToTransactions(),
+          ),
+        ],
       ),
     );
   }
 
-// Add Transaction Dialog
+  Widget _buildRecordsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          NotesCard(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
+          DocumentsCard(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
+          PedigreeInlineCard(
+            rabbit: _currentRabbit,
+            onUpdated: () async {
+              final updated = await DatabaseService().getRabbit(_currentRabbit.id);
+              if (updated != null && mounted) {
+                setState(() => _currentRabbit = updated);
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildSectionHeader('CERTIFICATES'),
+          CertificateCard(rabbit: _currentRabbit),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Show Add Transaction Modal
   void _showAddTransactionDialog() {
     showModalBottomSheet(
       context: context,
@@ -757,13 +908,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildTypeButton('Income', true, const Color(0xFF6B9E78)),
-                        ),
+                        Expanded(child: _buildTypeButton('Income', true, const Color(0xFF6B9E78))),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildTypeButton('Expense', false, const Color(0xFF8B5CF6)),
-                        ),
+                        Expanded(child: _buildTypeButton('Expense', false, const Color(0xFF8B5CF6))),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -780,16 +927,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     ),
                     const SizedBox(height: 8),
                     TextField(
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         hintText: FormatUtils.currencyHint,
                         prefixText: FormatUtils.currencySymbol,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                          borderSide: const BorderSide(color: kPinkDeep, width: 2),
                         ),
                       ),
                     ),
@@ -808,12 +953,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                          borderSide: BorderSide(color: _primaryColor, width: 2),
                         ),
                       ),
                       items: const [
@@ -842,12 +985,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       maxLines: 3,
                       decoration: InputDecoration(
                         hintText: 'Enter details...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                          borderSide: BorderSide(color: _primaryColor, width: 2),
                         ),
                       ),
                     ),
@@ -876,17 +1017,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                          border: Border.all(color: kNeutral300),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Jan 20, 2026',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            const Icon(Icons.calendar_today, size: 18, color: Color(0xFF787774)),
+                            Text('Jan 20, 2026', style: TextStyle(fontSize: 14)),
+                            Icon(Icons.calendar_today, size: 18, color: kNeutral500),
                           ],
                         ),
                       ),
@@ -903,27 +1041,20 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   onPressed: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Transaction added successfully'),
-                        backgroundColor: Color(0xFF6366F1),
-                        behavior: SnackBarBehavior.floating,
+                      SnackBar(
+                        content: const Text('Transaction added successfully'),
+                        backgroundColor: _primaryColor,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: _primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text(
                     'Save Transaction',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -940,20 +1071,20 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? color.withOpacity(0.08) : Colors.white,
           border: Border.all(
-            color: isSelected ? color : const Color(0xFFE0E0E0),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? color : kNeutral200,
+            width: isSelected ? 1.5 : 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? color : const Color(0xFF787774),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? color : kNeutral600,
             ),
           ),
         ),
@@ -962,117 +1093,48 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   void _navigateToTransactions() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Full transaction history - Coming soon'),
-        backgroundColor: Color(0xFF6366F1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    HomeDashboardScreen.switchToTab(4, rabbitId: _currentRabbit.id);
   }
 
-  Widget _buildRecordsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          NotesCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
-          PedigreeInlineCard(
-            rabbit: _currentRabbit,
-            onUpdated: () async {
-              final updated = await DatabaseService().getRabbit(_currentRabbit.id);
-              if (updated != null && mounted) {
-                setState(() => _currentRabbit = updated);
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-          DocumentsCard(rabbit: _currentRabbit),
-          const SizedBox(height: 16),
-          CertificateCard(rabbit: _currentRabbit),
-        ],
-      ),
-    );
-  }
-
-  // Helper Methods
+  // ✅ Helper Methods
   String _getStatusText(RabbitStatus status) {
     switch (status) {
-      case RabbitStatus.open:
-        return 'Open';
-      case RabbitStatus.pregnant:
-        return 'Bred';
-      case RabbitStatus.palpateDue:
-        return 'Bred';
-      case RabbitStatus.nursing:
-        return 'Nursing';
-      case RabbitStatus.resting:
-        return 'Resting';
-      case RabbitStatus.active:
-        return 'Active';
-      case RabbitStatus.inactive:
-        return 'Inactive';
-      case RabbitStatus.growout:
-        return 'Grow Out';
-      case RabbitStatus.quarantine:
-        return 'Quarantine';
-      case RabbitStatus.archived:
-        return 'Archived';
+      case RabbitStatus.open: return 'Open';
+      case RabbitStatus.pregnant: return 'Bred';
+      case RabbitStatus.palpateDue: return 'Bred';
+      case RabbitStatus.nursing: return 'Nursing';
+      case RabbitStatus.resting: return 'Resting';
+      case RabbitStatus.active: return 'Active';
+      case RabbitStatus.inactive: return 'Inactive';
+      case RabbitStatus.growout: return 'Grow Out';
+      case RabbitStatus.quarantine: return 'Quarantine';
+      case RabbitStatus.archived: return 'Archived';
     }
   }
 
   Color _getStatusColor(RabbitStatus status) {
     switch (status) {
-      case RabbitStatus.open:
-        return const Color(0xFFEDF3EE);
-      case RabbitStatus.pregnant:
-        return const Color(0xFFF3E8FF);
-      case RabbitStatus.palpateDue:
-        return const Color(0xFFFFF9E6);
-      case RabbitStatus.nursing:
-        return const Color(0xFFEBF2FA);
-      case RabbitStatus.resting:
-        return const Color(0xFFF7F7F5);
-      case RabbitStatus.active:
-        return const Color(0xFFEDF3EE);
-      case RabbitStatus.inactive:
-        return const Color(0xFFF7F7F5);
-      case RabbitStatus.growout:
-        return const Color(0xFFFFF9E6);
-      case RabbitStatus.quarantine:
-        return const Color(0xFFFDE8E8);
-      case RabbitStatus.archived:
-        return const Color(0xFFF7F7F5);
+      case RabbitStatus.open: return const Color(0xFFEDF3EE);
+      case RabbitStatus.pregnant: return _washColor; // Dynamic wash
+      case RabbitStatus.palpateDue: return const Color(0xFFFFF9E6);
+      case RabbitStatus.nursing: return const Color(0xFFEBF2FA);
+      case RabbitStatus.resting: return const Color(0xFFF7F7F5);
+      default: return const Color(0xFFF7F7F5);
     }
   }
 
   Color _getStatusTextColor(RabbitStatus status) {
     switch (status) {
-      case RabbitStatus.open:
-        return const Color(0xFF6B9E78);
-      case RabbitStatus.pregnant:
-        return const Color(0xFF9C6ADE);
-      case RabbitStatus.palpateDue:
-        return const Color(0xFF8B5CF6);
-      case RabbitStatus.nursing:
-        return const Color(0xFF5B8AD0);
-      case RabbitStatus.resting:
-        return const Color(0xFF787774);
-      case RabbitStatus.active:
-        return const Color(0xFF6B9E78);
-      case RabbitStatus.inactive:
-        return const Color(0xFF787774);
-      case RabbitStatus.growout:
-        return const Color(0xFF8B5CF6);
-      case RabbitStatus.quarantine:
-        return const Color(0xFFC47070);
-      case RabbitStatus.archived:
-        return const Color(0xFF9B9A97);
+      case RabbitStatus.open: return const Color(0xFF6B9E78);
+      case RabbitStatus.pregnant: return _primaryColor; // Dynamic primary
+      case RabbitStatus.palpateDue: return const Color(0xFF8B5CF6);
+      case RabbitStatus.nursing: return const Color(0xFF5B8AD0);
+      case RabbitStatus.resting: return const Color(0xFF787774);
+      default: return const Color(0xFF9B9A97);
     }
   }
 
-  // Action Methods
+  // ✅ Action Methods
   void _openActionSheet() {
     showModalBottomSheet(
       context: context,
@@ -1095,25 +1157,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       children: [
                         Text(
                           '${_currentRabbit.name} (${_currentRabbit.id})',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                         ),
-                        const Text(
-                          'Actions',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF787774),
-                          ),
-                        ),
+                        const Text('Actions', style: TextStyle(fontSize: 14, color: kNeutral500)),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),
             ),
@@ -1141,7 +1191,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
-  /// Refresh rabbit data from DB after an action
   Future<void> _refreshRabbitData() async {
     final updated = await _db.getRabbit(_currentRabbit.id);
     if (updated != null && mounted) {
@@ -1159,47 +1208,34 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Rabbit'),
-        content: Text(
-          'Are you sure you want to permanently delete "${_currentRabbit.name}"? This action cannot be undone.',
-        ),
+        content: Text('Are you sure you want to permanently delete "${_currentRabbit.name}"? This action cannot be undone.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: kNeutral500))),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // close dialog
+              Navigator.pop(context);
               await _db.deleteRabbit(_currentRabbit.id);
               if (mounted) {
-                final messenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context, true); // pop detail screen
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('${_currentRabbit.name} deleted'),
-                    backgroundColor: const Color(0xFFC47070),
-                  ),
-                );
+                Navigator.pop(context, true);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_currentRabbit.name} deleted'), backgroundColor: kPinkDeep));
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w600)),
+            child: const Text('Delete', style: TextStyle(color: kPinkDeep, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
   }
 
+  void _handleEdit() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit)));
+    if (result == true) await _refreshRabbitData();
+  }
+
   void _showEditRabbitScreen() async {
-    Navigator.pop(context); // close action sheet
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit),
-      ),
-    );
-    if (result == true) {
-      await _refreshRabbitData();
-    }
+    Navigator.pop(context);
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit)));
+    if (result == true) await _refreshRabbitData();
   }
 
   void _showMoveCageModal() {
@@ -1207,13 +1243,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => MoveCageModal(
-        rabbit: _currentRabbit,
-        onComplete: () {
-          Navigator.pop(context);
-          _refreshRabbitData();
-        },
-      ),
+      builder: (context) => MoveCageModal(rabbit: _currentRabbit, onComplete: () { Navigator.pop(context); _refreshRabbitData(); }),
     );
   }
 
@@ -1222,13 +1252,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => LogWeightModal(
-        rabbit: _currentRabbit,
-        onComplete: () {
-          Navigator.pop(context);
-          _refreshRabbitData();
-        },
-      ),
+      builder: (context) => LogWeightModal(rabbit: _currentRabbit, onComplete: () { Navigator.pop(context); _refreshRabbitData(); }),
     );
   }
 
@@ -1237,13 +1261,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => HealthRecordModal(
-        rabbit: _currentRabbit,
-        onComplete: () {
-          Navigator.pop(context);
-          _refreshRabbitData();
-        },
-      ),
+      builder: (context) => HealthRecordModal(rabbit: _currentRabbit, onComplete: () { Navigator.pop(context); _refreshRabbitData(); }),
     );
   }
 
@@ -1252,88 +1270,47 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ArchiveModal(
-        rabbit: _currentRabbit,
-        onComplete: () {
-          Navigator.pop(context);
-          // Go back to herd screen after archiving
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  void _printCageCard() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🖨️ Printing cage card...'),
-        backgroundColor: Color(0xFF6366F1),
-        behavior: SnackBarBehavior.floating,
-      ),
+      builder: (context) => ArchiveModal(rabbit: _currentRabbit, onComplete: () { Navigator.pop(context); Navigator.pop(context); }),
     );
   }
 
   Widget _buildMenuItem(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
     return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
+      onTap: () { Navigator.pop(context); onTap(); },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isDestructive ? const Color(0xFFC47070) : const Color(0xFF787774),
-              size: 24,
-            ),
+            Icon(icon, color: isDestructive ? _primaryColor : kNeutral500, size: 24),
             const SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDestructive ? const Color(0xFFC47070) : const Color(0xFF37352F),
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 15, color: isDestructive ? _primaryColor : kNeutral700)),
           ],
         ),
       ),
     );
   }
+
+  String _calculateAge() {
+    return _currentRabbit.age;
+  }
 }
 
-// Tab Bar Delegate
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
+  final PreferredSizeWidget tabBar;
   final bool showShadow;
-
   _TabBarDelegate(this.tabBar, {this.showShadow = false});
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
+  @override double get minExtent => tabBar.preferredSize.height;
+  @override double get maxExtent => tabBar.preferredSize.height;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: const Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
-        boxShadow: showShadow
-            ? [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 3, offset: const Offset(0, 1))
-              ]
-            : null,
+        border: const Border(bottom: BorderSide(color: kNeutral200)),
+        boxShadow: showShadow ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 3, offset: const Offset(0, 1))] : null,
       ),
       child: tabBar,
     );
   }
-
-  @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) {
-    return showShadow != oldDelegate.showShadow;
-  }
+  @override bool shouldRebuild(_TabBarDelegate oldDelegate) => showShadow != oldDelegate.showShadow || tabBar != oldDelegate.tabBar;
 }

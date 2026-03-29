@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'herd_screen.dart';
 import 'litters_screen.dart';
@@ -43,15 +44,32 @@ const kNeutral100 = Color(0xFFF9F9FB);
 const kNeutral50 = Color(0xFFFCFCFD);
 
 class HomeDashboardScreen extends StatefulWidget {
+  static final GlobalKey<_HomeDashboardScreenState> dashboardKey = GlobalKey<_HomeDashboardScreenState>();
+
+  HomeDashboardScreen({Key? key}) : super(key: key ?? dashboardKey);
+
   @override
   _HomeDashboardScreenState createState() => _HomeDashboardScreenState();
+
+  static void switchToTab(int index, {String? rabbitId}) {
+    final state = dashboardKey.currentState;
+    if (state != null) {
+      state._onNavTap(index);
+      if (index == 4 && rabbitId != null) {
+        // Give it a tiny delay to ensure the tab is built/mounted
+        Future.delayed(const Duration(milliseconds: 100), () {
+          (state._financeTabKey.currentState as dynamic)?.setRabbitFilter(rabbitId);
+        });
+      }
+    }
+  }
 }
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedNavIndex = 0;
 
   final GlobalKey<TaskScreenState> _taskTabKey = GlobalKey<TaskScreenState>();
-
+  final GlobalKey<State<FinanceScreen>> _financeTabKey = GlobalKey<State<FinanceScreen>>();
   late final List<Widget> _navScreens;
 
   @override
@@ -62,13 +80,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       HerdScreen(),
       LittersScreen(),
       TaskScreen(key: _taskTabKey),
-      FinanceScreen(),
+      FinanceScreen(key: _financeTabKey),
     ];
   }
 
   void _onNavTap(int index) {
     setState(() => _selectedNavIndex = index);
     if (index == 3) _taskTabKey.currentState?.refresh();
+  }
+
+  void switchTab(int index) {
+    _onNavTap(index);
   }
 
   @override
@@ -154,10 +176,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 ],
               ),
             ),
-            _buildActionRow(context, 'Log Breeding', PhosphorIcons.heart(PhosphorIconsStyle.duotone), kLilacDeep, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HerdScreen()))),
-            _buildActionRow(context, 'Log Birth', PhosphorIcons.baby(PhosphorIconsStyle.duotone), kPink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => LittersScreen()))),
-            _buildActionRow(context, 'Add Bunny', PhosphorIcons.plusCircle(PhosphorIconsStyle.duotone), kLilac, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HerdScreen()))),
-            _buildActionRow(context, 'Add Task', PhosphorIcons.clipboardText(PhosphorIconsStyle.duotone), kLilacDeep, () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskScreen()))),
+            _buildActionRow(context, 'Log Breeding', PhosphorIcons.heart(PhosphorIconsStyle.duotone), kLilacDeep, () => _onNavTap(1)),
+            _buildActionRow(context, 'Log Birth', PhosphorIcons.baby(PhosphorIconsStyle.duotone), kPink, () => _onNavTap(2)),
+            _buildActionRow(context, 'Add Bunny', PhosphorIcons.plusCircle(PhosphorIconsStyle.duotone), kLilac, () => _onNavTap(1)),
+            _buildActionRow(context, 'Add Task', PhosphorIcons.clipboardText(PhosphorIconsStyle.duotone), kLilacDeep, () => _onNavTap(3)),
           ],
         ),
       ),

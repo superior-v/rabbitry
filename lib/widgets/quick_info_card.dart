@@ -4,7 +4,8 @@ import '../services/settings_service.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import 'modals/move_cage_modal.dart';
-import 'dart:convert'; // ✅ Add this import for jsonDecode
+import 'dart:convert';
+import '../constants/app_colors.dart';
 
 class QuickInfoCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -48,122 +49,148 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
     }
   }
 
+  // Theme Helpers
+  Color get _primaryColor => _currentRabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+  Color get _washColor => _currentRabbit.type == RabbitType.buck ? kPinkWash : kBlueWash;
+  Color get _textColor => _currentRabbit.type == RabbitType.buck ? kBlueText : kPinkText;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(14),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'QUICK INFO',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF787774),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
+          _buildInfoRow(
+            context,
+            'Cage',
+            '${_currentRabbit.location ?? 'Row A'} • ${_currentRabbit.cage ?? 'A-02'}',
+            icon: Icons.grid_view_rounded,
+            actionLabel: 'Move',
+            onAction: () => _showCageSelector(context),
           ),
-          _buildEditableInfoRow(context, 'Cage', _currentRabbit.cage ?? 'Unassigned', widget.isEditing ? () => _showCageSelector(context) : null),
-          _buildEditableInfoRow(context, 'Breed', _currentRabbit.breed, widget.isEditing ? () => _showBreedSelector(context) : null),
-          if (_currentRabbit.otherBreed != null && _currentRabbit.otherBreed!.isNotEmpty) _buildStaticInfoRow('Other Breed', _currentRabbit.otherBreed!),
-          _buildEditableInfoRow(context, 'Color', _currentRabbit.color ?? 'Not set', widget.isEditing ? () => _showColorSelector(context) : null),
-          if (_currentRabbit.otherColor != null && _currentRabbit.otherColor!.isNotEmpty) _buildStaticInfoRow('Other Color', _currentRabbit.otherColor!),
-          if (_currentRabbit.earNumber != null && _currentRabbit.earNumber!.isNotEmpty) _buildStaticInfoRow('Ear Number', _currentRabbit.earNumber!),
-          _buildEditableInfoRow(context, 'Weight', _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : 'Not recorded', widget.isEditing ? () async {
-            await _showWeightModal(context);
-            await _refreshRabbitData();
-          } : null, showInfoIcon: widget.isEditing),
-          _buildStaticInfoRow('Born', _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : 'Not set'),
-          _buildStaticInfoRow('Age', _calculateAge()),
-          _buildEditableInfoRow(context, 'Origin', _currentRabbit.origin ?? 'Not set', widget.isEditing ? () => _showOriginSelector(context) : null),
-          if (_currentRabbit.breederPrefix != null && _currentRabbit.breederPrefix!.isNotEmpty) _buildStaticInfoRow('Breeder Prefix', _currentRabbit.breederPrefix!),
-          if (_currentRabbit.broken == true) _buildStaticInfoRow('Broken', 'Yes'),
-          if (_currentRabbit.viennaMarked == true) _buildStaticInfoRow('Vienna Marked', 'Yes'),
-          if (_currentRabbit.viennaCarrier == true) _buildStaticInfoRow('Vienna Carrier', 'Yes'),
-          _buildStaticInfoRow('Active in Rabbitry', _currentRabbit.activeInRabbitry ? 'Yes' : 'No'),
+          _buildInfoRow(
+            context,
+            'Prefix',
+            _currentRabbit.breederPrefix ?? 'GK\'s',
+            icon: Icons.label_outline_rounded,
+          ),
+          _buildInfoRow(
+            context,
+            'Breed',
+            _currentRabbit.breed,
+            icon: Icons.pets_rounded,
+            onAction: widget.isEditing ? () => _showBreedSelector(context) : null,
+            actionLabel: widget.isEditing ? 'EDIT' : null,
+          ),
+          _buildInfoRow(
+            context,
+            'Color',
+            _currentRabbit.color ?? 'Castor',
+            icon: Icons.palette_outlined,
+            onAction: widget.isEditing ? () => _showColorSelector(context) : null,
+            actionLabel: widget.isEditing ? 'EDIT' : null,
+          ),
+          _buildInfoRow(
+            context,
+            'Origin',
+            _currentRabbit.origin ?? 'Homebred',
+            icon: Icons.home_outlined,
+            onAction: widget.isEditing ? () => _showOriginSelector(context) : null,
+            actionLabel: widget.isEditing ? 'EDIT' : null,
+          ),
+          const Divider(height: 1, color: kNeutral100, indent: 16, endIndent: 16),
+          _buildInfoRow(
+            context,
+            'Weight',
+            _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '9.5 lbs',
+            icon: Icons.scale_outlined,
+            actionLabel: '+ Log',
+            onAction: () => _showWeightModal(context),
+          ),
+          _buildInfoRow(
+            context,
+            'Born',
+            _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : 'Mar 15, 2024',
+            icon: Icons.calendar_today_rounded,
+          ),
+          _buildInfoRow(
+            context,
+            'Age',
+            _calculateAge(),
+            icon: Icons.hourglass_empty_rounded,
+          ),
         ],
       ),
     );
   }
 
-  // Editable row with chevron
-  Widget _buildEditableInfoRow(BuildContext context, String label, String value, VoidCallback? onTap, {bool showInfoIcon = false}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
-            ),
-            Row(
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF37352F),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (showInfoIcon) ...[
-                  const SizedBox(width: 8),
-                  const Icon(Icons.info_outline, size: 16, color: Color(0xFF9B9A97)),
-                ],
-                if (onTap != null) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9B9A97)),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Static row (no editing)
-  Widget _buildStaticInfoRow(String label, String value) {
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label,
+    String value, {
+    required IconData icon,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
+        border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+          Row(
+            children: [
+              Icon(icon, size: 16, color: kNeutral400),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: kNeutral600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF787774),
-            ),
+          Row(
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: kNeutral900,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (actionLabel != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onAction,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: kNeutral100,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: kNeutral600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -456,14 +483,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Cage updated to $selectedCage'),
-                                      backgroundColor: const Color(0xFF6366F1),
+                                      backgroundColor: _primaryColor,
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: _primaryColor,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -529,10 +556,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFEDE9FE) : const Color(0xFFF7F7F5),
+                          color: isSelected ? _primaryColor.withOpacity(0.12) : const Color(0xFFF7F7F5),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+                            color: isSelected ? _primaryColor : Colors.transparent,
                           ),
                         ),
                         child: Text(
@@ -540,7 +567,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF64748B),
+                            color: isSelected ? _primaryColor : const Color(0xFF64748B),
                           ),
                         ),
                       ),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
+import '../constants/app_colors.dart';
 
 class RegistrationCard extends StatefulWidget {
   final Rabbit rabbit;
-
   const RegistrationCard({Key? key, required this.rabbit}) : super(key: key);
 
   @override
@@ -20,81 +21,92 @@ class _RegistrationCardState extends State<RegistrationCard> {
     gcLegs = List.generate(3, (i) => i < legs);
   }
 
+  // Theme Helpers
+  Color get _primaryColor => widget.rabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kNeutral200),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'REGISTRATION',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF787774),
-                    letterSpacing: 0.5,
+                Icon(PhosphorIconsFill.certificate, size: 18, color: kNeutral500),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'REGISTRATION',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: kNeutral500,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
                 GestureDetector(
-                  onTap: _showEditRegistrationDialog,
-                  child: Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF787774),
-                      fontWeight: FontWeight.w500,
+                  onTap: () {},
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kNeutral100,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Text(
+                      'Edit',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: kNeutral600,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          _buildInfoRow('Registration #', widget.rabbit.registrationNumber ?? 'Not set'),
-          _buildInfoRow('Grand Champion #', widget.rabbit.grandChampionNumber ?? 'Not set'),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+          _buildRegRow('Registration #', widget.rabbit.registrationNumber ?? 'Not set', PhosphorIconsFill.hash),
+          _buildRegRow('Grand Champion #', widget.rabbit.grandChampionNumber ?? 'Not set', PhosphorIconsFill.star),
+          
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'GC Legs',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                Row(
+                  children: [
+                    Icon(PhosphorIconsFill.medal, size: 18, color: kNeutral400),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'GC Legs',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                  ],
                 ),
                 Row(
                   children: [
-                    ...List.generate(3, (index) {
-                      return Padding(
-                        padding: EdgeInsets.only(left: index > 0 ? 4 : 0),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              gcLegs[index] = !gcLegs[index];
-                            });
-                          },
-                          child: _buildGCLeg(gcLegs[index]),
-                        ),
-                      );
-                    }),
-                    SizedBox(width: 8),
+                    ...List.generate(3, (index) => _buildLegBadge(gcLegs[index])),
+                    const SizedBox(width: 10),
                     Text(
-                      '${gcLegs.where((leg) => leg).length}/3',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF787774),
-                        fontWeight: FontWeight.w500,
+                      '${gcLegs.where((l) => l).length}/3',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1F2937),
                       ),
                     ),
                   ],
@@ -107,25 +119,35 @@ class _RegistrationCardState extends State<RegistrationCard> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildRegRow(String label, String val, IconData icon) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+          Row(
+            children: [
+              Icon(icon, size: 18, color: kNeutral400),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF374151),
+                ),
+              ),
+            ],
           ),
           Text(
-            value,
-            style: TextStyle(
+            val,
+            style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF37352F),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
             ),
           ),
         ],
@@ -133,118 +155,18 @@ class _RegistrationCardState extends State<RegistrationCard> {
     );
   }
 
-  Widget _buildGCLeg(bool earned) {
+  Widget _buildLegBadge(bool earned) {
     return Container(
+      margin: const EdgeInsets.only(left: 6),
       width: 12,
       height: 12,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: earned ? Color(0xFF6366F1) : null,
-        border: earned ? null : Border.all(color: Color(0xFFE9E9E7), width: 2),
-      ),
-      child: earned ? Icon(Icons.check, size: 8, color: Colors.white) : null,
-    );
-  }
-
-  void _showEditRegistrationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Edit Registration'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Registration Number',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'GC Legs',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (index) {
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            gcLegs[index] = !gcLegs[index];
-                          });
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: gcLegs[index] ? Color(0xFF6366F1) : Color(0xFFF7F7F5),
-                            border: Border.all(
-                              color: gcLegs[index] ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
-                              width: 2,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: gcLegs[index] ? Colors.white : Color(0xFF787774),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        gcLegs[index] ? 'Earned' : 'Pending',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF787774),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ),
-          ],
+        color: earned ? _primaryColor : kNeutral100,
+        border: Border.all(
+          color: earned ? _primaryColor : kNeutral200,
+          width: 1.5,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Registration updated'),
-                  backgroundColor: Color(0xFF6366F1),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF6366F1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
