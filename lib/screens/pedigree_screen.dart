@@ -1,43 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/pedigree.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../constants/app_colors.dart';
+
+// Colors matched to HTML reference
+const Color _kBlueLeft = Color(0xFF5B8AD0);
+const Color _kPurpleLeft = Color(0xFFB580C4);
+const Color _kSubjectBorder = Color(0xFFD4809A);
+const Color _kSubjectBg = Color(0xFFFDF2F5);
+
+const Color _kNeutral50 = Color(0xFFF9F9FB);
+const Color _kNeutral100 = Color(0xFFF3F4F6);
+const Color _kNeutral200 = Color(0xFFE5E5EA);
+const Color _kNeutral300 = Color(0xFFD1D1D6);
+const Color _kNeutral400 = Color(0xFF9CA3AF);
+const Color _kNeutral500 = Color(0xFF6B7280);
+const Color _kNeutral700 = Color(0xFF374151);
+const Color _kNeutral800 = Color(0xFF1F2937);
 
 class PedigreeScreen extends StatefulWidget {
   final String rabbitId;
 
-  const PedigreeScreen({required this.rabbitId});
+  const PedigreeScreen({super.key, required this.rabbitId});
 
   @override
-  _PedigreeScreenState createState() => _PedigreeScreenState();
+  State<PedigreeScreen> createState() => _PedigreeScreenState();
 }
 
 class _PedigreeScreenState extends State<PedigreeScreen> {
-  late PedigreeRabbit _rabbit;
-  bool _isEditing = false;
+  late Rabbit _baseRabbit;
   bool _isLoading = true;
   final DatabaseService _db = DatabaseService();
-  final ImagePicker _imagePicker = ImagePicker();
+  int _generations = 3;
 
-  Future<bool> _requestPermission(ImageSource source) async {
-    if (source == ImageSource.camera) {
-      var status = await Permission.camera.status;
-      if (!status.isGranted) {
-        status = await Permission.camera.request();
-      }
-      return status.isGranted;
-    } else {
-      var status = await Permission.photos.status;
-      if (!status.isGranted) {
-        status = await Permission.photos.request();
-      }
-      return status.isGranted;
-    }
-  }
+  Rabbit? _sire;
+  Rabbit? _dam;
+  Rabbit? _ss, _sd, _ds, _dd;
+  Rabbit? _sss, _ssd, _sds, _sdd, _dss, _dsd, _dds, _ddd;
 
   @override
   void initState() {
@@ -46,20 +48,73 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
   }
 
   Future<void> _loadPedigreeData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final tree = await _db.buildPedigreeTree(widget.rabbitId, maxGenerations: 5);
-      if (mounted) {
-        setState(() {
-          _rabbit = tree;
-          _isLoading = false;
-        });
+      final rabbit = await _db.getRabbit(widget.rabbitId);
+      if (rabbit == null) return;
+      _baseRabbit = rabbit;
+
+      // Load 2nd Generation
+      if (rabbit.sireId != null) _sire = await _db.getRabbit(rabbit.sireId!);
+      if (rabbit.damId != null) _dam = await _db.getRabbit(rabbit.damId!);
+
+      // Load 3rd Generation
+      if (_sire?.sireId != null) _ss = await _db.getRabbit(_sire!.sireId!);
+      if (_sire?.damId != null) _sd = await _db.getRabbit(_sire!.damId!);
+      if (_dam?.sireId != null) _ds = await _db.getRabbit(_dam!.sireId!);
+      if (_dam?.damId != null) _dd = await _db.getRabbit(_dam!.damId!);
+
+      // Load 4th Generation if needed
+      if (_generations >= 4) {
+        if (_ss?.sireId != null) _sss = await _db.getRabbit(_ss!.sireId!);
+        if (_ss?.damId != null) _ssd = await _db.getRabbit(_ss!.damId!);
+        if (_sd?.sireId != null) _sds = await _db.getRabbit(_sd!.sireId!);
+        if (_sd?.damId != null) _sdd = await _db.getRabbit(_sd!.damId!);
+        if (_ds?.sireId != null) _dss = await _db.getRabbit(_ds!.sireId!);
+        if (_ds?.damId != null) _dsd = await _db.getRabbit(_ds!.damId!);
+        if (_dds?.sireId != null) _dds = await _db.getRabbit(_dd!.sireId!);
+        if (_dd?.damId != null) _ddd = await _db.getRabbit(_dd!.damId!);
       }
+
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      print('Error loading pedigree: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleSaveAncestor(String parentId, String role, String name, String breed) async {
+    if (name.trim().isEmpty) return;
+    try {
+      final parent = await _db.getRabbit(parentId);
+      if (parent == null) return;
+
+      final newId = const Uuid().v4();
+      final newRabbit = Rabbit(
+        id: newId,
+        name: name.trim(),
+        breed: breed.trim(),
+        type: RabbitType.pedigree,
+        status: RabbitStatus.archived,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _db.insertRabbit(newRabbit);
+
+      if (role == 'sire') {
+        parent.sireId = newId;
+      } else {
+        parent.damId = newId;
       }
+      await _db.insertRabbit(parent);
+
+      _loadPedigreeData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ancestor linked'), backgroundColor: Color(0xFF6366F1), duration: Duration(seconds: 1)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -70,710 +125,343 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios_new, color: _kNeutral800, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Pedigree Chart',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: _kNeutral800, fontSize: 18, fontWeight: FontWeight.w700),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              _isEditing ? Icons.check : Icons.edit,
-              color: _isEditing ? Color(0xFF6366F1) : Colors.black87,
-            ),
-            onPressed: () {
-              setState(() => _isEditing = !_isEditing);
+          _GenToggle(
+            value: _generations,
+            onChanged: (v) {
+              setState(() => _generations = v);
+              _loadPedigreeData();
             },
           ),
-          PopupMenuButton<int>(
-            icon: Icon(Icons.more_vert, color: Colors.black87),
-            onSelected: (value) {
-              if (value == 1) _sharePedigree();
-              if (value == 2) _printPedigree();
-              if (value == 3) _exportPDF();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                  value: 1,
-                  child: Row(children: [
-                    Icon(Icons.share, size: 18),
-                    SizedBox(width: 8),
-                    Text('Share')
-                  ])),
-              PopupMenuItem(
-                  value: 2,
-                  child: Row(children: [
-                    Icon(Icons.print, size: 18),
-                    SizedBox(width: 8),
-                    Text('Print')
-                  ])),
-              PopupMenuItem(
-                  value: 3,
-                  child: Row(children: [
-                    Icon(Icons.picture_as_pdf, size: 18),
-                    SizedBox(width: 8),
-                    Text('Export PDF')
-                  ])),
-            ],
-          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
-          : Column(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: _kSubjectBorder))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildGenerationSelector(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildSubjectCard(),
-                        SizedBox(height: 24),
-                        _buildPedigreeTree(),
-                        SizedBox(height: 40),
-                      ],
+                _buildLevel('SUBJECT', [
+                  _PedCard(
+                    rabbit: _baseRabbit,
+                    isSubject: true,
+                    isMale: _baseRabbit.type == RabbitType.buck,
+                    cardWidth: double.infinity,
+                  )
+                ], scrollable: false),
+                _buildLevel('PARENTS', [
+                  _PedCard(
+                    rabbit: _sire,
+                    isMale: true,
+                    parentId: _baseRabbit.id,
+                    role: 'sire',
+                    onSave: _handleSaveAncestor,
+                  ),
+                  const SizedBox(width: 12),
+                  _PedCard(
+                    rabbit: _dam,
+                    isMale: false,
+                    parentId: _baseRabbit.id,
+                    role: 'dam',
+                    onSave: _handleSaveAncestor,
+                  ),
+                ]),
+                _buildLevel('GRANDPARENTS', [
+                  _PairGroup(
+                    label: "${_sire?.name ?? "Sire"}'s parents",
+                    top: _PedCard(
+                      rabbit: _ss, 
+                      isMale: true, 
+                      parentId: _sire?.id, 
+                      role: 'sire', 
+                      onSave: _handleSaveAncestor,
+                      isCompact: true,
                     ),
+                    bottom: _PedCard(
+                      rabbit: _sd, 
+                      isMale: false, 
+                      parentId: _sire?.id, 
+                      role: 'dam', 
+                      onSave: _handleSaveAncestor,
+                      isCompact: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _PairGroup(
+                    label: "${_dam?.name ?? "Dam"}'s parents",
+                    top: _PedCard(
+                      rabbit: _ds, 
+                      isMale: true, 
+                      parentId: _dam?.id, 
+                      role: 'sire', 
+                      onSave: _handleSaveAncestor,
+                      isCompact: true,
+                    ),
+                    bottom: _PedCard(
+                      rabbit: _dd, 
+                      isMale: false, 
+                      parentId: _dam?.id, 
+                      role: 'dam', 
+                      onSave: _handleSaveAncestor,
+                      isCompact: true,
+                    ),
+                  ),
+                ]),
+                if (_generations >= 4)
+                  _buildLevel('G-GRANDPARENTS', [
+                     // Simplified 4th gen for space
+                     _PairGroup(
+                       label: "Sire's paternal",
+                       top: _PedCard(rabbit: _sss, isMale: true, isCompact: true, role: 'sire', parentId: _ss?.id, onSave: _handleSaveAncestor),
+                       bottom: _PedCard(rabbit: _ssd, isMale: false, isCompact: true, role: 'dam', parentId: _ss?.id, onSave: _handleSaveAncestor),
+                     ),
+                     const SizedBox(width: 8),
+                     _PairGroup(
+                       label: "Sire's maternal",
+                       top: _PedCard(rabbit: _sds, isMale: true, isCompact: true, role: 'sire', parentId: _sd?.id, onSave: _handleSaveAncestor),
+                       bottom: _PedCard(rabbit: _sdd, isMale: false, isCompact: true, role: 'dam', parentId: _sd?.id, onSave: _handleSaveAncestor),
+                     ),
+                     const SizedBox(width: 8),
+                     _PairGroup(
+                       label: "Dam's paternal",
+                       top: _PedCard(rabbit: _dss, isMale: true, isCompact: true, role: 'sire', parentId: _ds?.id, onSave: _handleSaveAncestor),
+                       bottom: _PedCard(rabbit: _dsd, isMale: false, isCompact: true, role: 'dam', parentId: _ds?.id, onSave: _handleSaveAncestor),
+                     ),
+                     const SizedBox(width: 8),
+                     _PairGroup(
+                       label: "Dam's maternal",
+                       top: _PedCard(rabbit: _dds, isMale: true, isCompact: true, role: 'sire', parentId: _dd?.id, onSave: _handleSaveAncestor),
+                       bottom: _PedCard(rabbit: _ddd, isMale: false, isCompact: true, role: 'dam', parentId: _dd?.id, onSave: _handleSaveAncestor),
+                     ),
+                  ]),
+
+                const SizedBox(height: 40),
+                // Export/Print Actions
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _kNeutral50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _kNeutral100),
+                  ),
+                  child: Row(
+                    children: [
+                      _ActionButton(icon: PhosphorIcons.filePdf(), label: 'Export PDF', color: Color(0xFFD44C47)),
+                      const SizedBox(width: 12),
+                      _ActionButton(icon: PhosphorIcons.printer(), label: 'Print Chart', color: Color(0xFF6B7280)),
+                    ],
                   ),
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildGenerationSelector() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFFF7F7F5),
-        border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Generations:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF787774),
-            ),
           ),
-          SizedBox(width: 12),
-          ...List.generate(3, (index) {
-            final gen = index + 3;
-            final isActive = _generations == gen;
-            return GestureDetector(
-              onTap: () => setState(() => _generations = gen),
-              child: Container(
-                margin: EdgeInsets.only(right: 8),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isActive ? Color(0xFF6366F1) : Colors.white,
-                  border: Border.all(
-                    color: isActive ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  gen.toString(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isActive ? Colors.white : Color(0xFF787774),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
     );
   }
 
-  Widget _buildSubjectCard() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF6366F1),
-            Color(0xFF14B8A6)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildLevel(String title, List<Widget> cards, {bool scrollable = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 24, bottom: 12),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _kNeutral400, letterSpacing: 1.0),
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6366F1).withOpacity(0.3),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        if (scrollable)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            child: Row(children: cards),
+          )
+        else
+          Row(children: cards),
+      ],
+    );
+  }
+}
+
+class _PedCard extends StatefulWidget {
+  final Rabbit? rabbit;
+  final bool isSubject;
+  final bool isMale;
+  final bool isCompact;
+  final double? cardWidth;
+  
+  // Persistence hooks
+  final String? parentId;
+  final String? role;
+  final Function(String, String, String, String)? onSave;
+
+  const _PedCard({
+    this.rabbit,
+    this.isSubject = false,
+    required this.isMale,
+    this.isCompact = false,
+    this.cardWidth,
+    this.parentId,
+    this.role,
+    this.onSave,
+  });
+
+  @override
+  State<_PedCard> createState() => _PedCardState();
+}
+
+class _PedCardState extends State<_PedCard> {
+  final TextEditingController _nameCtrl = TextEditingController();
+  final TextEditingController _breedCtrl = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = widget.rabbit == null;
+    final width = widget.cardWidth ?? (widget.isCompact ? 130.0 : 160.0);
+
+    if (isEmpty) {
+      return Container(
+        width: width,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _kNeutral200, style: BorderStyle.solid),
+        ),
+        child: Column(
+          children: [
+            _buildInput("Name...", _nameCtrl),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(child: _buildInput("Breed...", _breedCtrl)),
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () {
+                    if (widget.parentId != null && widget.role != null) {
+                      widget.onSave!(widget.parentId!, widget.role!, _nameCtrl.text, _breedCtrl.text);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: _kSubjectBg, borderRadius: BorderRadius.circular(4)),
+                    child: const Icon(Icons.check, size: 16, color: _kSubjectBorder),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    final Color sideBarColor = widget.isMale ? _kBlueLeft : _kPurpleLeft;
+
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: widget.isSubject ? _kSubjectBg : const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+        border: widget.isSubject 
+          ? Border.all(color: _kSubjectBorder, width: 2)
+          : Border(
+              top: BorderSide(color: _kNeutral200),
+              right: BorderSide(color: _kNeutral200),
+              bottom: BorderSide(color: _kNeutral200),
+              left: BorderSide(color: sideBarColor, width: 4),
+            ),
+        boxShadow: widget.isSubject ? [
+          BoxShadow(color: _kSubjectBorder.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              GestureDetector(
-                onTap: () => _changeProfilePicture(_rabbit),
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
-                        border: Border.all(color: Colors.white, width: 2),
-                        image: _rabbit.profileImage != null
-                            ? DecorationImage(
-                                image: FileImage(File(_rabbit.profileImage!)),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _rabbit.profileImage == null
-                          ? Icon(
-                              _rabbit.sex == 'Buck' ? Icons.male : Icons.female,
-                              color: Colors.white,
-                              size: 36,
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Color(0xFF6366F1), width: 2),
-                        ),
-                        child: Icon(
-                          Icons.camera_alt,
-                          size: 12,
-                          color: Color(0xFF6366F1),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _rabbit.name,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      _rabbit.id,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  widget.rabbit!.name,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _kNeutral800, height: 1.2),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (!widget.isSubject) 
+                Icon(widget.isMale ? Icons.male : Icons.female, size: 14, color: sideBarColor.withOpacity(0.5)),
             ],
           ),
-          SizedBox(height: 20),
-          Divider(color: Colors.white.withOpacity(0.3), thickness: 1),
-          SizedBox(height: 16),
-          _buildSubjectInfoRow('Breed', _rabbit.breed ?? '-'),
-          _buildSubjectInfoRow('Color', _rabbit.color ?? '-'),
-          _buildSubjectInfoRow('Weight', _rabbit.weight ?? '-'),
-          if (_rabbit.registrationNumber != null) _buildSubjectInfoRow('Registration', _rabbit.registrationNumber!),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubjectInfoRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+          const SizedBox(height: 2),
           Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.8),
-            ),
+            widget.rabbit!.earNumber ?? (widget.rabbit!.id.length > 8 ? widget.rabbit!.id.substring(0, 8) : widget.rabbit!.id),
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kNeutral400),
           ),
+          const SizedBox(height: 4),
           Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+            widget.rabbit!.breed,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: _kNeutral500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPedigreeTree() {
+  Widget _buildInput(String hint, TextEditingController ctrl) {
+    return SizedBox(
+      height: 28,
+      child: TextField(
+        controller: ctrl,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _kNeutral800),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 11, color: _kNeutral400),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+          filled: true,
+          fillColor: Colors.white,
+          isDense: true,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: _kNeutral200)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: _kSubjectBorder)),
+        ),
+      ),
+    );
+  }
+}
+
+class _PairGroup extends StatelessWidget {
+  final String label;
+  final Widget top;
+  final Widget bottom;
+
+  const _PairGroup({required this.label, required this.top, required this.bottom});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      height: 650,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kNeutral100),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Icon(Icons.account_tree, color: Color(0xFF6366F1), size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Ancestry Tree',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: _buildTreeStructure(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTreeStructure() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: 600,
-          child: Center(
-            child: _buildTreeCard(_rabbit, isSubject: true),
-          ),
-        ),
-        _buildConnectorLine(2),
-        SizedBox(
-          height: 600,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildTreeCard(_rabbit.sire, label: 'SIRE', childId: _rabbit.id, isSire: true),
-              _buildTreeCard(_rabbit.dam, label: 'DAM', childId: _rabbit.id, isSire: false),
-            ],
-          ),
-        ),
-        if (_generations >= 2) ...[
-          _buildConnectorLine(4),
-          SizedBox(
-            height: 600,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildTreeCard(_rabbit.sire?.sire, label: 'SIRE', childId: _rabbit.sire?.id, isSire: true),
-                _buildTreeCard(_rabbit.sire?.dam, label: 'DAM', childId: _rabbit.sire?.id, isSire: false),
-                _buildTreeCard(_rabbit.dam?.sire, label: 'SIRE', childId: _rabbit.dam?.id, isSire: true),
-                _buildTreeCard(_rabbit.dam?.dam, label: 'DAM', childId: _rabbit.dam?.id, isSire: false),
-              ],
-            ),
-          ),
-        ],
-        if (_generations >= 3) ...[
-          _buildConnectorLine(8),
-          SizedBox(
-            height: 600,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildTreeCard(_rabbit.sire?.sire?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.sire?.sire?.id, isSire: true),
-                _buildTreeCard(_rabbit.sire?.sire?.dam, label: 'DAM', isCompact: true, childId: _rabbit.sire?.sire?.id, isSire: false),
-                _buildTreeCard(_rabbit.sire?.dam?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.sire?.dam?.id, isSire: true),
-                _buildTreeCard(_rabbit.sire?.dam?.dam, label: 'DAM', isCompact: true, childId: _rabbit.sire?.dam?.id, isSire: false),
-                _buildTreeCard(_rabbit.dam?.sire?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.dam?.sire?.id, isSire: true),
-                _buildTreeCard(_rabbit.dam?.sire?.dam, label: 'DAM', isCompact: true, childId: _rabbit.dam?.sire?.id, isSire: false),
-                _buildTreeCard(_rabbit.dam?.dam?.sire, label: 'SIRE', isCompact: true, childId: _rabbit.dam?.dam?.id, isSire: true),
-                _buildTreeCard(_rabbit.dam?.dam?.dam, label: 'DAM', isCompact: true, childId: _rabbit.dam?.dam?.id, isSire: false),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildConnectorLine(int connections) {
-    return CustomPaint(
-      size: Size(50, 600),
-      painter: TreeConnectorPainter(connections: connections),
-    );
-  }
-
-  Widget _buildTreeCard(PedigreeRabbit? rabbit, {String? label, bool isSubject = false, bool isCompact = false, String? childId, bool? isSire}) {
-    final isEmpty = rabbit == null || rabbit.name == 'Unknown';
-    final cardWidth = isCompact ? 140.0 : (isSubject ? 200.0 : 180.0);
-    final cardHeight = isCompact ? 58.0 : (isSubject ? 90.0 : 82.0);
-
-    return GestureDetector(
-      onTap: _isEditing && !isSubject ? () => _editAncestor(rabbit, childId, isSire ?? true) : null,
-      onLongPress: !isSubject && !isEmpty ? () => _showAncestorMenu(rabbit) : null,
-      child: Container(
-        width: cardWidth,
-        height: cardHeight,
-        margin: EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(
-          color: isEmpty ? Color(0xFFF7F7F5) : Colors.white,
-          borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
-          border: Border.all(
-            color: isSubject ? Color(0xFF6366F1) : (isEmpty ? Color(0xFFE9E9E7) : Color(0xFFE9E9E7)),
-            width: isSubject ? 2 : 1,
-          ),
-          boxShadow: isSubject
-              ? [
-                  BoxShadow(
-                    color: Color(0xFF6366F1).withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
-          child: Stack(
-            children: [
-              Padding(
-                padding: EdgeInsets.all(isCompact ? 8 : 10),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: _isEditing && !isEmpty ? () => _changeProfilePicture(rabbit) : null,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: isCompact ? 36 : (isSubject ? 50 : 45),
-                            height: isCompact ? 36 : (isSubject ? 50 : 45),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isEmpty ? Color(0xFFE9E9E7) : (rabbit.sex == 'Buck' ? Color(0xFFEBF8FF) : Color(0xFFF3E8FF)),
-                              border: Border.all(
-                                color: isEmpty ? Color(0xFFE9E9E7) : (rabbit.sex == 'Buck' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE)),
-                                width: 2,
-                              ),
-                              image: !isEmpty && rabbit.profileImage != null
-                                  ? DecorationImage(
-                                      image: FileImage(File(rabbit.profileImage!)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: !isEmpty && rabbit.profileImage == null
-                                ? Icon(
-                                    rabbit.sex == 'Buck' ? Icons.male : Icons.female,
-                                    size: isCompact ? 18 : (isSubject ? 24 : 22),
-                                    color: rabbit.sex == 'Buck' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
-                                  )
-                                : null,
-                          ),
-                          if (_isEditing && !isEmpty)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF6366F1),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  size: 9,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (label != null && !isSubject)
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              margin: EdgeInsets.only(bottom: 2),
-                              decoration: BoxDecoration(
-                                color: label == 'SIRE' ? Color(0xFFEBF8FF) : Color(0xFFF3E8FF),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w700,
-                                  color: label == 'SIRE' ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
-                                  letterSpacing: 0.5,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                          Text(
-                            isEmpty ? 'Unknown' : rabbit.name,
-                            style: TextStyle(
-                              fontSize: isCompact ? 11 : (isSubject ? 14 : 12),
-                              fontWeight: FontWeight.w700,
-                              color: isEmpty ? Color(0xFF9B9A97) : Colors.black87,
-                              height: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (!isEmpty) ...[
-                            SizedBox(height: 1),
-                            Text(
-                              rabbit.id,
-                              style: TextStyle(
-                                fontSize: isCompact ? 9 : 10,
-                                color: Color(0xFF787774),
-                                height: 1.2,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (!isCompact && rabbit.breed != null) ...[
-                              SizedBox(height: 1),
-                              Text(
-                                rabbit.breed!,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Color(0xFF9B9A97),
-                                  height: 1.2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_isEditing && !isSubject)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: Color(0xFF6366F1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isEmpty ? Icons.add : Icons.edit,
-                      size: 10,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _changeProfilePicture(PedigreeRabbit rabbit) async {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Text(
-                    'Change Profile Picture',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            _buildPhotoOption(
-              icon: Icons.camera_alt,
-              label: 'Take Photo',
-              onTap: () async {
-                Navigator.pop(context);
-                bool hasPermission = await _requestPermission(ImageSource.camera);
-                if (hasPermission) {
-                  await _pickImage(ImageSource.camera, rabbit);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Camera permission is required'),
-                      backgroundColor: Color(0xFFD44C47),
-                      action: SnackBarAction(
-                        label: 'Settings',
-                        textColor: Colors.white,
-                        onPressed: () => openAppSettings(),
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-            _buildPhotoOption(
-              icon: Icons.photo_library,
-              label: 'Choose from Gallery',
-              onTap: () async {
-                Navigator.pop(context);
-                bool hasPermission = await _requestPermission(ImageSource.gallery);
-                if (hasPermission) {
-                  await _pickImage(ImageSource.gallery, rabbit);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Gallery permission is required'),
-                      backgroundColor: Color(0xFFD44C47),
-                      action: SnackBarAction(
-                        label: 'Settings',
-                        textColor: Colors.white,
-                        onPressed: () => openAppSettings(),
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-            if (rabbit.profileImage != null)
-              _buildPhotoOption(
-                icon: Icons.delete_outline,
-                label: 'Remove Photo',
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    rabbit.updateProfileImage(null);
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF6366F1),
-                    ),
-                  );
-                },
-                isDestructive: true,
-              ),
-            SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPhotoOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isDestructive = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isDestructive ? Color(0xFFD44C47) : Color(0xFF787774),
-              size: 22,
-            ),
-            SizedBox(width: 14),
-            Text(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
               label,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDestructive ? Color(0xFFD44C47) : Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickImage(ImageSource source, PedigreeRabbit rabbit) async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-
-    if (image != null) {
-      setState(() => _isLoading = true);
-      try {
-        final existing = await _db.getRabbit(rabbit.id);
-        if (existing != null) {
-          final updated = existing.copyWith(photos: [image.path]);
-          await _db.updateRabbit(updated);
           await _loadPedigreeData();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated successfully'), backgroundColor: Color(0xFF6366F1)));
         }

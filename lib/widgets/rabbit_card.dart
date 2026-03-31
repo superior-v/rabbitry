@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
 import '../services/format_utils.dart';
-
-const kPrimary = Color(0xFF6366F1);
-const kPink = Color(0xFFEC4899);
-const kPurple = Color(0xFF8B5CF6);
+import '../constants/app_colors.dart';
 
 class RabbitCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -25,10 +22,10 @@ class RabbitCard extends StatelessWidget {
     final String? photoPath = hasPhoto ? rabbit.photos!.first : null;
     final bool isPhotoValid = photoPath != null && File(photoPath).existsSync();
 
-    // Use your existing palette for the header background
+    // Use global palette for the header background
     final Color headerColor = rabbit.type == RabbitType.doe
-        ? const Color(0xFFFCE7F3) // Light Pink for Does
-        : const Color(0xFFE8F4FA); // Light Blue for Bucks
+        ? kPinkWash // Solidifies Doe theme from global constants
+        : kBlueWash; // Solidifies Buck theme from global constants
 
     return GestureDetector(
       onTap: onLongPress,
@@ -94,9 +91,10 @@ class RabbitCard extends StatelessWidget {
                         Text(
                           '${rabbit.breederPrefix != null ? '${rabbit.breederPrefix} ' : ''}${rabbit.name}',
                           style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
                             color: Color(0xFF1E293B),
+                            letterSpacing: -0.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -105,9 +103,10 @@ class RabbitCard extends StatelessWidget {
                         Text(
                           '${rabbit.breed}${rabbit.color != null ? '\n${rabbit.color}' : ''}',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: Color(0xFF787774),
                             height: 1.3,
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -130,9 +129,10 @@ class RabbitCard extends StatelessWidget {
                         child: Text(
                           rabbit.statusText,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
                             color: Color(rabbit.statusColor),
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
@@ -201,7 +201,7 @@ class RabbitCard extends StatelessWidget {
   Widget _buildDefaultIcon() {
     return Icon(
       rabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-      color: rabbit.type == RabbitType.doe ? kPurple : kPrimary,
+      color: rabbit.type == RabbitType.doe ? kFemaleColor : kMaleColor,
       size: 28,
     );
   }
@@ -216,9 +216,9 @@ class RabbitCard extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Color(0xFF9B9A97),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -226,9 +226,9 @@ class RabbitCard extends StatelessWidget {
           child: Text(
             value,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Color(0xFF1E293B),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

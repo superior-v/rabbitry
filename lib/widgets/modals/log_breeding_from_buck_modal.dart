@@ -3,6 +3,7 @@ import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/format_utils.dart';
+import '../../constants/app_colors.dart';
 
 /// Log Breeding Modal when initiated from a Buck
 /// Asks for the Doe, date, and shows palpation reminder timeline
@@ -185,7 +186,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         value: doe,
                         child: Row(
                           children: [
-                            Icon(Icons.female, color: Color(0xFF9C6ADE), size: 18),
+                            Icon(Icons.female, color: kFemaleColor, size: 18),
                             SizedBox(width: 8),
                             Text('${doe.name} (${doe.id})'),
                             SizedBox(width: 8),

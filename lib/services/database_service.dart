@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'settings_service.dart';
 
 class DatabaseService {
-  static const int _databaseVersion = 15;
+  static const int _databaseVersion = 16;
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
@@ -51,7 +51,8 @@ class DatabaseService {
         };
         for (final entry in litterColumns.entries) {
           try {
-            await db.execute('ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+            await db.execute(
+                'ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
           } catch (_) {}
         }
       },
@@ -280,16 +281,19 @@ class DatabaseService {
         createdAt TEXT NOT NULL
       )
     ''');
-    
+
     // Contacts table
     await db.execute('''
       CREATE TABLE IF NOT EXISTS contacts(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
+        type TEXT DEFAULT 'Buyer',
         phone TEXT,
         email TEXT,
         farmName TEXT,
         notes TEXT,
+        totalBought INTEGER DEFAULT 0,
+        totalRevenue REAL DEFAULT 0.0,
         createdAt TEXT NOT NULL
       )
     ''');
@@ -309,6 +313,7 @@ class DatabaseService {
     print('✅ Database created successfully with all tables');
   }
 
+  // ==================== RABBIT CRUD ====================
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     print('🔄 Upgrading database from $oldVersion to $newVersion');
 
@@ -388,7 +393,8 @@ class DatabaseService {
     if (oldVersion < 5) {
       // Add ignored column to tasks for disable functionality
       try {
-        await db.execute('ALTER TABLE tasks ADD COLUMN ignored INTEGER DEFAULT 0');
+        await db
+            .execute('ALTER TABLE tasks ADD COLUMN ignored INTEGER DEFAULT 0');
         print('✅ Added ignored column to tasks');
       } catch (e) {
         print('⚠️ ignored column may already exist: $e');
@@ -450,10 +456,14 @@ class DatabaseService {
     if (oldVersion < 8) {
       // Add per-rabbit custom pipeline settings columns
       try {
-        await db.execute('ALTER TABLE rabbits ADD COLUMN customPalpationDay INTEGER');
-        await db.execute('ALTER TABLE rabbits ADD COLUMN customNestBoxDay INTEGER');
-        await db.execute('ALTER TABLE rabbits ADD COLUMN customGestationDay INTEGER');
-        await db.execute('ALTER TABLE rabbits ADD COLUMN customWeanWeek INTEGER');
+        await db.execute(
+            'ALTER TABLE rabbits ADD COLUMN customPalpationDay INTEGER');
+        await db
+            .execute('ALTER TABLE rabbits ADD COLUMN customNestBoxDay INTEGER');
+        await db.execute(
+            'ALTER TABLE rabbits ADD COLUMN customGestationDay INTEGER');
+        await db
+            .execute('ALTER TABLE rabbits ADD COLUMN customWeanWeek INTEGER');
         print('✅ Added custom pipeline columns to rabbits');
       } catch (e) {
         print('⚠️ Custom pipeline columns may already exist: $e');
@@ -516,7 +526,8 @@ class DatabaseService {
     if (oldVersion < 12) {
       // Add completedAt column to scheduled_tasks for day-end cleanup
       try {
-        await db.execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
+        await db
+            .execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
         print('✅ Added completedAt column to scheduled_tasks');
       } catch (e) {
         print('⚠️ completedAt column may already exist in scheduled_tasks: $e');
@@ -546,7 +557,8 @@ class DatabaseService {
       };
       for (final entry in newColumns.entries) {
         try {
-          await db.execute('ALTER TABLE rabbits ADD COLUMN ${entry.key} ${entry.value}');
+          await db.execute(
+              'ALTER TABLE rabbits ADD COLUMN ${entry.key} ${entry.value}');
           print('✅ Added ${entry.key} column to rabbits');
         } catch (e) {
           print('⚠️ ${entry.key} column may already exist: $e');
@@ -572,7 +584,8 @@ class DatabaseService {
       };
       for (final entry in litterColumns.entries) {
         try {
-          await db.execute('ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+          await db.execute(
+              'ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
           print('✅ Added ${entry.key} column to litters');
         } catch (e) {
           print('⚠️ ${entry.key} column may already exist: $e');
@@ -608,6 +621,21 @@ class DatabaseService {
         print('⚠️ Error adding new tables: $e');
       }
     }
+
+    if (oldVersion < 16) {
+      try {
+        await db.execute(
+            'ALTER TABLE contacts ADD COLUMN type TEXT DEFAULT "Buyer"');
+        await db.execute(
+            'ALTER TABLE contacts ADD COLUMN totalBought INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE contacts ADD COLUMN totalRevenue REAL DEFAULT 0.0');
+        print(
+            '✅ Added type, totalBought, and totalRevenue columns to contacts');
+      } catch (e) {
+        print('⚠️ Error upgrading contacts table to v16: $e');
+      }
+    }
   }
 
   // ==================== UNIT CONVERSION ====================
@@ -626,7 +654,8 @@ class DatabaseService {
   };
 
   /// Convert all monetary values in the database from one currency to another
-  Future<void> convertAllCurrencyValues(String fromCurrency, String toCurrency) async {
+  Future<void> convertAllCurrencyValues(
+      String fromCurrency, String toCurrency) async {
     if (fromCurrency == toCurrency) return;
 
     final fromRate = _currencyRatesFromUsd[fromCurrency] ?? 1.0;
@@ -639,45 +668,36 @@ class DatabaseService {
       // Convert transactions.amount
       await txn.rawUpdate(
         'UPDATE transactions SET amount = amount * ? WHERE amount IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert rabbits.salePrice
       await txn.rawUpdate(
         'UPDATE rabbits SET salePrice = salePrice * ? WHERE salePrice IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert rabbits.butcherCost
       await txn.rawUpdate(
         'UPDATE rabbits SET butcherCost = butcherCost * ? WHERE butcherCost IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert health_records.cost
       await txn.rawUpdate(
         'UPDATE health_records SET cost = cost * ? WHERE cost IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert tasks.cost
       await txn.rawUpdate(
         'UPDATE tasks SET cost = cost * ? WHERE cost IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
     });
 
-    print('✅ Converted all currency values from $fromCurrency to $toCurrency (factor: ${conversionFactor.toStringAsFixed(4)})');
+    print(
+        '✅ Converted all currency values from $fromCurrency to $toCurrency (factor: ${conversionFactor.toStringAsFixed(4)})');
   }
 
   /// Weight conversion factor from lbs to kg and vice versa
@@ -696,36 +716,32 @@ class DatabaseService {
       // Convert rabbits.weight
       await txn.rawUpdate(
         'UPDATE rabbits SET weight = weight * ? WHERE weight IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert weight_records.weight
       await txn.rawUpdate(
         'UPDATE weight_records SET weight = weight * ? WHERE weight IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
 
       // Convert rabbits.butcherYield
       await txn.rawUpdate(
         'UPDATE rabbits SET butcherYield = butcherYield * ? WHERE butcherYield IS NOT NULL',
-        [
-          conversionFactor
-        ],
+        [conversionFactor],
       );
     });
 
-    print('✅ Converted all weight values from $fromUnit to $toUnit (factor: ${conversionFactor.toStringAsFixed(4)})');
+    print(
+        '✅ Converted all weight values from $fromUnit to $toUnit (factor: ${conversionFactor.toStringAsFixed(4)})');
   }
 
   // ==================== RABBIT CRUD ====================
 
   Future<void> insertRabbit(Rabbit rabbit) async {
     final db = await database;
-    await db.insert('rabbits', rabbit.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('rabbits', rabbit.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted rabbit: ${rabbit.name}');
   }
 
@@ -734,9 +750,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'status != ?',
-      whereArgs: [
-        'RabbitStatus.archived'
-      ],
+      whereArgs: ['RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -747,9 +761,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'status = ?',
-      whereArgs: [
-        'RabbitStatus.archived'
-      ],
+      whereArgs: ['RabbitStatus.archived'],
       orderBy: 'archiveDate DESC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -760,9 +772,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
     if (maps.isEmpty) return null;
     return Rabbit.fromMap(maps.first);
@@ -773,10 +783,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'type = ? AND status != ?',
-      whereArgs: [
-        type.toString(),
-        'RabbitStatus.archived'
-      ],
+      whereArgs: [type.toString(), 'RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -787,23 +794,19 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'status = ?',
-      whereArgs: [
-        status.toString()
-      ],
+      whereArgs: [status.toString()],
       orderBy: 'name ASC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
   }
 
-  Future<List<Rabbit>> getRabbitsByTypeAndStatus(RabbitType type, RabbitStatus status) async {
+  Future<List<Rabbit>> getRabbitsByTypeAndStatus(
+      RabbitType type, RabbitStatus status) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'type = ? AND status = ?',
-      whereArgs: [
-        type.toString(),
-        status.toString()
-      ],
+      whereArgs: [type.toString(), status.toString()],
       orderBy: 'name ASC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -814,10 +817,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'type = ? AND status != ?',
-      whereArgs: [
-        'RabbitType.buck',
-        'RabbitStatus.archived'
-      ],
+      whereArgs: ['RabbitType.buck', 'RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -826,23 +826,25 @@ class DatabaseService {
   Future<void> updateRabbit(Rabbit rabbit) async {
     final db = await database;
     rabbit.updatedAt = DateTime.now();
-    await db.update('rabbits', rabbit.toMap(), where: 'id = ?', whereArgs: [
-      rabbit.id
-    ]);
+    await db.update('rabbits', rabbit.toMap(),
+        where: 'id = ?', whereArgs: [rabbit.id]);
     print('✅ Updated rabbit: ${rabbit.name}');
   }
 
   Future<void> deleteRabbit(String id) async {
     final db = await database;
-    await db.delete('rabbits', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('rabbits', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted rabbit: $id');
   }
 
   // ==================== BREEDING OPERATIONS ====================
 
-  Future<void> logBreeding(String doeId, String buckId, DateTime breedDate, int gestationDays, {int? customPalpationDays, int? customNestBoxDays, int? fallOffs, String? breedingNotes}) async {
+  Future<void> logBreeding(
+      String doeId, String buckId, DateTime breedDate, int gestationDays,
+      {int? customPalpationDays,
+      int? customNestBoxDays,
+      int? fallOffs,
+      String? breedingNotes}) async {
     final db = await database;
     final settings = SettingsService.instance;
     final palpDays = customPalpationDays ?? settings.palpationDays;
@@ -867,16 +869,15 @@ class DatabaseService {
         'status': initialStatus.toString(),
         'lastBreedDate': breedDate.toIso8601String(),
         'lastBreedBuckId': buckId,
-        'palpationDate': settings.palpationEnabled ? palpationDate.toIso8601String() : null,
+        'palpationDate':
+            settings.palpationEnabled ? palpationDate.toIso8601String() : null,
         'dueDate': dueDate.toIso8601String(),
         'fallOffs': fallOffs,
         'breedingNotes': breedingNotes,
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
     );
 
     // Create tasks based on pipeline settings
@@ -921,7 +922,8 @@ class DatabaseService {
     print('✅ Logged breeding for doe $doeId with buck $buckId');
   }
 
-  Future<void> confirmPregnancy(String doeId, bool isPregnant, int gestationDays) async {
+  Future<void> confirmPregnancy(
+      String doeId, bool isPregnant, int gestationDays) async {
     final db = await database;
     final settings = SettingsService.instance;
     final rabbit = await getRabbit(doeId);
@@ -938,9 +940,7 @@ class DatabaseService {
           'updatedAt': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
-        whereArgs: [
-          doeId
-        ],
+        whereArgs: [doeId],
       );
 
       // Create tasks based on pipeline settings
@@ -980,9 +980,7 @@ class DatabaseService {
           'updatedAt': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
-        whereArgs: [
-          doeId
-        ],
+        whereArgs: [doeId],
       );
     }
 
@@ -999,8 +997,14 @@ class DatabaseService {
 
     print('✅ Confirmed pregnancy for $doeId: $isPregnant');
   }
-  Future<void> logBirth(String doeId, int totalBorn, int aliveBorn, DateTime kindleDate, int weaningWeeks, {
-    String? litterId, 
+
+  Future<void> logBirth(
+    String doeId,
+    int totalBorn,
+    int aliveBorn,
+    DateTime kindleDate,
+    int weaningWeeks, {
+    String? litterId,
     List<Map<String, dynamic>>? kits,
     bool? missedLitter,
     String? colorsProduced,
@@ -1021,12 +1025,15 @@ class DatabaseService {
     await db.update(
       'rabbits',
       {
-        'status': shouldBeNursing ? RabbitStatus.nursing.toString() : RabbitStatus.open.toString(),
+        'status': shouldBeNursing
+            ? RabbitStatus.nursing.toString()
+            : RabbitStatus.open.toString(),
         'kindleDate': isMissed ? null : kindleDate.toIso8601String(),
         'currentLitterSize': isMissed ? 0 : aliveBorn,
         'weanDate': shouldBeNursing ? weanDate.toIso8601String() : null,
         'dueDate': null,
-        'lastBreedDate': isMissed ? null : rabbit.lastBreedDate?.toIso8601String(),
+        'lastBreedDate':
+            isMissed ? null : rabbit.lastBreedDate?.toIso8601String(),
         'lastBreedBuckId': isMissed ? null : rabbit.lastBreedBuckId,
         'updatedAt': DateTime.now().toIso8601String(),
       },
@@ -1056,7 +1063,8 @@ class DatabaseService {
       'doeName': rabbit.name,
       'buckId': rabbit.lastBreedBuckId ?? '',
       'buckName': buckName,
-      'breedDate': rabbit.lastBreedDate?.toIso8601String() ?? kindleDate.toIso8601String(),
+      'breedDate': rabbit.lastBreedDate?.toIso8601String() ??
+          kindleDate.toIso8601String(),
       'kindleDate': kindleDate.toIso8601String(),
       'dob': kindleDate.toIso8601String(),
       'totalBorn': totalBorn,
@@ -1106,7 +1114,8 @@ class DatabaseService {
       whereArgs: [doeId, 'kindle', 'nestbox', 0],
     );
 
-    print('✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn (Litter ID: $finalLitterId)');
+    print(
+        '✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn (Litter ID: $finalLitterId)');
   }
 
   /// Generate next sequential litter ID (L-001, L-002, etc.)
@@ -1137,7 +1146,8 @@ class DatabaseService {
     return await _generateNextLitterId();
   }
 
-  Future<void> weanLitter(String doeId, int weanedCount, int restingDays) async {
+  Future<void> weanLitter(
+      String doeId, int weanedCount, int restingDays) async {
     final db = await database;
     final restingEndDate = DateTime.now().add(Duration(days: restingDays));
 
@@ -1149,9 +1159,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
     );
 
     await insertTask({
@@ -1196,9 +1204,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
     );
     print('✅ Marked $doeId as open for breeding');
   }
@@ -1223,9 +1229,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
     );
 
     // Delete all associated tasks for this rabbit (breeding-related)
@@ -1266,9 +1270,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
     );
 
     if (expense != null && expense > 0) {
@@ -1299,7 +1301,8 @@ class DatabaseService {
     print('✅ Added $rabbitId to quarantine for $days days');
   }
 
-  Future<void> endQuarantine(String rabbitId, RabbitStatus newStatus, String? newCage) async {
+  Future<void> endQuarantine(
+      String rabbitId, RabbitStatus newStatus, String? newCage) async {
     final db = await database;
     final updates = <String, dynamic>{
       'status': newStatus.toString(),
@@ -1313,9 +1316,7 @@ class DatabaseService {
       updates['cage'] = newCage;
     }
 
-    await db.update('rabbits', updates, where: 'id = ?', whereArgs: [
-      rabbitId
-    ]);
+    await db.update('rabbits', updates, where: 'id = ?', whereArgs: [rabbitId]);
     print('✅ Ended quarantine for $rabbitId');
   }
 
@@ -1329,11 +1330,7 @@ class DatabaseService {
         'completedAt': DateTime.now().toIso8601String(),
       },
       where: 'rabbitId = ? AND taskType = ? AND completed = ?',
-      whereArgs: [
-        rabbitId,
-        'quarantine_end',
-        0
-      ],
+      whereArgs: [rabbitId, 'quarantine_end', 0],
     );
     print('✅ Cancelled quarantine tasks for $rabbitId');
   }
@@ -1369,9 +1366,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
     );
 
     print('✅ Archived rabbit $rabbitId: $reason');
@@ -1389,9 +1384,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
     );
     print('✅ Promoted $rabbitId to breeder');
   }
@@ -1413,9 +1406,11 @@ class DatabaseService {
     String? notes,
   }) async {
     // Generate a new rabbit ID
-    final rabbitType = type ?? (kit.sex == 'M' ? RabbitType.buck : RabbitType.doe);
+    final rabbitType =
+        type ?? (kit.sex == 'M' ? RabbitType.buck : RabbitType.doe);
     final typePrefix = rabbitType == RabbitType.buck ? 'B' : 'D';
-    final newRabbitId = customId ?? '$typePrefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final newRabbitId = customId ??
+        '$typePrefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     final rabbitName = customName ?? 'Kit ${kit.id}';
 
     // Create the new rabbit
@@ -1457,7 +1452,8 @@ class DatabaseService {
     final updatedLitter = litter.copyWith(kits: updatedKits);
     await updateLitter(updatedLitter);
 
-    print('✅ Promoted kit ${kit.id} from litter ${litter.id} to breeder $newRabbitId');
+    print(
+        '✅ Promoted kit ${kit.id} from litter ${litter.id} to breeder $newRabbitId');
     return newRabbit;
   }
 
@@ -1491,20 +1487,18 @@ class DatabaseService {
         final db = await database;
         await db.update(
           'barns',
-          {
-            'rows': jsonEncode(rows)
-          },
+          {'rows': jsonEncode(rows)},
           where: 'id = ?',
-          whereArgs: [
-            barnMap['id']
-          ],
+          whereArgs: [barnMap['id']],
         );
-        print('✅ Synced cage "$cage" into barn "${barnMap['name']}" → row "$location"');
+        print(
+            '✅ Synced cage "$cage" into barn "${barnMap['name']}" → row "$location"');
       }
     }
   }
 
-  Future<void> moveCage(String rabbitId, String newLocation, String newCage) async {
+  Future<void> moveCage(
+      String rabbitId, String newLocation, String newCage) async {
     final db = await database;
     await db.update(
       'rabbits',
@@ -1514,9 +1508,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
     );
     // Sync cage into barn row
     await syncCageToBarn(newLocation, newCage);
@@ -1524,7 +1516,8 @@ class DatabaseService {
   }
 
   // Update litter location by doe ID (for moving litter after weaning)
-  Future<void> updateLitterLocation(String doeId, String location, String cage) async {
+  Future<void> updateLitterLocation(
+      String doeId, String location, String cage) async {
     final db = await database;
     await db.update(
       'litters',
@@ -1534,10 +1527,7 @@ class DatabaseService {
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'doeId = ? AND status = ?',
-      whereArgs: [
-        doeId,
-        'nursing'
-      ],
+      whereArgs: [doeId, 'nursing'],
     );
     // Sync cage into barn row
     await syncCageToBarn(location, cage);
@@ -1548,7 +1538,8 @@ class DatabaseService {
 
   Future<void> insertLitter(Map<String, dynamic> litter) async {
     final db = await database;
-    await db.insert('litters', litter, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('litters', litter,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted litter: ${litter['id']}');
   }
 
@@ -1581,11 +1572,13 @@ class DatabaseService {
           print('     - dob: ${map['dob']}');
           print('     - location: ${map['location']}');
           print('     - cage: ${map['cage']}');
-          print('     - kits: ${map['kits']?.toString().substring(0, (map['kits']?.toString().length ?? 0).clamp(0, 50))}...');
+          print(
+              '     - kits: ${map['kits']?.toString().substring(0, (map['kits']?.toString().length ?? 0).clamp(0, 50))}...');
 
           final litter = Litter.fromMap(map);
           litters.add(litter);
-          print('  ✅ Parsed litter ${map['id']} with ${litter.kits.length} kits');
+          print(
+              '  ✅ Parsed litter ${map['id']} with ${litter.kits.length} kits');
         } catch (e) {
           print('  ❌ Error parsing litter ${map['id']}: $e');
         }
@@ -1609,9 +1602,7 @@ class DatabaseService {
     return await db.query(
       'litters',
       where: 'doeId = ?',
-      whereArgs: [
-        doeId
-      ],
+      whereArgs: [doeId],
       orderBy: 'breedDate DESC',
     );
   }
@@ -1622,9 +1613,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'litters',
       where: 'id = ?',
-      whereArgs: [
-        litterId
-      ],
+      whereArgs: [litterId],
     );
     if (maps.isEmpty) return null;
     return Litter.fromMap(maps.first);
@@ -1642,9 +1631,7 @@ class DatabaseService {
       final existingLitters = await db.query(
         'litters',
         where: 'id = ?',
-        whereArgs: [
-          litter.id
-        ],
+        whereArgs: [litter.id],
       );
 
       // Encode kits to JSON string
@@ -1684,15 +1671,14 @@ class DatabaseService {
       if (existingLitters.isEmpty) {
         litterData['createdAt'] = DateTime.now().toIso8601String();
         await db.insert('litters', litterData);
-        print('✅ Inserted litter: ${litter.id} with ${litter.kits.length} kits');
+        print(
+            '✅ Inserted litter: ${litter.id} with ${litter.kits.length} kits');
       } else {
         await db.update(
           'litters',
           litterData,
           where: 'id = ?',
-          whereArgs: [
-            litter.id
-          ],
+          whereArgs: [litter.id],
         );
         print('✅ Updated litter: ${litter.id} with ${litter.kits.length} kits');
       }
@@ -1750,14 +1736,13 @@ class DatabaseService {
 
     // Save back to database
     final updatedLitter = litter.copyWith(kits: updatedKits);
-    
+
     // Check if all kits are now dead
-    final allKitsStatusDead = updatedKits.every((k) => 
-      k.status.toLowerCase() == 'dead' || 
-      k.status.toLowerCase() == 'died' || 
-      k.status.toLowerCase() == 'deceased'
-    );
-    
+    final allKitsStatusDead = updatedKits.every((k) =>
+        k.status.toLowerCase() == 'dead' ||
+        k.status.toLowerCase() == 'died' ||
+        k.status.toLowerCase() == 'deceased');
+
     if (allKitsStatusDead) {
       final db = await database;
       // If all kits are dead, mark doe as open and clear breeding dates
@@ -1776,22 +1761,21 @@ class DatabaseService {
         where: 'id = ?',
         whereArgs: [litter.doeId],
       );
-      
+
       // Also archive the litter
       await updateLitter(updatedLitter.copyWith(status: 'archived'));
     } else {
       await updateLitter(updatedLitter);
     }
 
-    print('✅ Updated kit ${kit.id} in litter $litterId ${allKitsStatusDead ? '(All kits dead, doe reset to Open)' : ''}');
+    print(
+        '✅ Updated kit ${kit.id} in litter $litterId ${allKitsStatusDead ? '(All kits dead, doe reset to Open)' : ''}');
   }
 
   // ✅ NEW: Delete litter
   Future<void> deleteLitter(String litterId) async {
     final db = await database;
-    await db.delete('litters', where: 'id = ?', whereArgs: [
-      litterId
-    ]);
+    await db.delete('litters', where: 'id = ?', whereArgs: [litterId]);
     print('🗑️ Deleted litter: $litterId');
   }
 
@@ -1799,19 +1783,22 @@ class DatabaseService {
 
   Future<void> insertTask(Map<String, dynamic> task) async {
     final db = await database;
-    await db.insert('tasks', task, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('tasks', task,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<Map<String, dynamic>>> getAllTasks() async {
     final db = await database;
     await _ensureTasksIgnoredColumn(db);
-    return await db.query('tasks', where: 'ignored = 0 OR ignored IS NULL', orderBy: 'dueDate ASC');
+    return await db.query('tasks',
+        where: 'ignored = 0 OR ignored IS NULL', orderBy: 'dueDate ASC');
   }
 
   /// Ensure the 'ignored' column exists on the tasks table (handles fresh installs pre-fix)
   Future<void> _ensureTasksIgnoredColumn(Database db) async {
     try {
-      await db.execute('ALTER TABLE tasks ADD COLUMN ignored INTEGER DEFAULT 0');
+      await db
+          .execute('ALTER TABLE tasks ADD COLUMN ignored INTEGER DEFAULT 0');
     } catch (_) {
       // Column already exists — ignore
     }
@@ -1829,7 +1816,8 @@ class DatabaseService {
 
   /// Get pipeline tasks due today or overdue, normalized for home dashboard display
   /// Includes uncompleted tasks AND tasks completed today (so they stay visible)
-  Future<List<Map<String, dynamic>>> getPipelineTasksDueToday({bool snowballEffect = true}) async {
+  Future<List<Map<String, dynamic>>> getPipelineTasksDueToday(
+      {bool snowballEffect = true}) async {
     final db = await database;
     await _ensureTasksIgnoredColumn(db);
     final now = DateTime.now();
@@ -1841,7 +1829,8 @@ class DatabaseService {
       // Snowball ON: show overdue + today
       tasks = await db.query(
         'tasks',
-        where: '(ignored = 0 OR ignored IS NULL) AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+        where:
+            '(ignored = 0 OR ignored IS NULL) AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
         whereArgs: [
           todayEnd.toIso8601String(),
           todayStart.toIso8601String(),
@@ -1852,7 +1841,8 @@ class DatabaseService {
       // Snowball OFF: only show tasks due today (not overdue)
       tasks = await db.query(
         'tasks',
-        where: '(ignored = 0 OR ignored IS NULL) AND dueDate >= ? AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+        where:
+            '(ignored = 0 OR ignored IS NULL) AND dueDate >= ? AND dueDate <= ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
         whereArgs: [
           todayStart.toIso8601String(),
           todayEnd.toIso8601String(),
@@ -1887,7 +1877,8 @@ class DatabaseService {
 
     final tasks = await db.query(
       'tasks',
-      where: '(ignored = 0 OR ignored IS NULL) AND dueDate > ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+      where:
+          '(ignored = 0 OR ignored IS NULL) AND dueDate > ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
       whereArgs: [
         todayEnd.toIso8601String(),
         todayStart,
@@ -1899,7 +1890,8 @@ class DatabaseService {
   }
 
   /// Normalize pipeline tasks to the same format as scheduled tasks for the home dashboard
-  Future<List<Map<String, dynamic>>> _normalizePipelineTasks(List<Map<String, dynamic>> tasks) async {
+  Future<List<Map<String, dynamic>>> _normalizePipelineTasks(
+      List<Map<String, dynamic>> tasks) async {
     final List<Map<String, dynamic>> normalized = [];
 
     for (final task in tasks) {
@@ -1977,11 +1969,7 @@ class DatabaseService {
         'rabbitId': rabbitId,
         'litterId': litterId,
         'linkedEntities': [
-          {
-            'id': rabbitId,
-            'name': entityName,
-            'cage': entityCage
-          }
+          {'id': rabbitId, 'name': entityName, 'cage': entityCage}
         ],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
@@ -2003,7 +1991,8 @@ class DatabaseService {
   }
 
   /// Get pipeline tasks for a specific rabbit, normalized for display
-  Future<List<Map<String, dynamic>>> getPipelineTasksForRabbit(String rabbitId) async {
+  Future<List<Map<String, dynamic>>> getPipelineTasksForRabbit(
+      String rabbitId) async {
     final db = await database;
     await _ensureTasksIgnoredColumn(db);
     final now = DateTime.now();
@@ -2011,7 +2000,8 @@ class DatabaseService {
 
     final tasks = await db.query(
       'tasks',
-      where: '(ignored = 0 OR ignored IS NULL) AND rabbitId = ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
+      where:
+          '(ignored = 0 OR ignored IS NULL) AND rabbitId = ? AND (completed = 0 OR (completed = 1 AND completedAt >= ?))',
       whereArgs: [
         rabbitId,
         todayStart,
@@ -2025,22 +2015,15 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'tasks',
-      {
-        'completed': 1,
-        'completedAt': DateTime.now().toIso8601String()
-      },
+      {'completed': 1, 'completedAt': DateTime.now().toIso8601String()},
       where: 'id = ?',
-      whereArgs: [
-        taskId
-      ],
+      whereArgs: [taskId],
     );
   }
 
   Future<void> deleteTask(String id) async {
     final db = await database;
-    await db.delete('tasks', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('tasks', where: 'id = ?', whereArgs: [id]);
   }
 
   // Ignore/Disable a task (task is hidden but not deleted)
@@ -2048,19 +2031,17 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'tasks',
-      {
-        'ignored': 1
-      },
+      {'ignored': 1},
       where: 'id = ?',
-      whereArgs: [
-        taskId
-      ],
+      whereArgs: [taskId],
     );
     print('✅ Task $taskId ignored/disabled');
   }
 
   // Complete task with optional cost logging
-  Future<void> completeTaskWithCost(String taskId, double? cost, String? rabbitId, {String? taskTitle, String? taskCategory}) async {
+  Future<void> completeTaskWithCost(
+      String taskId, double? cost, String? rabbitId,
+      {String? taskTitle, String? taskCategory}) async {
     final db = await database;
     await db.update(
       'tasks',
@@ -2070,9 +2051,7 @@ class DatabaseService {
         'cost': cost,
       },
       where: 'id = ?',
-      whereArgs: [
-        taskId
-      ],
+      whereArgs: [taskId],
     );
 
     // If cost is provided, log it as a transaction
@@ -2086,7 +2065,9 @@ class DatabaseService {
         date: DateTime.now(),
         description: taskTitle ?? 'Task cost',
         notes: 'Logged from completed task',
-        linkType: rabbitId != null ? finance_model.LinkType.rabbit : finance_model.LinkType.general,
+        linkType: rabbitId != null
+            ? finance_model.LinkType.rabbit
+            : finance_model.LinkType.general,
         rabbitId: rabbitId,
       );
       await insertTransaction(transaction);
@@ -2095,17 +2076,14 @@ class DatabaseService {
   }
 
   // Complete scheduled task with optional cost logging
-  Future<void> markScheduledTaskCompletedWithCost(int id, double? cost, {String? taskTitle, String? taskCategory, String? rabbitId}) async {
+  Future<void> markScheduledTaskCompletedWithCost(int id, double? cost,
+      {String? taskTitle, String? taskCategory, String? rabbitId}) async {
     final db = await database;
     await db.update(
       'scheduled_tasks',
-      {
-        'completedAt': DateTime.now().toIso8601String()
-      },
+      {'completedAt': DateTime.now().toIso8601String()},
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
 
     // If cost is provided, log it as a transaction
@@ -2119,7 +2097,9 @@ class DatabaseService {
         date: DateTime.now(),
         description: taskTitle ?? 'Task cost',
         notes: 'Logged from completed task',
-        linkType: rabbitId != null ? finance_model.LinkType.rabbit : finance_model.LinkType.general,
+        linkType: rabbitId != null
+            ? finance_model.LinkType.rabbit
+            : finance_model.LinkType.general,
         rabbitId: rabbitId,
       );
       await insertTransaction(transaction);
@@ -2128,7 +2108,8 @@ class DatabaseService {
   }
 
   // Map task category to transaction expense category
-  finance_model.TransactionCategory _mapTaskCategoryToTransactionCategory(String? taskCategory) {
+  finance_model.TransactionCategory _mapTaskCategoryToTransactionCategory(
+      String? taskCategory) {
     switch (taskCategory?.toLowerCase()) {
       case 'health':
         return finance_model.TransactionCategory.medical;
@@ -2178,8 +2159,10 @@ class DatabaseService {
       'createdAt': schedule['createdAt'] ?? DateTime.now().toIso8601String(),
     };
 
-    await db.insert('schedules', scheduleData, conflictAlgorithm: ConflictAlgorithm.replace);
-    print('✅ Inserted schedule: ${schedule['title']} (Every $frequencyValue $frequencyUnit)');
+    await db.insert('schedules', scheduleData,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    print(
+        '✅ Inserted schedule: ${schedule['title']} (Every $frequencyValue $frequencyUnit)');
 
     // Generate the first task from this schedule
     await generateTaskFromSchedule(scheduleData);
@@ -2187,14 +2170,13 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAllSchedules() async {
     final db = await database;
-    return await db.query('schedules', where: 'active = 1', orderBy: 'createdAt DESC');
+    return await db.query('schedules',
+        where: 'active = 1', orderBy: 'createdAt DESC');
   }
 
   Future<void> deleteSchedule(String id) async {
     final db = await database;
-    await db.delete('schedules', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('schedules', where: 'id = ?', whereArgs: [id]);
     print('✅ Deleted schedule: $id');
   }
 
@@ -2215,15 +2197,18 @@ class DatabaseService {
         nextDueDate = nextDueDate.add(Duration(days: frequencyValue * 7));
         break;
       case 'months':
-        nextDueDate = DateTime(nextDueDate.year, nextDueDate.month + frequencyValue, nextDueDate.day);
+        nextDueDate = DateTime(nextDueDate.year,
+            nextDueDate.month + frequencyValue, nextDueDate.day);
         break;
       case 'years':
-        nextDueDate = DateTime(nextDueDate.year + frequencyValue, nextDueDate.month, nextDueDate.day);
+        nextDueDate = DateTime(nextDueDate.year + frequencyValue,
+            nextDueDate.month, nextDueDate.day);
         break;
     }
 
     // Create the task
-    final taskId = 'task_schedule_${schedule['id']}_${DateTime.now().millisecondsSinceEpoch}';
+    final taskId =
+        'task_schedule_${schedule['id']}_${DateTime.now().millisecondsSinceEpoch}';
     await db.insert('tasks', {
       'id': taskId,
       'title': schedule['title'],
@@ -2237,16 +2222,13 @@ class DatabaseService {
     // Update lastGenerated on the schedule
     await db.update(
       'schedules',
-      {
-        'lastGenerated': DateTime.now().toIso8601String()
-      },
+      {'lastGenerated': DateTime.now().toIso8601String()},
       where: 'id = ?',
-      whereArgs: [
-        schedule['id']
-      ],
+      whereArgs: [schedule['id']],
     );
 
-    print('✅ Generated task from schedule: ${schedule['title']} due on $nextDueDate');
+    print(
+        '✅ Generated task from schedule: ${schedule['title']} due on $nextDueDate');
   }
 
   /// Regenerates task when a recurring task is completed
@@ -2262,9 +2244,8 @@ class DatabaseService {
       final parts = taskId.split('_');
       if (parts.length >= 3) {
         final scheduleId = parts[2];
-        final schedules = await db.query('schedules', where: 'id = ?', whereArgs: [
-          scheduleId
-        ]);
+        final schedules = await db
+            .query('schedules', where: 'id = ?', whereArgs: [scheduleId]);
         if (schedules.isNotEmpty) {
           await generateTaskFromSchedule(schedules.first);
         }
@@ -2276,7 +2257,8 @@ class DatabaseService {
 
   Future<void> insertHealthRecord(Map<String, dynamic> record) async {
     final db = await database;
-    await db.insert('health_records', record, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('health_records', record,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> addHealthRecord(
@@ -2302,21 +2284,21 @@ class DatabaseService {
     print('✅ Added health record for $rabbitId');
   }
 
-  Future<List<Map<String, dynamic>>> getHealthRecordsByRabbit(String rabbitId) async {
+  Future<List<Map<String, dynamic>>> getHealthRecordsByRabbit(
+      String rabbitId) async {
     final db = await database;
     return await db.query(
       'health_records',
       where: 'rabbitId = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
       orderBy: 'date DESC',
     );
   }
 
   // ==================== WEIGHT RECORDS ====================
 
-  Future<void> insertWeightRecord(String rabbitId, double weight, DateTime date, String? notes) async {
+  Future<void> insertWeightRecord(
+      String rabbitId, double weight, DateTime date, String? notes) async {
     final db = await database;
     await db.insert('weight_records', {
       'id': 'weight_${DateTime.now().millisecondsSinceEpoch}',
@@ -2328,20 +2310,16 @@ class DatabaseService {
 
     await db.update(
       'rabbits',
-      {
-        'weight': weight,
-        'updatedAt': DateTime.now().toIso8601String()
-      },
+      {'weight': weight, 'updatedAt': DateTime.now().toIso8601String()},
       where: 'id = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
     );
 
     print('✅ Inserted weight record for $rabbitId: $weight');
   }
 
-  Future<void> logWeight(String rabbitId, double weight, DateTime date, String? notes) async {
+  Future<void> logWeight(
+      String rabbitId, double weight, DateTime date, String? notes) async {
     await insertWeightRecord(rabbitId, weight, date, notes);
   }
 
@@ -2350,9 +2328,7 @@ class DatabaseService {
     return await db.query(
       'weight_records',
       where: 'rabbitId = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
       orderBy: 'date DESC',
     );
   }
@@ -2360,9 +2336,8 @@ class DatabaseService {
   // Delete a specific weight record
   Future<void> deleteWeightRecord(String weightRecordId) async {
     final db = await database;
-    await db.delete('weight_records', where: 'id = ?', whereArgs: [
-      weightRecordId
-    ]);
+    await db
+        .delete('weight_records', where: 'id = ?', whereArgs: [weightRecordId]);
     print('✅ Deleted weight record: $weightRecordId');
   }
 
@@ -2374,7 +2349,8 @@ class DatabaseService {
     if (barnData['rows'] is List) {
       barnData['rows'] = jsonEncode(barnData['rows']);
     }
-    await db.insert('barns', barnData, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('barns', barnData,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted barn: ${barn['name']}');
   }
 
@@ -2388,9 +2364,7 @@ class DatabaseService {
       'barns',
       barnData,
       where: 'id = ?',
-      whereArgs: [
-        barn['id']
-      ],
+      whereArgs: [barn['id']],
     );
     print('✅ Updated barn: ${barn['name']}');
   }
@@ -2402,9 +2376,7 @@ class DatabaseService {
 
   Future<void> deleteBarn(String id) async {
     final db = await database;
-    await db.delete('barns', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('barns', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted barn: $id');
   }
 
@@ -2424,14 +2396,16 @@ class DatabaseService {
   Future<void> insertBreed(Breed breed) async {
     final db = await database;
     await _ensureBreedsTable(db);
-    await db.insert('breeds', breed.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('breeds', breed.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted breed: ${breed.name}');
   }
 
   Future<List<Breed>> getAllBreeds() async {
     final db = await database;
     await _ensureBreedsTable(db);
-    final List<Map<String, dynamic>> maps = await db.query('breeds', orderBy: 'name ASC');
+    final List<Map<String, dynamic>> maps =
+        await db.query('breeds', orderBy: 'name ASC');
     return List.generate(maps.length, (i) => Breed.fromMap(maps[i]));
   }
 
@@ -2441,9 +2415,7 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'breeds',
       where: 'name = ?',
-      whereArgs: [
-        name
-      ],
+      whereArgs: [name],
     );
     if (maps.isEmpty) return null;
     return Breed.fromMap(maps.first);
@@ -2456,9 +2428,7 @@ class DatabaseService {
       'breeds',
       breed.toMap(),
       where: 'id = ?',
-      whereArgs: [
-        breed.id
-      ],
+      whereArgs: [breed.id],
     );
     print('✅ Updated breed: ${breed.name}');
   }
@@ -2466,9 +2436,7 @@ class DatabaseService {
   Future<void> deleteBreed(String id) async {
     final db = await database;
     await _ensureBreedsTable(db);
-    await db.delete('breeds', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('breeds', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted breed: $id');
   }
 
@@ -2477,20 +2445,16 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'rabbits',
-      {
-        'genetics': genetics
-      },
+      {'genetics': genetics},
       where: 'breed = ?',
-      whereArgs: [
-        breedName
-      ],
+      whereArgs: [breedName],
     );
     print('✅ Updated genetics for all rabbits with breed: $breedName');
   }
 
   /// Fix litters that have rabbit IDs in sire/dam fields instead of names.
   /// This handles litters created via logBirth before the fix.
-  Future<void> fixLitterSireDamNames() async {
+  Future<void> fixLitterSireDamNamesFix() async {
     final db = await database;
     final littersData = await db.query('litters');
 
@@ -2502,7 +2466,8 @@ class DatabaseService {
 
       // Check if sire looks like a rabbit ID (e.g. "R-0001" or any ID format)
       // If sire != buckName and buckId exists, look up the actual name
-      if (litter.buckId.isNotEmpty && (litter.sire == litter.buckId || litter.sire.isEmpty)) {
+      if (litter.buckId.isNotEmpty &&
+          (litter.sire == litter.buckId || litter.sire.isEmpty)) {
         final buck = await getRabbit(litter.buckId);
         if (buck != null && buck.name.isNotEmpty) {
           newSire = buck.name;
@@ -2511,7 +2476,8 @@ class DatabaseService {
       }
 
       // Check if dam looks like a rabbit ID
-      if (litter.doeId.isNotEmpty && (litter.dam == litter.doeId || litter.dam.isEmpty)) {
+      if (litter.doeId.isNotEmpty &&
+          (litter.dam == litter.doeId || litter.dam.isEmpty)) {
         final doe = await getRabbit(litter.doeId);
         if (doe != null && doe.name.isNotEmpty) {
           newDam = doe.name;
@@ -2522,16 +2488,12 @@ class DatabaseService {
       if (needsUpdate) {
         await db.update(
           'litters',
-          {
-            'sire': newSire,
-            'dam': newDam
-          },
+          {'sire': newSire, 'dam': newDam},
           where: 'id = ?',
-          whereArgs: [
-            litter.id
-          ],
+          whereArgs: [litter.id],
         );
-        print('✅ Fixed sire/dam for litter ${litter.id}: sire=$newSire, dam=$newDam');
+        print(
+            '✅ Fixed sire/dam for litter ${litter.id}: sire=$newSire, dam=$newDam');
       }
     }
   }
@@ -2555,9 +2517,7 @@ class DatabaseService {
       final ids = (row['ids'] as String).split(',');
       // Keep the first one, delete the rest
       for (int i = 1; i < ids.length; i++) {
-        await db.delete('tasks', where: 'id = ?', whereArgs: [
-          ids[i]
-        ]);
+        await db.delete('tasks', where: 'id = ?', whereArgs: [ids[i]]);
         removed++;
       }
     }
@@ -2574,9 +2534,7 @@ class DatabaseService {
     for (final row in rabbitTasks) {
       final ids = (row['ids'] as String).split(',');
       for (int i = 1; i < ids.length; i++) {
-        await db.delete('tasks', where: 'id = ?', whereArgs: [
-          ids[i]
-        ]);
+        await db.delete('tasks', where: 'id = ?', whereArgs: [ids[i]]);
         removed++;
       }
     }
@@ -2608,20 +2566,19 @@ class DatabaseService {
       final existing = await db.query(
         'tasks',
         where: 'litterId = ? AND taskType = ?',
-        whereArgs: [
-          litterId,
-          'wean'
-        ],
+        whereArgs: [litterId, 'wean'],
       );
       if (existing.isNotEmpty) continue;
 
       // Create wean task
       final weanDate = litter['weanDate']?.toString();
-      final dueDate = weanDate ?? DateTime.now().add(Duration(days: 28)).toIso8601String();
+      final dueDate =
+          weanDate ?? DateTime.now().add(Duration(days: 28)).toIso8601String();
       final aliveKits = litter['currentAlive'] ?? litter['aliveKits'] ?? 0;
 
       await insertTask({
-        'id': 'task_wean_backfill_${litterId}_${DateTime.now().millisecondsSinceEpoch}',
+        'id':
+            'task_wean_backfill_${litterId}_${DateTime.now().millisecondsSinceEpoch}',
         'rabbitId': doeId,
         'litterId': litterId,
         'title': 'Wean Litter',
@@ -2644,15 +2601,14 @@ class DatabaseService {
         final existing = await db.query(
           'tasks',
           where: 'rabbitId = ? AND taskType = ?',
-          whereArgs: [
-            rabbitId,
-            'palpation'
-          ],
+          whereArgs: [rabbitId, 'palpation'],
         );
         if (existing.isEmpty) {
-          final palpDate = rabbit['palpationDate']?.toString() ?? DateTime.now().toIso8601String();
+          final palpDate = rabbit['palpationDate']?.toString() ??
+              DateTime.now().toIso8601String();
           await insertTask({
-            'id': 'task_palp_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
+            'id':
+                'task_palp_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
             'rabbitId': rabbitId,
             'title': 'Palpation Check',
             'description': 'Pregnancy check',
@@ -2668,16 +2624,14 @@ class DatabaseService {
         final existing = await db.query(
           'tasks',
           where: 'rabbitId = ? AND taskType IN (?, ?)',
-          whereArgs: [
-            rabbitId,
-            'kindle',
-            'nestbox'
-          ],
+          whereArgs: [rabbitId, 'kindle', 'nestbox'],
         );
         if (existing.isEmpty) {
-          final dueDate = rabbit['dueDate']?.toString() ?? DateTime.now().add(Duration(days: 31)).toIso8601String();
+          final dueDate = rabbit['dueDate']?.toString() ??
+              DateTime.now().add(Duration(days: 31)).toIso8601String();
           await insertTask({
-            'id': 'task_kindle_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
+            'id':
+                'task_kindle_backfill_${rabbitId}_${DateTime.now().millisecondsSinceEpoch}',
             'rabbitId': rabbitId,
             'title': 'Expected Kindle',
             'description': 'Due date for birth',
@@ -2698,7 +2652,7 @@ class DatabaseService {
 
   /// Backfill finance transactions for sold kits and sold rabbits that are missing transactions.
   /// This handles data created before the sell flow was fixed to auto-create transactions.
-  Future<void> backfillSoldTransactions() async {
+  Future<void> backfillSoldTransactionsFix() async {
     final db = await database;
 
     // 1. Backfill sold KITS from litters
@@ -2733,8 +2687,10 @@ class DatabaseService {
               kitSex: kit.sex,
               buyerInfo: kit.details?.replaceFirst('Sold to ', ''),
             );
-            await db.insert('transactions', transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
-            print('✅ Backfilled transaction for sold kit ${litter.id}-${kit.id}: ${kit.price}');
+            await db.insert('transactions', transaction.toMap(),
+                conflictAlgorithm: ConflictAlgorithm.ignore);
+            print(
+                '✅ Backfilled transaction for sold kit ${litter.id}-${kit.id}: ${kit.price}');
           }
         }
       }
@@ -2744,9 +2700,7 @@ class DatabaseService {
     final soldRabbits = await db.query(
       'rabbits',
       where: 'archiveReason = ? AND salePrice IS NOT NULL AND salePrice > 0',
-      whereArgs: [
-        'ArchiveReason.sold'
-      ],
+      whereArgs: ['ArchiveReason.sold'],
     );
     for (final rabbitMap in soldRabbits) {
       final rabbitId = rabbitMap['id'] as String;
@@ -2758,10 +2712,7 @@ class DatabaseService {
       final existing = await db.query(
         'transactions',
         where: 'rabbitId = ? AND category = ?',
-        whereArgs: [
-          rabbitId,
-          'TransactionCategory.soldKit'
-        ],
+        whereArgs: [rabbitId, 'TransactionCategory.soldKit'],
       );
       if (existing.isEmpty) {
         final transaction = finance_model.Transaction(
@@ -2769,14 +2720,17 @@ class DatabaseService {
           type: finance_model.TransactionType.income,
           category: finance_model.TransactionCategory.soldKit,
           amount: salePrice,
-          date: rabbitMap['archiveDate'] != null ? DateTime.parse(rabbitMap['archiveDate'] as String) : DateTime.now(),
+          date: rabbitMap['archiveDate'] != null
+              ? DateTime.parse(rabbitMap['archiveDate'] as String)
+              : DateTime.now(),
           description: 'Sold $rabbitName ($rabbitId)',
           notes: buyerInfo != null ? 'Buyer: $buyerInfo' : null,
           linkType: finance_model.LinkType.rabbit,
           rabbitId: rabbitId,
           buyerInfo: buyerInfo,
         );
-        await db.insert('transactions', transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+        await db.insert('transactions', transaction.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.ignore);
         print('✅ Backfilled transaction for sold rabbit $rabbitId: $salePrice');
       }
     }
@@ -2784,8 +2738,10 @@ class DatabaseService {
 
   Future<void> insertTransaction(finance_model.Transaction transaction) async {
     final db = await database;
-    await db.insert('transactions', transaction.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-    print('✅ Inserted transaction: ${transaction.categoryName} - \$${transaction.amount}');
+    await db.insert('transactions', transaction.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    print(
+        '✅ Inserted transaction: ${transaction.categoryName} - \$${transaction.amount}');
   }
 
   Future<void> updateTransaction(finance_model.Transaction transaction) async {
@@ -2794,25 +2750,23 @@ class DatabaseService {
       'transactions',
       transaction.toMap(),
       where: 'id = ?',
-      whereArgs: [
-        transaction.id
-      ],
+      whereArgs: [transaction.id],
     );
     print('✅ Updated transaction: ${transaction.id}');
   }
 
   Future<void> deleteTransaction(String id) async {
     final db = await database;
-    await db.delete('transactions', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted transaction: $id');
   }
 
   Future<List<finance_model.Transaction>> getAllTransactions() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('transactions', orderBy: 'date DESC');
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    final List<Map<String, dynamic>> maps =
+        await db.query('transactions', orderBy: 'date DESC');
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
   Future<finance_model.Transaction?> getTransactionById(String id) async {
@@ -2820,95 +2774,95 @@ class DatabaseService {
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
     if (maps.isEmpty) return null;
     return finance_model.Transaction.fromMap(maps.first);
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByDateRange(DateTime start, DateTime end) async {
+  Future<List<finance_model.Transaction>> getTransactionsByDateRange(
+      DateTime start, DateTime end) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'date >= ? AND date <= ?',
-      whereArgs: [
-        start.toIso8601String(),
-        end.toIso8601String()
-      ],
+      whereArgs: [start.toIso8601String(), end.toIso8601String()],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByRabbit(String rabbitId) async {
+  Future<List<finance_model.Transaction>> getTransactionsByRabbit(
+      String rabbitId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'rabbitId = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByLitter(String litterId) async {
+  Future<List<finance_model.Transaction>> getTransactionsByLitter(
+      String litterId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'litterId = ?',
-      whereArgs: [
-        litterId
-      ],
+      whereArgs: [litterId],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByCategory(finance_model.TransactionCategory category) async {
+  Future<List<finance_model.Transaction>> getTransactionsByCategory(
+      finance_model.TransactionCategory category) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'category = ?',
-      whereArgs: [
-        category.toString()
-      ],
+      whereArgs: [category.toString()],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByType(finance_model.TransactionType type) async {
+  Future<List<finance_model.Transaction>> getTransactionsByType(
+      finance_model.TransactionType type) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'type = ?',
-      whereArgs: [
-        type.toString()
-      ],
+      whereArgs: [type.toString()],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<List<finance_model.Transaction>> getTransactionsByBatch(String batchId) async {
+  Future<List<finance_model.Transaction>> getTransactionsByBatch(
+      String batchId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'transactions',
       where: 'batchId = ?',
-      whereArgs: [
-        batchId
-      ],
+      whereArgs: [batchId],
       orderBy: 'date DESC',
     );
-    return List.generate(maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
+    return List.generate(
+        maps.length, (i) => finance_model.Transaction.fromMap(maps[i]));
   }
 
-  Future<Map<String, double>> getFinanceSummary({DateTime? start, DateTime? end}) async {
-    final transactions = start != null && end != null ? await getTransactionsByDateRange(start, end) : await getAllTransactions();
+  Future<Map<String, double>> getFinanceSummary(
+      {DateTime? start, DateTime? end}) async {
+    final transactions = start != null && end != null
+        ? await getTransactionsByDateRange(start, end)
+        : await getAllTransactions();
 
     double income = 0;
     double expense = 0;
@@ -2928,7 +2882,8 @@ class DatabaseService {
     };
   }
 
-  Future<Map<String, double>> getFinanceSummaryByMonth(int year, int month) async {
+  Future<Map<String, double>> getFinanceSummaryByMonth(
+      int year, int month) async {
     final start = DateTime(year, month, 1);
     final end = DateTime(year, month + 1, 0, 23, 59, 59);
     return await getFinanceSummary(start: start, end: end);
@@ -2939,7 +2894,9 @@ class DatabaseService {
     DateTime? end,
     finance_model.TransactionType? type,
   }) async {
-    var transactions = start != null && end != null ? await getTransactionsByDateRange(start, end) : await getAllTransactions();
+    var transactions = start != null && end != null
+        ? await getTransactionsByDateRange(start, end)
+        : await getAllTransactions();
 
     if (type != null) {
       transactions = transactions.where((t) => t.type == type).toList();
@@ -2999,7 +2956,8 @@ class DatabaseService {
     ''');
     // Also try adding the column if table existed without it
     try {
-      await db.execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
+      await db
+          .execute('ALTER TABLE scheduled_tasks ADD COLUMN completedAt TEXT');
     } catch (_) {}
   }
 
@@ -3017,9 +2975,7 @@ class DatabaseService {
     final completed = await db.query(
       'scheduled_tasks',
       where: 'completedAt IS NOT NULL AND completedAt < ?',
-      whereArgs: [
-        todayStart
-      ],
+      whereArgs: [todayStart],
     );
 
     for (final task in completed) {
@@ -3028,12 +2984,11 @@ class DatabaseService {
 
       if (frequency == 'Once' || frequency == 'One-time') {
         // One-time task completed yesterday or before → delete
-        await db.delete('scheduled_tasks', where: 'id = ?', whereArgs: [
-          id
-        ]);
+        await db.delete('scheduled_tasks', where: 'id = ?', whereArgs: [id]);
       } else {
         // Recurring task → advance due date past today, clear completedAt
-        final currentDue = DateTime.tryParse(task['dueDate']?.toString() ?? '') ?? now;
+        final currentDue =
+            DateTime.tryParse(task['dueDate']?.toString() ?? '') ?? now;
         DateTime nextDue = _calculateNextRecurringDate(frequency, currentDue);
         // Keep advancing until nextDue is today or later
         while (nextDue.isBefore(DateTime(now.year, now.month, now.day))) {
@@ -3041,14 +2996,9 @@ class DatabaseService {
         }
         await db.update(
           'scheduled_tasks',
-          {
-            'dueDate': nextDue.toIso8601String(),
-            'completedAt': null
-          },
+          {'dueDate': nextDue.toIso8601String(), 'completedAt': null},
           where: 'id = ?',
-          whereArgs: [
-            id
-          ],
+          whereArgs: [id],
         );
       }
     }
@@ -3058,13 +3008,12 @@ class DatabaseService {
     await db.delete(
       'tasks',
       where: 'completed = 1 AND completedAt IS NOT NULL AND completedAt < ?',
-      whereArgs: [
-        todayStart
-      ],
+      whereArgs: [todayStart],
     );
 
     if (completed.isNotEmpty) {
-      print('✅ Cleaned up ${completed.length} completed scheduled tasks from previous days');
+      print(
+          '✅ Cleaned up ${completed.length} completed scheduled tasks from previous days');
     }
   }
 
@@ -3094,13 +3043,9 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'scheduled_tasks',
-      {
-        'completedAt': DateTime.now().toIso8601String()
-      },
+      {'completedAt': DateTime.now().toIso8601String()},
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
   }
 
@@ -3109,13 +3054,9 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'scheduled_tasks',
-      {
-        'completedAt': null
-      },
+      {'completedAt': null},
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
   }
 
@@ -3128,8 +3069,11 @@ class DatabaseService {
       'category': task['category'] ?? 'Operations',
       'frequency': task['frequency'] ?? 'Weekly',
       'linkType': task['linkType'] ?? 'unlinked',
-      'linkedEntities': task['linkedEntities'] is String ? task['linkedEntities'] : json.encode(task['linkedEntities'] ?? []),
-      'dueDate': task['dueDate'] ?? _calculateNextDueDate(task['frequency'] ?? 'Weekly'),
+      'linkedEntities': task['linkedEntities'] is String
+          ? task['linkedEntities']
+          : json.encode(task['linkedEntities'] ?? []),
+      'dueDate': task['dueDate'] ??
+          _calculateNextDueDate(task['frequency'] ?? 'Weekly'),
       'createdAt': task['createdAt'] ?? DateTime.now().toIso8601String(),
     };
 
@@ -3152,10 +3096,12 @@ class DatabaseService {
         dueDate = now; // Show today, next occurrence in 7 days after completion
         break;
       case 'Bi-Weekly':
-        dueDate = now; // Show today, next occurrence in 14 days after completion
+        dueDate =
+            now; // Show today, next occurrence in 14 days after completion
         break;
       case 'Monthly':
-        dueDate = now; // Show today, next occurrence in 1 month after completion
+        dueDate =
+            now; // Show today, next occurrence in 1 month after completion
         break;
       case 'Once':
       case 'One-time':
@@ -3187,7 +3133,9 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
+        'linkedEntities': task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
         'completedAt': task['completedAt'],
@@ -3200,14 +3148,13 @@ class DatabaseService {
     await db.delete(
       'scheduled_tasks',
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
     print('✅ Deleted scheduled task with id: $id');
   }
 
-  Future<List<Map<String, dynamic>>> getTasksDueToday({bool snowballEffect = true}) async {
+  Future<List<Map<String, dynamic>>> getTasksDueToday(
+      {bool snowballEffect = true}) async {
     final db = await database;
     await _ensureScheduledTasksTable(db);
 
@@ -3233,7 +3180,8 @@ class DatabaseService {
       // Snowball OFF: only show tasks due today (not overdue)
       maps = await db.query(
         'scheduled_tasks',
-        where: 'dueDate >= ? AND dueDate <= ? AND (completedAt IS NULL OR completedAt >= ?)',
+        where:
+            'dueDate >= ? AND dueDate <= ? AND (completedAt IS NULL OR completedAt >= ?)',
         whereArgs: [
           todayStart.toIso8601String(),
           todayEnd.toIso8601String(),
@@ -3253,7 +3201,9 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
+        'linkedEntities': task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
         'completedAt': task['completedAt'],
@@ -3288,7 +3238,9 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
+        'linkedEntities': task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
         'completedAt': task['completedAt'],
@@ -3300,20 +3252,17 @@ class DatabaseService {
     final db = await database;
     await db.update(
       'scheduled_tasks',
-      {
-        'dueDate': newDueDate
-      },
+      {'dueDate': newDueDate},
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
     print('✅ Updated due date for scheduled task id: $id');
   }
 
   /// Get all scheduled tasks linked to a specific rabbit by ID.
   /// Returns tasks where linkType='rabbit' and linkedEntities contains the rabbitId.
-  Future<List<Map<String, dynamic>>> getScheduledTasksByRabbit(String rabbitId) async {
+  Future<List<Map<String, dynamic>>> getScheduledTasksByRabbit(
+      String rabbitId) async {
     final db = await database;
     await _ensureScheduledTasksTable(db);
 
@@ -3327,7 +3276,9 @@ class DatabaseService {
     // Filter to only tasks whose linkedEntities contain this rabbit's ID
     final filtered = rabbitTasks.where((task) {
       try {
-        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [];
+        final entities = task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [];
         if (entities is List) {
           return entities.any((e) {
             if (e is Map) return e['id'] == rabbitId;
@@ -3347,14 +3298,18 @@ class DatabaseService {
     );
 
     // Find litters belonging to this rabbit (as doe)
-    final litters = await db.query('litters', where: 'doeId = ?', whereArgs: [
-      rabbitId
-    ]);
-    final litterIds = litters.map((l) => l['id']?.toString()).where((id) => id != null).toSet();
+    final litters =
+        await db.query('litters', where: 'doeId = ?', whereArgs: [rabbitId]);
+    final litterIds = litters
+        .map((l) => l['id']?.toString())
+        .where((id) => id != null)
+        .toSet();
 
     final litterFiltered = litterTasks.where((task) {
       try {
-        final entities = task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [];
+        final entities = task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [];
         if (entities is List) {
           return entities.any((e) {
             if (e is Map) return litterIds.contains(e['id']?.toString());
@@ -3366,12 +3321,10 @@ class DatabaseService {
       return false;
     }).toList();
 
-    final allFiltered = [
-      ...filtered,
-      ...litterFiltered
-    ];
+    final allFiltered = [...filtered, ...litterFiltered];
 
-    print('📋 getScheduledTasksByRabbit($rabbitId): Found ${filtered.length} rabbit-linked + ${litterFiltered.length} litter-linked tasks');
+    print(
+        '📋 getScheduledTasksByRabbit($rabbitId): Found ${filtered.length} rabbit-linked + ${litterFiltered.length} litter-linked tasks');
 
     return allFiltered.map((task) {
       return {
@@ -3381,7 +3334,9 @@ class DatabaseService {
         'category': task['category'],
         'frequency': task['frequency'],
         'linkType': task['linkType'],
-        'linkedEntities': task['linkedEntities'] != null ? json.decode(task['linkedEntities'] as String) : [],
+        'linkedEntities': task['linkedEntities'] != null
+            ? json.decode(task['linkedEntities'] as String)
+            : [],
         'dueDate': task['dueDate'],
         'createdAt': task['createdAt'],
         'completedAt': task['completedAt'],
@@ -3425,15 +3380,14 @@ class DatabaseService {
     return maps;
   }
 
-  Future<List<Map<String, dynamic>>> getTaskDirectoryByCategory(String category) async {
+  Future<List<Map<String, dynamic>>> getTaskDirectoryByCategory(
+      String category) async {
     await _ensureTaskDirectoryTable();
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'task_directory',
       where: 'category = ?',
-      whereArgs: [
-        category
-      ],
+      whereArgs: [category],
       orderBy: 'name ASC',
     );
     return maps;
@@ -3445,9 +3399,7 @@ class DatabaseService {
     await db.delete(
       'task_directory',
       where: 'id = ?',
-      whereArgs: [
-        id
-      ],
+      whereArgs: [id],
     );
     print('✅ Deleted task directory item with id: $id');
   }
@@ -3502,7 +3454,8 @@ class DatabaseService {
 
   Future<void> insertDocument(RabbitDocument doc) async {
     final db = await database;
-    await db.insert('documents', doc.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('documents', doc.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted document: ${doc.name}');
   }
 
@@ -3511,9 +3464,7 @@ class DatabaseService {
     final maps = await db.query(
       'documents',
       where: 'rabbitId = ?',
-      whereArgs: [
-        rabbitId
-      ],
+      whereArgs: [rabbitId],
       orderBy: 'createdAt DESC',
     );
     return maps.map((m) => RabbitDocument.fromMap(m)).toList();
@@ -3525,24 +3476,21 @@ class DatabaseService {
       'documents',
       doc.toMap(),
       where: 'id = ?',
-      whereArgs: [
-        doc.id
-      ],
+      whereArgs: [doc.id],
     );
     print('✅ Updated document: ${doc.name}');
   }
 
   Future<void> deleteDocument(String id) async {
     final db = await database;
-    await db.delete('documents', where: 'id = ?', whereArgs: [
-      id
-    ]);
+    await db.delete('documents', where: 'id = ?', whereArgs: [id]);
     print('✅ Deleted document: $id');
   }
 
   // ==================== PEDIGREE ====================
 
-  Future<PedigreeRabbit> buildPedigreeTree(String rabbitId, {int maxGenerations = 5, int currentGen = 0}) async {
+  Future<PedigreeRabbit> buildPedigreeTree(String rabbitId,
+      {int maxGenerations = 5, int currentGen = 0}) async {
     final rabbit = await getRabbit(rabbitId);
 
     if (rabbit == null) {
@@ -3561,17 +3509,21 @@ class DatabaseService {
       weight: rabbit.weight?.toString(),
       registrationNumber: rabbit.registrationNumber,
       sex: rabbit.type == RabbitType.doe ? 'Doe' : 'Buck',
-      profileImage: (rabbit.photos != null && rabbit.photos!.isNotEmpty) ? rabbit.photos!.first : null,
+      profileImage: (rabbit.photos != null && rabbit.photos!.isNotEmpty)
+          ? rabbit.photos!.first
+          : null,
       generation: currentGen,
       isExternal: rabbit.type == RabbitType.pedigree,
     );
 
     if (currentGen < maxGenerations) {
       if (rabbit.sireId != null && rabbit.sireId!.isNotEmpty) {
-        node.sire = await buildPedigreeTree(rabbit.sireId!, maxGenerations: maxGenerations, currentGen: currentGen + 1);
+        node.sire = await buildPedigreeTree(rabbit.sireId!,
+            maxGenerations: maxGenerations, currentGen: currentGen + 1);
       }
       if (rabbit.damId != null && rabbit.damId!.isNotEmpty) {
-        node.dam = await buildPedigreeTree(rabbit.damId!, maxGenerations: maxGenerations, currentGen: currentGen + 1);
+        node.dam = await buildPedigreeTree(rabbit.damId!,
+            maxGenerations: maxGenerations, currentGen: currentGen + 1);
       }
     }
 
@@ -3581,9 +3533,15 @@ class DatabaseService {
   // ==================== CONTACTS CRUD ====================
 
   Future<void> insertContact(Map<String, dynamic> contact) async {
-    final db = await database;
-    await db.insert('contacts', contact, conflictAlgorithm: ConflictAlgorithm.replace);
-    print('✅ Inserted contact: ${contact['name']}');
+    try {
+      final db = await database;
+      await db.insert('contacts', contact,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      print('✅ Inserted contact: ${contact['name']}');
+    } catch (e) {
+      print('❌ Error inserting contact: $e');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getAllContacts() async {
@@ -3591,9 +3549,15 @@ class DatabaseService {
     return await db.query('contacts', orderBy: 'name ASC');
   }
 
+  /// Alias for getAllContacts() to maintain consistency with other naming patterns
+  Future<List<Map<String, dynamic>>> getContacts() async {
+    return await getAllContacts();
+  }
+
   Future<void> updateContact(Map<String, dynamic> contact) async {
     final db = await database;
-    await db.update('contacts', contact, where: 'id = ?', whereArgs: [contact['id']]);
+    await db.update('contacts', contact,
+        where: 'id = ?', whereArgs: [contact['id']]);
     print('✅ Updated contact: ${contact['name']}');
   }
 
@@ -3607,7 +3571,8 @@ class DatabaseService {
 
   Future<void> insertBreedingPlan(Map<String, dynamic> plan) async {
     final db = await database;
-    await db.insert('breeding_plans', plan, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('breeding_plans', plan,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted breeding plan for Doe ID: ${plan['doeId']}');
   }
 

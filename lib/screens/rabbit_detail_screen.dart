@@ -848,7 +848,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             },
           ),
           const SizedBox(height: 24),
-          _buildSectionHeader('CERTIFICATES'),
           CertificateCard(rabbit: _currentRabbit),
         ],
       ),
@@ -1114,8 +1113,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Color _getStatusColor(RabbitStatus status) {
     switch (status) {
-      case RabbitStatus.open: return const Color(0xFFEDF3EE);
-      case RabbitStatus.pregnant: return _washColor; // Dynamic wash
+      case RabbitStatus.open: return _washColor;
+      case RabbitStatus.pregnant: return _washColor; 
       case RabbitStatus.palpateDue: return const Color(0xFFFFF9E6);
       case RabbitStatus.nursing: return const Color(0xFFEBF2FA);
       case RabbitStatus.resting: return const Color(0xFFF7F7F5);
@@ -1125,8 +1124,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Color _getStatusTextColor(RabbitStatus status) {
     switch (status) {
-      case RabbitStatus.open: return const Color(0xFF6B9E78);
-      case RabbitStatus.pregnant: return _primaryColor; // Dynamic primary
+      case RabbitStatus.open: return _primaryColor;
+      case RabbitStatus.pregnant: return _primaryColor;
       case RabbitStatus.palpateDue: return const Color(0xFF8B5CF6);
       case RabbitStatus.nursing: return const Color(0xFF5B8AD0);
       case RabbitStatus.resting: return const Color(0xFF787774);

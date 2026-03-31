@@ -32,6 +32,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
 
   ArchiveReason? _selectedReason;
   bool _isSaving = false;
+  List<Map<String, dynamic>> _contacts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContacts();
+  }
+
+  Future<void> _loadContacts() async {
+    final contacts = await _db.getContacts();
+    if (mounted) {
+      setState(() {
+        _contacts = contacts;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -275,13 +291,34 @@ class _ArchiveModalState extends State<ArchiveModal> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _buyerController,
-            decoration: InputDecoration(
-              labelText: 'Buyer Information',
-              hintText: 'Name, phone, email...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            ),
+          Autocomplete<String>(
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              if (textEditingValue.text == '') {
+                return _contacts.map((c) => c['name'] as String).toList();
+              }
+              return _contacts.map((c) => c['name'] as String).where((String option) {
+                return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+              });
+            },
+            onSelected: (String selection) {
+              _buyerController.text = selection;
+            },
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              // Sync selection back to our controller
+              controller.addListener(() {
+                _buyerController.text = controller.text;
+              });
+              return TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  labelText: 'Buyer Information',
+                  hintText: 'Select or enter buyer name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
         ];

@@ -10,6 +10,7 @@ import '../models/barn.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../services/settings_service.dart';
+import '../constants/app_colors.dart';
 
 class AddRabbitScreen extends StatefulWidget {
   final Rabbit? editRabbit;
@@ -259,8 +260,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             child: Text(
               'SAVE',
               style: TextStyle(
-                color: _isSaving ? Colors.grey : const Color(0xFF6366F1),
-                fontWeight: FontWeight.w600,
+                color: _isSaving ? kNeutral400 : (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep),
+                fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
             ),
@@ -392,7 +393,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                      borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
                     ),
                   ),
                 );
@@ -439,7 +440,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                      borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
                     ),
                   ),
                 );
@@ -621,7 +622,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                  borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
                 ),
               ),
             ),
@@ -647,7 +648,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     shape: BoxShape.circle,
                     color: const Color(0xFFF7F7F5),
                     border: Border.all(
-                      color: _selectedType == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+                      color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
                       width: 3,
                     ),
                     image: _profileImagePath != null
@@ -661,7 +662,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       ? Icon(
                     _selectedType == RabbitType.doe ? Icons.female : Icons.male,
                     size: 50,
-                    color: _selectedType == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+                    color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
                   )
                       : null,
                 ),
@@ -672,7 +673,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: _selectedType == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5),
+                      color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -691,8 +692,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             onPressed: _showImagePickerOptions,
             child: Text(
               _profileImagePath == null ? 'Add Photo' : 'Change Photo',
-              style: const TextStyle(
-                color: Color(0xFF6366F1),
+              style: TextStyle(
+                color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
               ),
@@ -869,7 +870,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     required IconData icon,
   }) {
     final isSelected = _selectedType == type;
-    final color = type == RabbitType.doe ? const Color(0xFF9C6ADE) : const Color(0xFF2E7BB5);
+    final color = type == RabbitType.doe ? kFemaleColor : kMaleColor;
 
     return InkWell(
       onTap: _isEditing ? null : () => setState(() => _selectedType = type),
@@ -936,7 +937,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
             ),
           ),
         );
@@ -1021,7 +1022,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   'Select Genotype',
                   style: TextStyle(
                     fontSize: 19,
-                    color: _genotypeExpanded ? const Color(0xFF6366F1) : Colors.black54,
+                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep) : Colors.black54,
                     fontWeight: FontWeight.normal,
                   ),
                 ),
@@ -1367,13 +1368,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7EDE3),
+                color: _selectedType == RabbitType.doe ? kPinkWash : kBlueWash,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                border: Border.all(color: (_selectedType == RabbitType.doe ? kFemaleColor : kMaleColor).withOpacity(0.3)),
               ),
               child: Text(
                 selectedName,
-                style: const TextStyle(fontSize: 17, color: Color(0xFF6366F1), fontWeight: FontWeight.normal),
+                style: TextStyle(fontSize: 17, color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal),
               ),
             ),
           ),
@@ -1385,12 +1386,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               onSelect(id, name);
             });
           },
-          child: const Text('Select', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.normal, fontSize: 16)),
+          child: Text('Select', style: TextStyle(color: label == 'Dam' ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal, fontSize: 16)),
         ),
         if (selectedId != null)
           TextButton(
             onPressed: () => onSelect(null, null),
-            child: const Text('Clear', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.normal, fontSize: 16)),
+            child: Text('Clear', style: TextStyle(color: label == 'Dam' ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal, fontSize: 16)),
           ),
       ],
     );
@@ -1412,8 +1413,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               final rabbit = options[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFF7EDE3),
-                  child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?', style: const TextStyle(fontSize: 17)),
+                  backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
+                  child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?', style: TextStyle(fontSize: 17, color: label == 'Dam' ? kFemaleColor : kMaleColor)),
                 ),
                 title: Text(rabbit.name, style: const TextStyle(fontSize: 17)),
                 subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 15)),

@@ -3,6 +3,7 @@ import '../../models/rabbit.dart';
 import '../../models/litter.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../constants/app_colors.dart';
 
 class LogBirthModal extends StatefulWidget {
   final Rabbit doe;
@@ -248,7 +249,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             });
           },
           contentPadding: EdgeInsets.zero,
-          activeColor: Color(0xFF6366F1),
+          activeColor: kPinkDeep,
         ),
         SizedBox(height: 16),
 
@@ -464,7 +465,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF6366F1), size: 20),
+              Icon(Icons.info_outline, color: kPinkDeep, size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -504,7 +505,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Color(0xFF6366F1),
+                  color: kPinkDeep,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -594,22 +595,27 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   Widget _buildSexChip(String value, String label, bool isSelected, VoidCallback onTap) {
+    Color activeColor = kNeutral700;
+    if (value == 'M') activeColor = kMaleColor;
+    if (value == 'F') activeColor = kFemaleColor;
+    if (value == 'U') activeColor = kLilacDeep;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF6366F1) : Colors.white,
+          color: isSelected ? activeColor : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
+            color: isSelected ? activeColor : Color(0xFFE2E8F0),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: isSelected ? Colors.white : Color(0xFF64748B),
           ),
         ),
@@ -630,7 +636,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 side: BorderSide(color: Color(0xFFE2E8F0)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Add Kit Details', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600)),
+              child: Text('Add Kit Details', style: TextStyle(color: kPinkDeep, fontWeight: FontWeight.w600)),
             ),
           ),
           SizedBox(width: 12),
@@ -638,7 +644,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6366F1),
+                backgroundColor: kPinkDeep,
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -673,7 +679,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6366F1),
+                backgroundColor: kPinkDeep,
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -787,7 +793,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
           content: Text(widget.existingLitter != null 
             ? 'Litter ${_litterIdController.text} updated successfully'
             : 'Birth logged: ${_litterIdController.text} with $aliveBorn kits'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: kPinkDeep,
         ),
       );
     } catch (e) {

@@ -350,7 +350,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                     'Breeders Directory',
                     style: TextStyle(
                       color: activeTextColor,
-                      fontSize: 17,
+                      fontSize: 19,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.2,
                     ),
@@ -457,7 +457,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(fontSize: 13, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? Colors.white : kNeutral700),
+                style: TextStyle(fontSize: 14, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? Colors.white : kNeutral700),
               ),
             ],
           ),
@@ -490,7 +490,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Search ID or Name...',
-                hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 15),
+                hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 16),
                 prefixIcon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: kNeutral500, size: 18),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -599,7 +599,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               Flexible(
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isActive ? activeText : kNeutral700),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isActive ? activeText : kNeutral700),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -638,17 +638,17 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withOpacity(0.05),
-        border: Border.all(color: const Color(0xFF6366F1)),
+        color: kLilacWash,
+        border: Border.all(color: kLilacLight),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_alt, size: 16, color: Color(0xFF6366F1)),
+          const Icon(Icons.filter_alt, size: 16, color: kLilacDeep),
           const SizedBox(width: 8),
           const Text(
             'Filtering: ',
-            style: TextStyle(color: Color(0xFF6366F1), fontSize: 14),
+            style: TextStyle(color: kLilacDeep, fontSize: 14),
           ),
           if (_locationFilter != null) ...[
             Text(
@@ -665,7 +665,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             Text(
               'Breed: $_breedFilter',
               style: const TextStyle(
-                color: Color(0xFF6366F1),
+                color: kLilacDeep,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -676,7 +676,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               _locationFilter = null;
               _breedFilter = 'All';
             }),
-            child: const Icon(Icons.close, size: 18, color: Color(0xFF6366F1)),
+            child: const Icon(Icons.close, size: 18, color: kLilacDeep),
           ),
         ],
       ),
@@ -722,7 +722,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   label,
                   style: TextStyle(
                     color: isActive ? Colors.white : kNeutral600,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
@@ -1617,7 +1617,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1626,8 +1626,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 children: [
                   // Avatar
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -1671,10 +1671,10 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                                         text: '${rabbit.breederPrefix} ',
                                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor, fontFamily: 'Product Sans'),
                                       ),
-                                    TextSpan(
-                                      text: rabbit.name,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: kNeutral800, fontFamily: 'Product Sans'),
-                                    ),
+                                      TextSpan(
+                                        text: rabbit.name,
+                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: kNeutral800, fontFamily: 'Product Sans'),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -1710,7 +1710,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               // Status & Badges
               Row(
                 children: [
@@ -1732,10 +1732,10 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 ],
               ),
               if (rabbit.statusDetails != null || (rabbit.notes != null && rabbit.notes!.isNotEmpty)) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(8),

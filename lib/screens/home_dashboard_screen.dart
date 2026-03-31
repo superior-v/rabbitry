@@ -363,21 +363,41 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final logoPath = SettingsService.instance.farmLogo;
+    final hasLogo = logoPath != null && File(logoPath).existsSync();
+
     return AppBar(
       backgroundColor: kLilacWash,
       elevation: 0,
       centerTitle: false,
       leading: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(PhosphorIcons.rabbit(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 28),
+        padding: const EdgeInsets.all(10),
+        child: hasLogo
+            ? Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: FileImage(File(logoPath)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            : Icon(PhosphorIcons.rabbit(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 32),
       ),
       titleSpacing: 0,
-      title: Text(SettingsService.instance.farmName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17, color: kLilacText, letterSpacing: -0.2)),
+      title: Text(SettingsService.instance.farmName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 19, color: kLilacText, letterSpacing: -0.2)),
       actions: [
         IconButton(
           onPressed: () async {
-            await Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen()));
-            setState(() {});
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+            _loadData(); // Refresh if needed
+          },
+          icon: Icon(PhosphorIcons.chartPieSlice(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 24),
+        ),
+        IconButton(
+          onPressed: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            _loadData();
           },
           icon: Icon(PhosphorIcons.gearSix(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 24),
         ),
@@ -398,35 +418,35 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
         physics: const NeverScrollableScrollPhysics(),
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.95,
+        childAspectRatio: 0.92,
         children: [
-          _buildMetricCard('Task Due', '$_tasksDue', PhosphorIcons.clipboardText(PhosphorIconsStyle.duotone), kBlue),
-          _buildMetricCard('Active Breeder', '$_breederCount', PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), kLilac),
-          _buildMetricCard('Litters', '$_activeLitters', PhosphorIcons.baby(PhosphorIconsStyle.duotone), kPink),
-          _buildMetricCard('Nursing Kits', '$_nursingKits', PhosphorIcons.firstAid(PhosphorIconsStyle.duotone), kBlue),
-          _buildMetricCard('Weaned Kits', '$_kitsWeanedCount', PhosphorIcons.plant(PhosphorIconsStyle.duotone), kLilac),
-          _buildMetricCard('Sales', _monthlySales > 0 ? FormatUtils.formatCurrency(_monthlySales, decimals: 0) : '${FormatUtils.currencySymbol}0', PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), kPink),
+          _buildMetricCard('Task Due', '$_tasksDue', PhosphorIcons.clipboardText(PhosphorIconsStyle.duotone)),
+          _buildMetricCard('Active Breeder', '$_breederCount', PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone)),
+          _buildMetricCard('Litters', '$_activeLitters', PhosphorIcons.baby(PhosphorIconsStyle.duotone)),
+          _buildMetricCard('Nursing Kits', '$_nursingKits', PhosphorIcons.firstAid(PhosphorIconsStyle.duotone)),
+          _buildMetricCard('Weaned Kits', '$_kitsWeanedCount', PhosphorIcons.plant(PhosphorIconsStyle.duotone)),
+          _buildMetricCard('Sales', _monthlySales > 0 ? FormatUtils.formatCurrency(_monthlySales, decimals: 0) : '${FormatUtils.currencySymbol}0', PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone)),
         ],
       ),
     );
   }
 
-  Widget _buildMetricCard(String label, String value, IconData icon, Color color) {
-    final washColor = color == kLilac ? kLilacWash : (color == kBlue ? kBlueWash : kPinkWash);
+  Widget _buildMetricCard(String label, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: washColor,
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kNeutral200),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 24, color: color),
+          Icon(icon, size: 22, color: kLilacDeep),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: kNeutral900, height: 1.0)),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: kNeutral900, height: 1.0)),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral700, height: 1.2), textAlign: TextAlign.center),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: kNeutral600, height: 1.2), textAlign: TextAlign.center),
         ],
       ),
     );
@@ -445,7 +465,7 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('EXPECTED LITTERS', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral500, letterSpacing: 0.6)),
+              const Text('EXPECTED LITTERS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral500, letterSpacing: 0.6)),
               _buildFilterChip(),
             ],
           ),
@@ -507,15 +527,15 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
             children: [
               Row(
                 children: [
-                  Icon(PhosphorIcons.dna(PhosphorIconsStyle.duotone), color: kLilac, size: 16),
+                   Icon(PhosphorIcons.dna(PhosphorIconsStyle.duotone), color: kLilac, size: 16),
                   const SizedBox(width: 6),
-                  Text(breed, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kNeutral800)),
+                  Text(breed, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800)),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(100)),
-                child: Text('${entries.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kLilacText)),
+                child: Text('${entries.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kLilacText)),
               ),
             ],
           ),
@@ -585,20 +605,20 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
                           children: [
                             Icon(PhosphorIcons.genderMale(PhosphorIconsStyle.duotone), color: const Color(0xFF5B9BD5), size: 16),
                             const SizedBox(width: 6),
-                            Text(entry['buckName'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900)),
+                            Text(entry['buckName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
                               child: Text('×', style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 13)),
                             ),
                             Icon(PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone), color: const Color(0xFFD4809A), size: 16),
                             const SizedBox(width: 6),
-                            Text(entry['doeName'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900)),
+                            Text(entry['doeName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
                           ],
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(100)),
-                          child: Text(badgeText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: badgeTextCol)),
+                          child: Text(badgeText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: badgeTextCol)),
                         ),
                       ],
                     ),
@@ -607,7 +627,7 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
                       children: [
                         Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.duotone), size: 14, color: kLilac),
                         const SizedBox(width: 6),
-                        Text('Due ${FormatUtils.formatDateShort(entry['kindleDate'])}', style: const TextStyle(fontSize: 12, color: kNeutral600, fontWeight: FontWeight.w500)),
+                        Text('Due ${FormatUtils.formatDateShort(entry['kindleDate'])}', style: const TextStyle(fontSize: 13, color: kNeutral600, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ],
@@ -642,7 +662,7 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
               return Theme(
                 data: Theme.of(context).copyWith(
                   colorScheme: const ColorScheme.light(
-                    primary: kLilacDeep,
+                    primary: kPinkDeep,
                     onPrimary: Colors.white,
                     onSurface: kNeutral900,
                   ),

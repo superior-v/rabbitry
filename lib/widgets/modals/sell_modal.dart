@@ -28,6 +28,22 @@ class _SellModalState extends State<SellModal> {
   bool _addToLedger = true;
   bool _generatePedigree = false;
   bool _isSaving = false;
+  List<Map<String, dynamic>> _contacts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContacts();
+  }
+
+  Future<void> _loadContacts() async {
+    final contacts = await _db.getContacts();
+    if (mounted) {
+      setState(() {
+        _contacts = contacts;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,12 +129,33 @@ class _SellModalState extends State<SellModal> {
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 8),
-              TextField(
-                controller: _buyerController,
-                decoration: InputDecoration(
-                  hintText: 'Buyer name, contact, etc.',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') {
+                    return _contacts.map((c) => c['name'] as String).toList();
+                  }
+                  return _contacts.map((c) => c['name'] as String).where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) {
+                  _buyerController.text = selection;
+                },
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  // Sync selection back to our controller
+                  controller.addListener(() {
+                    _buyerController.text = controller.text;
+                  });
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Select or enter buyer name',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    ),
+                  );
+                },
               ),
               SizedBox(height: 20),
 
@@ -159,7 +196,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _addToLedger,
                           onChanged: (value) => setState(() => _addToLedger = value),
-                          activeColor: Color(0xFF6366F1),
+                          activeColor: const Color(0xFF7B6BA0), // kLilacDeep
                         ),
                       ],
                     ),
@@ -176,7 +213,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _generatePedigree,
                           onChanged: (value) => setState(() => _generatePedigree = value),
-                          activeColor: Color(0xFF6366F1),
+                          activeColor: const Color(0xFF7B6BA0), // kLilacDeep
                         ),
                       ],
                     ),
@@ -191,7 +228,7 @@ class _SellModalState extends State<SellModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveSale,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0), // kLilacDeep
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),

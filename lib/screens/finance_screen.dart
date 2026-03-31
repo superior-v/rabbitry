@@ -234,7 +234,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
             'Finance & Ledger',
             style: TextStyle(
               color: kLilacText,
-              fontSize: 18,
+              fontSize: 19,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.2,
             ),
@@ -360,7 +360,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
               color: text,
               letterSpacing: 0.5,
@@ -372,7 +372,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 ? '${_netAmount >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}'
                 : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
             style: TextStyle(
-              fontSize: 17,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: displayColor,
               letterSpacing: -0.5,
@@ -406,7 +406,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Search entries...',
-                  hintStyle: TextStyle(color: kNeutral500, fontSize: 13),
+                  hintStyle: TextStyle(color: kNeutral500, fontSize: 16),
                   prefixIcon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold), color: kNeutral500, size: 16),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -590,7 +590,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       monthKey,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: kNeutral900,
                       ),
@@ -599,7 +599,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       '${monthTransactions.length} entries',
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 13,
                         color: kNeutral600,
                         fontWeight: FontWeight.w500,
                       ),
@@ -608,7 +608,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       '${monthTotal >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: monthTotal >= 0 ? kBlueDeep : kPinkText,
                       ),
@@ -714,7 +714,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           Text(
                             isGeneral ? 'General Herd' : _getRabbitName(key),
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 17,
                               fontWeight: FontWeight.w700,
                               color: kNeutral900,
                             ),
@@ -722,7 +722,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           Text(
                             '${rabbitTransactions.length} entries',
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 13,
                               color: kNeutral600,
                               fontWeight: FontWeight.w500,
                             ),
@@ -733,7 +733,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: total >= 0 ? kBlueDeep : kPinkText,
                       ),
@@ -817,7 +817,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       isNoLitter ? 'No Litter' : key,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: kNeutral900,
                       ),
@@ -826,7 +826,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       '${litterTransactions.length} entries',
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 13,
                         color: kNeutral600,
                         fontWeight: FontWeight.w500,
                       ),
@@ -835,7 +835,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: total >= 0 ? kBlueDeep : kPinkText,
                       ),
@@ -1016,7 +1016,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             Text(
                               '${firstTxn.categoryName} (×${batchTransactions.length})',
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 color: kNeutral900,
                               ),
@@ -1026,7 +1026,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         Text(
                           '$dateStr • ${firstTxn.litterId ?? 'Litter'}',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             color: kNeutral500,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1037,7 +1037,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   Text(
                     FormatUtils.formatCurrencyShort(total),
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: kLilacDeep,
                     ),
@@ -1112,7 +1112,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       Text(
                         t.categoryName,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: kNeutral900,
                           letterSpacing: -0.2,

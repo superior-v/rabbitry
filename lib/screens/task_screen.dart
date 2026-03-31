@@ -478,7 +478,7 @@ class TaskScreenState extends State<TaskScreen> {
             'Tasks',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 17,
+              fontSize: 19,
               color: kLilacText,
               letterSpacing: -0.2,
             ),
@@ -566,7 +566,7 @@ class TaskScreenState extends State<TaskScreen> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive ? Colors.white : kNeutral600,
               ),
@@ -631,7 +631,7 @@ class TaskScreenState extends State<TaskScreen> {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               color: kNeutral500,
               letterSpacing: 0.6,
@@ -646,7 +646,7 @@ class TaskScreenState extends State<TaskScreen> {
             child: Text(
               '$count',
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: kLilacText,
               ),
@@ -670,7 +670,7 @@ class TaskScreenState extends State<TaskScreen> {
                 const Text(
                   'UPCOMING',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: kNeutral500,
                     letterSpacing: 0.6,
@@ -686,7 +686,7 @@ class TaskScreenState extends State<TaskScreen> {
                   child: Text(
                     '${_getFilteredUpcomingTasksCount()}',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: kNeutral600,
                     ),
@@ -758,7 +758,7 @@ class TaskScreenState extends State<TaskScreen> {
         final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
         widgets.add(_buildGroupTaskFromMultiple(title: groupName, category: taskCategory, date: dateStr, isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false, tasks: groupTasks));
       }
-      widgets.add(const SizedBox(height: 12));
+      widgets.add(const SizedBox(height: 0)); // Spacing handled by card margin
     }
     if (widgets.isNotEmpty && widgets.last is SizedBox) widgets.removeLast();
     return widgets;
@@ -784,7 +784,7 @@ class TaskScreenState extends State<TaskScreen> {
     final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 10), // Matches task-card margin-bottom in html
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -792,41 +792,44 @@ class TaskScreenState extends State<TaskScreen> {
         border: Border.all(color: kNeutral200),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox logic
-          GestureDetector(
-            onTap: isIgnored
-                ? null
-                : () {
-                    if (task != null) {
-                      if (isCompleted)
-                        _handleTaskUncomplete(task);
-                      else
-                        _handleTaskComplete(task);
-                    }
-                  },
-            child: Container(
-              width: 26,
-              height: 26,
-              margin: const EdgeInsets.only(top: 2),
-              decoration: BoxDecoration(
-                color: isCompleted ? kLilacDeep : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isCompleted ? kLilacDeep : kNeutral400,
-                  width: 2,
+          // Column 1: Checkbox (matches 32px column in html)
+          SizedBox(
+            width: 32,
+            child: GestureDetector(
+              onTap: isIgnored
+                  ? null
+                  : () {
+                      if (task != null) {
+                        if (isCompleted)
+                          _handleTaskUncomplete(task);
+                        else
+                          _handleTaskComplete(task);
+                      }
+                    },
+              child: Container(
+                width: 22,
+                height: 22,
+                margin: const EdgeInsets.only(top: 2), // Matches checkbox-wrap padding-top in html
+                decoration: BoxDecoration(
+                  color: isCompleted ? kLilacDeep : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isCompleted ? kLilacDeep : kNeutral400,
+                    width: 2,
+                  ),
                 ),
+                child: isCompleted
+                    ? const Center(
+                        child: Icon(Icons.check, size: 12, color: Colors.white),
+                      )
+                    : null,
               ),
-              child: isCompleted
-                  ? const Center(
-                      child: Icon(Icons.check, size: 16, color: Colors.white),
-                    )
-                  : null,
             ),
           ),
-          const SizedBox(width: 14),
-          // Content
+          const SizedBox(width: 8), // Gap: 10px (including margin) - matches html
+          // Column 2: Content (1fr)
           Expanded(
             child: GestureDetector(
               onTap: isIgnored ? null : () => _handleTaskTap(taskType, rabbitId ?? task?['rabbitId']?.toString(), title),
@@ -841,11 +844,12 @@ class TaskScreenState extends State<TaskScreen> {
                         child: Text(
                           title,
                           style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
                             color: (isCompleted || isIgnored) ? kNeutral500 : kNeutral900,
                             decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
-                            height: 1.35,
+                            height: 1.35, // Matches line-height in html
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),
@@ -853,7 +857,7 @@ class TaskScreenState extends State<TaskScreen> {
                       Text(
                         date,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           color: isOverdue ? kError : kNeutral600,
                           fontWeight: isOverdue ? FontWeight.w600 : FontWeight.w400,
                         ),
@@ -871,7 +875,7 @@ class TaskScreenState extends State<TaskScreen> {
                       if (location.isNotEmpty)
                         Text(
                           '• $location',
-                          style: const TextStyle(fontSize: 12, color: kNeutral500),
+                          style: const TextStyle(fontSize: 13, color: kNeutral500),
                         ),
                     ],
                   ),
@@ -879,13 +883,15 @@ class TaskScreenState extends State<TaskScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Options Menu
-          IconButton(
-            onPressed: () => _showTaskOptionsSheet(task),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(PhosphorIcons.dotsThreeVertical(), color: kNeutral400, size: 24),
+          // Column 3: Options Menu (matches 36px column in html)
+          SizedBox(
+            width: 36,
+            child: IconButton(
+              onPressed: () => _showTaskOptionsSheet(task),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(PhosphorIcons.dotsThreeVertical(), color: kNeutral400, size: 24),
+            ),
           ),
         ],
       ),
@@ -909,8 +915,8 @@ class TaskScreenState extends State<TaskScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: textColor,
             ),
           ),
@@ -1154,22 +1160,34 @@ class TaskScreenState extends State<TaskScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              '$title ($count)',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: (isGroupCompleted || allIgnored) ? kNeutral500 : kNeutral900,
-                                decoration: (isGroupCompleted || allIgnored) ? TextDecoration.lineThrough : null,
+                            Expanded(
+                              child: Text(
+                                '$title ($count)',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: (isGroupCompleted || allIgnored) ? kNeutral500 : kNeutral900,
+                                  decoration: (isGroupCompleted || allIgnored) ? TextDecoration.lineThrough : null,
+                                  height: 1.35,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               date,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isOverdue ? kError : kNeutral600,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 36,
+                              child: Icon(
+                                isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
+                                size: 18,
+                                color: kNeutral400,
                               ),
                             ),
                           ],
@@ -1178,12 +1196,6 @@ class TaskScreenState extends State<TaskScreen> {
                         _buildTag(category, categoryColor, categoryTextColor, icon: icon),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
-                    size: 18,
-                    color: kNeutral400,
                   ),
                 ],
               ),

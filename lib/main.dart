@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'services/database_service.dart';
 import 'services/settings_service.dart';
 import 'services/notification_service.dart';
@@ -13,10 +14,10 @@ void main() async {
   await DatabaseService().database;
 
   // Backfill finance transactions for kits/rabbits sold before the fix
-  await DatabaseService().backfillSoldTransactions();
+  await DatabaseService().backfillSoldTransactionsFix();
 
   // Fix litters that have rabbit IDs instead of names in sire/dam
-  await DatabaseService().fixLitterSireDamNames();
+  await DatabaseService().fixLitterSireDamNamesFix();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -66,6 +67,9 @@ class MyApp extends StatelessWidget {
           ),
         ),
         useMaterial3: true,
+        textTheme: GoogleFonts.interTextTheme(
+          ThemeData.light().textTheme,
+        ),
       ),
       home: HomeDashboardScreen(),
       builder: (context, child) {

@@ -6,6 +6,7 @@ import '../models/litter.dart';
 import '../services/format_utils.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../constants/app_colors.dart';
 
 class KitDetailScreen extends StatefulWidget {
   final Litter litter;
@@ -451,7 +452,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             const Text('Select Sex', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             _buildSexOption('M', 'Male', Icons.male, const Color(0xFF2E7BB5)),
-            _buildSexOption('F', 'Female', Icons.female, const Color(0xFF9C6ADE)),
+            _buildSexOption('F', 'Female', Icons.female, kFemaleColor),
             _buildSexOption('U', 'Unknown', Icons.help_outline, const Color(0xFF787774)),
             const SizedBox(height: 30),
           ],
