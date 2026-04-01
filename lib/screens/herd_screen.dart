@@ -696,8 +696,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     final activeColor = _tabController.index == 0 ? kDoeIcon : (_tabController.index == 1 ? kBuckIcon : kLilacDeep);
 
     return Container(
-      height: 44,
-      margin: const EdgeInsets.only(bottom: 8),
+      height: 40,
+      margin: const EdgeInsets.only(bottom: 12),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -711,19 +711,22 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             onTap: () => setState(() => _currentFilter = filter),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: isActive ? activeColor : Colors.white,
                 borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: isActive ? activeColor : Colors.transparent),
+                border: Border.all(color: isActive ? activeColor : kNeutral300),
+                boxShadow: isActive
+                    ? [BoxShadow(color: activeColor.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))]
+                    : null,
               ),
               child: Center(
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? Colors.white : kNeutral600,
+                    color: isActive ? Colors.white : kNeutral700,
                     fontSize: 14,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
                   ),
                 ),
               ),
