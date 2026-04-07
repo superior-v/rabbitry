@@ -110,7 +110,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 title: 'Sold',
                 subtitle: 'Rabbit was sold to another breeder',
                 icon: Icons.monetization_on,
-                color: const Color(0xFF6366F1),
+                color: const Color(0xFF7B6BA0),
               ),
               const SizedBox(height: 12),
 
@@ -160,7 +160,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Add any additional notes...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -170,7 +170,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD44C47).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFD44C47).withOpacity(0.3)),
                 ),
                 child: Row(
@@ -196,7 +196,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD44C47),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
                       ? const SizedBox(
@@ -236,7 +236,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             color: isSelected ? color : const Color(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           color: isSelected ? color.withOpacity(0.05) : null,
         ),
         child: Row(
@@ -287,7 +287,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             decoration: InputDecoration(
               labelText: 'Sale Price *',
               prefixText: FormatUtils.currencySymbol,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 12),
@@ -314,7 +314,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 decoration: InputDecoration(
                   labelText: 'Buyer Information',
                   hintText: 'Select or enter buyer name',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   suffixIcon: Icon(Icons.arrow_drop_down),
                 ),
               );
@@ -339,7 +339,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             decoration: InputDecoration(
               labelText: '${FormatUtils.weightLabel('Yield Weight')} *',
               hintText: 'Dressed weight',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 12),
@@ -353,7 +353,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               labelText: 'Processing Cost',
               prefixText: FormatUtils.currencySymbol,
               hintText: 'Optional',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 20),
@@ -372,7 +372,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             decoration: InputDecoration(
               labelText: 'Reason for Culling *',
               hintText: 'Poor temperament, health issues, etc...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 20),
@@ -391,7 +391,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             decoration: InputDecoration(
               labelText: 'Cause of Death *',
               hintText: 'Natural causes, illness, injury...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 20),
@@ -542,7 +542,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} archived successfully'),
-          backgroundColor: const Color(0xFF6366F1),
+          backgroundColor: const Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {

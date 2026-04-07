@@ -126,7 +126,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   hintText: 'Number of kits weaned',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               SizedBox(height: 20),
@@ -141,7 +141,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   border: Border.all(color: Color(0xFFE9E9E7)),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
@@ -176,7 +176,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Color(0xFFFFF3CD),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
@@ -205,7 +205,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Color(0xFFE9E9E7)),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButtonFormField<String>(
                         value: _doeLocation,
@@ -230,7 +230,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                       controller: _doeCageController,
                       decoration: InputDecoration(
                         hintText: 'Cage ID',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
@@ -251,7 +251,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Color(0xFFE9E9E7)),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButtonFormField<String>(
                         value: _litterLocation,
@@ -276,7 +276,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                       controller: _litterCageController,
                       decoration: InputDecoration(
                         hintText: 'Cage ID',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
@@ -291,9 +291,9 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveWean,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
                       ? SizedBox(

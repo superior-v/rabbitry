@@ -207,7 +207,7 @@ class RabbitActionSheet extends StatelessWidget {
     items.add(_buildActionItem(
       context,
       icon: Icons.person_outline,
-      iconColor: const Color(0xFF6366F1),
+      iconColor: const Color(0xFF7B6BA0),
       label: 'View Profile',
       subtitle: 'See full details and history',
       onTap: () => _viewProfile(context),
@@ -302,7 +302,7 @@ class RabbitActionSheet extends StatelessWidget {
       items.add(_buildActionItem(
         context,
         icon: Icons.arrow_upward,
-        iconColor: const Color(0xFF6366F1),
+        iconColor: const Color(0xFF7B6BA0),
         label: 'Promote to Breeder',
         subtitle: subtitle,
         onTap: () => _promoteToBreeder(context),
@@ -687,7 +687,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked as open for breeding'),
-        backgroundColor: Color(0xFF6366F1),
+        backgroundColor: Color(0xFF7B6BA0),
       ),
     );
   }
@@ -699,7 +699,7 @@ class RabbitActionSheet extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Promoted to breeder'),
-        backgroundColor: Color(0xFF6366F1),
+        backgroundColor: Color(0xFF7B6BA0),
       ),
     );
   }
@@ -718,7 +718,7 @@ class RabbitActionSheet extends StatelessWidget {
           content: Text(
             newStatus == RabbitStatus.active ? '${rabbit.name} marked as ACTIVE' : '${rabbit.name} marked as INACTIVE',
           ),
-          backgroundColor: const Color(0xFF6366F1),
+          backgroundColor: const Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
@@ -750,7 +750,7 @@ class RabbitActionSheet extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF8E6),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
               ),
               child: Row(
@@ -783,7 +783,7 @@ class RabbitActionSheet extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Bred status cancelled for ${rabbit.name}'),
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0),
                   ),
                 );
               } catch (e) {
@@ -797,7 +797,7 @@ class RabbitActionSheet extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Cancel Pregnancy', style: TextStyle(color: Colors.white)),
           ),

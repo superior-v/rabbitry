@@ -221,7 +221,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               border: Border.all(color: Color(0xFFE9E9E7)),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
@@ -308,7 +308,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Color(0xFFFFEBEE),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -336,7 +336,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'Bucks',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -347,7 +347,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'Does',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -460,8 +460,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Color(0xFFF7EDE3),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Color(0xFF6366F1).withOpacity(0.2)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
           ),
           child: Row(
             children: [
@@ -470,7 +470,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
               Expanded(
                 child: Text(
                   'Add details for each kit. You can skip and update later.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6366F1)),
+                  style: TextStyle(fontSize: 13, color: Color(0xFF7B6BA0)),
                 ),
               ),
             ],
@@ -506,7 +506,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: kPinkDeep,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
@@ -551,7 +551,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             padding: EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               border: Border.all(color: Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               color: Colors.white,
             ),
             child: DropdownButtonHideUnderline(
@@ -606,7 +606,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? activeColor : Color(0xFFE2E8F0),
           ),
@@ -668,7 +668,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 side: BorderSide(color: Color(0xFFE2E8F0)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text('Back', style: TextStyle(color: Color(0xFF64748B))),
             ),
@@ -681,7 +681,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: kPinkDeep,
                 padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: _isSaving
                   ? SizedBox(

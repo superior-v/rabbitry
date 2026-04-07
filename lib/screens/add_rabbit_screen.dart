@@ -833,7 +833,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo added successfully'),
-            backgroundColor: Color(0xFF6366F1),
+            backgroundColor: Color(0xFF7B6BA0),
             duration: Duration(seconds: 2),
           ),
         );
@@ -1009,7 +1009,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         InkWell(
           onTap: () => setState(() => _genotypeExpanded = !_genotypeExpanded),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
             decoration: const BoxDecoration(
@@ -1149,7 +1149,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
         ),
       ),
     );
@@ -1346,7 +1346,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF6366F1),
+          activeColor: const Color(0xFF7B6BA0),
         ),
       ],
     );
@@ -1369,7 +1369,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: _selectedType == RabbitType.doe ? kPinkWash : kBlueWash,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: (_selectedType == RabbitType.doe ? kFemaleColor : kMaleColor).withOpacity(0.3)),
               ),
               child: Text(
@@ -1533,7 +1533,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           messenger.showSnackBar(
             SnackBar(
               content: Text('${updated.name} updated successfully', style: const TextStyle(fontSize: 16)),
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
             ),
           );
         }
@@ -1581,7 +1581,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           messenger.showSnackBar(
             SnackBar(
               content: Text('${rabbit.name} added successfully', style: const TextStyle(fontSize: 16)),
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
             ),
           );
         }

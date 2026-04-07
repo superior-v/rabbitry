@@ -523,7 +523,7 @@ class _TasksCardState extends State<TasksCard> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: kPinkDeep.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.check_circle_outline, color: kPinkDeep, size: 20),
             ),
@@ -558,9 +558,9 @@ class _TasksCardState extends State<TasksCard> {
                 hintText: '0.00',
                 prefixText: FormatUtils.currencySymbol,
                 prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: kPinkDeep, width: 2),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -581,7 +581,7 @@ class _TasksCardState extends State<TasksCard> {
             style: ElevatedButton.styleFrom(
               backgroundColor: kPinkDeep,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Save'),
           ),
@@ -746,8 +746,8 @@ class _TasksCardState extends State<TasksCard> {
                             hintText: 'Enter custom task name...',
                             hintStyle: const TextStyle(fontSize: 14, color: kNeutral400),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kNeutral200)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kPinkDeep)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPinkDeep)),
                           ),
                         ),
                       ],
@@ -857,7 +857,7 @@ class _TasksCardState extends State<TasksCard> {
   BoxDecoration _inputBoxDecoration() {
     return BoxDecoration(
       border: Border.all(color: kNeutral200),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
     );
   }
 }

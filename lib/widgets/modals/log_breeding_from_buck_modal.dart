@@ -119,7 +119,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Color(0xFFEBF8FF),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(Icons.male, color: Color(0xFF2E7BB5), size: 20),
                   ),
@@ -153,7 +153,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Color(0xFFFFF3CD),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -172,7 +172,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<Rabbit>(
                     value: _selectedDoe,
@@ -198,7 +198,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                               ),
                               child: Text(
                                 doe.statusText,
-                                style: TextStyle(fontSize: 11, color: Color(0xFF6366F1)),
+                                style: TextStyle(fontSize: 11, color: Color(0xFF7B6BA0)),
                               ),
                             ),
                           ],
@@ -229,7 +229,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -256,7 +256,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 decoration: BoxDecoration(
                   color: Color(0xFFF7EDE3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFF6366F1).withOpacity(0.2)),
+                  border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,14 +266,14 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.schedule, size: 16, color: Color(0xFF6366F1)),
+                            Icon(Icons.schedule, size: 16, color: Color(0xFF7B6BA0)),
                             SizedBox(width: 6),
                             Text(
                               'TIMELINE & REMINDERS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFF7B6BA0),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -286,10 +286,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: _isCustomTimeline ? Color(0xFF6366F1).withOpacity(0.1) : Colors.white,
+                              color: _isCustomTimeline ? Color(0xFF7B6BA0).withOpacity(0.1) : Colors.white,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
+                                color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFFE9E9E7),
                               ),
                             ),
                             child: Row(
@@ -298,7 +298,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                 Icon(
                                   _isCustomTimeline ? Icons.check_circle : Icons.edit,
                                   size: 14,
-                                  color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFF787774),
+                                  color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFF787774),
                                 ),
                                 SizedBox(width: 4),
                                 Text(
@@ -306,7 +306,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: _isCustomTimeline ? Color(0xFF6366F1) : Color(0xFF787774),
+                                    color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFF787774),
                                   ),
                                 ),
                               ],
@@ -347,7 +347,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         },
                         child: Text(
                           'Reset to defaults',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF6366F1), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 12, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500),
                         ),
                       ),
                     ] else ...[
@@ -389,11 +389,11 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 child: ElevatedButton(
                   onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     disabledBackgroundColor: Color(0xFFE9E9E7),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isSaving
@@ -434,7 +434,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Color(0xFFE9E9E7)),
       ),
       child: Row(
@@ -465,7 +465,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             alignment: Alignment.center,
             child: Text(
               '$days d',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6366F1)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
             ),
           ),
           GestureDetector(
@@ -507,7 +507,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isHighlighted ? Color(0xFFFFFFFF) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: isHighlighted ? Border.all(color: Color(0xFF8B5CF6).withOpacity(0.3)) : null,
       ),
       child: Row(

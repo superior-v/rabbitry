@@ -143,7 +143,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_addToQuarantine ? 'Health record added & moved to quarantine' : 'Health record added'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
@@ -335,7 +335,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                          borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                         ),
                       ),
                       validator: (value) {
@@ -354,7 +354,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       alignment: Alignment.topLeft,
                       child: Material(
                         elevation: 4,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: ConstrainedBox(
                           constraints: BoxConstraints(maxHeight: 200, maxWidth: MediaQuery.of(context).size.width - 80),
                           child: ListView.builder(
@@ -415,7 +415,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                     ),
                   ),
                 ),
@@ -446,7 +446,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                      borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                     ),
                   ),
                 ),
@@ -458,7 +458,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                   decoration: BoxDecoration(
                     color: Color(0xFFFFF8E1),
                     border: Border.all(color: Color(0xFFFFB300)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +502,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                           value: _selectedLocation,
                           decoration: InputDecoration(
                             labelText: 'Move to Location',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                           items: _locations.map((location) {
@@ -519,7 +519,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                           decoration: InputDecoration(
                             labelText: 'Cage / Hutch ID',
                             hintText: 'e.g., Quarantine-1',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onChanged: (value) => _selectedCage = value,
                         ),
@@ -535,7 +535,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveRecord,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6366F1),
+                      backgroundColor: Color(0xFF7B6BA0),
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(

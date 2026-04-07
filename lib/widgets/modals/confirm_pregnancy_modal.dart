@@ -78,7 +78,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               title: 'Yes, Bred',
               subtitle: 'Continue gestation pipeline',
               icon: Icons.check_circle,
-              color: Color(0xFF6366F1),
+              color: Color(0xFF7B6BA0),
               isSelected: _isPregnant == true,
               onTap: () => setState(() => _isPregnant = true),
             ),
@@ -101,11 +101,11 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Color(0xFFEDF3EE),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today, color: Color(0xFF6366F1)),
+                    Icon(Icons.calendar_today, color: Color(0xFF7B6BA0)),
                     SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +122,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                           ),
                         ),
                       ],
@@ -138,10 +138,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               child: ElevatedButton(
                 onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6366F1),
+                  backgroundColor: Color(0xFF7B6BA0),
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isSaving
@@ -187,7 +187,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             color: isSelected ? color : Color(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           color: isSelected ? color.withOpacity(0.05) : null,
         ),
         child: Row(
@@ -240,7 +240,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isPregnant! ? 'Bred status confirmed' : 'Marked as open'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {

@@ -161,7 +161,7 @@ class _ImportScreenState extends State<ImportScreen> {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.upload_file, size: 64, color: Color(0xFF6366F1)),
+                  const Icon(Icons.upload_file, size: 64, color: Color(0xFF7B6BA0)),
                   const SizedBox(height: 16),
                   const Text(
                     'Upload your CSV file',
@@ -185,7 +185,7 @@ class _ImportScreenState extends State<ImportScreen> {
                         : const Icon(Icons.file_open),
                     label: Text(_isImporting ? 'Importing...' : 'Select CSV File'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFF7B6BA0),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

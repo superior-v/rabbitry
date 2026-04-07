@@ -153,7 +153,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: kNeutral100,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     genetics.values.join('  ').toUpperCase(),
@@ -416,10 +416,10 @@ class _GeneticsCardState extends State<GeneticsCard> {
         margin: EdgeInsets.symmetric(vertical: 4),
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF6366F1).withOpacity(0.1) : Color(0xFFF7F7F5),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? Color(0xFF7B6BA0).withOpacity(0.1) : Color(0xFFF7F7F5),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
+            color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -427,7 +427,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
           children: [
             Icon(
               isSelected ? PhosphorIcons.radioButton(PhosphorIconsStyle.fill) : PhosphorIcons.circle(),
-              color: isSelected ? Color(0xFF6366F1) : Color(0xFF9B9A97),
+              color: isSelected ? Color(0xFF7B6BA0) : Color(0xFF9B9A97),
               size: 20,
             ),
             SizedBox(width: 12),

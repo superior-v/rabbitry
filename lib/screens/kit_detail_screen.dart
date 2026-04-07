@@ -121,7 +121,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile picture updated'),
-            backgroundColor: Color(0xFF6366F1),
+            backgroundColor: Color(0xFF7B6BA0),
             duration: Duration(seconds: 2),
           ),
         );
@@ -203,7 +203,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF6366F1),
+                      backgroundColor: Color(0xFF7B6BA0),
                     ),
                   );
                 },
@@ -260,7 +260,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -281,7 +281,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -301,7 +301,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF6366F1),
+              primary: Color(0xFF7B6BA0),
               onPrimary: Colors.white,
               onSurface: Color(0xFF37352F),
             ),
@@ -336,7 +336,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -357,7 +357,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -394,7 +394,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                 ),
               ),
             );
@@ -417,7 +417,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -523,11 +523,11 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       case 'GrowOut':
         return const Color(0xFF459F89);
       case 'Mature':
-        return const Color(0xFF6366F1);
+        return const Color(0xFF7B6BA0);
       case 'Quarantine':
         return const Color(0xFFD97706);
       case 'Sold':
-        return const Color(0xFF6366F1);
+        return const Color(0xFF7B6BA0);
       case 'Butchered':
         return const Color(0xFF787774);
       case 'Dead':
@@ -642,9 +642,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF6366F1), width: 2),
+                      border: Border.all(color: const Color(0xFF7B6BA0), width: 2),
                     ),
-                    child: const Icon(Icons.camera_alt, size: 12, color: Color(0xFF6366F1)),
+                    child: const Icon(Icons.camera_alt, size: 12, color: Color(0xFF7B6BA0)),
                   ),
                 ),
               ],
@@ -764,13 +764,13 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   Widget _buildStatItem(IconData icon, String label, String value, {VoidCallback? onTap}) {
     final child = Column(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF6366F1)),
+        Icon(icon, size: 18, color: const Color(0xFF7B6BA0)),
         const SizedBox(height: 4),
         Text(value,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: onTap != null ? const Color(0xFF6366F1) : const Color(0xFF37352F),
+              color: onTap != null ? const Color(0xFF7B6BA0) : const Color(0xFF37352F),
             ),
             textAlign: TextAlign.center),
         const SizedBox(height: 2),
@@ -782,7 +782,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       child: onTap != null
           ? InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: child,
@@ -848,7 +848,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   Widget _buildEditableDetailRow(String label, String value, VoidCallback onEdit) {
     return InkWell(
       onTap: onEdit,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
         child: Row(
@@ -859,7 +859,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF9B9A97), fontWeight: FontWeight.w500)),
             ),
             Expanded(
-              child: Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF6366F1), fontWeight: FontWeight.w500)),
+              child: Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500)),
             ),
             const Icon(Icons.chevron_right, size: 18, color: Color(0xFFBFBFBD)),
           ],
@@ -907,11 +907,11 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFFAFAF8),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF6366F1)),
+                const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF7B6BA0)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -947,7 +947,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFF7F7F5),
                           border: Border.all(color: const Color(0xFFE9E9E7)),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1025,7 +1025,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.scale, size: 14, color: Color(0xFF6366F1)),
+                  const Icon(Icons.scale, size: 14, color: Color(0xFF7B6BA0)),
                   const SizedBox(width: 8),
                   Text(
                     '${weight.toStringAsFixed(1)} ${FormatUtils.weightUnit}',

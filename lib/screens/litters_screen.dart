@@ -871,7 +871,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               height: 24,
               decoration: BoxDecoration(
                 color: isOutcome ? kNeutral200 : kLilacWash,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: isOutcome ? kNeutral300 : kLilacLight),
               ),
               child: Center(
@@ -1048,7 +1048,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     Color iconColor = kit.sex == 'M' ? kBlueDeep : (kit.sex == 'F' ? kPinkDeep : kLilacDeep);
     return Container(
       width: 40, height: 40,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
       child: Center(child: Icon(PhosphorIcons.rabbit(PhosphorIconsStyle.duotone), size: 20, color: iconColor)),
     );
   }
@@ -1058,7 +1058,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     Color iconColor = kit.sex == 'M' ? kBlueDeep : (kit.sex == 'F' ? kPinkDeep : kLilacDeep);
     return Container(
       width: 32, height: 32,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
       child: Center(child: Icon(PhosphorIcons.rabbit(PhosphorIconsStyle.bold), size: 18, color: iconColor)),
     );
   }
@@ -1094,7 +1094,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       onTap: onTap,
       child: Container(
         height: 32,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: kNeutral300)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1112,7 +1112,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       onTap: onTap,
       child: Container(
         width: 32, height: 32,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: kNeutral300)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
         child: Icon(icon, size: 16, color: kNeutral600),
       ),
     );
@@ -1359,7 +1359,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.star, color: Color(0xFF6366F1), size: 22),
+                            Icon(Icons.star, color: Color(0xFF7B6BA0), size: 22),
                             SizedBox(width: 10),
                             Text(
                               'Promote to ${isBuck ? 'Buck' : 'Doe'}',
@@ -1413,7 +1413,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('${newRabbit?.name ?? "Kit"} promoted to ${isBuck ? 'Buck' : 'Doe'}!'),
-                                              backgroundColor: const Color(0xFF6366F1),
+                                              backgroundColor: const Color(0xFF7B6BA0),
                                               behavior: SnackBarBehavior.floating,
                                             ),
                                           );
@@ -1441,7 +1441,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                         }
                                       }
                                     },
-                              child: isSaving ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1))) : Text('SAVE', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w700, fontSize: 15)),
+                              child: isSaving ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7B6BA0))) : Text('SAVE', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 15)),
                             ),
                             IconButton(
                               icon: const Icon(Icons.close, size: 22),
@@ -1466,7 +1466,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                             decoration: BoxDecoration(
                               color: Color(0xFFF7EDE3),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Color(0xFF6366F1).withOpacity(0.2)),
+                              border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
                             ),
                             child: Row(
                               children: [
@@ -1589,7 +1589,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                   prefixIcon: Icon(Icons.category, color: Color(0xFF787774)),
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
                                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF6366F1), width: 2)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2)),
                                 ),
                               );
                             },
@@ -1716,7 +1716,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         prefixIcon: Icon(icon, color: Color(0xFF787774)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF6366F1), width: 2)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2)),
       ),
     );
   }
@@ -1808,12 +1808,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         hintText: '0.00',
                         prefixText: '${FormatUtils.currencySymbol} ',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -1858,12 +1858,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               decoration: InputDecoration(
                                 hintText: 'Select or enter buyer',
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFF6366F1),
+                                    color: Color(0xFF7B6BA0),
                                     width: 2,
                                   ),
                                 ),
@@ -1940,7 +1940,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     backgroundColor: kLilacDeep,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -2012,12 +2012,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -2055,12 +2055,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           decoration: InputDecoration(
                             hintText: 'e.g. Snuffles, Sore Hocks...',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFF7B6BA0),
                                 width: 2,
                               ),
                             ),
@@ -2084,12 +2084,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       decoration: InputDecoration(
                         hintText: 'Enter health notes...',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -2109,16 +2109,16 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Health record added'),
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -2157,7 +2157,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 labelText: FormatUtils.weightLabel('Dressed Weight'),
                 hintText: '0.0',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -2194,13 +2194,13 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Kit harvest recorded'),
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF6366F1)),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF7B6BA0)),
             child: const Text('Record'),
           ),
         ],
@@ -2302,7 +2302,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       focusNode: focusNode,
                       decoration: InputDecoration(
                         hintText: 'e.g., Black, Broken',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     );
                   },
@@ -2318,7 +2318,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                   maxLines: 3,
                   decoration: InputDecoration(
                     hintText: 'Additional details...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -2368,7 +2368,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
           border: Border.all(color: isSelected ? color : const Color(0xFFE9E9E7)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
@@ -2397,7 +2397,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
             labelText: FormatUtils.weightLabel(),
             suffixText: FormatUtils.weightUnit,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
           autofocus: true,
@@ -2431,13 +2431,13 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Weight updated'),
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF6366F1)),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF7B6BA0)),
             child: const Text('Save'),
           ),
         ],
@@ -2470,7 +2470,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     )).toList(),
                     onChanged: (val) => setDialogState(() => selectedLitterId = val),
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                   ),
@@ -2543,7 +2543,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               decoration: InputDecoration(
                 hintText: 'e.g., Runt, illness',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -2771,9 +2771,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                 decoration: BoxDecoration(
                                   color: weanAll ? const Color(0xFFF0ECFE) : Colors.white,
                                   border: Border.all(
-                                    color: weanAll ? const Color(0xFF6366F1) : const Color(0xFFE9E9E7),
+                                    color: weanAll ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -2781,7 +2781,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: weanAll ? const Color(0xFF6366F1) : const Color(0xFF787774),
+                                      color: weanAll ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
                                     ),
                                   ),
                                 ),
@@ -2800,9 +2800,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                 decoration: BoxDecoration(
                                   color: !weanAll ? const Color(0xFFF0ECFE) : Colors.white,
                                   border: Border.all(
-                                    color: !weanAll ? const Color(0xFF6366F1) : const Color(0xFFE9E9E7),
+                                    color: !weanAll ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -2810,7 +2810,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: !weanAll ? const Color(0xFF6366F1) : const Color(0xFF787774),
+                                      color: !weanAll ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
                                     ),
                                   ),
                                 ),
@@ -2848,7 +2848,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF6366F1),
+                                  color: Color(0xFF7B6BA0),
                                 ),
                               ),
                             ),
@@ -2890,9 +2890,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                         width: 20,
                                         height: 20,
                                         decoration: BoxDecoration(
-                                          color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+                                          color: isSelected ? const Color(0xFF7B6BA0) : Colors.transparent,
                                           border: Border.all(
-                                            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF9B9A97),
+                                            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF9B9A97),
                                             width: 1.5,
                                           ),
                                           borderRadius: BorderRadius.circular(4),
@@ -2986,7 +2986,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           ),
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFFE0E0E0)),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3009,14 +3009,14 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE0F2F1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
                             const Icon(
                               Icons.info_outline,
                               size: 16,
-                              color: Color(0xFF6366F1),
+                              color: Color(0xFF7B6BA0),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -3024,7 +3024,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                 weanAll ? 'All ${nursingKits.length} nursing kits will be moved to "Weaned" stage' : '${selectedKitIds.length} selected kit${selectedKitIds.length == 1 ? '' : 's'} will be moved to "Weaned" stage',
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF6366F1),
+                                  color: Color(0xFF7B6BA0),
                                 ),
                               ),
                             ),
@@ -3068,18 +3068,18 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('${selectedKitIds.length} kit${selectedKitIds.length == 1 ? '' : 's'} weaned successfully'),
-                                  backgroundColor: const Color(0xFF6366F1),
+                                  backgroundColor: const Color(0xFF7B6BA0),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFF7B6BA0),
                       disabledBackgroundColor: const Color(0xFFE9E9E7),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text(
@@ -3152,12 +3152,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -3195,12 +3195,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                           decoration: InputDecoration(
                             hintText: 'e.g. Snuffles, Sore Hocks...',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFF7B6BA0),
                                 width: 2,
                               ),
                             ),
@@ -3224,12 +3224,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       decoration: InputDecoration(
                         hintText: 'Enter health notes...',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -3249,16 +3249,16 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Health record added'),
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -3363,12 +3363,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         hintText: FormatUtils.weightHint,
                         suffixText: FormatUtils.weightUnit,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -3379,14 +3379,14 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         children: [
                           Icon(
                             Icons.calculate,
                             size: 16,
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF7B6BA0),
                           ),
                           SizedBox(width: 12),
                           Expanded(
@@ -3394,7 +3394,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               'Average per kit will be calculated automatically',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFF7B6BA0),
                               ),
                             ),
                           ),
@@ -3415,16 +3415,16 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Weight recorded successfully'),
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -3514,12 +3514,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         value: _barns.any((b) => b.rows.any((r) => r.name == selectedLocation)) ? selectedLocation : null,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: Color(0xFF6366F1),
+                              color: Color(0xFF7B6BA0),
                               width: 2,
                             ),
                           ),
@@ -3565,12 +3565,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               decoration: InputDecoration(
                                 hintText: 'Select cage',
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFF6366F1),
+                                    color: Color(0xFF7B6BA0),
                                     width: 2,
                                   ),
                                 ),
@@ -3591,12 +3591,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                               decoration: InputDecoration(
                                 hintText: 'Enter cage number',
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFF6366F1),
+                                    color: Color(0xFF7B6BA0),
                                     width: 2,
                                   ),
                                 ),
@@ -3636,17 +3636,17 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Cage moved successfully'),
-                            backgroundColor: Color(0xFF6366F1),
+                            backgroundColor: Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFF7B6BA0),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text(
@@ -3671,7 +3671,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Ã°Å¸€“¨Ã¯¸ Printing cage card...'),
-        backgroundColor: Color(0xFF6366F1),
+        backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -3787,7 +3787,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Kit restored'),
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -3848,7 +3848,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Kit weaned'),
-                          backgroundColor: Color(0xFF6366F1),
+                          backgroundColor: Color(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -3867,7 +3867,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       barrierDismissible: false,
                       builder: (context) => Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7B6BA0)),
                         ),
                       ),
                     );
@@ -3894,7 +3894,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Kit moved to grow out'),
-                            backgroundColor: Color(0xFF6366F1),
+                            backgroundColor: Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -4011,7 +4011,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               ? Border(
                   left: BorderSide(
                     color: Color(
-                      0xFF6366F1,
+                      0xFF7B6BA0,
                     ),
                     width: 4,
                   ),
@@ -4034,7 +4034,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                     )
                   : (isPrimary
                       ? Color(
-                          0xFF6366F1,
+                          0xFF7B6BA0,
                         )
                       : Color(
                           0xFF787774,
@@ -4054,7 +4054,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                       )
                     : (isPrimary
                         ? Color(
-                            0xFF6366F1,
+                            0xFF7B6BA0,
                           )
                         : Colors.black87),
                 fontWeight: isPrimary ? FontWeight.w600 : FontWeight.normal,
@@ -4142,7 +4142,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: const Color(0xFF6366F1), size: 20),
+                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: const Color(0xFF7B6BA0), size: 20),
                                         const SizedBox(width: 8),
                                         const Text(
                                           'BARN & CAGES',
@@ -4174,9 +4174,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: _isBarnEditMode ? const Color(0xFF6366F1) : Colors.white,
+                                      color: _isBarnEditMode ? const Color(0xFF7B6BA0) : Colors.white,
                                       border: Border.all(
-                                        color: _isBarnEditMode ? const Color(0xFF6366F1) : const Color(0xFFE9E9E7),
+                                        color: _isBarnEditMode ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
                                       ),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
@@ -4259,12 +4259,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                             onPressed: () => _addBarn(setModalState),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEDE9FE),
-                              foregroundColor: const Color(0xFF6366F1),
+                              foregroundColor: const Color(0xFF7B6BA0),
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
                               ),
                             ),
                             child: const Row(
@@ -4318,15 +4318,15 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFFEDE9FE) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isActive ? Border.all(color: const Color(0xFF6366F1)) : Border.all(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(12),
+          border: isActive ? Border.all(color: const Color(0xFF7B6BA0)) : Border.all(color: Colors.transparent),
         ),
         child: Row(
           children: [
             Icon(
               icon,
               size: 20,
-              color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF6366F1) : const Color(0xFF787774)),
+              color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF7B6BA0) : const Color(0xFF787774)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -4335,7 +4335,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF6366F1) : Colors.black87),
+                  color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF7B6BA0) : Colors.black87),
                 ),
               ),
             ),
@@ -4344,7 +4344,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               decoration: BoxDecoration(
                 color: isActive ? Colors.white : const Color(0xFFF7F7F5),
                 border: Border.all(
-                  color: isActive ? const Color(0xFF6366F1) : const Color(0xFFE9E9E7),
+                  color: isActive ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -4353,7 +4353,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? const Color(0xFF6366F1) : const Color(0xFF787774),
+                  color: isActive ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
                 ),
               ),
             ),
@@ -4481,20 +4481,20 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: const Color(0xFF6366F1)),
+                          border: Border.all(color: const Color(0xFF7B6BA0)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add, size: 14, color: Color(0xFF6366F1)),
+                            Icon(Icons.add, size: 14, color: Color(0xFF7B6BA0)),
                             SizedBox(width: 4),
                             Text(
                               'Add Cage',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF6366F1),
+                                color: Color(0xFF7B6BA0),
                               ),
                             ),
                           ],
@@ -4515,20 +4515,20 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: const Color(0xFF6366F1)),
+                  border: Border.all(color: const Color(0xFF7B6BA0)),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add, size: 14, color: Color(0xFF6366F1)),
+                    Icon(Icons.add, size: 14, color: Color(0xFF7B6BA0)),
                     SizedBox(width: 4),
                     Text(
                       'Add Row',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF6366F1),
+                        color: Color(0xFF7B6BA0),
                       ),
                     ),
                   ],
@@ -4866,14 +4866,14 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(
-                                0xFF6366F1,
+                                0xFF7B6BA0,
                               ),
                               padding: EdgeInsets.symmetric(
                                 vertical: 12,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
-                                  8,
+                                  12,
                                 ),
                               ),
                             ),
@@ -4931,7 +4931,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
           border: Border.all(
             color: isSelected
                 ? Color(
-                    0xFF6366F1,
+                    0xFF7B6BA0,
                   )
                 : Color(
                     0xFFE9E9E7,
@@ -4947,7 +4947,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
             fontSize: 14,
             color: isSelected
                 ? Color(
-                    0xFF6366F1,
+                    0xFF7B6BA0,
                   )
                 : Colors.black87,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -4970,7 +4970,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('œ… Litter added successfully'),
-                backgroundColor: Color(0xFF6366F1),
+                backgroundColor: Color(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -5138,7 +5138,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
             const Expanded(
               child: Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7B6BA0)),
                 ),
               ),
             )
@@ -5159,16 +5159,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         decoration: InputDecoration(
                           hintText: 'e.g., L-001',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
@@ -5184,16 +5184,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         decoration: InputDecoration(
                           hintText: 'Select doe',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
@@ -5216,16 +5216,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         decoration: InputDecoration(
                           hintText: 'Select buck',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
@@ -5263,7 +5263,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFFE9E9E7)),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -5301,7 +5301,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFFE9E9E7)),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -5339,7 +5339,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFFE9E9E7)),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -5465,11 +5465,11 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           filled: true,
                           fillColor: const Color(0xFFF7F7F5),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
                           ),
                         ),
@@ -5484,7 +5484,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F7F5),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: const Color(0xFFE9E9E7)),
                           ),
                           child: Column(
@@ -5504,16 +5504,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE0F2F1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline, size: 16, color: Color(0xFF6366F1)),
+                            Icon(Icons.info_outline, size: 16, color: Color(0xFF7B6BA0)),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Set sex and color for each kit. You can update details later.',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF6366F1)),
+                                style: TextStyle(fontSize: 12, color: Color(0xFF7B6BA0)),
                               ),
                             ),
                           ],
@@ -5536,10 +5536,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveLitter,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: const Color(0xFF7B6BA0),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isSaving
@@ -5585,16 +5585,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     return InputDecoration(
       hintText: hint,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );

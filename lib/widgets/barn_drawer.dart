@@ -68,9 +68,9 @@ class BarnDrawer extends StatelessWidget {
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isActive ? Color(0xFFEDE9FE) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? Color(0xFF6366F1) : Colors.transparent,
+            color: isActive ? Color(0xFF7B6BA0) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -78,7 +78,7 @@ class BarnDrawer extends StatelessWidget {
             Icon(
               value == null ? Icons.circle : Icons.warning_amber_rounded,
               size: 20,
-              color: isActive ? Color(0xFF6366F1) : Color(0xFF787774),
+              color: isActive ? Color(0xFF7B6BA0) : Color(0xFF787774),
             ),
             SizedBox(width: 8),
             Text(
@@ -86,7 +86,7 @@ class BarnDrawer extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? Color(0xFF6366F1) : Colors.black87,
+                color: isActive ? Color(0xFF7B6BA0) : Colors.black87,
               ),
             ),
           ],

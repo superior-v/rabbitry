@@ -104,7 +104,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} released from quarantine'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
@@ -155,12 +155,12 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   Container(
                     padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Color(0xFF6366F1).withOpacity(0.1),
+                      color: Color(0xFF7B6BA0).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
                       Icons.check_circle_outline,
-                      color: Color(0xFF6366F1),
+                      color: Color(0xFF7B6BA0),
                       size: 24,
                     ),
                   ),
@@ -196,7 +196,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +297,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                   ),
                 ),
               ),
@@ -309,7 +309,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _stopQuarantine,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

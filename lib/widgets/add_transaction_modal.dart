@@ -283,7 +283,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -316,7 +316,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 return Theme(
                   data: Theme.of(context).copyWith(
                     colorScheme: ColorScheme.light(
-                      primary: Color(0xFF6366F1),
+                      primary: Color(0xFF7B6BA0),
                     ),
                   ),
                   child: child!,
@@ -397,7 +397,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
         decoration: BoxDecoration(
           color: isSelected ? Color(0xFFEDE9FE) : Color(0xFFF7F7F5),
           border: Border.all(
-            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE9E9E7),
+            color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE9E9E7),
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -407,7 +407,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             Icon(
               icon,
               size: 16,
-              color: isSelected ? Color(0xFF6366F1) : Color(0xFF787774),
+              color: isSelected ? Color(0xFF7B6BA0) : Color(0xFF787774),
             ),
             SizedBox(width: 6),
             Text(
@@ -415,7 +415,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Color(0xFF6366F1) : Color(0xFF37352F),
+                color: isSelected ? Color(0xFF7B6BA0) : Color(0xFF37352F),
               ),
             ),
           ],
@@ -451,7 +451,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -497,7 +497,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -544,7 +544,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 isVirtual = value;
               });
             },
-            activeColor: Color(0xFF6366F1),
+            activeColor: Color(0xFF7B6BA0),
           ),
         ],
       ),
@@ -566,14 +566,14 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.layers, size: 16, color: Color(0xFF6366F1)),
+                    Icon(Icons.layers, size: 16, color: Color(0xFF7B6BA0)),
                     SizedBox(width: 6),
                     Text(
                       'Batch Entry',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF6366F1),
+                        color: Color(0xFF7B6BA0),
                       ),
                     ),
                   ],
@@ -596,7 +596,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 enableBatch = value;
               });
             },
-            activeColor: Color(0xFF6366F1),
+            activeColor: Color(0xFF7B6BA0),
           ),
         ],
       ),
@@ -621,7 +621,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 padding: EdgeInsets.symmetric(vertical: 14),
                 side: BorderSide(color: Color(0xFFE9E9E7)),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: Text(
@@ -639,11 +639,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             child: ElevatedButton(
               onPressed: canSave ? _saveTransaction : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6366F1),
+                backgroundColor: Color(0xFF7B6BA0),
                 disabledBackgroundColor: Color(0xFFE9E9E7),
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: Text(

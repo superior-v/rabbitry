@@ -121,7 +121,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Color(0xFFFFF3CD),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'No bucks available. Please add a buck first.',
@@ -132,7 +132,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonFormField<Rabbit>(
                     value: _selectedBuck,
@@ -170,7 +170,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -191,7 +191,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Color(0xFFF7F7F5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,10 +239,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 child: ElevatedButton(
                   onPressed: _selectedBuck == null || _isSaving ? null : _saveBreeding,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isSaving
@@ -279,7 +279,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       padding: EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Color(0xFF6366F1)),
+          Icon(icon, size: 16, color: Color(0xFF7B6BA0)),
           SizedBox(width: 8),
           Text(
             '$label: ',

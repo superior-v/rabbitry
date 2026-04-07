@@ -242,7 +242,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
             Icon(

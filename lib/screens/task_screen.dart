@@ -211,7 +211,7 @@ class TaskScreenState extends State<TaskScreen> {
         title: Row(children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.check_circle_outline, color: kPrimary, size: 20),
           ),
           const SizedBox(width: 12),
@@ -230,8 +230,8 @@ class TaskScreenState extends State<TaskScreen> {
               hintText: '0.00',
               prefixText: '${FormatUtils.currencySymbol}',
               prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kPrimary, width: 2)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             ),
           ),
@@ -240,7 +240,7 @@ class TaskScreenState extends State<TaskScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, 0.0), child: const Text('No Cost', style: TextStyle(color: Color(0xFF787774)))),
           ElevatedButton(
             onPressed: () { final cost = double.tryParse(costController.text) ?? 0.0; Navigator.pop(ctx, cost); },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: const Text('Save'),
           ),
         ],
@@ -1549,9 +1549,9 @@ class TaskScreenState extends State<TaskScreen> {
             onSubmitted: (value) { setState(() => _searchQuery = value.trim()); Navigator.pop(context); }),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: OutlinedButton(onPressed: () { searchController.clear(); setState(() => _searchQuery = ''); Navigator.pop(context); }, style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF787774), side: const BorderSide(color: Color(0xFFE2E8F0)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text('Clear'))),
+            Expanded(child: OutlinedButton(onPressed: () { searchController.clear(); setState(() => _searchQuery = ''); Navigator.pop(context); }, style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF787774), side: const BorderSide(color: Color(0xFFE2E8F0)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Clear'))),
             const SizedBox(width: 12),
-            Expanded(child: ElevatedButton(onPressed: () { setState(() => _searchQuery = searchController.text.trim()); Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text('Search'))),
+            Expanded(child: ElevatedButton(onPressed: () { setState(() => _searchQuery = searchController.text.trim()); Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Search'))),
           ]),
         ]),
       ),
@@ -1575,9 +1575,9 @@ class TaskScreenState extends State<TaskScreen> {
             const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('No breeds found.\nAdd breeds to your rabbits first.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF9B9A97)))))
           else ConstrainedBox(constraints: const BoxConstraints(maxHeight: 400), child: SingleChildScrollView(child: Column(children: allBreeds.map((breed) {
             final isSelected = _breedFilter == breed;
-            return InkWell(onTap: () { setState(() => _breedFilter = breed); Navigator.pop(context); }, borderRadius: BorderRadius.circular(8),
+            return InkWell(onTap: () { setState(() => _breedFilter = breed); Navigator.pop(context); }, borderRadius: BorderRadius.circular(12),
               child: Container(padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12), margin: const EdgeInsets.only(bottom: 4),
-                decoration: BoxDecoration(color: isSelected ? kPrimary.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8), border: isSelected ? Border.all(color: kPrimary) : null),
+                decoration: BoxDecoration(color: isSelected ? kPrimary.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: isSelected ? Border.all(color: kPrimary) : null),
                 child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text(breed, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, color: isSelected ? kPrimary : Colors.black87)),
                   if (isSelected) const Icon(Icons.check, size: 18, color: kPrimary),
@@ -1619,7 +1619,7 @@ class TaskScreenState extends State<TaskScreen> {
           else currentTaskOptions = ['Inventory Check', 'General Maintenance'];
         }
 
-        BoxDecoration inputDec() => BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(8));
+        BoxDecoration inputDec() => BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(12));
 
         return Dialog(backgroundColor: Colors.white, surfaceTintColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), insetPadding: const EdgeInsets.all(16),
           child: Container(width: double.infinity, constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9), padding: const EdgeInsets.all(20),
@@ -1640,7 +1640,7 @@ class TaskScreenState extends State<TaskScreen> {
                 child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: isCustomTask ? 'custom' : selectedTask, hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))), isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                   items: [...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))), const DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: kPrimary)))],
                   onChanged: (val) => setDialogState(() { if (val == 'custom') { isCustomTask = true; selectedTask = null; } else { isCustomTask = false; selectedTask = val; } })))),
-              if (isCustomTask) ...[const SizedBox(height: 8), TextField(controller: customTaskController, decoration: InputDecoration(hintText: 'Enter custom task name...', hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kPrimary))))],
+              if (isCustomTask) ...[const SizedBox(height: 8), TextField(controller: customTaskController, decoration: InputDecoration(hintText: 'Enter custom task name...', hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary))))],
               const SizedBox(height: 14),
               const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
               Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: inputDec(),
@@ -1755,8 +1755,8 @@ class TaskScreenState extends State<TaskScreen> {
             decoration: InputDecoration(
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: kNeutral300)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kLilacDeep)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kNeutral300)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacDeep)),
             ),
             style: const TextStyle(fontSize: 14),
           ),
@@ -1887,7 +1887,7 @@ class TaskScreenState extends State<TaskScreen> {
           BoxDecoration inputDec() => BoxDecoration(
                 color: Colors.white,
                 border: Border.all(color: const Color(0xFFE2E8F0)),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               );
 
           return Dialog(
@@ -1922,8 +1922,8 @@ class TaskScreenState extends State<TaskScreen> {
                       controller: taskNameController,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kPrimary)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary)),
                       ),
                     ),
                     const SizedBox(height: 14),

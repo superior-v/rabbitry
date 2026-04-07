@@ -501,7 +501,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               Container(
                 decoration: BoxDecoration(
                   color: Color(0xFFF7F7F5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 padding: EdgeInsets.all(4),
                 child: Row(
@@ -600,7 +600,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         padding: EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: Color(0xFFE9E9E7)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
@@ -636,7 +636,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(useDefault ? 'Using default pipeline settings' : 'Custom pipeline settings saved'),
-                              backgroundColor: Color(0xFF6366F1),
+                              backgroundColor: Color(0xFF7B6BA0),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -645,11 +645,11 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
@@ -695,7 +695,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 decoration: BoxDecoration(
                   color: enabled ? Colors.white : Color(0xFFF7F7F5),
                   border: Border.all(color: Color(0xFFE9E9E7)),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   unit,
@@ -711,7 +711,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   decoration: BoxDecoration(
                     color: enabled ? Colors.white : Color(0xFFF7F7F5),
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextField(
                     controller: controller,
@@ -789,7 +789,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       padding: EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(color: Color(0xFFE9E9E7)),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text(
@@ -806,10 +806,10 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       _handlePalpationResult(true);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6366F1),
+                      backgroundColor: Color(0xFF7B6BA0),
                       padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text('Yes', style: TextStyle(color: Colors.white)),
@@ -832,7 +832,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(positive ? '✅ Palpation positive - marked as bred' : '❌ Palpation negative - marked as open'),
-            backgroundColor: positive ? Color(0xFF6366F1) : Color(0xFFF5A623),
+            backgroundColor: positive ? Color(0xFF7B6BA0) : Color(0xFFF5A623),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -873,7 +873,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFC47070),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text('Delete Breeding', style: TextStyle(color: Colors.white)),
           ),
@@ -890,7 +890,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Breeding record deleted - doe is now open'),
-            backgroundColor: Color(0xFF6366F1),
+            backgroundColor: Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );

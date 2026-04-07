@@ -111,7 +111,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
 
       _loadPedigreeData();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ancestor linked'), backgroundColor: Color(0xFF6366F1), duration: Duration(seconds: 1)),
+        const SnackBar(content: Text('Ancestor linked'), backgroundColor: Color(0xFF7B6BA0), duration: Duration(seconds: 1)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -463,7 +463,7 @@ class _PairGroup extends StatelessWidget {
             child: Text(
               label,
           await _loadPedigreeData();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated successfully'), backgroundColor: Color(0xFF6366F1)));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated successfully'), backgroundColor: Color(0xFF7B6BA0)));
         }
       } catch (e) {
         print('Error updating photo: $e');
@@ -568,7 +568,7 @@ class _PairGroup extends StatelessWidget {
                   SizedBox(height: 16),
                   Container(
                     padding: EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(12)),
                     child: Row(
                       children: [
                         _buildTabButton('Search Herd', !isExternal, () => setModalState(() => isExternal = false)),
@@ -584,7 +584,7 @@ class _PairGroup extends StatelessWidget {
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Color(0xFFF7F7F5),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       hint: Text('Choose a rabbit'),
@@ -620,7 +620,7 @@ class _PairGroup extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
-                      style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF6366F1), padding: EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF7B6BA0), padding: EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       child: Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                     ),
                   ),
@@ -648,7 +648,7 @@ class _PairGroup extends StatelessWidget {
             boxShadow: isActive ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
           ),
           alignment: Alignment.center,
-          child: Text(label, style: TextStyle(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? Color(0xFF6366F1) : Color(0xFF787774))),
+          child: Text(label, style: TextStyle(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? Color(0xFF7B6BA0) : Color(0xFF787774))),
         ),
       ),
     );
@@ -694,7 +694,7 @@ class _PairGroup extends StatelessWidget {
       }
 
       await _loadPedigreeData();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pedigree updated successfully'), backgroundColor: Color(0xFF6366F1)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pedigree updated successfully'), backgroundColor: Color(0xFF7B6BA0)));
     } catch (e) {
       print('Error updating ancestor: $e');
       setState(() => _isLoading = false);
@@ -722,16 +722,16 @@ class _PairGroup extends StatelessWidget {
             filled: true,
             fillColor: Color(0xFFF7F7F5),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Color(0xFFE9E9E7)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Color(0xFFE9E9E7)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),

@@ -135,7 +135,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} added to quarantine for $_quarantineDays days'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
@@ -229,7 +229,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
                   decoration: BoxDecoration(
                     color: Color(0xFFFFF8E1),
                     border: Border.all(color: Color(0xFFFFB300)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [

@@ -108,7 +108,7 @@ class HealthRecordsCard extends StatelessWidget {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Color(0xFFE2E8F0)),
       ),
       child: Row(
@@ -118,7 +118,7 @@ class HealthRecordsCard extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -176,7 +176,7 @@ class HealthRecordsCard extends StatelessWidget {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Color(0xFFE2E8F0)),
       ),
       child: Row(
@@ -280,16 +280,16 @@ class HealthRecordsCard extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: '',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -323,16 +323,16 @@ class HealthRecordsCard extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'e.g. Snuffles, GI Stasis...',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                       ),
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
@@ -367,16 +367,16 @@ class HealthRecordsCard extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: '',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFF9CA3AF)),
@@ -391,7 +391,7 @@ class HealthRecordsCard extends StatelessWidget {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: ColorScheme.light(
-                            primary: Color(0xFF6366F1),
+                            primary: Color(0xFF7B6BA0),
                           ),
                         ),
                         child: child!,
@@ -422,16 +422,16 @@ class HealthRecordsCard extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: '',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -459,16 +459,16 @@ class HealthRecordsCard extends StatelessWidget {
                     fontSize: 15,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Color(0xFFD1D5DB)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -496,7 +496,7 @@ class HealthRecordsCard extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Color(0xFFD1D5DB)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         padding: EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -519,16 +519,16 @@ class HealthRecordsCard extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Health record added successfully'),
-                              backgroundColor: Color(0xFF6366F1),
+                              backgroundColor: Color(0xFF7B6BA0),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF6366F1),
+                        backgroundColor: Color(0xFF7B6BA0),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,

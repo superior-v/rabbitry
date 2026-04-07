@@ -369,7 +369,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
                                   border: Border.all(color: const Color(0xFFE2E8F0)),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -399,7 +399,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
                                   border: Border.all(color: const Color(0xFFE2E8F0)),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -557,7 +557,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: isSelected ? _primaryColor.withOpacity(0.12) : const Color(0xFFF7F7F5),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isSelected ? _primaryColor : Colors.transparent,
                           ),
@@ -717,7 +717,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(6),
-                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                           ),
                           suffixIcon: const Icon(Icons.keyboard_arrow_down, size: 20, color: Color(0xFF37352F)),
                         ),
@@ -739,7 +739,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                         alignment: Alignment.topLeft,
                         child: Material(
                           elevation: 4,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 200, maxWidth: 260),
                             child: ListView.builder(
@@ -767,8 +767,8 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF7EDE3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF7B6BA0).withOpacity(0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -788,7 +788,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF6366F1),
+                              color: Color(0xFF7B6BA0),
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -835,14 +835,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Breed updated to $breedName'),
-                                      backgroundColor: const Color(0xFF6366F1),
+                                      backgroundColor: const Color(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: const Color(0xFF7B6BA0),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -987,7 +987,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(6),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                         ),
                       ),
                       onChanged: (value) {
@@ -1034,14 +1034,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Color updated to $colorToSave'),
-                                      backgroundColor: const Color(0xFF6366F1),
+                                      backgroundColor: const Color(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: const Color(0xFF7B6BA0),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1207,14 +1207,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Origin updated to $selectedOrigin'),
-                                      backgroundColor: const Color(0xFF6366F1),
+                                      backgroundColor: const Color(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: const Color(0xFF7B6BA0),
                           disabledBackgroundColor: const Color(0xFFE9E9E7),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1330,10 +1330,10 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                     _showAddWeightDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
+                    backgroundColor: const Color(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -1396,11 +1396,11 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               decoration: InputDecoration(
                 labelText: FormatUtils.weightLabel(),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                 ),
               ),
               autofocus: true,
@@ -1448,16 +1448,16 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Weight logged successfully'),
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),

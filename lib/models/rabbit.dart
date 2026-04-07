@@ -45,7 +45,7 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get color {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFF6366F1); // Green
+        return const Color(0xFF7B6BA0); // Green
       case ArchiveReason.butchered:
         return const Color(0xFF6B6B6B); // Gray
       case ArchiveReason.dead:
@@ -323,7 +323,7 @@ class Rabbit {
   int get statusColor {
     switch (status) {
       case RabbitStatus.open:
-        return 0xFF6366F1;
+        return 0xFF7B6BA0;
       case RabbitStatus.palpateDue:
         return 0xFF8B5CF6;
       case RabbitStatus.pregnant:
@@ -333,7 +333,7 @@ class Rabbit {
       case RabbitStatus.resting:
         return 0xFF787774;
       case RabbitStatus.active:
-        return 0xFF6366F1;
+        return 0xFF7B6BA0;
       case RabbitStatus.inactive:
         return 0xFF9B9A97;
       case RabbitStatus.growout:

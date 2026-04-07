@@ -640,7 +640,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       decoration: BoxDecoration(
         color: kLilacWash,
         border: Border.all(color: kLilacLight),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -654,12 +654,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             Text(
               'Location: $_locationFilter',
               style: const TextStyle(
-                color: Color(0xFF6366F1),
+                color: Color(0xFF7B6BA0),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (_breedFilter != 'All') const Text(' • ', style: TextStyle(color: Color(0xFF6366F1))),
+            if (_breedFilter != 'All') const Text(' • ', style: TextStyle(color: Color(0xFF7B6BA0))),
           ],
           if (_breedFilter != 'All')
             Text(
@@ -810,7 +810,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    color: const Color(0xFF7B6BA0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -845,15 +845,15 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: daysToMaturity <= 0 ? const Color(0xFF6366F1).withOpacity(0.1) : const Color(0xFFF5A623).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: daysToMaturity <= 0 ? const Color(0xFF7B6BA0).withOpacity(0.1) : const Color(0xFFF5A623).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     daysToMaturity <= 0 ? 'Ready' : '$daysToMaturity days',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: daysToMaturity <= 0 ? const Color(0xFF6366F1) : const Color(0xFFF5A623),
+                      color: daysToMaturity <= 0 ? const Color(0xFF7B6BA0) : const Color(0xFFF5A623),
                     ),
                   ),
                 ),
@@ -878,7 +878,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                           minHeight: 6,
                           backgroundColor: const Color(0xFFE9E9E7),
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            daysToMaturity <= 0 ? const Color(0xFF6366F1) : const Color(0xFFF5A623),
+                            daysToMaturity <= 0 ? const Color(0xFF7B6BA0) : const Color(0xFFF5A623),
                           ),
                         ),
                       ),
@@ -891,9 +891,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                     onPressed: () => _promoteToBreeder(kit, litter),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      backgroundColor: const Color(0xFF6366F1),
+                      backgroundColor: const Color(0xFF7B6BA0),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text(
@@ -951,7 +951,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
             ),
             child: const Text('Promote', style: TextStyle(color: Colors.white)),
           ),
@@ -972,7 +972,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${nameController.text} promoted to breeder!'),
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: const Color(0xFF7B6BA0),
             ),
           );
         }
@@ -1064,7 +1064,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    color: const Color(0xFF7B6BA0).withOpacity(0.3),
                     width: 2,
                   ),
                   image: isPhotoValid
@@ -1077,7 +1077,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 child: !isPhotoValid
                     ? Icon(
                         rabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-                        color: const Color(0xFF6366F1),
+                        color: const Color(0xFF7B6BA0),
                         size: 28,
                       )
                     : null,
@@ -1300,7 +1300,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.visibility_outlined, color: Color(0xFF6366F1)),
+              leading: const Icon(Icons.visibility_outlined, color: Color(0xFF7B6BA0)),
               title: const Text('View Profile'),
               onTap: () {
                 Navigator.pop(context);
@@ -1339,7 +1339,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${rabbit.name} restored to active breeders'),
-            backgroundColor: const Color(0xFF6366F1),
+            backgroundColor: const Color(0xFF7B6BA0),
           ),
         );
       }
@@ -1741,7 +1741,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: borderColor.withOpacity(0.3)),
                   ),
                   child: Row(
@@ -2137,7 +2137,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: kNeutral50,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: kNeutral200),
                     ),
                     child: Row(
@@ -2172,7 +2172,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                       decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border.all(color: kLilacLight),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

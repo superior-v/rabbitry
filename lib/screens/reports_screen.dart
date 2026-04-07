@@ -81,6 +81,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   String _kitsTrend = '';
   List<RankingItem> _doeRankings = [];
   List<ChartData> _gestationData = [];
+  int _gestationMin = 0;
+  int _gestationMax = 0;
+  int _gestationMode = 0;
 
   // Growth
   double _totalMeatYield = 0;
@@ -251,6 +254,19 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     }
     _gestationData = gestationCounts.entries.map((e) => ChartData(label: '${e.key}d', value: e.value.toDouble())).toList()..sort((a, b) => a.label.compareTo(b.label));
 
+    _gestationMin = gestations.isNotEmpty ? gestations.reduce((a, b) => a < b ? a : b).toInt() : 0;
+    _gestationMax = gestations.isNotEmpty ? gestations.reduce((a, b) => a > b ? a : b).toInt() : 0;
+    _gestationMode = 0;
+    if (gestationCounts.isNotEmpty) {
+      int maxFreq = 0;
+      for (final entry in gestationCounts.entries) {
+        if (entry.value > maxFreq) {
+          maxFreq = entry.value;
+          _gestationMode = entry.key;
+        }
+      }
+    }
+
     // Conception rate by doe
     final does = allRabbitsIncArchived.where((r) => r.type == RabbitType.doe).toList();
 
@@ -322,7 +338,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     // ========================
     // GROWTH ANALYTICS
     // ========================
-    final butchered = periodArchived.where((r) => r.archiveReason == ArchiveReason.butchered).toList();
+    // Growth: Include both Butchered and Sold rabbits as 'Harvested' data points
+    final butchered = periodArchived.where((r) => 
+      r.archiveReason == ArchiveReason.butchered || 
+      r.archiveReason == ArchiveReason.sold
+    ).toList();
 
     _totalMeatYield = 0;
     double totalHarvestWeight = 0;
@@ -334,8 +354,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     int heavyCount = 0;
 
     for (final r in butchered) {
-      final yield_ = r.butcherYield ?? 0;
-      _totalMeatYield += yield_;
+      if (r.archiveReason == ArchiveReason.butchered) {
+        _totalMeatYield += (r.butcherYield ?? 0);
+      }
+      
       if (r.weight != null && r.weight! > 0) {
         totalHarvestWeight += r.weight!;
         harvestCount++;
@@ -368,22 +390,62 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     // Growth curve data points
     Map<int, List<double>> ageWeights = {};
 
+    // 1. Process data from individual rabbit profiles (Active & Archived)
     final allRelevant = [..._allRabbits, ..._archivedRabbits];
     for (final r in allRelevant) {
       if (r.dateOfBirth != null && r.weight != null && r.weight! > 0) {
-        // Use archiveDate for archived rabbits, otherwise use NOW
         final referenceDate = r.archiveDate ?? now;
         final ageDays = referenceDate.difference(r.dateOfBirth!).inDays;
         
-        if (ageDays >= 21 && ageDays <= 35) w4_weights.add(r.weight!);
-        if (ageDays >= 49 && ageDays <= 63) w8_weights.add(r.weight!);
-        if (ageDays >= 77 && ageDays <= 95) w12_weights.add(r.weight!);
+        // Broaden buckets to ensure we capture data
+        if (ageDays >= 21 && ageDays <= 38) w4_weights.add(r.weight!);
+        if (ageDays >= 49 && ageDays <= 70) w8_weights.add(r.weight!);
+        if (ageDays >= 77 && ageDays <= 110) w12_weights.add(r.weight!);
 
-        // For the chart, group by weeks (rounded)
         final week = (ageDays / 7).round();
-        if (week >= 4 && week <= 16) {
+        if (week >= 3 && week <= 20) {
           ageWeights.putIfAbsent(week, () => []);
           ageWeights[week]!.add(r.weight!);
+        }
+      }
+    }
+
+    // 2. Process data from Kits in Litters (Crucial for harvest/sold stats)
+    for (final l in _allLitters) {
+      final litterDob = l.dob;
+      for (final kit in l.kits) {
+        if (kit.weight > 0) {
+          // If kit is sold/butchered, use weaning date or current date for age
+          final ageDays = (l.weanDate ?? now).difference(litterDob).inDays;
+          
+          if (ageDays >= 21 && ageDays <= 38) w4_weights.add(kit.weight);
+          if (ageDays >= 49 && ageDays <= 70) w8_weights.add(kit.weight);
+          if (ageDays >= 77 && ageDays <= 110) w12_weights.add(kit.weight);
+
+          final week = (ageDays / 7).round();
+          if (week >= 3 && week <= 20) {
+            ageWeights.putIfAbsent(week, () => []);
+            ageWeights[week]!.add(kit.weight);
+          }
+
+          // If kit is sold/butchered in THIS period, add to Harvest stats
+          final isHarvested = kit.status == 'Sold' || kit.status == 'Butchered';
+          // Approximate check: if litter age is within period or weanDate is in period
+          bool inPeriod = (l.weanDate != null && l.weanDate!.isAfter(periodStart)) || 
+                          (l.kindleDate != null && l.kindleDate!.isAfter(periodStart));
+          
+          if (isHarvested && inPeriod) {
+            totalHarvestWeight += kit.weight;
+            harvestCount++;
+            if (kit.weight < 4.5) lightCount++;
+            else if (kit.weight <= 5.5) targetCount++;
+            else heavyCount++;
+
+            if (kit.status == 'Butchered') {
+              // Yield estimation for kits if not recorded (typical 50-55%)
+              _totalMeatYield += (kit.weight * 0.52);
+            }
+          }
         }
       }
     }
@@ -400,13 +462,19 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     }).toList();
     
     // Ensure at least 2 points for the chart, even if empty
-    if (_growthData.isEmpty) {
+    if (_growthData.length < 2) {
       _growthData = [
         ChartData(label: '4w', value: _w4_avg),
         ChartData(label: '8w', value: _w8_avg),
         ChartData(label: '12w', value: _w12_avg),
       ];
     }
+
+    // Refresh harvest percentages with the kit data included
+    _avgHarvestWeight = harvestCount > 0 ? totalHarvestWeight / harvestCount : 0;
+    _dressOutPercent = (harvestCount > 0 && _totalMeatYield > 0 && totalHarvestWeight > 0) 
+        ? ((_totalMeatYield / totalHarvestWeight) * 100).round() 
+        : (_totalMeatYield > 0 ? 52 : 0); // fallback to typical yield if missing weights
 
     // ========================
     // HEALTH ANALYTICS
@@ -780,7 +848,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Analytics exported to ${file.path.split('/').last}'),
-            backgroundColor: const Color(0xFF6366F1),
+            backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'OPEN',
@@ -871,20 +939,26 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ],
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _MiniStat(label: 'Earliest', value: '29d'),
-              _MiniStat(label: 'Mode', value: '31d'),
-              _MiniStat(label: 'Latest', value: '33d'),
+              _MiniStat(label: 'Earliest', value: _gestationMin > 0 ? '${_gestationMin}d' : '--'),
+              _MiniStat(label: 'Mode', value: _gestationMode > 0 ? '${_gestationMode}d' : '--'),
+              _MiniStat(label: 'Latest', value: _gestationMax > 0 ? '${_gestationMax}d' : '--'),
             ],
           ),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(8)),
-            child: const Text('Mode: 31 days — within normal range (30–33d)', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
+            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
+            child: Text(
+              _gestationMode > 0 
+                ? 'Mode: $_gestationMode days — ${_gestationMode >= 30 && _gestationMode <= 33 ? "within normal range (30–33d)" : "outside standard range"}'
+                : 'Insufficient data for gestation modal analysis',
+              textAlign: TextAlign.center, 
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)
+            ),
           ),
         ],
       ),
@@ -973,7 +1047,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
             child: Text(
               _w12_avg > 0 
                 ? 'Growth peaking at ${_fmtNum(_w12_avg)} ${FormatUtils.weightUnit} — optimal butcher window'
@@ -1288,7 +1362,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
               child: Text(
                 _incomeData.isNotEmpty 
                   ? '${_incomeData.first.label} is the top revenue source this period'
@@ -1555,7 +1629,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: isActive
               ? [
                   BoxShadow(

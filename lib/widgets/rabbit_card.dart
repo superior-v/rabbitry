@@ -65,7 +65,7 @@ class RabbitCard extends StatelessWidget {
                     height: 56,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: isPhotoValid
@@ -139,7 +139,7 @@ class RabbitCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       InkWell(
                         onTap: onTap,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: const Padding(
                           padding: EdgeInsets.all(4.0),
                           child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 20),

@@ -93,7 +93,7 @@ class _SellModalState extends State<SellModal> {
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
@@ -118,7 +118,7 @@ class _SellModalState extends State<SellModal> {
                 decoration: InputDecoration(
                   hintText: '0.00',
                   prefixText: FormatUtils.currencyPrefix,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               SizedBox(height: 20),
@@ -151,7 +151,7 @@ class _SellModalState extends State<SellModal> {
                     focusNode: focusNode,
                     decoration: InputDecoration(
                       hintText: 'Select or enter buyer name',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       suffixIcon: Icon(Icons.arrow_drop_down),
                     ),
                   );
@@ -170,7 +170,7 @@ class _SellModalState extends State<SellModal> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: 'Additional notes...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               SizedBox(height: 20),
@@ -180,7 +180,7 @@ class _SellModalState extends State<SellModal> {
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Color(0xFFF7F7F5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   children: [
@@ -230,7 +230,7 @@ class _SellModalState extends State<SellModal> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7B6BA0), // kLilacDeep
                     padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
                       ? SizedBox(
@@ -305,7 +305,7 @@ class _SellModalState extends State<SellModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} sold${price != null ? " for ${FormatUtils.formatCurrency(price)}" : ""}'),
-          backgroundColor: Color(0xFF6366F1),
+          backgroundColor: Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {

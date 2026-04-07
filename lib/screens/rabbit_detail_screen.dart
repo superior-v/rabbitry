@@ -190,7 +190,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile picture updated successfully'),
-            backgroundColor: Color(0xFF6366F1),
+            backgroundColor: Color(0xFF7B6BA0),
             duration: Duration(seconds: 2),
           ),
         );
@@ -266,7 +266,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF6366F1),
+                      backgroundColor: Color(0xFF7B6BA0),
                     ),
                   );
                 },
@@ -930,9 +930,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       decoration: InputDecoration(
                         hintText: FormatUtils.currencyHint,
                         prefixText: FormatUtils.currencySymbol,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: kPinkDeep, width: 2),
                         ),
                       ),
@@ -952,9 +952,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: _primaryColor, width: 2),
                         ),
                       ),
@@ -984,9 +984,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       maxLines: 3,
                       decoration: InputDecoration(
                         hintText: 'Enter details...',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(color: _primaryColor, width: 2),
                         ),
                       ),
@@ -1017,7 +1017,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         decoration: BoxDecoration(
                           border: Border.all(color: kNeutral300),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1049,7 +1049,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text(
                     'Save Transaction',

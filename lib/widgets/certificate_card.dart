@@ -422,7 +422,7 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: kNeutral50, borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: kNeutral50, borderRadius: BorderRadius.circular(12)),
                           child: Row(
                             children: [
                               Expanded(

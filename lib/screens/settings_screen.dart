@@ -1095,7 +1095,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: kNeutral100, border: Border.all(color: kNeutral200), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: kNeutral100, border: Border.all(color: kNeutral200), borderRadius: BorderRadius.circular(12)),
                   child: Text(digestTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
                 ),
               ),
@@ -1559,7 +1559,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final id = contact['id'].toString();
     final initials = contact['name'].toString().isNotEmpty ? contact['name'].toString().substring(0, 1).toUpperCase() : '?';
     final type = contact['type'] ?? 'Buyer';
-    final typeColor = type == 'Breeder' ? const Color(0xFF6366F1) : const Color(0xFF10B981);
+    final typeColor = type == 'Breeder' ? const Color(0xFF7B6BA0) : const Color(0xFF10B981);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1644,7 +1644,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           style: OutlinedButton.styleFrom(
                             foregroundColor: kLilacDeep,
                             side: const BorderSide(color: kLilacDeep),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -1657,7 +1657,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.redAccent,
                             side: const BorderSide(color: Colors.redAccent),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -2154,7 +2154,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: kNeutral100,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
@@ -2723,7 +2723,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           children: [
             Icon(
               PhosphorIconsBold.plus,
-              color: Color(0xFF6366F1),
+              color: Color(0xFF7B6BA0),
               size: 16,
             ),
             SizedBox(width: 8),
@@ -2732,7 +2732,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6366F1),
+                color: Color(0xFF7B6BA0),
               ),
             ),
           ],
@@ -2797,9 +2797,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       width: 18,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: isChecked ? Color(0xFF6366F1) : Colors.transparent,
+                        color: isChecked ? Color(0xFF7B6BA0) : Colors.transparent,
                         border: Border.all(
-                          color: isChecked ? Color(0xFF6366F1) : Color(0xFFE2E8F0),
+                          color: isChecked ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0),
                           width: 2,
                         ),
                         borderRadius: BorderRadius.circular(4),
@@ -2868,11 +2868,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   decoration: InputDecoration(
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                   ),
@@ -3029,7 +3029,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('${breed.name} removed'),
-                          backgroundColor: Color(0xFF6366F1),
+                          backgroundColor: Color(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -3091,7 +3091,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Genotype updated for ${breed.name}'),
-                            backgroundColor: Color(0xFF6366F1),
+                            backgroundColor: Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -3150,7 +3150,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$label - Coming soon'),
-            backgroundColor: Color(0xFF6366F1),
+            backgroundColor: Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3265,7 +3265,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               side: BorderSide(color: Color(0xFFE2E8F0)),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: Text(
@@ -3292,7 +3292,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Task deleted'),
-        backgroundColor: Color(0xFF6366F1),
+        backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
       ),
@@ -3309,7 +3309,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Task removed from directory'),
-        backgroundColor: Color(0xFF6366F1),
+        backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
       ),
@@ -3329,11 +3329,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           decoration: InputDecoration(
             hintText: 'Enter task name',
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
           autofocus: true,
@@ -3353,13 +3353,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Task added to $category directory'),
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: Text('Add', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600)),
+            child: Text('Add', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -3383,7 +3383,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       return BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Color(0xFFE2E8F0)),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       );
     }
 
@@ -3447,8 +3447,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected ? Color(0xFFF0ECFE) : Colors.white,
-                    border: Border.all(color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -3458,9 +3458,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0), width: 1.5),
+                          border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0), width: 1.5),
                         ),
-                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF6366F1), shape: BoxShape.circle))) : null,
+                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF7B6BA0), shape: BoxShape.circle))) : null,
                       ),
                       SizedBox(width: 8),
                       Text(label, style: TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
@@ -3549,7 +3549,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                             items: [
                               ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF6366F1)))),
+                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF7B6BA0)))),
                             ],
                             onChanged: (val) {
                               setDialogState(() {
@@ -3574,8 +3574,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             hintText: 'Enter custom task name...',
                             hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF6366F1))),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0))),
                           ),
                         ),
                       ],
@@ -3695,8 +3695,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                               width: 18,
                                               height: 18,
                                               decoration: BoxDecoration(
-                                                color: isSelected ? Color(0xFF6366F1) : Colors.transparent,
-                                                border: Border.all(color: isSelected ? Color(0xFF6366F1) : Color(0xFF64748B), width: 1.5),
+                                                color: isSelected ? Color(0xFF7B6BA0) : Colors.transparent,
+                                                border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFF64748B), width: 1.5),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: isSelected ? Icon(Icons.check, size: 14, color: Colors.white) : null,
@@ -3753,7 +3753,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                               Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF6366F1)),
+                                SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF7B6BA0)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -3762,7 +3762,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF6366F1),
+                            backgroundColor: Color(0xFF7B6BA0),
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -3828,10 +3828,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         decoration: BoxDecoration(
           color: isSelected ? Color(0xFFFDF3E8) : Colors.white, // Very light teal background if selected
           border: Border.all(
-            color: isSelected ? Color(0xFF6366F1) : Color(0xFFE2E8F0), // Teal border if selected
+            color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0), // Teal border if selected
             width: isSelected ? 1.5 : 1.0,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -3842,7 +3842,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? Color(0xFF6366F1) : Color(0xFFCBD5E1), width: isSelected ? 5 : 1.5 // Thicker border simulates the "dot" inside
+                border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFCBD5E1), width: isSelected ? 5 : 1.5 // Thicker border simulates the "dot" inside
                     ),
                 color: Colors.white,
               ),
@@ -3872,7 +3872,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               decoration: InputDecoration(
                 labelText: 'Breed Name',
                 hintText: 'e.g. Holland Lop',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             SizedBox(height: 16),
@@ -3881,7 +3881,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               decoration: InputDecoration(
                 labelText: 'Genotype Template',
                 hintText: 'e.g. aa B- C- D- E-',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               style: TextStyle(fontFamily: 'monospace'),
             ),
@@ -3910,15 +3910,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${newBreed.name} added to breed library'),
-                    backgroundColor: Color(0xFF6366F1),
+                    backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF6366F1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: Color(0xFF7B6BA0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text('Add', style: TextStyle(color: Colors.white)),
           ),
@@ -3961,7 +3961,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                 ),
               ),
             ),
@@ -3975,7 +3975,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
                 ),
               ),
             ),
@@ -4028,7 +4028,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -4107,7 +4107,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFE9E9E7)),
             ),
-            child: const Icon(Icons.circle, size: 14, color: Color(0xFF6366F1)),
+            child: const Icon(Icons.circle, size: 14, color: Color(0xFF7B6BA0)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -4174,7 +4174,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             // Task Title
             Text(
               schedule['task'],
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF6366F1)),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
             ),
             const SizedBox(height: 16),
 
@@ -4224,7 +4224,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(PhosphorIconsBold.link, size: 12, color: const Color(0xFF6366F1)),
+                              Icon(PhosphorIconsBold.link, size: 12, color: const Color(0xFF7B6BA0)),
                               const SizedBox(width: 6),
                               Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500)),
                             ],
@@ -4251,8 +4251,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     label: const Text('Edit'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: const Color(0xFF6366F1),
-                      side: const BorderSide(color: Color(0xFF6366F1)),
+                      foregroundColor: const Color(0xFF7B6BA0),
+                      side: const BorderSide(color: Color(0xFF7B6BA0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -4297,7 +4297,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Schedule deleted'), backgroundColor: Color(0xFF6366F1)),
+        const SnackBar(content: Text('Schedule deleted'), backgroundColor: Color(0xFF7B6BA0)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

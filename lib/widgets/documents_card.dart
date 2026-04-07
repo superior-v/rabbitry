@@ -206,7 +206,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
             style: ElevatedButton.styleFrom(
               backgroundColor: kLilacDeep,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
               final name = ctrl.text.trim();
@@ -571,7 +571,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kLilacDeep, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            style: ElevatedButton.styleFrom(backgroundColor: kLilacDeep, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
               final newName = ctrl.text.trim();
               Navigator.pop(context);
