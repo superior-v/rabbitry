@@ -232,14 +232,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
     // Gestation days
     List<double> gestations = [];
-    for (final l in periodLitters) {
+    for (final l in _allLitters) {
       if (l.kindleDate != null) {
         final days = l.kindleDate!.difference(l.breedDate).inDays;
-        if (days > 25 && days < 40) {
+        if (days >= 28 && days <= 35) {
           gestations.add(days.toDouble());
         }
       }
     }
+
     _avgGestationDays = gestations.isNotEmpty ? gestations.reduce((a, b) => a + b) / gestations.length : 0;
 
     // Gestation bar chart data
@@ -425,7 +426,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       }
     }
 
-    _matureCount = _allRabbits.where((r) => r.type == RabbitType.doe || r.type == RabbitType.buck).where((r) {
+    _matureCount = allRabbitsIncArchived.where((r) => r.type == RabbitType.doe || r.type == RabbitType.buck).where((r) {
       if (r.dateOfBirth == null) return false;
       return r.dateOfBirth!.isAfter(periodStart);
     }).length;
@@ -525,7 +526,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     _buyerRevenueData = sortedBuyers.take(5).map((e) {
       return ChartData(label: e.key, value: e.value);
     }).toList();
+
+    // Prepare income stats for UI
+    _incomeStats = [];
+    if (_incomeData.isNotEmpty) {
+      for (int i = 0; i < _incomeData.length.clamp(0, 3); i++) {
+        _incomeStats.add(_MiniStatData(
+          label: _incomeData[i].label,
+          value: FormatUtils.formatCurrency(_incomeData[i].value),
+        ));
+      }
+    }
   }
+
+  List<_MiniStatData> _incomeStats = [];
 
   @override
   Widget build(BuildContext context) {
@@ -1244,39 +1258,46 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 100,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: LineChartPainter(data: _incomeData, color: kLilacDeep),
+          if (_incomeData.isEmpty)
+            const SizedBox(
+              height: 100,
+              child: Center(child: Text('No income data yet', style: TextStyle(color: kNeutral400, fontSize: 13))),
+            )
+          else ...[
+            SizedBox(
+              height: 100,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: LineChartPainter(data: _incomeData, color: kLilacDeep),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Meat', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)),
-              Text('Breeders', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)),
-              Text('Pets', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)),
-              Text('Manure', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _MiniStat(label: 'Breeders', value: '\$328'),
-              _MiniStat(label: 'Meat', value: '\$328'),
-              _MiniStat(label: 'Other', value: '\$164'),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(8)),
-            child: const Text('Breeders are the top revenue source this period', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
-          ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: _incomeData.take(4).map((d) => Text(
+                d.label,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400),
+              )).toList(),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: _incomeStats.map((s) => _MiniStat(label: s.label, value: s.value)).toList(),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                _incomeData.isNotEmpty 
+                  ? '${_incomeData.first.label} is the top revenue source this period'
+                  : 'Track your sales to see revenue sources',
+                textAlign: TextAlign.center, 
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1880,9 +1901,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 16),
-          _buildEconomicRow('Cost Per Doe', 'Feed + Meds ÷ Active Does', _costPerDoe > 0 ? FormatUtils.formatCurrency(_costPerDoe) : '\$4.50', '/month'),
+          _buildEconomicRow('Cost Per Doe', 'Feed + Meds ÷ Active Does', _costPerDoe > 0 ? FormatUtils.formatCurrency(_costPerDoe) : '--', '/month'),
           const Divider(height: 28, color: kNeutral200),
-          _buildEconomicRow('Cost Per ${FormatUtils.weightUnit} Meat', 'Total Exp ÷ Total ${FormatUtils.weightUnit}', _costPerWeight > 0 ? FormatUtils.formatCurrency(_costPerWeight) : '\$2.15', '/${FormatUtils.weightUnit}'),
+          _buildEconomicRow('Cost Per ${FormatUtils.weightUnit} Meat', 'Total Exp ÷ Total ${FormatUtils.weightUnit}', _costPerWeight > 0 ? FormatUtils.formatCurrency(_costPerWeight) : '--', '/${FormatUtils.weightUnit}'),
         ],
       ),
     );
@@ -2012,10 +2033,16 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kNeutral900)),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
         const SizedBox(height: 2),
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.4)),
+        Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.4)),
       ],
     );
   }
+}
+
+class _MiniStatData {
+  final String label;
+  final String value;
+  _MiniStatData({required this.label, required this.value});
 }

@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'settings_service.dart';
 
 class DatabaseService {
-  static const int _databaseVersion = 16;
+  static const int _databaseVersion = 17;
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
@@ -55,6 +55,10 @@ class DatabaseService {
                 'ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
           } catch (_) {}
         }
+        // Hot-patch folder column in documents
+        try {
+          await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
+        } catch (_) {}
       },
     );
   }
@@ -278,7 +282,8 @@ class DatabaseService {
         filePath TEXT NOT NULL,
         fileType TEXT NOT NULL DEFAULT 'file',
         fileSize INTEGER NOT NULL DEFAULT 0,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        folder TEXT DEFAULT 'Other'
       )
     ''');
 
@@ -316,6 +321,15 @@ class DatabaseService {
   // ==================== RABBIT CRUD ====================
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     print('🔄 Upgrading database from $oldVersion to $newVersion');
+
+    if (oldVersion < 17) {
+      try {
+        await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
+        print('✅ Added folder column to documents table');
+      } catch (e) {
+        print('⚠️ Folder column might already exist: $e');
+      }
+    }
 
     if (oldVersion < 2) {
       await db.execute('''
@@ -3454,6 +3468,13 @@ class DatabaseService {
 
   Future<void> insertDocument(RabbitDocument doc) async {
     final db = await database;
+    // Aggressive hot-patch for the 'folder' column to fix SQLite errors
+    try {
+      await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
+    } catch (_) {
+      // Column likely already exists
+    }
+    
     await db.insert('documents', doc.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted document: ${doc.name}');
@@ -3465,6 +3486,17 @@ class DatabaseService {
       'documents',
       where: 'rabbitId = ?',
       whereArgs: [rabbitId],
+      orderBy: 'createdAt DESC',
+    );
+    return maps.map((m) => RabbitDocument.fromMap(m)).toList();
+  }
+
+  Future<List<RabbitDocument>> getDocumentsByFolder(String rabbitId, String folder) async {
+    final db = await database;
+    final maps = await db.query(
+      'documents',
+      where: 'rabbitId = ? AND folder = ?',
+      whereArgs: [rabbitId, folder],
       orderBy: 'createdAt DESC',
     );
     return maps.map((m) => RabbitDocument.fromMap(m)).toList();

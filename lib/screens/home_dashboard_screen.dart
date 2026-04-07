@@ -603,16 +603,16 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(PhosphorIcons.genderMale(PhosphorIconsStyle.duotone), color: const Color(0xFF5B9BD5), size: 16),
+                            Icon(PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone), color: const Color(0xFFD4809A), size: 16),
                             const SizedBox(width: 6),
-                            Text(entry['buckName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
+                            Text(entry['doeName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
                               child: Text('×', style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 13)),
                             ),
-                            Icon(PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone), color: const Color(0xFFD4809A), size: 16),
+                            Icon(PhosphorIcons.genderMale(PhosphorIconsStyle.duotone), color: const Color(0xFF5B9BD5), size: 16),
                             const SizedBox(width: 6),
-                            Text(entry['doeName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
+                            Text(entry['buckName'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral900)),
                           ],
                         ),
                         Container(

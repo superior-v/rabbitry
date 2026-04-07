@@ -6,6 +6,7 @@ class RabbitDocument {
   final String fileType; // image, pdf, file
   final int fileSize; // bytes
   final String createdAt;
+  final String folder; // folder name this document belongs to
 
   RabbitDocument({
     required this.id,
@@ -15,6 +16,7 @@ class RabbitDocument {
     required this.fileType,
     required this.fileSize,
     required this.createdAt,
+    this.folder = 'Other',
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class RabbitDocument {
       'fileType': fileType,
       'fileSize': fileSize,
       'createdAt': createdAt,
+      'folder': folder,
     };
   }
 
@@ -38,6 +41,7 @@ class RabbitDocument {
       fileType: (map['fileType'] as String?) ?? 'file',
       fileSize: (map['fileSize'] as int?) ?? 0,
       createdAt: map['createdAt'] as String,
+      folder: (map['folder'] as String?) ?? 'Other',
     );
   }
 
@@ -49,6 +53,7 @@ class RabbitDocument {
     String? fileType,
     int? fileSize,
     String? createdAt,
+    String? folder,
   }) {
     return RabbitDocument(
       id: id ?? this.id,
@@ -58,6 +63,7 @@ class RabbitDocument {
       fileType: fileType ?? this.fileType,
       fileSize: fileSize ?? this.fileSize,
       createdAt: createdAt ?? this.createdAt,
+      folder: folder ?? this.folder,
     );
   }
 

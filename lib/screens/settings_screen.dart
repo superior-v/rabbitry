@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart'; // ✅ Add this
 import '../services/notification_service.dart'; // ✅ Add this
 import 'dart:convert';
+import '../utils/toast_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -355,24 +356,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
       setState(() => _isSaving = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(' Settings saved successfully'),
-          backgroundColor: Color(0xFF6366F1),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ToastUtils.showSuccess(context, 'Settings saved successfully');
     } catch (e) {
       setState(() => _isSaving = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error saving settings: $e'),
-          backgroundColor: const Color(0xFFD44C47),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ToastUtils.showError(context, 'Error saving settings: $e');
     }
   }
 
@@ -396,19 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     try {
       bool hasPermission = await _requestPermission(source);
       if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              source == ImageSource.camera ? 'Camera permission is required' : 'Gallery permission is required',
-            ),
-            backgroundColor: const Color(0xFFD44C47),
-            action: SnackBarAction(
-              label: 'Settings',
-              textColor: Colors.white,
-              onPressed: () => openAppSettings(),
-            ),
-          ),
-        );
+        ToastUtils.showError(context, source == ImageSource.camera ? 'Camera permission is required' : 'Gallery permission is required');
         return;
       }
 
@@ -420,17 +395,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       );
 
       if (image != null) {
-        setState(() {
-          _logoPath = image.path;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logo added successfully. Remember to tap Save!'),
-            backgroundColor: kLilacDeep,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        setState(() => _logoPath = image.path);
+        ToastUtils.showSuccess(context, 'Logo added successfully. Remember to tap Save!');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
