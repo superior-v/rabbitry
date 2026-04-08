@@ -395,7 +395,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       );
 
       if (image != null) {
-        setState(() => _logoPath = image.path);
+        // ✅ COPY TO PERMANENT STORAGE
+        final directory = await getApplicationDocumentsDirectory();
+        final String fileName = 'farm_logo_${DateTime.now().millisecondsSinceEpoch}.png';
+        final File permanentFile = await File(image.path).copy('${directory.path}/$fileName');
+        
+        setState(() => _logoPath = permanentFile.path);
         ToastUtils.showSuccess(context, 'Logo added successfully. Remember to tap Save!');
       }
     } catch (e) {

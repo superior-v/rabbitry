@@ -352,7 +352,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.rabbit(), color: _primaryColor, size: 20),
+
           const SizedBox(width: 8),
           Flexible(
             child: Text(
@@ -368,10 +368,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         ],
       ),
       actions: [
-        IconButton(
-          icon: Icon(PhosphorIcons.pencil(), color: _primaryColor, size: 22),
-          onPressed: _handleEdit,
-        ),
+
         IconButton(
           icon: Icon(PhosphorIcons.dotsThreeVertical(), color: _primaryColor, size: 24),
           onPressed: _openActionSheet,
@@ -396,52 +393,28 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ✅ Avatar with Tap to Change
-            GestureDetector(
-              onTap: _showImagePickerOptions,
-              child: Stack(
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: kNeutral200,
-                      border: Border.all(color: _pastelColor, width: 2.5),
-                      image: hasPhoto && photoPath != null && File(photoPath).existsSync()
-                          ? DecorationImage(
-                              image: FileImage(File(photoPath)),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: hasPhoto && photoPath != null && File(photoPath).existsSync()
-                        ? null
-                        : Icon(
-                            _currentRabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-                            size: 36,
-                            color: _currentRabbit.type == RabbitType.doe ? kPinkDeep : kBlueDeep,
-                          ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: kNeutral300, width: 1),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 13,
-                        color: kNeutral500,
-                      ),
-                    ),
-                  ),
-                ],
+            // ✅ Avatar - Display Only
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: kNeutral200,
+                border: Border.all(color: _pastelColor, width: 2.5),
+                image: hasPhoto && photoPath != null && File(photoPath).existsSync()
+                    ? DecorationImage(
+                        image: FileImage(File(photoPath)),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
+              child: hasPhoto && photoPath != null && File(photoPath).existsSync()
+                  ? null
+                  : Icon(
+                      _currentRabbit.type == RabbitType.doe ? Icons.female : Icons.male,
+                      size: 36,
+                      color: _currentRabbit.type == RabbitType.doe ? kPinkDeep : kBlueDeep,
+                    ),
             ),
             const SizedBox(width: 16),
             // Info
@@ -608,9 +581,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             isEditing: false,
           ),
           const SizedBox(height: 24),
-          _buildSectionHeader('GENETICS'),
-          GeneticsCard(rabbit: _currentRabbit, isEditing: false),
-          const SizedBox(height: 24),
           _buildSectionHeader('PARENTAGE'),
           ParentageCard(
             rabbit: _currentRabbit,
@@ -621,47 +591,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
               }
             },
           ),
+          const SizedBox(height: 24),
+          _buildSectionHeader('GENETICS'),
+          GeneticsCard(rabbit: _currentRabbit, isEditing: false),
           if (SettingsService.instance.showRabbitryEnabled) ...[
             const SizedBox(height: 24),
             _buildSectionHeader('REGISTRATION'),
             RegistrationCard(rabbit: _currentRabbit),
           ],
-          const SizedBox(height: 32),
-          // Edit Profile Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddRabbitScreen(editRabbit: _currentRabbit)),
-                ).then((_) async {
-                  final refreshed = await _db.getRabbit(_currentRabbit.id);
-                  if (refreshed != null && mounted) {
-                    setState(() {
-                      _currentRabbit = refreshed;
-                      _refreshCounter++;
-                    });
-                  }
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Edit Profile',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ),
-          ),
           const SizedBox(height: 40),
         ],
       ),
@@ -691,9 +628,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         children: [
           
           BreedingPipelineCard(rabbit: _currentRabbit),
-          const SizedBox(height: 24),
-          _buildSectionHeader('BREEDING STATS'),
-          _buildBreedingStats(),
           const SizedBox(height: 24),
           LitterHistoryCard(rabbit: _currentRabbit),
         ],
@@ -817,6 +751,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSectionHeader('BREEDING STATS'),
+          _buildBreedingStats(),
+          const SizedBox(height: 24),
           _buildSectionHeader('ANALYTICS'),
           StatsCards(
             rabbit: _currentRabbit,

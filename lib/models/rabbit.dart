@@ -139,6 +139,7 @@ class Rabbit {
   final double? butcherCost;
 
   // For DEAD status
+  DateTime? acquiredDate;
   final String? deathCause;
 
   // For CULL status
@@ -180,6 +181,7 @@ class Rabbit {
     this.currentLitterSize,
     this.weanDate,
     this.maturityDate,
+    this.acquiredDate,
     this.quarantineStartDate,
     this.quarantineEndDate,
     this.quarantineReason,
@@ -409,6 +411,7 @@ class Rabbit {
       'fallOffs': fallOffs,
       'breedingNotes': breedingNotes,
       'maturityDate': maturityDate?.toIso8601String(),
+      'acquiredDate': acquiredDate?.toIso8601String(),
       'quarantineStartDate': quarantineStartDate?.toIso8601String(),
       'quarantineEndDate': quarantineEndDate?.toIso8601String(),
       'quarantineReason': quarantineReason,
@@ -477,6 +480,7 @@ class Rabbit {
       fallOffs: map['fallOffs'] as int?,
       breedingNotes: map['breedingNotes'] as String?,
       maturityDate: map['maturityDate'] != null ? DateTime.parse(map['maturityDate']) : null,
+      acquiredDate: map['acquiredDate'] != null ? DateTime.parse(map['acquiredDate']) : null,
       quarantineStartDate: map['quarantineStartDate'] != null ? DateTime.parse(map['quarantineStartDate']) : null,
       quarantineEndDate: map['quarantineEndDate'] != null ? DateTime.parse(map['quarantineEndDate']) : null,
       quarantineReason: map['quarantineReason'],
@@ -537,6 +541,7 @@ class Rabbit {
     int? currentLitterSize,
     DateTime? weanDate,
     DateTime? maturityDate,
+    DateTime? acquiredDate,
     DateTime? quarantineStartDate,
     DateTime? quarantineEndDate,
     String? quarantineReason,
@@ -596,6 +601,7 @@ class Rabbit {
       currentLitterSize: currentLitterSize ?? this.currentLitterSize,
       weanDate: weanDate ?? this.weanDate,
       maturityDate: maturityDate ?? this.maturityDate,
+      acquiredDate: acquiredDate ?? this.acquiredDate,
       quarantineStartDate: quarantineStartDate ?? this.quarantineStartDate,
       quarantineEndDate: quarantineEndDate ?? this.quarantineEndDate,
       quarantineReason: quarantineReason ?? this.quarantineReason,

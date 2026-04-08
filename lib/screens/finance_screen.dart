@@ -59,8 +59,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   // Expanded groups tracking
   Set<String> _expandedGroups = {};
+  
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
   void initState() {
     super.initState();
     if (widget.initialRabbitId != null) {
@@ -193,17 +199,21 @@ class _FinanceScreenState extends State<FinanceScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildSummaryCards(),
-          _buildSearchAndGrouping(),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
-              child: _buildTransactionList(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          children: [
+            _buildSummaryCards(),
+            _buildSearchAndGrouping(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: _buildTransactionList(),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'finance_fab',
@@ -402,6 +412,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 border: Border.all(color: kNeutral300),
               ),
               child: TextField(
+                focusNode: _searchFocusNode,
                 onChanged: (value) => setState(() => _searchQuery = value),
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
@@ -1277,8 +1288,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
     return kPinkDeep;
   }
 
-  void _showGroupingMenu() {
-    showModalBottomSheet(
+  void _showGroupingMenu() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       elevation: 0,
@@ -1314,6 +1327,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
+    _searchFocusNode.unfocus();
   }
 
   Widget _buildGroupingOption(GroupingMode mode, String label, IconData icon, StateSetter setModalState) {
@@ -1354,10 +1369,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
         ),
       ),
     );
+    _searchFocusNode.unfocus();
   }
 
-  void _showDateFilterDialog() {
-    showModalBottomSheet(
+  void _showDateFilterDialog() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       elevation: 0,
@@ -1390,6 +1408,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
+    _searchFocusNode.unfocus();
   }
 
   Widget _buildDateFilterOption(DateFilter filter, String label) {
@@ -1448,11 +1468,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
   }
 
-  void _showFilterDialog() {
+  void _showFilterDialog() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
     // Current selection for the modal
     TransactionTypeFilter tempFilter = _typeFilter;
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       elevation: 0,
@@ -1571,6 +1593,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
+    _searchFocusNode.unfocus();
   }
 
   Widget _buildFilterChip(TransactionTypeFilter type, String label, IconData icon, TransactionTypeFilter current, Function(TransactionTypeFilter) onSelect) {
@@ -1610,10 +1634,15 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   void _addTransaction() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddTransactionScreen()),
     );
+    
+    _searchFocusNode.canRequestFocus = true;
+    _searchFocusNode.unfocus();
 
     if (result == true) {
       await _loadData();
@@ -1621,12 +1650,17 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   void _editTransaction(Transaction transaction) async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AddTransactionScreen(transaction: transaction),
       ),
     );
+
+    _searchFocusNode.canRequestFocus = true;
+    _searchFocusNode.unfocus();
 
     if (result == true) {
       await _loadData();

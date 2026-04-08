@@ -192,6 +192,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                    borderColor: _primaryColor.withOpacity(0.5),
                    isFullBorder: true,
                    onTap: () {}, // Subject is not editable here
+                   showEditIcon: false,
                  ),
 
                  if (selectedGenerations >= 2) ...[
@@ -402,147 +403,12 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2))),
-            
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select $label',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                      ),
-                      const SizedBox(height: 2),
-                      Text('Choose from herd or add new', style: TextStyle(fontSize: 13, color: kNeutral500, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: kNeutral100, shape: BoxShape.circle),
-                      child: const Icon(Icons.close, size: 18, color: kNeutral600),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: options.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(PhosphorIcons.users(), size: 48, color: kNeutral200),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No ${type == RabbitType.buck ? "Bucks" : "Does"} in herd',
-                            style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w600, fontSize: 16),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('Add ancestors to build your pedigree', style: TextStyle(color: kNeutral300, fontSize: 13)),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: options.length,
-                      separatorBuilder: (context, index) => const Divider(height: 1, color: kNeutral100),
-                      itemBuilder: (context, index) {
-                        final rabbit = options[index];
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          leading: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: type == RabbitType.buck ? kBlueWash : kPinkWash,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              rabbit.name.isNotEmpty ? rabbit.name[0].toUpperCase() : '?',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: type == RabbitType.buck ? kBlueDeep : kPinkDeep,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            rabbit.name,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF1F2937)),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              '${rabbit.breed} • ${rabbit.id}',
-                              style: TextStyle(color: kNeutral500, fontSize: 14, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          onTap: () {
-                            Navigator.pop(context);
-                            onSelect(rabbit);
-                          },
-                        );
-                      },
-                    ),
-            ),
-
-            // Bottom Action Bar
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AddRabbitScreen()),
-                        );
-                        if (result == true) {
-                          _loadPedigree();
-                          if (widget.onUpdated != null) widget.onUpdated!();
-                        }
-                      },
-                      icon: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
-                      label: const Text('Add New to Herd', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: type == RabbitType.buck ? kBlueDeep : kPinkDeep,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => _PedigreeEntryModal(
+        label: label,
+        type: type,
+        options: options,
+        onSelect: onSelect,
+        db: _db,
       ),
     );
   }
@@ -556,6 +422,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     bool isFullBorder = false,
     bool isSmall = false,
     VoidCallback? onTap,
+    bool showEditIcon = true,
   }) {
     final isPlaceholder = name.contains('Sire') || name.contains('Dam') || id.contains('Add');
 
@@ -570,19 +437,29 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
           border: isFullBorder
               ? Border.all(color: borderColor, width: 1.5)
               : Border(left: BorderSide(color: borderColor, width: 3)),
+          boxShadow: [
+             if (!isPlaceholder) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
         ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: isSmall ? 12 : 14,
-              fontWeight: FontWeight.w800,
-              color: isPlaceholder ? kNeutral400 : const Color(0xFF1F2937),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: isSmall ? 12 : 14,
+                    fontWeight: FontWeight.w800,
+                    color: isPlaceholder ? kNeutral400 : const Color(0xFF1F2937),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: kNeutral400.withOpacity(0.5)),
+            ],
           ),
           Text(
             id,
@@ -604,6 +481,353 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             ),
           ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PedigreeEntryModal extends StatefulWidget {
+  final String label;
+  final RabbitType type;
+  final List<Rabbit> options;
+  final Function(Rabbit) onSelect;
+  final DatabaseService db;
+
+  const _PedigreeEntryModal({
+    required this.label,
+    required this.type,
+    required this.options,
+    required this.onSelect,
+    required this.db,
+  });
+
+  @override
+  State<_PedigreeEntryModal> createState() => _PedigreeEntryModalState();
+}
+
+class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final _formKey = GlobalKey<FormState>();
+  
+  // Manual Entry Controllers
+  final _nameController = TextEditingController();
+  final _idController = TextEditingController();
+  final _breedController = TextEditingController();
+  final _regController = TextEditingController();
+  final _champController = TextEditingController();
+  final _legsController = TextEditingController();
+  final _genotypeController = TextEditingController();
+  
+  DateTime? _dateOfBirth;
+  DateTime? _acquiredDate;
+  late RabbitType _gender;
+  bool _isBroken = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _gender = widget.type;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2))),
+          
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Set ${widget.label}',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                ),
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: kNeutral100, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, size: 18, color: kNeutral600),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+
+          TabBar(
+            controller: _tabController,
+            indicatorColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
+            labelColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
+            unselectedLabelColor: kNeutral500,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            tabs: const [
+              Tab(text: 'SELECT FROM HERD'),
+              Tab(text: 'MANUAL ENTRY'),
+            ],
+          ),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildHerdTab(),
+                _buildManualTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHerdTab() {
+     if (widget.options.isEmpty) {
+       return Center(
+         child: Column(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             Icon(PhosphorIcons.users(), size: 48, color: kNeutral200),
+             const SizedBox(height: 16),
+             Text('No active herd members', style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w600)),
+             const SizedBox(height: 16),
+             TextButton(
+               onPressed: () => _tabController.animateTo(1),
+               child: Text('Add Manually Instead', style: TextStyle(color: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep, fontWeight: FontWeight.w700)),
+             ),
+           ],
+         ),
+       );
+     }
+
+     return ListView.separated(
+       padding: const EdgeInsets.all(20),
+       itemCount: widget.options.length,
+       separatorBuilder: (context, index) => const Divider(height: 1),
+       itemBuilder: (context, index) {
+         final rabbit = widget.options[index];
+         return ListTile(
+            title: Text(rabbit.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('${rabbit.breed} • ${rabbit.id}'),
+            trailing: const Icon(Icons.chevron_right, size: 16),
+            onTap: () {
+              Navigator.pop(context);
+              widget.onSelect(rabbit);
+            },
+         );
+       },
+     );
+  }
+
+  Widget _buildManualTab() {
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          _buildTextField('NAME', _nameController, hint: 'e.g. Blue Moon'),
+          const SizedBox(height: 16),
+          _buildTextField('ID / EAR #', _idController, hint: 'e.g. BM-001'),
+          const SizedBox(height: 16),
+          _buildTextField('BREED', _breedController, hint: 'e.g. Netherland Dwarf'),
+          const SizedBox(height: 24),
+          
+          Row(
+            children: [
+              Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
+              const SizedBox(width: 16),
+              Expanded(child: _buildDatePicker('ACQUIRED', _acquiredDate, (d) => setState(() => _acquiredDate = d))),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          Row(
+            children: [
+              const Text('SEX', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral500)),
+              const Spacer(),
+              _buildSexToggle(),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              Expanded(child: _buildTextField('REG #', _regController, hint: 'Optional')),
+              const SizedBox(width: 16),
+              Expanded(child: _buildTextField('CHAMP #', _champController, hint: 'Optional')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          Row(
+             children: [
+               Expanded(child: _buildTextField('LEGS', _legsController, hint: '0', isNumber: true)),
+               const SizedBox(width: 16),
+               Expanded(
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     const Text('BROKEN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500)),
+                     CheckboxListTile(
+                       value: _isBroken,
+                       onChanged: (val) => setState(() => _isBroken = val ?? false),
+                       title: const Text('Broken Pattern', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                       contentPadding: EdgeInsets.zero,
+                       controlAffinity: ListTileControlAffinity.leading,
+                       dense: true,
+                     ),
+                   ],
+                 ),
+               ),
+             ],
+          ),
+          const SizedBox(height: 16),
+          _buildTextField('GENETICS / GENOTYPE', _genotypeController, hint: 'e.g. aa B- C- D- E-'),
+          
+          const SizedBox(height: 40),
+          ElevatedButton(
+            onPressed: _saveManual,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
+              minimumSize: const Size(double.infinity, 54),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: const Text('Save Ancestor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  void _saveManual() async {
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name for the ancestor'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+    
+    final id = _idController.text.isNotEmpty ? _idController.text : 'PED-${DateTime.now().millisecondsSinceEpoch}';
+    
+    final newRabbit = Rabbit(
+      id: id,
+      name: _nameController.text,
+      type: _gender,
+      status: RabbitStatus.inactive, // Pedigree entries are inactive/non-herd
+      breed: _breedController.text.isNotEmpty ? _breedController.text : 'Unknown',
+      dateOfBirth: _dateOfBirth,
+      acquiredDate: _acquiredDate,
+      registrationNumber: _regController.text,
+      grandChampionNumber: _champController.text,
+      grandChampionLegs: int.tryParse(_legsController.text) ?? 0,
+      genetics: _genotypeController.text,
+      broken: _isBroken,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await widget.db.insertRabbit(newRabbit);
+    Navigator.pop(context);
+    widget.onSelect(newRabbit);
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, {String? hint, bool isNumber = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.normal),
+            filled: true,
+            fillColor: kNeutral50,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatePicker(String label, DateTime? value, Function(DateTime) onSelect) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500)),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: value ?? DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime.now(),
+            );
+            if (picked != null) onSelect(picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(color: kNeutral50, borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, size: 14, color: kNeutral400),
+                const SizedBox(width: 8),
+                Text(
+                  value != null ? "${value.day}/${value.month}/${value.year}" : 'Select Date',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: value != null ? kNeutral800 : kNeutral400),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSexToggle() {
+    return Container(
+      decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSexBtn('Buck', RabbitType.buck),
+          _buildSexBtn('Doe', RabbitType.doe),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSexBtn(String label, RabbitType type) {
+    final active = _gender == type;
+    final activeColor = type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+    return GestureDetector(
+      onTap: () => setState(() => _gender = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: active ? Colors.white : kNeutral500),
         ),
       ),
     );

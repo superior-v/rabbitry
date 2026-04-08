@@ -1450,6 +1450,29 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     await prefs.setBool('genetics_vienna_carrier_$rabbitId', _viennaCarrier);
   }
 
+  /// ✅ SYNC BREED TO LIBRARY
+  /// If the breed name doesn't exist in the library, add it.
+  Future<void> _syncBreedToLibrary(String breedName) async {
+    final name = breedName.trim();
+    if (name.isEmpty) return;
+
+    // Case-insensitive check
+    final exists = _availableBreeds.any((b) => b.name.toLowerCase() == name.toLowerCase());
+    
+    if (!exists) {
+      final newBreed = Breed(
+        id: 'B-${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        genetics: _autoGenetics != null && name == _breedController.text.trim()
+            ? _autoGenetics!.split(RegExp(r'[,\s]+')).where((g) => g.isNotEmpty).toList()
+            : [],
+      );
+      await _db.insertBreed(newBreed);
+      // Update local list to prevent double insertion if saving multiple times
+      _availableBreeds.add(newBreed);
+    }
+  }
+
   Future<void> _saveRabbit() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1521,6 +1544,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
         await _db.updateRabbit(updated);
 
+        // ✅ SYNC BREEDS TO LIBRARY
+        await _syncBreedToLibrary(_breedController.text);
+        if (_otherBreedController.text.isNotEmpty) {
+          await _syncBreedToLibrary(_otherBreedController.text);
+        }
+
         await _syncGeneticsCheckboxes(updated.id);
 
         if (updated.location != null && updated.location!.isNotEmpty && updated.cage != null && updated.cage!.isNotEmpty) {
@@ -1568,6 +1597,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         );
 
         await _db.insertRabbit(rabbit);
+
+        // ✅ SYNC BREEDS TO LIBRARY
+        await _syncBreedToLibrary(_breedController.text);
+        if (_otherBreedController.text.isNotEmpty) {
+          await _syncBreedToLibrary(_otherBreedController.text);
+        }
 
         await _syncGeneticsCheckboxes(rabbit.id);
 

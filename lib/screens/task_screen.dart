@@ -11,6 +11,7 @@ import '../widgets/modals/log_birth_modal.dart';
 import '../widgets/modals/wean_litter_modal.dart';
 import '../widgets/modals/move_cage_modal.dart';
 import '../widgets/modals/archive_modal.dart';
+import '../models/transaction.dart' as finance_model;
 import 'home_dashboard_screen.dart'
     show
         kLilac,
@@ -203,67 +204,126 @@ class TaskScreenState extends State<TaskScreen> {
     final costController = TextEditingController();
     final taskTitle = task['title']?.toString() ?? task['name']?.toString() ?? 'Task';
     final rabbitId = task['rabbitId']?.toString();
+    
+    finance_model.TransactionType selectedType = finance_model.TransactionType.expense;
 
-    final result = await showDialog<double?>(
+    final result = await showDialog<Map<String, dynamic>?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.check_circle_outline, color: kPrimary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(child: Text('Task Complete', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-        ]),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(taskTitle, style: const TextStyle(fontSize: 14, color: Color(0xFF787774))),
-          const SizedBox(height: 16),
-          const Text('Any cost spent on this task?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: costController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: '0.00',
-              prefixText: '${FormatUtils.currencySymbol}',
-              prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: (selectedType == finance_model.TransactionType.income ? kSuccess : kPrimary).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(selectedType == finance_model.TransactionType.income ? Icons.add_chart_rounded : Icons.check_circle_outline, 
+                color: selectedType == finance_model.TransactionType.income ? kSuccess : kPrimary, size: 20),
             ),
-          ),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, 0.0), child: const Text('No Cost', style: TextStyle(color: Color(0xFF787774)))),
-          ElevatedButton(
-            onPressed: () { final cost = double.tryParse(costController.text) ?? 0.0; Navigator.pop(ctx, cost); },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text('Save'),
-          ),
-        ],
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Complete Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+          ]),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(taskTitle, style: const TextStyle(fontSize: 14, color: Color(0xFF787774))),
+            const SizedBox(height: 20),
+            
+            // Toggle for Income/Expense
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: kNeutral100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setDialogState(() => selectedType = finance_model.TransactionType.expense),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selectedType == finance_model.TransactionType.expense ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: selectedType == finance_model.TransactionType.expense ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : [],
+                        ),
+                        child: Text('Expense', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: selectedType == finance_model.TransactionType.expense ? kPrimary : kNeutral500)),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setDialogState(() => selectedType = finance_model.TransactionType.income),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selectedType == finance_model.TransactionType.income ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: selectedType == finance_model.TransactionType.income ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : [],
+                        ),
+                        child: Text('Income', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: selectedType == finance_model.TransactionType.income ? kSuccess : kNeutral500)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            Text(selectedType == finance_model.TransactionType.income ? 'Amount received?' : 'Any cost spent?', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: costController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText: '${FormatUtils.currencySymbol}',
+                prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: selectedType == finance_model.TransactionType.income ? kSuccess : kPrimary, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, {'amount': 0.0, 'type': selectedType}), child: const Text('No Amount', style: TextStyle(color: Color(0xFF787774)))),
+            ElevatedButton(
+              onPressed: () { 
+                final amount = double.tryParse(costController.text) ?? 0.0; 
+                Navigator.pop(ctx, {'amount': amount, 'type': selectedType}); 
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: selectedType == finance_model.TransactionType.income ? kSuccess : kPrimary, 
+                foregroundColor: Colors.white, 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
 
     if (result == null) return;
-    final cost = result > 0 ? result : null;
+    final amount = result['amount'] as double;
+    final type = result['type'] as finance_model.TransactionType;
+    final isPageReloadNeeded = amount > 0;
+    
     final isPipeline = task['isPipelineTask'] == true;
     final taskTitle2 = task['title']?.toString() ?? task['name']?.toString() ?? 'Task';
 
     if (isPipeline) {
       final taskId = task['id']?.toString();
       if (taskId != null) {
-        if (cost != null) {
-          await _db.completeTaskWithCost(taskId, cost, rabbitId, taskTitle: taskTitle2, taskCategory: taskCategory);
+        if (amount > 0) {
+          await _db.completeTaskWithCost(taskId, amount, rabbitId, taskTitle: taskTitle2, taskCategory: taskCategory, type: type);
         } else { await _db.completeTask(taskId); }
       }
     } else {
       final taskId = task['id'] as int?;
       if (taskId == null) return;
-      if (cost != null) {
-        await _db.markScheduledTaskCompletedWithCost(taskId, cost, taskTitle: taskTitle2, taskCategory: taskCategory, rabbitId: rabbitId);
+      if (amount > 0) {
+        await _db.markScheduledTaskCompletedWithCost(taskId, amount, taskTitle: taskTitle2, taskCategory: taskCategory, rabbitId: rabbitId, type: type);
       } else { await _db.markScheduledTaskCompleted(taskId); }
     }
     await _loadScheduledTasks();

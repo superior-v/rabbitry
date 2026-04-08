@@ -30,7 +30,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   // Form state
   TransactionType _type = TransactionType.income;
   EntryMode _entryMode = EntryMode.single;
-  TransactionCategory? _category;
+  TransactionCategory? _category = TransactionCategory.soldKit;
   LinkType _linkType = LinkType.general;
 
   final _amountController = TextEditingController();
@@ -123,57 +123,61 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep)))
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  // Income/Expense toggle
-                  _buildTypeToggle(),
-                  SizedBox(height: 24),
-
-                  // Entry mode (for income only)
-                  if (_type == TransactionType.income && _category == TransactionCategory.soldKit) ...[
-                    _buildEntryModeSelector(),
+          : GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              behavior: HitTestBehavior.opaque,
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: EdgeInsets.all(16),
+                  children: [
+                    // Income/Expense toggle
+                    _buildTypeToggle(),
                     SizedBox(height: 24),
+
+                    // Entry mode (for income only)
+                    if (_type == TransactionType.income && _category == TransactionCategory.soldKit) ...[
+                      _buildEntryModeSelector(),
+                      SizedBox(height: 24),
+                    ],
+
+                    // Category dropdown
+                    _buildCategoryDropdown(),
+                    SizedBox(height: 16),
+
+                    // Link type selector
+                    _buildLinkTypeSelector(),
+                    SizedBox(height: 16),
+
+                    // Rabbit/Litter selector based on link type
+                    if (_linkType == LinkType.rabbit) _buildRabbitSelector(),
+                    if (_linkType == LinkType.litter) _buildLitterSelector(),
+
+                    SizedBox(height: 16),
+
+                    // Kit selector for whole litter mode
+                    if (_entryMode == EntryMode.wholeLitter && _selectedLitterId != null) _buildKitSelector(),
+
+                    // Amount field
+                    _buildAmountField(),
+                    SizedBox(height: 16),
+
+                    // Date picker
+                    _buildDatePicker(),
+                    SizedBox(height: 16),
+
+                    // Description
+                    _buildDescriptionField(),
+                    SizedBox(height: 16),
+
+                    // Notes
+                    _buildNotesField(),
+                    SizedBox(height: 32),
+
+                    // Save button
+                    _buildSaveButton(),
                   ],
-
-                  // Category dropdown
-                  _buildCategoryDropdown(),
-                  SizedBox(height: 16),
-
-                  // Link type selector
-                  _buildLinkTypeSelector(),
-                  SizedBox(height: 16),
-
-                  // Rabbit/Litter selector based on link type
-                  if (_linkType == LinkType.rabbit) _buildRabbitSelector(),
-                  if (_linkType == LinkType.litter) _buildLitterSelector(),
-
-                  SizedBox(height: 16),
-
-                  // Kit selector for whole litter mode
-                  if (_entryMode == EntryMode.wholeLitter && _selectedLitterId != null) _buildKitSelector(),
-
-                  // Amount field
-                  _buildAmountField(),
-                  SizedBox(height: 16),
-
-                  // Date picker
-                  _buildDatePicker(),
-                  SizedBox(height: 16),
-
-                  // Description
-                  _buildDescriptionField(),
-                  SizedBox(height: 16),
-
-                  // Notes
-                  _buildNotesField(),
-                  SizedBox(height: 32),
-
-                  // Save button
-                  _buildSaveButton(),
-                ],
+                ),
               ),
             ),
     );
@@ -193,7 +197,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _type = TransactionType.income;
-                _category = null;
+                _category = TransactionCategory.soldKit;
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -221,7 +225,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _type = TransactionType.expense;
-                _category = null;
+                _category = TransactionCategory.feed; // Default expense to Feed
                 _entryMode = EntryMode.single;
               }),
               child: Container(
@@ -358,9 +362,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             onChanged: (value) {
               setState(() {
                 _category = value;
-                if (value == TransactionCategory.soldKit) {
-                  _linkType = LinkType.rabbit;
-                }
               });
             },
             validator: (value) => value == null ? 'Please select a category' : null,

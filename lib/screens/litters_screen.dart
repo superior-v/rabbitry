@@ -43,6 +43,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
   List<Barn> _barns = [];
   bool _isBarnEditMode = false;
   bool _isLoading = true; // œ… ADD THIS
+  final FocusNode _searchFocusNode = FocusNode();
+
 
   @override
   void initState() {
@@ -110,26 +112,36 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildViewTabs(),
-          _buildSearchAndGroup(),
-          if (_locationFilter != null) _buildFilterBanner(),
-          _buildStageChips(),
-          Expanded(
-            child: TabBarView(
-              controller: _viewTabController,
-              children: [
-                _buildLittersList(),
-                _buildKitsList(),
-              ],
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          children: [
+            _buildViewTabs(),
+            _buildSearchAndGroup(),
+            if (_locationFilter != null) _buildFilterBanner(),
+            _buildStageChips(),
+            Expanded(
+              child: TabBarView(
+                controller: _viewTabController,
+                children: [
+                  _buildLittersList(),
+                  _buildKitsList(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'litter_fab',
-        onPressed: _showAddLitterDialog,
+        onPressed: () async {
+          _searchFocusNode.canRequestFocus = false;
+          FocusScope.of(context).unfocus();
+          await _showAddLitterDialog();
+          _searchFocusNode.canRequestFocus = true;
+        },
+
         backgroundColor: kLilacDeep,
         shape: const CircleBorder(),
         elevation: 4,
@@ -150,7 +162,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       centerTitle: false,
       leading: IconButton(
         icon: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: kLilacDeep),
-        onPressed: _showBarnDrawer,
+        onPressed: () async {
+          _searchFocusNode.canRequestFocus = false;
+          FocusScope.of(context).unfocus();
+          await _showBarnDrawer();
+          _searchFocusNode.canRequestFocus = true;
+        },
       ),
       title: const Text(
         'Nursery Manager',
@@ -166,7 +183,13 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
           children: [
             IconButton(
               icon: Icon(PhosphorIcons.faders(PhosphorIconsStyle.duotone), color: kLilacDeep),
-              onPressed: _showFilterModal,
+              onPressed: () async {
+                _searchFocusNode.canRequestFocus = false;
+                FocusScope.of(context).unfocus();
+                await _showFilterModal();
+                _searchFocusNode.canRequestFocus = true;
+              },
+
             ),
             if (_filters['age'] != 'all' || _filters['weight'] != 'all')
               Positioned(
@@ -257,6 +280,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
               border: Border.all(color: kNeutral200),
             ),
             child: TextField(
+              focusNode: _searchFocusNode,
               onChanged: (value) => setState(() => _searchQuery = value),
               style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
@@ -275,7 +299,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 child: _buildActionButton(
                   icon: PhosphorIcons.rows(PhosphorIconsStyle.duotone),
                   label: _grouping == 'none' ? 'Group: None' : 'Grouping: ${_grouping.toUpperCase()}',
-                  onTap: _showGroupingModal,
+                  onTap: () async {
+              _searchFocusNode.canRequestFocus = false;
+               FocusScope.of(context).unfocus();
+              await _showGroupingModal();
+              _searchFocusNode.canRequestFocus = true;
+            },
                   isActive: _grouping != 'none',
                 ),
               ),
@@ -328,8 +357,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
-  void _showGroupingModal() {
-    showModalBottomSheet(
+  Future<void> _showGroupingModal() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -355,6 +386,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
   }
 
   Widget _buildGroupingOption(String value, String label, IconData icon) {
@@ -481,6 +513,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
       (
         litter,
       ) {
+        // ✅ HIDE litters with 0 alive kits (moved to History)
+        if (litter.aliveKits == 0) return false;
+
         // Search filter
         if (_searchQuery.isNotEmpty) {
           final query = _searchQuery.toLowerCase();
@@ -505,7 +540,22 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
             )
             .toList();
 
-        return validKits.isNotEmpty;
+        // ✅ SHOW litter if:
+        // 1. It has kits that match the stage
+        // 2. OR it's the 'All' tab (show everything)
+        // 3. OR it has no kits but its overall status matches the stage
+        if (_currentStage == 'All') return true;
+        if (validKits.isNotEmpty) return true;
+        
+        if (litter.kits.isEmpty) {
+          final lStatus = litter.status.toLowerCase();
+          final cStage = _currentStage.toLowerCase();
+          
+          if (cStage == 'archive' && lStatus == 'archived') return true;
+          if (cStage == lStatus) return true;
+        }
+
+        return false;
       },
     ).toList();
   }
@@ -716,7 +766,15 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                         ],
                       ),
                     ),
-                    _buildIconButton(icon: PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold), onTap: () => _showLitterActions(litter)),
+                    _buildIconButton(
+                      icon: PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold),
+                      onTap: () async {
+                        _searchFocusNode.canRequestFocus = false;
+                         FocusScope.of(context).unfocus();
+                        await _showLitterActions(litter);
+                        _searchFocusNode.canRequestFocus = true;
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -1129,8 +1187,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
   void _openKitDetail(Litter litter, Kit kit) => _showKitActions(litter, kit);
 
-  void _showLitterActions(Litter litter) {
-    showModalBottomSheet(
+  Future<void> _showLitterActions(Litter litter) async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
@@ -1196,6 +1256,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
   }
 
   void _showKitActions(Litter litter, Kit kit) {
@@ -1235,10 +1296,15 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                 Navigator.pop(context);
                 _showEditKitDetails(litter, kit);
               }),
-              if (kit.status == 'GrowOut')
-                _buildActionOption(icon: PhosphorIcons.sparkle(PhosphorIconsStyle.bold), label: 'Promote to Mature', color: const Color(0xFF2E7B32), onTap: () {
+              if (kit.status == 'Nursing')
+                _buildActionOption(icon: PhosphorIcons.scissors(PhosphorIconsStyle.bold), label: 'Wean Kit', color: kLilacDeep, onTap: () {
                   Navigator.pop(context);
-                  _promoteKitToMature(litter, kit);
+                  _weanIndividualKit(litter, kit);
+                }),
+              if (kit.status == 'Weaned' || kit.status == 'GrowOut')
+                _buildActionOption(icon: PhosphorIcons.sparkle(PhosphorIconsStyle.bold), label: kit.status == 'GrowOut' ? 'Promote to Mature' : 'Move to Breeders Directory', color: const Color(0xFF2E7B32), onTap: () {
+                  Navigator.pop(context);
+                  _promoteKitToMature(litter, kit, isGrowOut: kit.status == 'Weaned');
                 }),
               _buildActionOption(icon: PhosphorIcons.currencyDollar(PhosphorIconsStyle.bold), label: 'Sell Kit', color: kNeutral600, onTap: () {
                 Navigator.pop(context);
@@ -1278,7 +1344,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
-  void _promoteKitToMature(Litter litter, Kit kit) async {
+  void _promoteKitToMature(Litter litter, Kit kit, {bool isGrowOut = false}) async {
     // Generate next rabbit ID
     String nextId = '';
     try {
@@ -1397,6 +1463,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
                                           customId: idController.text.isNotEmpty ? idController.text : null,
                                           type: isBuck ? RabbitType.buck : RabbitType.doe,
                                           breed: breedController.text,
+                                          status: isGrowOut ? RabbitStatus.growout : RabbitStatus.open,
                                           location: selectedLocation,
                                           cage: selectedCage,
                                           dateOfBirth: dateOfBirth,
@@ -1412,7 +1479,7 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text('${newRabbit?.name ?? "Kit"} promoted to ${isBuck ? 'Buck' : 'Doe'}!'),
+                                              content: Text('${newRabbit?.name ?? "Kit"} moved to Breeders Directory as ${isGrowOut ? 'Grow Out' : (isBuck ? 'Buck' : 'Doe')}!'),
                                               backgroundColor: const Color(0xFF7B6BA0),
                                               behavior: SnackBarBehavior.floating,
                                             ),
@@ -1696,6 +1763,43 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         );
       },
     );
+  }
+
+  void _weanIndividualKit(Litter litter, Kit kit) async {
+    try {
+      final index = litters.indexWhere((l) => l.id == litter.id);
+      if (index != -1) {
+        final updatedKits = litters[index].kits.map((k) {
+          if (k.id == kit.id) {
+            return k.copyWith(status: 'Weaned');
+          }
+          return k;
+        }).toList();
+
+        final updatedLitter = litters[index].copyWith(
+          kits: updatedKits,
+        );
+
+        await _db.updateLitter(updatedLitter);
+        await _refreshLitters();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Kit ${kit.id} weaned successfully'),
+              backgroundColor: const Color(0xFF7B6BA0),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildPromoteTextField(
@@ -4095,8 +4199,9 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
 
   // ==================== BARN DRAWER ====================
 
-  void _showBarnDrawer() {
-    showGeneralDialog(
+  Future<void> _showBarnDrawer() async {
+
+    await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Barn Drawer',
@@ -4708,8 +4813,8 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     await _refreshLitters();
   }
 
-  void _showFilterModal() {
-    showDialog(
+  Future<void> _showFilterModal() async {
+    await showDialog(
       context: context,
       builder: (
         context,
@@ -4957,8 +5062,10 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
     );
   }
 
-  void _showAddLitterDialog() {
-    showModalBottomSheet(
+  Future<void> _showAddLitterDialog() async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -4978,10 +5085,12 @@ class _LittersScreenState extends State<LittersScreen> with SingleTickerProvider
         },
       ),
     );
+    _searchFocusNode.canRequestFocus = true;
   }
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     _viewTabController.dispose();
     super.dispose();
   }

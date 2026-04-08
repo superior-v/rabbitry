@@ -10,42 +10,43 @@ import 'dart:io';
 import 'rabbit_detail_screen.dart';
 import 'add_rabbit_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter/services.dart';
 import '../widgets/action_sheets/rabbit_action_sheet.dart';
-import 'home_dashboard_screen.dart'
-    show
-        kLilac,
-        kLilacLight,
-        kLilacWash,
-        kLilacDeep,
-        kLilacText,
-        kBlue,
-        kBlueLight,
-        kBlueWash,
-        kPink,
-        kPinkLight,
-        kPinkWash,
-        kNeutral900,
-        kNeutral800,
-        kNeutral700,
-        kNeutral600,
-        kNeutral500,
-        kNeutral400,
-        kNeutral300,
-        kNeutral200,
-        kNeutral100,
-        kNeutral50;
+import 'home_dashboard_screen.dart';
 
 // Re-defining for local scope consistency or using imported ones
-const kPrimary = kLilacDeep;
+const kPrimary = Color(0xFF7B6BA0);
 const kDoeTheme = Color(0xFFB5567A);
 const kDoeIcon = Color(0xFFD4809A);
 const kBuckTheme = Color(0xFF3A7BB8);
 const kBuckIcon = Color(0xFF5B9BD5);
-const kArchiveTheme = kLilacText;
-const kArchiveIcon = kLilacDeep;
+const kArchiveTheme = Color(0xFF8E8E93);
+const kArchiveIcon = Color(0xFF636366);
 const kSuccess = Color(0xFF4CAF50);
 const kError = Color(0xFFD94452);
 const kWarning = Color(0xFFF59E0B);
+
+// New Design Tokens
+const Color hLilacWash = Color(0xFFF4F0FA);
+const Color hPinkWash = Color(0xFFFDF2F5);
+const Color hBlueWash = Color(0xFFEFF6FB);
+const Color hNeutral50 = Color(0xFFF9F9F9);
+const Color hNeutral100 = Color(0xFFF9F9FB);
+const Color hNeutral200 = Color(0xFFF2F2F7);
+const Color hNeutral300 = Color(0xFFE5E5EA);
+const Color hNeutral400 = Color(0xFFD1D1D6);
+const Color hNeutral500 = Color(0xFFAEAEB2);
+const Color hNeutral600 = Color(0xFF8E8E93);
+const Color hNeutral700 = Color(0xFF636366);
+const Color hNeutral800 = Color(0xFF3A3A3C);
+const Color hNeutral900 = Color(0xFF2C2C2E);
+const Color hLilacDeep = Color(0xFF7B6BA0);
+const Color hLilacLight = Color(0xFFE8DFFA);
+const Color hLilacText = Color(0xFF5A4880);
+const Color hPinkDeep = Color(0xFFC47A8B);
+const Color hPinkLight = Color(0xFFF8D7E0);
+const Color hBlueDeep = Color(0xFF4A7FA0);
+const Color hBlueLight = Color(0xFFD6E9F5);
 
 class HerdScreen extends StatefulWidget {
   const HerdScreen({Key? key}) : super(key: key);
@@ -62,6 +63,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   String? _locationFilter;
   String _grouping = 'none';
   bool _isBarnEditMode = false;
+  bool _isSearchEnabled = false; // New flag for the ultimate focus block
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -91,6 +93,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         });
       }
     });
+    // Start with focus disabled to prevent auto-popup
+    _searchFocusNode.canRequestFocus = false;
     _loadData();
   }
 
@@ -166,12 +170,21 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     final breeds = _allRabbits
         .where((r) => r.breed.isNotEmpty)
         .map((r) {
-          final b = r.breed;
-          if (b == 'Hotot' || b == 'Dwarf Hotot' || b == 'Netherlands') return 'Netherlands';
+          final b = r.breed.trim();
+          // Normalize Netherland Dwarf variations
+          if (b.toLowerCase() == 'netherlands' || 
+              b.toLowerCase() == 'netherland dwarfs' || 
+              b.toLowerCase() == 'netherland dwarf') {
+            return 'Netherland Dwarf';
+          }
           return b;
         })
         .toSet()
         .toList();
+    
+    // Ensure 'Dwarf Hotot' is included if present in rabbits but was previously mapped away
+    // (The mapping above handles the merging, but we should make sure the set is clean)
+    
     breeds.sort();
     return ['All', ...breeds];
   }
@@ -212,12 +225,26 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   }
 
   Future<void> _navigateToDetail(Rabbit rabbit) async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => RabbitDetailScreen(rabbit: rabbit),
       ),
     );
+    
+    // Explicitly unfocus and LOCK focus again when returning
+    if (mounted) {
+      setState(() {
+        _isSearchEnabled = false;
+        _searchFocusNode.canRequestFocus = false;
+      });
+      FocusScope.of(context).unfocus();
+      SystemChannels.textInput.invokeMethod('TextInput.hide');
+    }
+
 
     // Force full data reload when returning from detail screen
     if (!mounted) return;
@@ -257,7 +284,10 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     if (mounted) setState(() {});
   }
 
-  void _showRabbitActions(Rabbit rabbit) {
+  Future<void> _showRabbitActions(Rabbit rabbit) async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusScope.of(context).unfocus();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -278,8 +308,16 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         },
       ),
     ).then((_) {
-      // Additional refresh when bottom sheet closes
-      _refreshData();
+      // Explicitly unfocus and LOCK focus again
+      if (mounted) {
+        setState(() {
+          _isSearchEnabled = false;
+          _searchFocusNode.canRequestFocus = false;
+        });
+        FocusScope.of(context).unfocus();
+        SystemChannels.textInput.invokeMethod('TextInput.hide');
+        _refreshData();
+      }
     });
   }
 
@@ -319,67 +357,46 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       return Scaffold(
         backgroundColor: Colors.white,
         body: const Center(
-          child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(kPrimary)),
+          child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(hLilacDeep)),
         ),
       );
     }
 
-    final activeThemeColor = _tabController.index == 0 ? kPinkWash : (_tabController.index == 1 ? kBlueWash : kLilacWash);
-    final activeBorderColor = _tabController.index == 0 ? kPinkLight : (_tabController.index == 1 ? kBlueLight : kLilacLight);
-    final activeTextColor = _tabController.index == 0 ? kDoeTheme : (_tabController.index == 1 ? kBuckTheme : kLilacText);
-    final activeIconColor = _tabController.index == 0 ? kDoeIcon : (_tabController.index == 1 ? kBuckIcon : kLilacDeep);
+    final activeIconColor = _tabController.index == 0 ? hPinkDeep : (_tabController.index == 1 ? hBlueDeep : hNeutral700);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          decoration: BoxDecoration(
-            color: activeThemeColor,
-            border: Border(bottom: BorderSide(color: activeBorderColor)),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: activeIconColor, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Breeders Directory',
-                    style: TextStyle(
-                      color: activeTextColor,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: _showBarnDrawer,
-                    icon: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: activeIconColor, size: 24),
-                  ),
-                  IconButton(
-                    onPressed: () => _searchFocusNode.requestFocus(),
-                    icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: activeIconColor, size: 24),
-                  ),
+      backgroundColor: hNeutral100,
+      body: Column(
+        children: [
+          // Nav Hero: Header + Segmented Control
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  hLilacWash.withOpacity(0.8),
+                  hNeutral100,
                 ],
               ),
             ),
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildSegmentedControl(),
+              ],
+            ),
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildCleanTabs(),
-          _buildSearchAndGroup(),
+          
+          // Nav Flat: Action Row + Pipeline Menu
+          _buildActionRow(),
           if (_locationFilter != null) _buildFilterBanner(),
-          _buildFilterChips(),
+          _buildPipelineMenu(),
+
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshData,
-              color: kPrimary,
+              color: hLilacDeep,
               child: TabBarView(
                 controller: _tabController,
                 physics: const NeverScrollableScrollPhysics(),
@@ -397,12 +414,21 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           ? FloatingActionButton(
               heroTag: 'herd_fab',
               onPressed: () async {
+                _searchFocusNode.canRequestFocus = false;
+                FocusScope.of(context).unfocus();
                 final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen()));
+                if (mounted) {
+                  setState(() {
+                    _isSearchEnabled = false;
+                    _searchFocusNode.canRequestFocus = false;
+                  });
+                  FocusScope.of(context).unfocus();
+                }
                 if (result == true) {
                   await _refreshData();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('🐰 Rabbit added successfully'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating, backgroundColor: kPrimary),
+                      const SnackBar(content: Text('🐰 Rabbit added successfully'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating, backgroundColor: hLilacDeep),
                     );
                   }
                 }
@@ -416,22 +442,69 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  Widget _buildCleanTabs() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-      child: Row(
-        children: [
-          _buildPillTab('Does', PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone), 0, kDoeIcon),
-          const SizedBox(width: 8),
-          _buildPillTab('Bucks', PhosphorIcons.genderMale(PhosphorIconsStyle.duotone), 1, kBuckIcon),
-          const SizedBox(width: 8),
-          _buildPillTab('Archive', PhosphorIcons.archive(PhosphorIconsStyle.duotone), 2, kLilacDeep),
-        ],
+  Widget _buildHeader() {
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            const Text(
+              'Breeders',
+              style: TextStyle(
+                color: hLilacText,
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () async {
+                _searchFocusNode.canRequestFocus = false;
+                FocusScope.of(context).unfocus();
+                await _showBarnDrawer();
+                if (mounted) {
+                  setState(() {
+                    _isSearchEnabled = false;
+                    _searchFocusNode.canRequestFocus = false;
+                  });
+                  FocusScope.of(context).unfocus();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12, right: 8, top: 4, bottom: 4),
+                child: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: hLilacDeep, size: 24),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPillTab(String label, IconData icon, int index, Color activeColor) {
+  Widget _buildSegmentedControl() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: hLilacDeep.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            _buildSegmentBtn('Does', 0),
+            _buildSegmentBtn('Bucks', 1),
+            _buildSegmentBtn('Archive', 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentBtn(String label, int index) {
     final isActive = _tabController.index == index;
     return Expanded(
       child: GestureDetector(
@@ -444,121 +517,130 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           });
         },
         child: Container(
-          height: 38,
+          padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: isActive ? activeColor : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isActive ? activeColor : kNeutral300),
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isActive ? [BoxShadow(color: hLilacDeep.withOpacity(0.12), blurRadius: 6, offset: const Offset(0, 2))] : null,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 16, color: isActive ? Colors.white : activeColor),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(fontSize: 14, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500, color: isActive ? Colors.white : kNeutral700),
-              ),
-            ],
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isActive ? hLilacDeep : hLilacText.withOpacity(0.6),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSearchAndGroup() {
-    // Determine active colors based on tab
-    final activeWash = _tabController.index == 0 ? kPinkWash : (_tabController.index == 1 ? kBlueWash : kLilacWash);
-    final activeBorder = _tabController.index == 0 ? kPinkLight : (_tabController.index == 1 ? kBlueLight : kLilacLight);
-    final activeText = _tabController.index == 0 ? kDoeTheme : (_tabController.index == 1 ? kBuckTheme : kLilacText);
-
+  Widget _buildActionRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+      child: Row(
         children: [
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: kNeutral50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kNeutral200),
-            ),
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              onChanged: (value) => setState(() => _searchQuery = value),
-              style: const TextStyle(fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'Search ID or Name...',
-                hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 16),
-                prefixIcon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: kNeutral500, size: 18),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          // Search Bar
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                if (!_isSearchEnabled) {
+                  setState(() {
+                    _isSearchEnabled = true;
+                    _searchFocusNode.canRequestFocus = true;
+                  });
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    if (mounted) _searchFocusNode.requestFocus();
+                  });
+                }
+              },
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _isSearchEnabled ? hLilacDeep : hNeutral200),
+                  boxShadow: _isSearchEnabled ? [BoxShadow(color: hLilacDeep.withOpacity(0.08), spreadRadius: 3)] : null,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: IgnorePointer(
+                  ignoring: !_isSearchEnabled,
+                  child: Row(
+                    children: [
+                      Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: hNeutral400, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          enabled: _isSearchEnabled,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          onChanged: (value) => setState(() => _searchQuery = value),
+                          style: const TextStyle(fontSize: 14, color: hNeutral900),
+                          decoration: InputDecoration(
+                            hintText: 'Search by name or ID...',
+                            hintStyle: const TextStyle(color: hNeutral400, fontSize: 13.5, fontWeight: FontWeight.w400),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          child: const Icon(Icons.clear, size: 18, color: hNeutral500),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildControlItem(
-                label: _breedFilter == 'All' ? 'Filter' : _breedFilter,
-                icon: PhosphorIcons.funnel(PhosphorIconsStyle.duotone),
-                isActive: _breedFilter != 'All',
-                activeWash: activeWash,
-                activeBorder: activeBorder,
-                activeText: activeText,
-                onTap: _showBreedFilterModal,
-              ),
-              const SizedBox(width: 8),
-              _buildControlItem(
-                label: _sortQuery == 'name' ? 'Sort' : 'Sort: ${_settingsCase(_sortQuery)}',
-                icon: PhosphorIcons.sortAscending(PhosphorIconsStyle.duotone),
-                isActive: _sortQuery != 'name',
-                activeWash: activeWash,
-                activeBorder: activeBorder,
-                activeText: activeText,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (ctx) => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildMenuOption('Breed', 'breed', _sortQuery == 'breed', (v) => setState(() => _sortQuery = v)),
-                        _buildMenuOption('Name', 'name', _sortQuery == 'name', (v) => setState(() => _sortQuery = v)),
-                        _buildMenuOption('Cage', 'cage', _sortQuery == 'cage', (v) => setState(() => _sortQuery = v)),
-                        _buildMenuOption('Age: Youngest First', 'age_asc', _sortQuery == 'age_asc', (v) => setState(() => _sortQuery = v)),
-                        _buildMenuOption('Age: Oldest First', 'age_desc', _sortQuery == 'age_desc', (v) => setState(() => _sortQuery = v)),
-                        _buildMenuOption('ID / Ear #', 'id', _sortQuery == 'id', (v) => setState(() => _sortQuery = v)),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _buildControlItem(
-                label: _grouping == 'none' ? 'Group' : 'Group: ${_settingsCase(_grouping)}',
-                icon: PhosphorIcons.rows(PhosphorIconsStyle.duotone),
-                isActive: _grouping != 'none',
-                activeWash: activeWash,
-                activeBorder: activeBorder,
-                activeText: activeText,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (ctx) => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildMenuOption('None', 'none', _grouping == 'none', (v) => setState(() => _grouping = v)),
-                        _buildMenuOption('Location', 'location', _grouping == 'location', (v) => setState(() => _grouping = v)),
-                        _buildMenuOption('Breed', 'breed', _grouping == 'breed', (v) => setState(() => _grouping = v)),
-                      ],
-                    ),
-                  );
-                },
-              ),
+          const SizedBox(width: 8),
+          
+          // Group Button
+          _buildIconBtnMenu(
+            icon: PhosphorIcons.squaresFour(PhosphorIconsStyle.regular),
+            isActive: _grouping != 'none',
+            items: [
+              _buildPopupItem('None', 'none', _grouping == 'none'),
+              _buildPopupItem('Location', 'location', _grouping == 'location'),
+              _buildPopupItem('Breed', 'breed', _grouping == 'breed'),
             ],
+            onSelected: (v) => setState(() => _grouping = v),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(width: 8),
+          
+          // Filter Button
+          _buildIconBtnMenu(
+            icon: PhosphorIcons.funnel(PhosphorIconsStyle.regular),
+            isActive: _breedFilter != 'All',
+            items: _getUniqueBreeds().map((f) => _buildPopupItem(f, f, _breedFilter == f)).toList(),
+            onSelected: (v) => setState(() => _breedFilter = v),
+          ),
+          const SizedBox(width: 8),
+          
+          // Sort Button
+          _buildIconBtnMenu(
+            icon: PhosphorIcons.arrowDown(PhosphorIconsStyle.regular),
+            isActive: _sortQuery != 'name',
+            items: [
+              _buildPopupItem('Breed', 'breed', _sortQuery == 'breed'),
+              _buildPopupItem('Name', 'name', _sortQuery == 'name'),
+              _buildPopupItem('Cage', 'cage', _sortQuery == 'cage'),
+              _buildPopupItem('Age (Youngest)', 'age_asc', _sortQuery == 'age_asc'),
+              _buildPopupItem('Age (Oldest)', 'age_desc', _sortQuery == 'age_desc'),
+              _buildPopupItem('ID / Ear #', 'id', _sortQuery == 'id'),
+            ],
+            onSelected: (v) => setState(() => _sortQuery = v),
+          ),
         ],
       ),
     );
@@ -575,38 +657,44 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   Widget _buildMenuOption(String label, String value, bool isSelected, Function(String) onSelect) {
     return ListTile(
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
-      trailing: isSelected ? const Icon(Icons.check, color: kLilacDeep) : null,
+      trailing: isSelected ? const Icon(Icons.check, color: hLilacDeep) : null,
       onTap: () { onSelect(value); Navigator.pop(context); },
     );
   }
 
-  Widget _buildControlItem({required String label, required IconData icon, required bool isActive, required Color activeWash, required Color activeBorder, required Color activeText, required VoidCallback onTap}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: isActive ? activeWash : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isActive ? activeBorder : kNeutral300),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 16, color: isActive ? activeText : kNeutral700),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  label,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isActive ? activeText : kNeutral700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+  PopupMenuItem<String> _buildPopupItem(String label, String value, bool isSelected) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: hNeutral800, fontSize: 14)),
+          if (isSelected) ...[const Spacer(), const Icon(Icons.check, size: 16, color: hLilacDeep)],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconBtnMenu({
+    required IconData icon,
+    required bool isActive,
+    required List<PopupMenuEntry<String>> items,
+    required Function(String) onSelected,
+  }) {
+    return PopupMenuButton<String>(
+      onSelected: onSelected,
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      itemBuilder: (ctx) => items,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isActive ? hLilacWash : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isActive ? hLilacLight : hNeutral200),
         ),
+        child: Icon(icon, size: 20, color: hLilacDeep),
       ),
     );
   }
@@ -638,17 +726,17 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: kLilacWash,
-        border: Border.all(color: kLilacLight),
+        color: hLilacWash,
+        border: Border.all(color: hLilacWash),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_alt, size: 16, color: kLilacDeep),
+          const Icon(Icons.filter_alt, size: 16, color: hLilacDeep),
           const SizedBox(width: 8),
           const Text(
             'Filtering: ',
-            style: TextStyle(color: kLilacDeep, fontSize: 14),
+            style: TextStyle(color: hLilacDeep, fontSize: 14),
           ),
           if (_locationFilter != null) ...[
             Text(
@@ -665,7 +753,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             Text(
               'Breed: $_breedFilter',
               style: const TextStyle(
-                color: kLilacDeep,
+                color: hLilacDeep,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -676,59 +764,66 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               _locationFilter = null;
               _breedFilter = 'All';
             }),
-            child: const Icon(Icons.close, size: 18, color: kLilacDeep),
+            child: const Icon(Icons.close, size: 18, color: hLilacDeep),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChips() {
-    List<String> filters = [];
+  Widget _buildPipelineMenu() {
+    final activeColor = _tabController.index == 0 ? hPinkDeep : (_tabController.index == 1 ? hBlueDeep : hNeutral700);
+    List<String> statuses = [];
     if (_tabController.index == 0) {
-      filters = ['All', 'Open', 'Bred', 'Nursing', 'Resting', 'GrowOut', 'Quarantine'];
+      statuses = ['All', 'Open', 'Bred', 'Nursing', 'Resting', 'Grow-Out', 'Quarantine'];
     } else if (_tabController.index == 1) {
-      filters = ['All', 'Active', 'Inactive', 'GrowOut', 'Quarantine'];
+      statuses = ['All', 'Active', 'Inactive', 'Grow-Out', 'Quarantine'];
     } else {
-      filters = ['All', 'Sold', 'Butchered', 'Dead', 'Cull'];
+      statuses = ['All', 'Sold', 'Butchered', 'Dead', 'Cull'];
     }
-
-    final activeColor = _tabController.index == 0 ? kDoeIcon : (_tabController.index == 1 ? kBuckIcon : kLilacDeep);
 
     return Container(
       height: 40,
-      margin: const EdgeInsets.only(bottom: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: hNeutral200)),
+      ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: filters.length,
+        itemCount: statuses.length,
         itemBuilder: (context, index) {
-          final filter = filters[index];
-          final isActive = _currentFilter == filter;
-          final label = filter == 'GrowOut' ? 'Grow-outs' : filter;
-
+          final status = statuses[index];
+          final mappedStatus = status == 'Bred' ? 'Pregnant' : (status == 'Grow-Out' ? 'GrowOut' : status);
+          final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
+          
           return GestureDetector(
-            onTap: () => setState(() => _currentFilter = filter),
+            onTap: () => setState(() => _currentFilter = mappedStatus),
             child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: isActive ? activeColor : Colors.white,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: isActive ? activeColor : kNeutral300),
-                boxShadow: isActive
-                    ? [BoxShadow(color: activeColor.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))]
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: isActive ? Colors.white : kNeutral700,
-                    fontSize: 14,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+              margin: const EdgeInsets.only(right: 24),
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                        color: isActive ? activeColor : hNeutral500,
+                      ),
+                    ),
                   ),
-                ),
+                  if (isActive)
+                    Container(
+                      height: 2.5,
+                      width: 20, // Approximate width of underline
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(2), topRight: Radius.circular(2)),
+                      ),
+                    ),
+                ],
               ),
             ),
           );
@@ -1017,12 +1112,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(PhosphorIcons.archive(PhosphorIconsStyle.duotone), size: 64, color: kNeutral200),
+            Icon(PhosphorIcons.archive(PhosphorIconsStyle.duotone), size: 64, color: hNeutral200),
             const SizedBox(height: 16),
             const Text(
               'No archived rabbits',
               style: TextStyle(
-                color: kNeutral600,
+                color: hNeutral600,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -1498,7 +1593,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               '$count ${count == 1 ? "bunny" : "bunnies"}',
               style: const TextStyle(
                 fontSize: 12,
-                color: kNeutral500,
+                color: hNeutral500,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1555,7 +1650,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                         Icon(
                           _grouping == 'location' ? PhosphorIcons.warehouse(PhosphorIconsStyle.duotone) : PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone),
                           size: 16,
-                          color: kNeutral500,
+                          color: hNeutral500,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -1563,7 +1658,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: kNeutral500,
+                            color: hNeutral500,
                             letterSpacing: 0.6,
                           ),
                         ),
@@ -1571,13 +1666,13 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: kNeutral100,
+                            color: hNeutral100,
                             borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: kNeutral200),
+                            border: Border.all(color: hNeutral200),
                           ),
                           child: Text(
                             '${groups[key]!.length}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral600),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: hNeutral600),
                           ),
                         ),
                       ],
@@ -1594,10 +1689,13 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   }
 
   Widget _buildRedesignedRabbitCard(Rabbit rabbit) {
-    final themeColor = rabbit.type == RabbitType.doe ? kPinkWash : (rabbit.type == RabbitType.buck ? kBlueWash : kLilacWash);
-    final borderColor = rabbit.type == RabbitType.doe ? kPinkLight : (rabbit.type == RabbitType.buck ? kBlueLight : kLilacLight);
-    final iconColor = rabbit.type == RabbitType.doe ? kDoeIcon : (rabbit.type == RabbitType.buck ? kBuckIcon : kLilacDeep);
-    final textColor = rabbit.type == RabbitType.doe ? kDoeTheme : (rabbit.type == RabbitType.buck ? kBuckTheme : kLilacText);
+    final bool isDoe = rabbit.type == RabbitType.doe;
+    final bool isBuck = rabbit.type == RabbitType.buck;
+    final bool isArchive = rabbit.status == RabbitStatus.archived;
+    
+    final baseColor = isArchive ? hNeutral600 : (isDoe ? hPinkDeep : (isBuck ? hBlueDeep : hLilacDeep));
+    final washColor = isArchive ? hNeutral100 : (isDoe ? hPinkWash : (isBuck ? hBlueWash : hLilacWash));
+    final tonalColor = isArchive ? hNeutral100 : (isDoe ? hPinkWash : (isBuck ? hBlueWash : hLilacWash));
 
     final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
     final photoPath = hasPhoto ? rabbit.photos!.first : null;
@@ -1610,158 +1708,147 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 1.5),
+          border: Border.all(color: hNeutral200, width: 1),
           boxShadow: [
-            BoxShadow(
-              color: borderColor.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5, offset: const Offset(0, 1)),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            // Top Section (Tonal Header)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: tonalColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                border: isArchive ? const Border(bottom: BorderSide(color: hNeutral200)) : null,
+              ),
+              child: Row(
                 children: [
                   // Avatar
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1)],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: isPhotoValid
-                          ? Image.file(
-                              File(photoPath),
-                              fit: BoxFit.cover,
-                            )
-                          : Center(
+                          ? Image.file(File(photoPath), fit: BoxFit.cover)
+                          : Container(
+                              color: Colors.white,
                               child: Icon(
-                                rabbit.type == RabbitType.doe ? PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone) : PhosphorIcons.genderMale(PhosphorIconsStyle.duotone),
-                                color: iconColor,
-                                size: 28,
+                                isDoe ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderMale(PhosphorIconsStyle.bold),
+                                color: baseColor.withOpacity(0.5),
+                                size: 22,
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Info
+                  const SizedBox(width: 14),
+                  
+                  // Card Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: RichText(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  children: [
-                                    if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
-                                      TextSpan(
-                                        text: '${rabbit.breederPrefix} ',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor, fontFamily: 'Product Sans'),
-                                      ),
-                                      TextSpan(
-                                        text: rabbit.name,
-                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: kNeutral800, fontFamily: 'Product Sans'),
-                                      ),
-                                  ],
+                            if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Text(
+                                  rabbit.breederPrefix!,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: baseColor.withOpacity(0.6),
+                                    letterSpacing: -0.2,
+                                  ),
                                 ),
                               ),
+                            Flexible(
+                              child: Text(
+                                rabbit.name,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: baseColor,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              rabbit.type == RabbitType.doe ? PhosphorIcons.genderFemale(PhosphorIconsStyle.duotone) : PhosphorIcons.genderMale(PhosphorIconsStyle.duotone),
-                              size: 16,
-                              color: iconColor,
+                            Text(
+                              ' • ${rabbit.age}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: baseColor.withOpacity(0.75),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
-                          '${rabbit.breed} • ${rabbit.age}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral500),
+                          '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: baseColor.withOpacity(0.75),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  // Action Menu
-                  GestureDetector(
-                    onTap: () => _showRabbitActions(rabbit),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold), color: textColor, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Status & Badges
-              Row(
-                children: [
-                  if (!(rabbit.type == RabbitType.buck && rabbit.status == RabbitStatus.open))
-                    _buildStatusBadge(rabbit),
-                  const Spacer(),
-                  if (rabbit.weight != null)
-                    _buildStatTag(
-                      PhosphorIcons.scales(PhosphorIconsStyle.duotone),
-                      FormatUtils.formatWeight(rabbit.weight!),
-                      textColor,
-                    ),
-                  const SizedBox(width: 6),
-                  _buildStatTag(
-                    PhosphorIcons.hash(PhosphorIconsStyle.duotone),
-                    rabbit.earNumber ?? (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
-                    textColor,
-                  ),
-                ],
-              ),
-              if (rabbit.statusDetails != null || (rabbit.notes != null && rabbit.notes!.isNotEmpty)) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor.withOpacity(0.3)),
-                  ),
-                  child: Row(
+                  
+                  // Card Actions (Badge + More Button)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PhosphorIcons.note(PhosphorIconsStyle.duotone), size: 14, color: textColor.withOpacity(0.6)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          rabbit.statusDetails ?? rabbit.notes ?? '',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: textColor.withOpacity(0.8), height: 1.2),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      if (!(rabbit.type == RabbitType.buck && rabbit.status == RabbitStatus.open))
+                        _buildStatusBadge(rabbit),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _showRabbitActions(rabbit),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.more_horiz, color: baseColor.withOpacity(0.5), size: 18),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ],
-          ),
+                ],
+              ),
+            ),
+            
+            // Bottom Section (Ghost Bar)
+            Container(
+              padding: const EdgeInsets.fromLTRB(8, 10, 8, 12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  _buildGhostCol('Cage', rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '-'),
+                  _buildGhostCol('Ear', rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase()),
+                  _buildGhostCol('Weight', rabbit.weight != null ? FormatUtils.formatWeight(rabbit.weight!) : '-'),
+                  _buildGhostCol('Litters', rabbit.type == RabbitType.doe ? (rabbit.currentLitterSize?.toString() ?? '0') : '-'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1770,41 +1857,47 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   Widget _buildStatusBadge(Rabbit rabbit) {
     final statusColor = Color(rabbit.statusColor);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.15),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: statusColor.withOpacity(0.15), blurRadius: 3, offset: const Offset(0, 1))],
       ),
       child: Text(
         rabbit.statusText.toUpperCase(),
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: statusColor, letterSpacing: 0.5),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: statusColor,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }
 
-  Widget _buildStatTag(IconData icon, String value, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
+  Widget _buildGhostCol(String label, String value) {
+    return Expanded(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: textColor.withOpacity(0.6)),
-          const SizedBox(width: 4),
           Text(
             value,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textColor),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: hNeutral600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: hNeutral500, letterSpacing: 0.6),
           ),
         ],
       ),
     );
   }
 
-  void _showBarnDrawer() {
+  Future<void> _showBarnDrawer() async {
+
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -1840,8 +1933,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                       Container(
                         padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
                         decoration: BoxDecoration(
-                          color: kLilacWash,
-                          border: Border(bottom: BorderSide(color: kLilacLight)),
+                          color: hLilacWash,
+                          border: Border(bottom: BorderSide(color: hLilacWash)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1854,14 +1947,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 22),
+                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: hLilacDeep, size: 22),
                                         const SizedBox(width: 8),
                                         Text(
                                           'BARN & CAGES',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w800,
-                                            color: kLilacText,
+                                            color: hLilacText,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -1873,7 +1966,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: kLilacText.withOpacity(0.7),
+                                        color: hLilacText.withOpacity(0.7),
                                       ),
                                     ),
                                   ],
@@ -1887,9 +1980,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: _isBarnEditMode ? kLilacDeep : Colors.white,
+                                      color: _isBarnEditMode ? hLilacDeep : Colors.white,
                                       border: Border.all(
-                                        color: _isBarnEditMode ? kLilacDeep : kLilacLight,
+                                        color: _isBarnEditMode ? hLilacDeep : hLilacWash,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -1898,7 +1991,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: _isBarnEditMode ? Colors.white : kLilacDeep,
+                                        color: _isBarnEditMode ? Colors.white : hLilacDeep,
                                       ),
                                     ),
                                   ),
@@ -1936,7 +2029,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Divider(color: kNeutral200, height: 1),
+                                child: Divider(color: hNeutral200, height: 1),
                               ),
                             ],
                             ..._barns.map((barn) => _buildBarnSection(
@@ -1952,18 +2045,18 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border(top: BorderSide(color: kNeutral200)),
+                            border: Border(top: BorderSide(color: hNeutral200)),
                           ),
                           child: ElevatedButton(
                             onPressed: () => _addBarn(setModalState),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: kLilacWash,
-                              foregroundColor: kLilacDeep,
+                              backgroundColor: hLilacWash,
+                              foregroundColor: hLilacDeep,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: kLilacDeep, width: 1.5),
+                                side: BorderSide(color: hLilacDeep, width: 1.5),
                               ),
                             ),
                             child: Row(
@@ -2016,13 +2109,13 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
-          color: isActive ? kLilacWash : Colors.transparent,
+          color: isActive ? hLilacWash : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isActive ? kLilacLight : Colors.transparent),
+          border: Border.all(color: isActive ? hLilacWash : Colors.transparent),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: isActive ? kLilacDeep : (isWarning ? kError : kNeutral600)),
+            Icon(icon, size: 20, color: isActive ? hLilacDeep : (isWarning ? kError : hNeutral600)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -2030,14 +2123,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive ? kLilacDeep : (isWarning ? kError : kNeutral700),
+                  color: isActive ? hLilacDeep : (isWarning ? kError : hNeutral700),
                 ),
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isActive ? Colors.white.withOpacity(0.5) : kNeutral100,
+                color: isActive ? Colors.white.withOpacity(0.5) : hNeutral100,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text(
@@ -2045,7 +2138,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? kLilacDeep : kNeutral600,
+                  color: isActive ? hLilacDeep : hNeutral600,
                 ),
               ),
             ),
@@ -2063,9 +2156,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           margin: const EdgeInsets.only(top: 16, bottom: 6),
           decoration: BoxDecoration(
-            color: kLilacWash,
+            color: hLilacWash,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: kLilacLight),
+            border: Border.all(color: hLilacWash),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2076,7 +2169,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: kLilacDeep,
+                    color: hLilacDeep,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -2100,12 +2193,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
-                      Icon(PhosphorIcons.square(PhosphorIconsStyle.duotone), size: 14, color: kNeutral500),
+                      Icon(PhosphorIcons.square(PhosphorIconsStyle.duotone), size: 14, color: hNeutral500),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           row.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral800),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: hNeutral800),
                         ),
                       ),
                       if (_countRabbitsInLocation(row.name) == 0)
@@ -2136,20 +2229,20 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                     margin: const EdgeInsets.only(left: 20, top: 4, bottom: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: kNeutral50,
+                      color: hNeutral50,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: kNeutral200),
+                      border: Border.all(color: hNeutral200),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           cage,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral700),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: hNeutral700),
                         ),
                         if (cageCount == 0)
                           IconButton(
-                            icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), size: 12, color: kNeutral400),
+                            icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), size: 12, color: hNeutral400),
                             onPressed: () => _deleteCage(barn, row, cage, setModalState),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -2157,7 +2250,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                         else
                           Text(
                             'Occupied',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kNeutral400),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: hNeutral400),
                           ),
                       ],
                     ),
@@ -2171,17 +2264,17 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        border: Border.all(color: kLilacLight),
+                        border: Border.all(color: hLilacWash),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 12, color: kLilacDeep),
+                          Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 12, color: hLilacDeep),
                           const SizedBox(width: 4),
                           Text(
                             'Add Cage',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kLilacDeep),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: hLilacDeep),
                           ),
                         ],
                       ),
@@ -2200,10 +2293,10 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               icon: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 14),
               label: const Text('Add Row / Unit', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
               style: TextButton.styleFrom(
-                foregroundColor: kLilacDeep,
-                backgroundColor: kLilacWash,
+                foregroundColor: hLilacDeep,
+                backgroundColor: hLilacWash,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: kLilacLight)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: hLilacWash)),
               ),
             ),
           ),

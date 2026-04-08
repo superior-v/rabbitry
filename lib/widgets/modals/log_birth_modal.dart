@@ -140,39 +140,50 @@ class _LogBirthModalState extends State<LogBirthModal> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Header
-          Padding(
-            padding: EdgeInsets.all(20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: const BoxDecoration(
+              color: kLilacWash,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border(bottom: BorderSide(color: kLilacLight, width: 1)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.existingLitter != null 
-                        ? (_currentStep == 1 ? 'Edit Birth Info' : 'Edit Kit Details')
-                        : (_currentStep == 1 ? 'Log Birth (Kindle)' : 'Kit Details'),
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '${widget.doe.name} (${widget.doe.id}) • Step $_currentStep of 2',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.existingLitter != null 
+                          ? (_currentStep == 1 ? 'Edit Birth Info' : 'Edit Kit Details')
+                          : (_currentStep == 1 ? 'Log Birth (Kindle)' : 'Kit Details'),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: kLilacDeep, letterSpacing: -0.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${widget.doe.name} • ${widget.doe.id}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kLilacText),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close),
+                  icon: const Icon(Icons.close_rounded, color: kLilacDeep),
                   onPressed: () => Navigator.pop(context),
+                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 12),
 
           // Content
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
             ),
           ),
@@ -191,112 +202,99 @@ class _LogBirthModalState extends State<LogBirthModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ✅ Litter ID
-        Text(
-          'Litter ID',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        TextField(
-          controller: _litterIdController,
-          decoration: InputDecoration(
-            hintText: 'e.g., L-001',
-            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-            prefixIcon: Icon(Icons.tag, color: Color(0xFF787774)),
-          ),
-        ),
-        SizedBox(height: 20),
-
-        // Kindle Date
-        Text(
-          'Birth Date',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        InkWell(
-          onTap: () => _selectDate(context),
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Color(0xFFE9E9E7)),
-              borderRadius: BorderRadius.circular(12),
+        // Row 1: Litter ID & Birth Date
+        Row(
+          children: [
+            Expanded(
+              child: _buildOutlinedField(
+                label: 'Litter ID',
+                controller: _litterIdController,
+                hint: 'e.g., L-011',
+                prefixIcon: Icons.tag,
+              ),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, color: Color(0xFF787774)),
-                SizedBox(width: 12),
-                Text('${_kindleDate.day}/${_kindleDate.month}/${_kindleDate.year}'),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildDatePickerField(
+                label: 'Birth Date',
+                value: _kindleDate,
+                onTap: () => _selectDate(context),
+              ),
             ),
-          ),
+          ],
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 16),
 
         // Missed Litter Toggle
-        SwitchListTile(
-          title: Text('Missed Litter', style: TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text('Enable if the doe did not successfully kindle'),
-          value: _isMissedLitter,
-          onChanged: (val) {
-            setState(() {
-              _isMissedLitter = val;
-              if (val) {
-                _totalBornController.text = '0';
-                _aliveBornController.text = '0';
-              }
-            });
-          },
-          contentPadding: EdgeInsets.zero,
-          activeColor: kPinkDeep,
-        ),
-        SizedBox(height: 16),
-
-        // Total Born
-        Text(
-          'Total Kits Born',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        TextField(
-          controller: _totalBornController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: 'Enter total kits',
-            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: kLilacWash,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kLilacLight),
           ),
-          onChanged: (value) {
-            if (_aliveBornController.text.isEmpty) {
-              _aliveBornController.text = value;
-            }
-            setState(() {});
-          },
-        ),
-        SizedBox(height: 20),
-
-        // Alive Born
-        Text(
-          'Alive Kits',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        TextField(
-          controller: _aliveBornController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: 'Enter alive kits',
-            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Missed Litter', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kLilacText)),
+                    Text('Doe did not successfully kindle', style: TextStyle(fontSize: 12, color: kNeutral600)),
+                  ],
+                ),
+              ),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: _isMissedLitter,
+                  activeColor: kLilacDeep,
+                  onChanged: (val) {
+                    setState(() {
+                      _isMissedLitter = val;
+                      if (val) {
+                        _totalBornController.text = '0';
+                        _aliveBornController.text = '0';
+                      }
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
-          onChanged: (_) => setState(() {}),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-        // Dead count display
+        // Row 2: Total Born & Alive Kits
+        Row(
+          children: [
+            Expanded(
+              child: _buildOutlinedField(
+                label: 'Total Kits Born',
+                controller: _totalBornController,
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  if (_aliveBornController.text.isEmpty) {
+                    _aliveBornController.text = value;
+                  }
+                  setState(() {});
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildOutlinedField(
+                label: 'Alive Kits',
+                controller: _aliveBornController,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Dead count alert
         if (_totalBornController.text.isNotEmpty && _aliveBornController.text.isNotEmpty)
           Builder(
             builder: (context) {
@@ -305,99 +303,83 @@ class _LogBirthModalState extends State<LogBirthModal> {
               final dead = total - alive;
               if (dead > 0) {
                 return Container(
-                  padding: EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFEBEE),
+                    color: kPinkWash,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kPinkLight),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber, color: Color(0xFFD32F2F), size: 20),
-                      SizedBox(width: 8),
-                      Text('Dead kits: $dead', style: TextStyle(fontSize: 14, color: Color(0xFFD32F2F))),
+                      const Icon(Icons.warning_amber_rounded, color: kPinkDeep, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Dead kits reported: $dead', style: const TextStyle(fontSize: 12, color: kPinkDeep, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 );
               }
-              return SizedBox.shrink();
+              return const SizedBox.shrink();
             },
           ),
-        if (!_isMissedLitter) SizedBox(height: 16),
 
-        // Summary Fields
+        // Summary Fields (Optional)
         if (!_isMissedLitter) ...[
-          Text('Litter Summary (optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
+          const Text('Litter Summary (optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral600, letterSpacing: 0.5)),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: _buildOutlinedField(
+                  label: 'Bucks',
                   controller: _bucksProducedController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Bucks',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
-                child: TextField(
+                child: _buildOutlinedField(
+                  label: 'Does',
                   controller: _doesProducedController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Does',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
-          TextField(
+          const SizedBox(height: 12),
+          _buildOutlinedField(
+            label: 'Colors Produced',
             controller: _colorsProducedController,
-            decoration: InputDecoration(
-              labelText: 'Colors Produced',
-              labelStyle: TextStyle(color: Color(0xFFCCCBC8)),
-              hintText: 'e.g., Black, Blue, Broken',
-              hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-            ),
+            hint: 'e.g., Black, Blue, Broken',
           ),
-          SizedBox(height: 12),
-          TextField(
+          const SizedBox(height: 12),
+          _buildOutlinedField(
+            label: 'Patterns Produced',
             controller: _patternsProducedController,
-            decoration: InputDecoration(
-              labelText: 'Patterns Produced',
-              labelStyle: TextStyle(color: Color(0xFFBBB9B2), fontSize: 13),
-              hintText: 'e.g., Solid',
-              hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-            ),
+            hint: 'e.g., Solid',
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
+          
           // Peanuts
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Peanuts Produced', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text('Peanuts Produced', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kNeutral700)),
               Container(
-                decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(10), border: Border.all(color: kLilacLight)),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.remove, size: 18),
+                      icon: const Icon(Icons.remove, size: 18, color: kLilacDeep),
                       onPressed: () {
                          final current = int.tryParse(_peanutsProducedController.text) ?? 0;
                          if (current > 0) _peanutsProducedController.text = (current - 1).toString();
                          setState(() {});
                       },
                     ),
-                    SizedBox(child: Text(_peanutsProducedController.text.isEmpty ? '0' : _peanutsProducedController.text, style: TextStyle(fontWeight: FontWeight.bold))),
+                    SizedBox(width: 20, child: Center(child: Text(_peanutsProducedController.text.isEmpty ? '0' : _peanutsProducedController.text, style: const TextStyle(fontWeight: FontWeight.w800, color: kLilacDeep)))),
                     IconButton(
-                      icon: Icon(Icons.add, size: 18),
+                      icon: const Icon(Icons.add, size: 18, color: kLilacDeep),
                       onPressed: () {
                          final current = int.tryParse(_peanutsProducedController.text) ?? 0;
                          _peanutsProducedController.text = (current + 1).toString();
@@ -409,46 +391,88 @@ class _LogBirthModalState extends State<LogBirthModal> {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
         ],
 
-        // Weight Average
-        Text(
-          'Average Kit Weight (optional)',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        TextField(
+        // Weight & Notes
+        _buildOutlinedField(
+          label: 'Avg Kit Weight (g)',
           controller: _weightAvgController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            hintText: 'e.g., 50',
-            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-            suffixText: 'g',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          hint: 'e.g., 50',
         ),
-        SizedBox(height: 16),
-
-        // Notes
-        Text(
-          'Notes (optional)',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(height: 8),
-        TextField(
+        const SizedBox(height: 12),
+        _buildOutlinedField(
+          label: 'Notes (optional)',
           controller: _notesController,
+          hint: 'Any observations...',
           maxLines: 2,
-          decoration: InputDecoration(
-            hintText: 'Any observations about the birth...',
-            hintStyle: TextStyle(color: Color(0xFFCCCBC8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-          ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
       ],
+    );
+  }
+
+  // ✅ Helper widgets for the new themed layout
+  Widget _buildOutlinedField({
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    IconData? prefixIcon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    Function(String)? onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: kLilacDeep, fontWeight: FontWeight.w700, fontSize: 14),
+        hintText: hint,
+        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: kLilacDeep, size: 18) : null,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacDeep, width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDatePickerField({
+    required String label,
+    required DateTime value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: kLilacDeep, fontWeight: FontWeight.w700, fontSize: 14),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: kLilacDeep, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              '${value.day}/${value.month}/${value.year}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -465,7 +489,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: kPinkDeep, size: 20),
+              const Icon(Icons.info_outline, color: kLilacDeep, size: 20),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -505,7 +529,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: kPinkDeep,
+                  color: kLilacDeep,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -594,29 +618,29 @@ class _LogBirthModalState extends State<LogBirthModal> {
     );
   }
 
-  Widget _buildSexChip(String value, String label, bool isSelected, VoidCallback onTap) {
-    Color activeColor = kNeutral700;
-    if (value == 'M') activeColor = kMaleColor;
-    if (value == 'F') activeColor = kFemaleColor;
-    if (value == 'U') activeColor = kLilacDeep;
+  Widget _buildSexChip(String val, String label, bool isActive, VoidCallback onTap) {
+    Color activeBg = val == 'M' ? kBlueDeep : (val == 'F' ? kPinkDeep : kLilacDeep);
+    Color activeText = Colors.white;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? activeColor : Color(0xFFE2E8F0),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: isActive ? activeBg : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isActive ? activeBg : kNeutral300),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Color(0xFF64748B),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                color: isActive ? activeText : kNeutral600,
+              ),
+            ),
           ),
         ),
       ),
@@ -632,29 +656,31 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: OutlinedButton(
               onPressed: _isMissedLitter ? null : _validateAndProceed,
               style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Color(0xFFE2E8F0)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: kLilacLight, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
-              child: Text('Add Kit Details', style: TextStyle(color: kPinkDeep, fontWeight: FontWeight.w600)),
+              child: const Text(
+                'Add Kit Details',
+                style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
+              ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kPinkDeep,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: kLilacDeep,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
               child: _isSaving
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Save', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
             ),
           ),
         ],
@@ -666,30 +692,32 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: OutlinedButton(
               onPressed: () => setState(() => _currentStep = 1),
               style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: Color(0xFFE2E8F0)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: kLilacLight, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
-              child: Text('Back', style: TextStyle(color: Color(0xFF64748B))),
+              child: const Text(
+                'Back',
+                style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5),
+              ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kPinkDeep,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: kLilacDeep,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
               child: _isSaving
-                  ? SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text('Log Birth', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Log Birth', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
             ),
           ),
         ],
@@ -753,6 +781,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
         final updatedLitter = widget.existingLitter!.copyWith(
           dob: _kindleDate,
           notes: _notesController.text,
+          totalKits: int.tryParse(_totalBornController.text) ?? 0,
+          aliveKits: int.tryParse(_aliveBornController.text) ?? 0,
           kits: _kitDetails.map((k) => Kit(
             id: k['id'],
             sex: k['sex'],

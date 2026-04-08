@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'settings_service.dart';
 
 class DatabaseService {
-  static const int _databaseVersion = 17;
+  static const int _databaseVersion = 22;
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
@@ -35,11 +35,22 @@ class DatabaseService {
       onOpen: (db) async {
         // Hot-Patch missing columns safely without requiring a version bump.
         try {
-          await db.execute('ALTER TABLE rabbits ADD COLUMN fallOffs INTEGER');
-        } catch (_) {}
-        try {
-          await db.execute('ALTER TABLE rabbits ADD COLUMN breedingNotes TEXT');
-        } catch (_) {}
+          final List<Map<String, dynamic>> columns = await db.rawQuery('PRAGMA table_info(rabbits)');
+          final hasColumn = (String name) => columns.any((c) => c['name'] == name);
+          
+          if (!hasColumn('fallOffs')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN fallOffs INTEGER');
+          }
+          if (!hasColumn('breedingNotes')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN breedingNotes TEXT');
+          }
+          if (!hasColumn('acquiredDate')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN acquiredDate TEXT');
+            print('🔨 Fixed: Added missing acquiredDate column via onOpen hotpatch');
+          }
+        } catch (e) {
+          print('❌ Error in onOpen hotpatch: $e');
+        }
 
         final litterColumns = {
           'missedLitter': 'INTEGER DEFAULT 0',
@@ -51,13 +62,18 @@ class DatabaseService {
         };
         for (final entry in litterColumns.entries) {
           try {
-            await db.execute(
-                'ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+            final List<Map<String, dynamic>> lCols = await db.rawQuery('PRAGMA table_info(litters)');
+            if (!lCols.any((c) => c['name'] == entry.key)) {
+              await db.execute('ALTER TABLE litters ADD COLUMN ${entry.key} ${entry.value}');
+            }
           } catch (_) {}
         }
         // Hot-patch folder column in documents
         try {
-          await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
+          final List<Map<String, dynamic>> dCols = await db.rawQuery('PRAGMA table_info(documents)');
+          if (!dCols.any((c) => c['name'] == 'folder')) {
+             await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
+          }
         } catch (_) {}
       },
     );
@@ -123,7 +139,8 @@ class DatabaseService {
         grandChampionLegs INTEGER,
         activeInRabbitry INTEGER DEFAULT 1,
         fallOffs INTEGER,
-        breedingNotes TEXT
+        breedingNotes TEXT,
+        acquiredDate TEXT
       )
     ''');
 
@@ -650,6 +667,18 @@ class DatabaseService {
         print('⚠️ Error upgrading contacts table to v16: $e');
       }
     }
+
+    if (oldVersion < 22) {
+      try {
+        final List<Map<String, dynamic>> columns = await db.rawQuery('PRAGMA table_info(rabbits)');
+        if (!columns.any((column) => column['name'] == 'acquiredDate')) {
+          await db.execute('ALTER TABLE rabbits ADD COLUMN acquiredDate TEXT');
+        }
+        print('✅ Migration: Added acquiredDate column to rabbits for v22');
+      } catch (e) {
+        print('⚠️ acquiredDate column migration check failed: $e');
+      }
+    }
   }
 
   // ==================== UNIT CONVERSION ====================
@@ -754,6 +783,7 @@ class DatabaseService {
 
   Future<void> insertRabbit(Rabbit rabbit) async {
     final db = await database;
+    await _ensureRabbitColumns(db);
     await db.insert('rabbits', rabbit.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted rabbit: ${rabbit.name}');
@@ -837,13 +867,64 @@ class DatabaseService {
     return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
   }
 
+  Future<void> _ensureRabbitColumns(Database db) async {
+    try {
+      final List<Map<String, dynamic>> columns = await db.rawQuery('PRAGMA table_info(rabbits)');
+      final existingCols = columns.map((c) => c['name'] as String).toSet();
+      
+      final requiredCols = {
+        'fallOffs': 'INTEGER',
+        'breedingNotes': 'TEXT',
+        'acquiredDate': 'TEXT',
+        'maturityDate': 'TEXT',
+        'earNumber': 'TEXT',
+        'otherBreed': 'TEXT',
+        'otherColor': 'TEXT',
+        'broken': 'INTEGER',
+        'viennaMarked': 'INTEGER',
+        'viennaCarrier': 'INTEGER',
+        'breederPrefix': 'TEXT',
+        'grandChampionNumber': 'TEXT',
+        'grandChampionLegs': 'INTEGER',
+        'activeInRabbitry': 'INTEGER DEFAULT 1',
+        'customPalpationDay': 'INTEGER',
+        'customNestBoxDay': 'INTEGER',
+        'customGestationDay': 'INTEGER',
+        'customWeanWeek': 'INTEGER',
+        'quarantineStartDate': 'TEXT',
+        'quarantineEndDate': 'TEXT',
+        'quarantineReason': 'TEXT',
+        'archiveReason': 'TEXT',
+        'archiveDate': 'TEXT',
+        'archiveNotes': 'TEXT',
+        'salePrice': 'REAL',
+        'buyerInfo': 'TEXT',
+        'butcherYield': 'REAL',
+        'butcherCost': 'REAL',
+        'deathCause': 'TEXT',
+        'cullReason': 'TEXT',
+      };
+
+      for (final entry in requiredCols.entries) {
+        if (!existingCols.contains(entry.key)) {
+          await db.execute('ALTER TABLE rabbits ADD COLUMN ${entry.key} ${entry.value}');
+          print('🔨 Added missing column: ${entry.key}');
+        }
+      }
+    } catch (e) {
+      print('❌ _ensureRabbitColumns error: $e');
+    }
+  }
+
   Future<void> updateRabbit(Rabbit rabbit) async {
     final db = await database;
+    await _ensureRabbitColumns(db);
     rabbit.updatedAt = DateTime.now();
     await db.update('rabbits', rabbit.toMap(),
         where: 'id = ?', whereArgs: [rabbit.id]);
     print('✅ Updated rabbit: ${rabbit.name}');
   }
+
 
   Future<void> deleteRabbit(String id) async {
     final db = await database;
@@ -1042,7 +1123,7 @@ class DatabaseService {
         'status': shouldBeNursing
             ? RabbitStatus.nursing.toString()
             : RabbitStatus.open.toString(),
-        'kindleDate': isMissed ? null : kindleDate.toIso8601String(),
+        'kindleDate': null, // ✅ CLEAR expected date after birth is logged
         'currentLitterSize': isMissed ? 0 : aliveBorn,
         'weanDate': shouldBeNursing ? weanDate.toIso8601String() : null,
         'dueDate': null,
@@ -1418,6 +1499,7 @@ class DatabaseService {
     String? color,
     double? weight,
     String? notes,
+    RabbitStatus? status,
   }) async {
     // Generate a new rabbit ID
     final rabbitType =
@@ -1432,7 +1514,7 @@ class DatabaseService {
       id: newRabbitId,
       name: rabbitName,
       type: rabbitType,
-      status: RabbitStatus.open, // Active breeder - ready for breeding
+      status: status ?? RabbitStatus.open, // Default to Active breeder if not specified
       breed: breed ?? litter.breed,
       location: location ?? litter.location,
       cage: cage ?? litter.cage,
@@ -2052,32 +2134,32 @@ class DatabaseService {
     print('✅ Task $taskId ignored/disabled');
   }
 
-  // Complete task with optional cost logging
+  // Complete task with optional cost/income logging
   Future<void> completeTaskWithCost(
-      String taskId, double? cost, String? rabbitId,
-      {String? taskTitle, String? taskCategory}) async {
+      String taskId, double? amount, String? rabbitId,
+      {String? taskTitle, String? taskCategory, finance_model.TransactionType type = finance_model.TransactionType.expense}) async {
     final db = await database;
     await db.update(
       'tasks',
       {
         'completed': 1,
         'completedAt': DateTime.now().toIso8601String(),
-        'cost': cost,
+        'cost': amount,
       },
       where: 'id = ?',
       whereArgs: [taskId],
     );
 
-    // If cost is provided, log it as a transaction
-    if (cost != null && cost > 0) {
-      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory);
+    // If amount is provided, log it as a transaction
+    if (amount != null && amount > 0) {
+      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory, type: type);
       final transaction = finance_model.Transaction(
         id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
-        type: finance_model.TransactionType.expense,
+        type: type,
         category: txnCategory,
-        amount: cost,
+        amount: amount,
         date: DateTime.now(),
-        description: taskTitle ?? 'Task cost',
+        description: taskTitle ?? 'Task ${type == finance_model.TransactionType.income ? 'income' : 'cost'}',
         notes: 'Logged from completed task',
         linkType: rabbitId != null
             ? finance_model.LinkType.rabbit
@@ -2085,13 +2167,13 @@ class DatabaseService {
         rabbitId: rabbitId,
       );
       await insertTransaction(transaction);
-      print('✅ Task completed with cost: \$$cost');
+      print('✅ Task completed with ${type.name}: \$$amount');
     }
   }
 
-  // Complete scheduled task with optional cost logging
-  Future<void> markScheduledTaskCompletedWithCost(int id, double? cost,
-      {String? taskTitle, String? taskCategory, String? rabbitId}) async {
+  // Complete scheduled task with optional cost/income logging
+  Future<void> markScheduledTaskCompletedWithCost(int id, double? amount,
+      {String? taskTitle, String? taskCategory, String? rabbitId, finance_model.TransactionType type = finance_model.TransactionType.expense}) async {
     final db = await database;
     await db.update(
       'scheduled_tasks',
@@ -2100,16 +2182,16 @@ class DatabaseService {
       whereArgs: [id],
     );
 
-    // If cost is provided, log it as a transaction
-    if (cost != null && cost > 0) {
-      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory);
+    // If amount is provided, log it as a transaction
+    if (amount != null && amount > 0) {
+      final txnCategory = _mapTaskCategoryToTransactionCategory(taskCategory, type: type);
       final transaction = finance_model.Transaction(
         id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
-        type: finance_model.TransactionType.expense,
+        type: type,
         category: txnCategory,
-        amount: cost,
+        amount: amount,
         date: DateTime.now(),
-        description: taskTitle ?? 'Task cost',
+        description: taskTitle ?? 'Task ${type == finance_model.TransactionType.income ? 'income' : 'cost'}',
         notes: 'Logged from completed task',
         linkType: rabbitId != null
             ? finance_model.LinkType.rabbit
@@ -2117,22 +2199,35 @@ class DatabaseService {
         rabbitId: rabbitId,
       );
       await insertTransaction(transaction);
-      print('✅ Scheduled task completed with cost: \$$cost');
+      print('✅ Scheduled task completed with ${type.name}: \$$amount');
     }
   }
 
-  // Map task category to transaction expense category
+  // Map task category to transaction category
   finance_model.TransactionCategory _mapTaskCategoryToTransactionCategory(
-      String? taskCategory) {
-    switch (taskCategory?.toLowerCase()) {
-      case 'health':
-        return finance_model.TransactionCategory.medical;
-      case 'maintenance':
-        return finance_model.TransactionCategory.equipment;
-      case 'butchering':
-        return finance_model.TransactionCategory.supplies;
-      default:
-        return finance_model.TransactionCategory.otherExpense;
+      String? taskCategory, {finance_model.TransactionType type = finance_model.TransactionType.expense}) {
+    final cat = taskCategory?.toLowerCase() ?? '';
+    if (type == finance_model.TransactionType.income) {
+      switch (cat) {
+        case 'mating':
+        case 'pregnancy':
+          return finance_model.TransactionCategory.studFee;
+        case 'butchering':
+          return finance_model.TransactionCategory.meatHarvest;
+        default:
+          return finance_model.TransactionCategory.otherIncome;
+      }
+    } else {
+      switch (cat) {
+        case 'health':
+          return finance_model.TransactionCategory.medical;
+        case 'maintenance':
+          return finance_model.TransactionCategory.equipment;
+        case 'butchering':
+          return finance_model.TransactionCategory.supplies;
+        default:
+          return finance_model.TransactionCategory.otherExpense;
+      }
     }
   }
 
