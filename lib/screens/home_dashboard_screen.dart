@@ -17,16 +17,18 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
 import '../widgets/modals/log_birth_modal.dart';
+import '../widgets/modals/confirm_pregnancy_modal.dart';
+import '../services/app_event_service.dart';
 
 // === EXACT HTML PALETTE ===
 const kLilac = Color(0xFFC3B1E1);
 const kLilacLight = Color(0xFFE8DFFA);
 const kLilacWash = Color(0xFFF4F0FA);
-const kLilacDeep = Color(0xFF7B6BA0);
-const kLilacText = Color(0xFF5A4880);
+const kLilacDeep = Color(0xFF5E4A8A);
+const kLilacText = Color(0xFF463466);
 
 const kPink = Color(0xFFF2B8C6);
-const kPinkLight = Color(0xFFFADCE5);
+const kPinkLight = Color(0xFFFFBCE7);
 const kPinkWash = Color(0xFFFDF2F5);
 const kPinkDeep = Color(0xFFC47A8B);
 
@@ -37,10 +39,10 @@ const kBlueWash = Color(0xFFF0F7FD);
 
 const kNeutral900 = Color(0xFF2C2C2E);
 const kNeutral800 = Color(0xFF3A3A3C);
-const kNeutral700 = Color(0xFF636366);
-const kNeutral600 = Color(0xFF8E8E93);
-const kNeutral500 = Color(0xFFAEAEB2);
-const kNeutral400 = Color(0xFFC7C7CC);
+const kNeutral700 = Color(0xFF4F4F56);
+const kNeutral600 = Color(0xFF66666D);
+const kNeutral500 = Color(0xFF787880);
+const kNeutral400 = Color(0xFF67676F);
 const kNeutral300 = Color(0xFFE5E5EA);
 const kNeutral200 = Color(0xFFF2F2F7);
 const kNeutral100 = Color(0xFFF9F9FB);
@@ -50,9 +52,10 @@ const kError = Color(0xFFE05263);
 const kErrorBg = Color(0xFFFDF2F4);
 
 // Custom colors based on the design provided
-const kAppBgPurple = Color(0xFFECD9FA);
+const kAppBgPurple = Color(0xFFE6BEFE);
 const kFabPurple = Color(0xFFE2BFFB);
-const kHeaderPink = Color(0xFFF9D1E4);
+const kHeaderPink = Color(0xFFFFBCE7); // A lighter, soft pastel pink
+const kLightLavender = Color(0xFFEEDAFE);
 
 class HomeDashboardScreen extends StatefulWidget {
   static final GlobalKey<_HomeDashboardScreenState> dashboardKey = GlobalKey<_HomeDashboardScreenState>();
@@ -78,6 +81,7 @@ class HomeDashboardScreen extends StatefulWidget {
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedNavIndex = 0;
 
+  final GlobalKey<_KindleHomeScreenState> _homeTabKey = GlobalKey<_KindleHomeScreenState>();
   final GlobalKey<TaskScreenState> _taskTabKey = GlobalKey<TaskScreenState>();
   final GlobalKey<State<FinanceScreen>> _financeTabKey = GlobalKey<State<FinanceScreen>>();
   late final List<Widget> _navScreens;
@@ -86,7 +90,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   void initState() {
     super.initState();
     _navScreens = [
-      KindleHomeScreen(),
+      KindleHomeScreen(key: _homeTabKey),
       HerdScreen(),
       LittersScreen(),
       TaskScreen(key: _taskTabKey),
@@ -96,6 +100,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   void _onNavTap(int index) {
     setState(() => _selectedNavIndex = index);
+    if (index == 0) _homeTabKey.currentState?._loadData(showLoading: false);
     if (index == 3) _taskTabKey.currentState?.refresh();
   }
 
@@ -109,7 +114,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       backgroundColor: Colors.white,
       body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
       bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButton: _selectedNavIndex == 0 ? _buildFAB(context) : null,
     );
   }
 
@@ -140,7 +144,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ),
           BottomNavigationBarItem(
             icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.baby(PhosphorIconsStyle.duotone))),
-            label: 'Litters',
+            label: 'Nursery',
           ),
           BottomNavigationBarItem(
             icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone))),
@@ -151,72 +155,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             label: 'Finance',
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFAB(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8, right: 8),
-      height: 56,
-      width: 56,
-      child: FloatingActionButton(
-        onPressed: () => _showQuickActions(context),
-        backgroundColor: kFabPurple,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
-      ),
-    );
-  }
-
-  void _showQuickActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Container(
-        padding: const EdgeInsets.only(bottom: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 36, height: 4, margin: const EdgeInsets.only(top: 12, bottom: 18), decoration: BoxDecoration(color: kNeutral300, borderRadius: BorderRadius.circular(100))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: kNeutral900)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: Icon(PhosphorIcons.x(), color: kNeutral500, size: 20)),
-                ],
-              ),
-            ),
-            _buildActionRow(context, 'Log Breeding', () => _onNavTap(1)),
-            _buildActionRow(context, 'Log Birth', () => _onNavTap(2)),
-            _buildActionRow(context, 'Add Bunny', () => _onNavTap(1)),
-            _buildActionRow(context, 'Add Task', () => _onNavTap(3)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionRow(BuildContext context, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      highlightColor: kNeutral100,
-      splashColor: kNeutral100,
-      child: Container(
-        height: 54,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: kNeutral200, width: 1)),
-        ),
-        alignment: Alignment.centerLeft,
-        child: Text(label, style: const TextStyle(fontSize: 15, color: kNeutral900, fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -252,11 +190,24 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+    dataChangeNotifier.addListener(_onDataChanged);
   }
 
-  Future<void> _loadData() async {
+  void _onDataChanged() {
+    if (mounted) _loadData(showLoading: false);
+  }
+
+  @override
+  void dispose() {
+    dataChangeNotifier.removeListener(_onDataChanged);
+    super.dispose();
+  }
+
+  Future<void> _loadData({bool showLoading = true}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (showLoading) {
+      setState(() => _isLoading = true);
+    }
     try {
       final rabbits = await _db.getAllRabbits();
       final litters = await _db.getLitters();
@@ -265,15 +216,27 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
       final today = DateTime(now.year, now.month, now.day);
       final monthStart = DateTime(now.year, now.month, 1);
 
-      _activeLitters = litters.where((l) => l.status.toLowerCase() != 'archived').length;
+      // Litters: Current number of nursing litters
+      _activeLitters = litters.where((l) => l.status.toLowerCase() == 'nursing').length;
+
+      // Breeders: Current number of active does and bucks
       _breederCount = rabbits.where((r) => (r.type == RabbitType.doe || r.type == RabbitType.buck) && r.status != RabbitStatus.archived).length;
 
-      _nursingKits = litters.where((l) => l.status.toLowerCase() == 'nursing').fold(0, (sum, l) => sum + l.kits.where((k) => k.status.toLowerCase() != 'died').length);
+      // Nursing Kits: Current number of kits being nursed in nursing litters
+      _nursingKits = litters.where((l) => l.status.toLowerCase() == 'nursing').fold(0, (sum, l) => sum + l.kits.where((k) => k.status.toLowerCase() == 'nursing' || (k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'archived')).length);
 
+      // Weaned Kits: Kits that are 7 weeks (49 days) or older, or status is Weaned / Growout
       int kitsWeaned = 0;
       for (final litter in litters) {
-        if (litter.weanDate != null && !litter.weanDate!.isBefore(monthStart)) {
-          kitsWeaned += litter.kits.where((k) => k.status.toLowerCase() == 'weaned' || k.status.toLowerCase() == 'growout').length;
+        final dob = litter.dob;
+        final ageInDays = dob != null ? today.difference(dob).inDays : 0;
+        for (final kit in litter.kits) {
+          final st = kit.status.toLowerCase();
+          if (st != 'died' && st != 'dead' && st != 'archived' && st != 'sold') {
+            if (st == 'weaned' || st == 'growout' || ageInDays >= 49) {
+              kitsWeaned++;
+            }
+          }
         }
       }
       _kitsWeanedCount = kitsWeaned;
@@ -301,7 +264,9 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
       try {
         final todayTasks = await _db.getTasksDueToday();
         final pipelineTasks = await _db.getPipelineTasksDueToday();
-        _tasksDue = todayTasks.length + pipelineTasks.length;
+        final uncompletedScheduled = todayTasks.where((t) => t['completedAt'] == null).length;
+        final uncompletedPipeline = pipelineTasks.where((t) => t['completedAt'] == null).length;
+        _tasksDue = uncompletedScheduled + uncompletedPipeline;
       } catch (_) {
         _tasksDue = 0;
       }
@@ -309,10 +274,24 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
       final breedSet = <String>{};
       final kindleMap = <String, List<Map<String, dynamic>>>{};
 
+      String normalizeBreedName(String raw) {
+        final trimmed = raw.trim();
+        final lower = trimmed.toLowerCase();
+        if (lower == 'netherlands' || lower == 'netherland dwarfs' || lower == 'netherland dwarf') {
+          return 'Netherland Dwarf';
+        }
+        if (lower == 'dwarf hotot' || lower == 'hotots' || lower == 'hotot') {
+          return 'Dwarf Hotot';
+        }
+        return trimmed;
+      }
+
       for (final r in rabbits) {
-        if (r.type == RabbitType.doe && r.kindleDate != null && r.status != RabbitStatus.archived) {
-          breedSet.add(r.breed);
-          kindleMap.putIfAbsent(r.breed, () => []);
+        final expectedKindleDate = r.kindleDate ?? r.dueDate;
+        if (r.type == RabbitType.doe && expectedKindleDate != null && r.status != RabbitStatus.archived) {
+          final breedName = normalizeBreedName(r.breed);
+          breedSet.add(breedName);
+          kindleMap.putIfAbsent(breedName, () => []);
 
           String buckName = 'Unknown';
           if (r.lastBreedBuckId != null) {
@@ -322,13 +301,13 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
             } catch (_) {}
           }
 
-          final diff = r.kindleDate!.difference(today).inDays;
-          kindleMap[r.breed]!.add({
+          final diff = expectedKindleDate.difference(today).inDays;
+          kindleMap[breedName]!.add({
             'id': r.id,
             'doe': r,
             'doeName': r.name,
             'buckName': buckName,
-            'kindleDate': r.kindleDate!,
+            'kindleDate': expectedKindleDate,
             'daysUntil': diff,
           });
         }
@@ -338,8 +317,14 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
         kindleMap[breed]!.sort((a, b) => (a['kindleDate'] as DateTime).compareTo(b['kindleDate'] as DateTime));
       }
 
-      _availableBreeds = breedSet.toList()..sort();
-      _kindleByBreed = kindleMap;
+      final sortedBreedKeys = kindleMap.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      final sortedKindleMap = <String, List<Map<String, dynamic>>>{};
+      for (final bk in sortedBreedKeys) {
+        sortedKindleMap[bk] = kindleMap[bk]!;
+      }
+
+      _availableBreeds = breedSet.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      _kindleByBreed = sortedKindleMap;
     } catch (e) {
       print('Error loading data: $e');
     }
@@ -348,25 +333,32 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: kLightLavender,
+        body: Center(
+          child: CircularProgressIndicator(color: kLilacDeep, strokeWidth: 2),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kLightLavender,
       appBar: _buildSolidAppBar(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: kLilacDeep, strokeWidth: 2))
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              color: kLilacDeep,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildHeroSection(),
-                    _buildKindleSection(),
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
+      body: RefreshIndicator(
+        onRefresh: () => _loadData(showLoading: false),
+        color: kLilacDeep,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeroSection(),
+              _buildKindleSection(),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -404,8 +396,8 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
       width: double.infinity,
       color: kAppBgPurple,
       padding: const EdgeInsets.only(
-        top: 10,
-        bottom: 18,
+        top: 6,
+        bottom: 12,
         left: 20,
         right: 20,
       ),
@@ -416,8 +408,8 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
             crossAxisCount: 3,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 22,
-            mainAxisSpacing: 22,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
             childAspectRatio: 1.42,
             children: [
               _buildMetricCard('Task Due', '$_tasksDue'),
@@ -496,7 +488,7 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -515,7 +507,26 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
                 ),
               )
             else
-              ...displayData.entries.map((entry) => _buildBreedGroup(entry.key, entry.value)).toList(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < displayData.length; i++)
+                        _buildBreedGroup(
+                          displayData.keys.elementAt(i),
+                          displayData.values.elementAt(i),
+                          isFirst: i == 0,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -545,40 +556,43 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
     );
   }
 
-  Widget _buildBreedGroup(String breed, List<Map<String, dynamic>> entries) {
+  Widget _buildBreedGroup(String breed, List<Map<String, dynamic>> entries, {required bool isFirst}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 8),
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          decoration: const BoxDecoration(
+          margin: EdgeInsets.only(
+            left: 0,
+            right: 0,
+            top: isFirst ? 0 : 8,
+            bottom: 4,
+          ),
+          decoration: BoxDecoration(
             color: kHeaderPink,
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             breed,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: kNeutral700,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3A3A3C),
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: entries.asMap().entries.map((e) {
-              return _buildKindleCard(e.value, isLast: e.key == entries.length - 1);
-            }).toList(),
-          ),
+        Column(
+          children: entries.asMap().entries.map((e) {
+            return _buildKindleCard(e.value, index: e.key, isLast: e.key == entries.length - 1);
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildKindleCard(Map<String, dynamic> entry, {required bool isLast}) {
+  Widget _buildKindleCard(Map<String, dynamic> entry, {required int index, required bool isLast}) {
     final int daysUntil = entry['daysUntil'];
 
     String daysText;
@@ -610,65 +624,68 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
     ];
     final String formattedDate = '${monthNames[kDate.month - 1]} ${kDate.day.toString().padLeft(2, '0')}';
 
-    return InkWell(
-      onTap: () {
-        if (entry['doe'] == null) return;
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => LogBirthModal(
-            doe: entry['doe'],
-            onComplete: _loadData,
+    final isOdd = index % 2 == 1;
+    final backgroundColor = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+
+    return Material(
+      color: backgroundColor,
+      child: InkWell(
+        onTap: () {
+          if (entry['doe'] == null) return;
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => LogBirthModal(
+              doe: entry['doe'],
+              onComplete: _loadData,
+            ),
+          );
+        },
+        onLongPress: () {
+          if (entry['doe'] != null) {
+            _showKindleLongPressMenu(entry['doe'] as Rabbit);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          decoration: BoxDecoration(
+            border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral200, width: 0.5)),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral200, width: 0.5)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Text(
-                '${entry['doeName']} × ${entry['buckName']}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral800),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                formattedDate,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral600, fontFeatures: [
-                  ui.FontFeature.tabularFigures()
-                ]),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                isOverdue ? '-$daysText' : daysText,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isOverdue ? kError : kNeutral500,
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ),
-            if (entry['doe'] != null)
-              SizedBox(
-                width: 24,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: _buildThreeDotMenu(entry['doe']),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7,
+                child: Text(
+                  '${entry['doeName']} × ${entry['buckName']}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral800),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-          ],
+              Expanded(
+                flex: 2,
+                child: Text(
+                  formattedDate,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral600, fontFeatures: [
+                    ui.FontFeature.tabularFigures()
+                  ]),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  isOverdue ? '-$daysText' : daysText,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isOverdue ? kError : kNeutral500,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -747,6 +764,121 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
           }
         }
       },
+    );
+  }
+
+  void _showKindleLongPressMenu(Rabbit doe) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kNeutral300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'Breeding Options for ${doe.name}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kNeutral800),
+                ),
+              ),
+              const Divider(height: 1),
+              if (SettingsService.instance.palpationEnabled)
+                ListTile(
+                  leading: Icon(PhosphorIcons.hand(PhosphorIconsStyle.duotone), color: kLilacDeep),
+                  title: const Text('Log Palpation', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => ConfirmPregnancyModal(
+                        doe: doe,
+                        onComplete: _loadData,
+                      ),
+                    );
+                  },
+                ),
+              ListTile(
+                leading: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.duotone), color: kNeutral700),
+                title: const Text('Edit Breeding', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: doe.kindleDate ?? DateTime.now().add(const Duration(days: 31)),
+                    firstDate: DateTime.now().subtract(const Duration(days: 31)),
+                    lastDate: DateTime.now().add(const Duration(days: 45)),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: kPinkDeep,
+                            onPrimary: Colors.white,
+                            onSurface: kNeutral900,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (pickedDate != null) {
+                    final updatedDoe = doe.copyWith(
+                      kindleDate: pickedDate,
+                      dueDate: pickedDate,
+                    );
+                    await _db.updateRabbit(updatedDoe);
+                    _loadData();
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(PhosphorIcons.trash(PhosphorIconsStyle.duotone), color: kError),
+                title: const Text('Delete Breeding', style: TextStyle(color: kError, fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Delete Breeding?', style: TextStyle(fontWeight: FontWeight.w600)),
+                      content: const Text('This will clear the breeding schedule for this doe. This action cannot be undone.'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: kNeutral600))),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Delete', style: TextStyle(color: kError, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    await _db.markOpenForBreeding(doe.id);
+                    _loadData();
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -31,6 +31,8 @@ dependencies:
   pdf: ^3.11.3
   printing: ^5.14.3
   flutter_svg: ^2.2.2
+  share_plus: ^10.0.0
+  flutter_timezone: ^5.1.0
 
 dev_dependencies:
   flutter_test:

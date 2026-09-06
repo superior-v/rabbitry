@@ -4,24 +4,29 @@ enum TransactionType {
 }
 
 enum TransactionCategory {
-  soldKit,
+  rabbitSale,
+  litterSale,
+  studFee,
+  manureSales,
+  meatHarvest,
+  showWinnings,
+  refund,
+  otherIncome,
   medical,
   feed,
-  meatHarvest,
-  showFee,
-  studFee,
   equipment,
   vetVisit,
-  manureSales,
-  supplies,
+  showFee,
   otherExpense,
-  otherIncome,
+  soldKit,
+  supplies,
 }
 
 enum LinkType {
   general,
   rabbit,
   litter,
+  kit,
 }
 
 class Transaction {
@@ -76,50 +81,63 @@ class Transaction {
   // Get category display name
   String get categoryName {
     switch (category) {
+      case TransactionCategory.rabbitSale:
+        return 'Rabbit sale';
+      case TransactionCategory.litterSale:
       case TransactionCategory.soldKit:
-        return 'Sold Kit';
+        return 'Litter sale';
+      case TransactionCategory.studFee:
+        return 'Breeding stud fee';
+      case TransactionCategory.manureSales:
+        return 'Manure / compost sale';
+      case TransactionCategory.meatHarvest:
+        return 'Fur / meat sale';
+      case TransactionCategory.showWinnings:
+        return 'Show winnings';
+      case TransactionCategory.refund:
+        return 'Refund';
+      case TransactionCategory.otherIncome:
+        return 'Other income';
       case TransactionCategory.medical:
         return 'Medical';
       case TransactionCategory.feed:
-        return 'Feed';
-      case TransactionCategory.meatHarvest:
-        return 'Meat Harvest';
-      case TransactionCategory.showFee:
-        return 'Show Fee';
-      case TransactionCategory.studFee:
-        return 'Stud Fee';
+        return 'Feed / Hay';
       case TransactionCategory.equipment:
-        return 'Equipment';
+      case TransactionCategory.supplies:
+        return 'Equipment / Supplies';
       case TransactionCategory.vetVisit:
         return 'Vet Visit';
-      case TransactionCategory.manureSales:
-        return 'Manure Sales';
-      case TransactionCategory.supplies:
-        return 'Supplies';
+      case TransactionCategory.showFee:
+        return 'Show / Entry Fee';
       case TransactionCategory.otherExpense:
-        return 'Other Expense';
-      case TransactionCategory.otherIncome:
-        return 'Other Income';
+        return 'Other expense';
     }
   }
 
   // Check if category is typically income
   static bool isIncomeCategory(TransactionCategory category) {
     return [
+      TransactionCategory.rabbitSale,
+      TransactionCategory.litterSale,
       TransactionCategory.soldKit,
-      TransactionCategory.meatHarvest,
       TransactionCategory.studFee,
       TransactionCategory.manureSales,
+      TransactionCategory.meatHarvest,
+      TransactionCategory.showWinnings,
+      TransactionCategory.refund,
       TransactionCategory.otherIncome,
     ].contains(category);
   }
 
   // Get all income categories
   static List<TransactionCategory> get incomeCategories => [
-        TransactionCategory.soldKit,
-        TransactionCategory.meatHarvest,
+        TransactionCategory.rabbitSale,
+        TransactionCategory.litterSale,
         TransactionCategory.studFee,
         TransactionCategory.manureSales,
+        TransactionCategory.meatHarvest,
+        TransactionCategory.showWinnings,
+        TransactionCategory.refund,
         TransactionCategory.otherIncome,
       ];
 
@@ -127,10 +145,9 @@ class Transaction {
   static List<TransactionCategory> get expenseCategories => [
         TransactionCategory.medical,
         TransactionCategory.feed,
-        TransactionCategory.showFee,
         TransactionCategory.equipment,
         TransactionCategory.vetVisit,
-        TransactionCategory.supplies,
+        TransactionCategory.showFee,
         TransactionCategory.otherExpense,
       ];
 
@@ -158,16 +175,25 @@ class Transaction {
   }
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
+    final catStr = map['category'] as String?;
+    TransactionCategory cat = TransactionCategory.otherExpense;
+    if (catStr == 'TransactionCategory.soldKit' || catStr == 'soldKit') {
+      cat = TransactionCategory.litterSale;
+    } else if (catStr == 'TransactionCategory.supplies' || catStr == 'supplies') {
+      cat = TransactionCategory.equipment;
+    } else {
+      cat = TransactionCategory.values.firstWhere(
+        (e) => e.toString() == catStr || e.name == catStr,
+        orElse: () => TransactionCategory.otherExpense,
+      );
+    }
     return Transaction(
       id: map['id'] as String,
       type: TransactionType.values.firstWhere(
         (e) => e.toString() == map['type'] || e.name == map['type'],
         orElse: () => TransactionType.expense,
       ),
-      category: TransactionCategory.values.firstWhere(
-        (e) => e.toString() == map['category'] || e.name == map['category'],
-        orElse: () => TransactionCategory.otherExpense,
-      ),
+      category: cat,
       amount: (map['amount'] as num).toDouble(),
       date: DateTime.parse(map['date'] as String),
       description: map['description'] as String?,

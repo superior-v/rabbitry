@@ -9,11 +9,13 @@ import '../../services/format_utils.dart';
 class ArchiveModal extends StatefulWidget {
   final Rabbit rabbit;
   final VoidCallback onComplete;
+  final ArchiveReason? preselectedReason;
 
   const ArchiveModal({
     Key? key,
     required this.rabbit,
     required this.onComplete,
+    this.preselectedReason,
   }) : super(key: key);
 
   @override
@@ -37,6 +39,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
   @override
   void initState() {
     super.initState();
+    _selectedReason = widget.preselectedReason;
     _loadContacts();
   }
 

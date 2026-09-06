@@ -22,11 +22,12 @@ class Kit {
   });
 
   bool get isArchived => [
-        'Sold',
-        'Butchered',
-        'Dead',
-        'Cull',
-      ].contains(status);
+        'sold',
+        'butchered',
+        'dead',
+        'died',
+        'cull',
+      ].contains(status.trim().toLowerCase());
 
   Kit copyWith({
     String? id,

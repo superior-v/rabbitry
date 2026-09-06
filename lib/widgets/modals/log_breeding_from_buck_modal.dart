@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
@@ -68,357 +69,331 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.95,
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFE0E0E0),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Record Breeding',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFEBF8FF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.male, color: Color(0xFF2E7BB5), size: 20),
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Buck: ${widget.buck.name} (${widget.buck.id})',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF787774),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-
-              // Doe Selection
-              Text(
-                'SELECT DOE',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              SizedBox(height: 8),
-              if (_isLoading)
-                Center(child: CircularProgressIndicator())
-              else if (_does.isEmpty)
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFFF3CD),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: const BoxDecoration(
+              color: kLilacLight,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border(bottom: BorderSide(color: kLilac, width: 1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.warning_amber, color: Color(0xFF856404), size: 20),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'No does available for breeding. All does are either bred, nursing, or in quarantine.',
-                          style: TextStyle(color: Color(0xFF856404), fontSize: 13),
+                      const Text(
+                        'Record Breeding',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: kLilacText,
+                          letterSpacing: -0.5,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Buck: ${widget.buck.name} (${widget.buck.id})',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: kLilacText,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                )
-              else
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonFormField<Rabbit>(
-                    value: _selectedDoe,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    hint: Text('Select a doe'),
-                    items: _does.map((doe) {
-                      return DropdownMenuItem(
-                        value: doe,
-                        child: Row(
-                          children: [
-                            Icon(Icons.female, color: kFemaleColor, size: 18),
-                            SizedBox(width: 8),
-                            Text('${doe.name} (${doe.id})'),
-                            SizedBox(width: 8),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Color(0xFFF7EDE3),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                doe.statusText,
-                                style: TextStyle(fontSize: 11, color: Color(0xFF7B6BA0)),
-                              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: kLilacText),
+                  onPressed: () => Navigator.pop(context),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Content
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Doe Selection
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_does.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3CD),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFFE58F)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.warning_amber, color: Color(0xFF856404), size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'No does available for breeding. All does are either bred, nursing, or in quarantine.',
+                              style: TextStyle(color: Color(0xFF856404), fontSize: 13),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    _buildDropdownField<Rabbit>(
+                      label: 'Select Doe',
+                      value: _selectedDoe,
+                      prefixIcon: Icons.female_rounded,
+                      items: _does.map((doe) {
+                        return DropdownMenuItem(
+                          value: doe,
+                          child: Row(
+                            children: [
+                              Text('${doe.name} (${doe.id})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7EDE3),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  doe.statusText,
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (doe) {
+                        setState(() => _selectedDoe = doe);
+                      },
+                    ),
+                  const SizedBox(height: 10),
+
+                  // Purple Container Card for Breed Date, Fall Offs, Breeding Notes
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: kLilacWash,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: kLilacLight),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildDatePickerField(
+                          label: 'Breed Date',
+                          value: _breedDate,
+                          onTap: () => _selectDate(context),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (doe) {
-                      setState(() => _selectedDoe = doe);
-                    },
+                        const SizedBox(height: 10),
+                        _buildOutlinedField(
+                          label: 'Fall Offs',
+                          controller: _fallOffsController,
+                          prefixIcon: Icons.repeat_on_rounded,
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildOutlinedField(
+                          label: 'Breeding Notes',
+                          controller: _breedingNotesController,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
-              // Breed Date
-              Text(
-                'BREED DATE',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              SizedBox(height: 8),
-              InkWell(
-                onTap: () => _selectDate(context),
-                child: Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today, color: Color(0xFF787774)),
-                      SizedBox(width: 12),
-                      Text(
-                        _formatDate(_breedDate),
-                        style: TextStyle(fontSize: 15),
-                      ),
-                      Spacer(),
-                      Text(
-                        _breedDate.difference(DateTime.now()).inDays == 0 ? 'Today' : '${_breedDate.difference(DateTime.now()).inDays.abs()} days ago',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-
-              // Timeline Preview with Palpation Reminder
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF7EDE3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Timeline Preview with Palpation Reminder
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: kLilacWash.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kLilacLight.withOpacity(0.5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.schedule, size: 16, color: Color(0xFF7B6BA0)),
-                            SizedBox(width: 6),
-                            Text(
-                              'TIMELINE & REMINDERS',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF7B6BA0),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() => _isCustomTimeline = !_isCustomTimeline);
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _isCustomTimeline ? Color(0xFF7B6BA0).withOpacity(0.1) : Colors.white,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFFE9E9E7),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            const Row(
                               children: [
-                                Icon(
-                                  _isCustomTimeline ? Icons.check_circle : Icons.edit,
-                                  size: 14,
-                                  color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFF787774),
-                                ),
-                                SizedBox(width: 4),
+                                Icon(Icons.schedule, size: 16, color: Color(0xFF7B6BA0)),
+                                SizedBox(width: 6),
                                 Text(
-                                  _isCustomTimeline ? 'Custom' : 'Edit',
+                                  'TIMELINE & REMINDERS',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: _isCustomTimeline ? Color(0xFF7B6BA0) : Color(0xFF787774),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF7B6BA0),
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => _isCustomTimeline = !_isCustomTimeline);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _isCustomTimeline ? const Color(0xFF7B6BA0).withOpacity(0.1) : Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _isCustomTimeline ? Icons.check_circle : Icons.edit,
+                                      size: 14,
+                                      color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _isCustomTimeline ? 'Custom' : 'Edit',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 10),
+                        if (_isCustomTimeline) ...[
+                          _buildEditableTimelineRow(
+                            'Palpation Check',
+                            _palpationDays,
+                            _breedDate.add(Duration(days: _palpationDays)),
+                            (val) => setState(() => _palpationDays = val),
+                          ),
+                          _buildEditableTimelineRow(
+                            'Nest Box',
+                            _nestBoxDays,
+                            _breedDate.add(Duration(days: _nestBoxDays)),
+                            (val) => setState(() => _nestBoxDays = val),
+                          ),
+                          _buildEditableTimelineRow(
+                            'Due Date',
+                            _gestationDays,
+                            _breedDate.add(Duration(days: _gestationDays)),
+                            (val) => setState(() => _gestationDays = val),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              await SettingsService.instance.init();
+                              setState(() {
+                                _palpationDays = SettingsService.instance.palpationDays;
+                                _nestBoxDays = SettingsService.instance.nestBoxDays;
+                                _gestationDays = SettingsService.instance.gestationDays;
+                              });
+                            },
+                            child: const Text(
+                              'Reset to defaults',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ] else ...[
+                          _buildTimelineItem(
+                            'Palpation Check',
+                            _breedDate.add(Duration(days: _palpationDays)),
+                            'Confirm bred status',
+                            isHighlighted: true,
+                          ),
+                          _buildTimelineItem(
+                            'Nest Box',
+                            _breedDate.add(Duration(days: _nestBoxDays)),
+                            'Prepare nest box',
+                            isHighlighted: false,
+                          ),
+                          _buildTimelineItem(
+                            'Due Date',
+                            _breedDate.add(Duration(days: _gestationDays)),
+                            'Expected kindle date',
+                            isHighlighted: false,
+                          ),
+                        ],
                       ],
                     ),
-                    SizedBox(height: 14),
-                    if (_isCustomTimeline) ...[
-                      _buildEditableTimelineRow(
-                        '📅 Palpation Check',
-                        _palpationDays,
-                        _breedDate.add(Duration(days: _palpationDays)),
-                        (val) => setState(() => _palpationDays = val),
-                      ),
-                      _buildEditableTimelineRow(
-                        '🏠 Nest Box',
-                        _nestBoxDays,
-                        _breedDate.add(Duration(days: _nestBoxDays)),
-                        (val) => setState(() => _nestBoxDays = val),
-                      ),
-                      _buildEditableTimelineRow(
-                        '🐰 Due Date',
-                        _gestationDays,
-                        _breedDate.add(Duration(days: _gestationDays)),
-                        (val) => setState(() => _gestationDays = val),
-                      ),
-                      SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          await SettingsService.instance.init();
-                          setState(() {
-                            _palpationDays = SettingsService.instance.palpationDays;
-                            _nestBoxDays = SettingsService.instance.nestBoxDays;
-                            _gestationDays = SettingsService.instance.gestationDays;
-                          });
-                        },
-                        child: Text(
-                          'Reset to defaults',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ] else ...[
-                      _buildTimelineItem(
-                        '📅 Palpation Check',
-                        _breedDate.add(Duration(days: _palpationDays)),
-                        'Confirm bred status',
-                        isHighlighted: true,
-                      ),
-                      _buildTimelineItem(
-                        '🏠 Nest Box',
-                        _breedDate.add(Duration(days: _nestBoxDays)),
-                        'Prepare nest box',
-                        isHighlighted: false,
-                      ),
-                      _buildTimelineItem(
-                        '🐰 Due Date',
-                        _breedDate.add(Duration(days: _gestationDays)),
-                        'Expected kindle date',
-                        isHighlighted: false,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              SizedBox(height: 24),
-
-              // Fall Offs
-              _buildFallOffsField(),
-              SizedBox(height: 16),
-
-              // Breeding Notes
-              _buildBreedingNotesField(),
-              SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF7B6BA0),
-                    disabledBackgroundColor: Color(0xFFE9E9E7),
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
-                  child: _isSaving
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          'Record Breeding',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
+                  const SizedBox(height: 4),
+                ],
               ),
-              SizedBox(height: 16),
-            ],
+            ),
           ),
-        ),
+
+          // Submit Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kLilacLight,
+                  foregroundColor: kLilacText,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: kLilacText,
+                        ),
+                      )
+                    : const Text(
+                        'SAVE',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: kLilacText,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -559,32 +534,92 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   }
 
   String _formatDate(DateTime date) {
-    return FormatUtils.formatDate(date);
+    return DateFormat('MM-dd-yyyy').format(date);
   }
 
-  Widget _buildFallOffsField() {
-    return TextFormField(
-      controller: _fallOffsController,
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Fall Offs (Optional)',
-        hintText: 'Number of successful covers',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.repeat),
+  Widget _buildOutlinedField({
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    IconData? prefixIcon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    Function(String)? onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
       ),
     );
   }
 
-  Widget _buildBreedingNotesField() {
-    return TextFormField(
-      controller: _breedingNotesController,
-      maxLines: 3,
-      decoration: const InputDecoration(
-        labelText: 'Breeding Notes (Optional)',
-        hintText: 'Any special observations...',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.notes),
+  Widget _buildDatePickerField({
+    required String label,
+    required DateTime value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              DateFormat('MM-dd-yyyy').format(value),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildDropdownField<T>({
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+    required IconData prefixIcon,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        prefixIcon: Icon(prefixIcon, color: const Color(0xFF7B6BA0), size: 20),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7B6BA0)),
     );
   }
 
@@ -592,7 +627,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _breedDate,
-      firstDate: DateTime.now().subtract(Duration(days: 30)),
+      firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
     if (picked != null) {

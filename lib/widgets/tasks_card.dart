@@ -6,6 +6,7 @@ import '../services/settings_service.dart';
 import '../constants/app_colors.dart';
 import '../services/format_utils.dart';
 import 'package:intl/intl.dart';
+import '../screens/task_screen.dart';
 
 // ================================================================
 //  TASKS CARD — shows Today/Overdue & Upcoming tasks for a rabbit
@@ -24,6 +25,7 @@ class _TasksCardState extends State<TasksCard> {
   List<Map<String, dynamic>> upcomingTasks = [];
   List<Map<String, dynamic>> completedTasks = [];
   bool _isLoading = true;
+  String? _selectedFilterCategory;
 
   @override
   void initState() {
@@ -106,13 +108,17 @@ class _TasksCardState extends State<TasksCard> {
       );
     }
 
-    final totalOpen = todayTasks.length + upcomingTasks.length;
-    final overdueCount = todayTasks.where((t) {
-      final d = DateTime.tryParse(t['dueDate'] ?? '');
-      if (d == null) return false;
-      final now = DateTime.now();
-      return d.isBefore(DateTime(now.year, now.month, now.day));
-    }).length;
+    // Filter tasks if category is selected
+    List<Map<String, dynamic>> todayToShow = todayTasks;
+    List<Map<String, dynamic>> upcomingToShow = upcomingTasks;
+    List<Map<String, dynamic>> completedToShow = completedTasks;
+
+    if (_selectedFilterCategory != null) {
+      final catFilter = _selectedFilterCategory!.toUpperCase();
+      todayToShow = todayTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
+      upcomingToShow = upcomingTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
+      completedToShow = completedTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -126,196 +132,151 @@ class _TasksCardState extends State<TasksCard> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
-                Icon(PhosphorIconsFill.checkSquare, size: 18, color: kNeutral500),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'TASKS',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: kNeutral500,
-                      letterSpacing: 0.6,
+                const Text(
+                  'TASKS',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF374151),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
+                PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  offset: const Offset(0, 40),
+                  onSelected: (String category) {
+                    setState(() {
+                      _selectedFilterCategory = category == 'ALL' ? null : category;
+                    });
+                  },
+                  itemBuilder: (BuildContext context) {
+                    final categories = ['ALL', 'BREEDING', 'HEALTH', 'MAINTENANCE', 'GENERAL', 'OPERATIONS'];
+                    return categories.map((cat) {
+                      final isSelected = (_selectedFilterCategory == null && cat == 'ALL') ||
+                          (_selectedFilterCategory == cat);
+                      return PopupMenuItem<String>(
+                        value: cat,
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected ? Icons.check : null, 
+                              size: 16, 
+                              color: const Color(0xFF8B5CF6)
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF374151),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList();
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E8FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIcons.funnel(PhosphorIconsStyle.regular),
+                      size: 16,
+                      color: const Color(0xFF8B5CF6),
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _showNewScheduleDialog,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: kNeutral100,
-                      borderRadius: BorderRadius.circular(100),
+                      color: const Color(0xFFF3E8FF),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.add, size: 14, color: kNeutral600),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Add',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: kNeutral600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+                    child: const Icon(
+                      Icons.add,
+                      size: 18,
+                      color: Color(0xFF8B5CF6),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Task Count Overview
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '$totalOpen',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2937),
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'open tasks',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: kNeutral500,
-                    ),
-                  ),
-                ),
-                if (overdueCount > 0) ...[
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFEF4444)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$overdueCount overdue',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFFEF4444),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
 
           // Task Sections
-          _buildTaskHeader('TODAY & OVERDUE', todayTasks.length),
-          ...todayTasks.map((t) => _buildTaskItem(t)),
+          _buildTaskHeader('TODAY & OVERDUE', todayToShow.length, isOverdue: true),
+          if (todayToShow.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('No tasks due today', style: TextStyle(fontSize: 13, color: kNeutral400)),
+            )
+          else
+            ...todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)),
 
-          _buildTaskHeader('UPCOMING', upcomingTasks.length),
-          ...upcomingTasks.map((t) => _buildTaskItem(t)),
+          const SizedBox(height: 4),
+          _buildTaskHeader('UPCOMING', upcomingToShow.length, isOverdue: false),
+          if (upcomingToShow.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('No upcoming tasks', style: TextStyle(fontSize: 13, color: kNeutral400)),
+            )
+          else
+            ...upcomingToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)),
 
-          if (completedTasks.isNotEmpty) ...[
-            _buildTaskHeader('COMPLETED', 0), // completed usually doesn't show badge in screens
-            ...completedTasks.take(3).map((t) => _buildTaskItem(t, forcedCompleted: true)),
+          if (completedToShow.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _buildTaskHeader('COMPLETED', completedToShow.length, isOverdue: false),
+            ...completedToShow.take(3).toList().asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)),
           ],
 
-          // View All
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Center(
-              child: GestureDetector(
-                onTap: () {
-                  // Navigate to all tasks or show more
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'View All Tasks',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: kNeutral400,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: kNeutral400),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom Stats Grid
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: kNeutral100)),
-              color: Color(0xFFFAFAFA),
-            ),
-            child: Row(
-              children: [
-                _buildBottomStatItem('${todayTasks.length}', 'OVERDUE'),
-                _buildDivider(),
-                _buildBottomStatItem('${upcomingTasks.length}', 'UPCOMING'),
-                _buildDivider(),
-                _buildBottomStatItem('${completedTasks.length}', 'COMPLETED'),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildTaskHeader(String title, int count) {
+  Widget _buildTaskHeader(String title, int count, {bool isOverdue = false}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: kNeutral400,
-              letterSpacing: 0.8,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3E8FF),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4B5563),
+                letterSpacing: 0.6,
+              ),
             ),
           ),
           if (count > 0)
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFEF2F2),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$count',
-                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFFEF4444)),
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF333333),
               ),
             ),
         ],
@@ -323,7 +284,7 @@ class _TasksCardState extends State<TasksCard> {
     );
   }
 
-  Widget _buildTaskItem(Map<String, dynamic> task, {bool forcedCompleted = false}) {
+  Widget _buildTaskItem(Map<String, dynamic> task, {int index = 0, bool forcedCompleted = false}) {
     final bool isCompleted = forcedCompleted || task['completedAt'] != null || task['completed'] == 1;
     final dueDate = DateTime.tryParse(task['dueDate'] ?? '');
     final now = DateTime.now();
@@ -344,146 +305,132 @@ class _TasksCardState extends State<TasksCard> {
     }
 
     String category = (task['category'] ?? 'General').toString().toUpperCase();
-    Color categoryColor = kNeutral100;
-    Color textColor = kNeutral600;
+    
+    final TextStyle categoryStyle = const TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      color: Color(0xFF8B5CF6),
+      letterSpacing: 0.5,
+    );
 
-    if (category.contains('BREEDING')) {
-      categoryColor = const Color(0xFFFEF2F2);
-      textColor = const Color(0xFFEF4444);
-    } else if (category.contains('HEALTH')) {
-      categoryColor = const Color(0xFFFFF7ED);
-      textColor = const Color(0xFFF59E0B);
-    } else if (category.contains('MAINT')) {
-      categoryColor = const Color(0xFFEFF6FF);
-      textColor = const Color(0xFF3B82F6);
-    }
+    final TextStyle timeLabelStyle = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: isOverdue 
+          ? const Color(0xFFEF4444) 
+          : isToday 
+              ? const Color(0xFF10B981) 
+              : const Color(0xFF6B7280),
+    );
 
-    return InkWell(
-      onTap: () => _showTaskOptions(task),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            // Checkbox
-            GestureDetector(
-              onTap: () async {
-                if (isCompleted) {
-                  await _uncompleteTask(task);
-                } else {
-                  await _showTaskCostDialog(task);
-                }
-              },
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isCompleted ? kPinkDeep : kNeutral300,
-                    width: 2,
+    final rowBg = index.isEven ? const Color(0xFFF2F2F7) : Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: rowBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showTaskOptions(task),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                // Checkbox
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    if (isCompleted) {
+                      await _uncompleteTask(task);
+                    } else {
+                      await _showTaskCostDialog(task);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: isCompleted
+                        ? Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              color: const Color(0xFFD6C3F9),
+                            ),
+                            child: const Icon(Icons.check, size: 14, color: Colors.white),
+                          )
+                        : (dueDate != null && !isToday && !isOverdue)
+                            ? CustomPaint(
+                                painter: DashedRectPainter(
+                                  color: const Color(0xFFD1D5DB),
+                                  strokeWidth: 2,
+                                  gap: 2.5,
+                                  radius: 6,
+                                ),
+                                child: const SizedBox(width: 22, height: 22),
+                              )
+                            : Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFFD1D5DB),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
                   ),
-                  color: isCompleted ? kPinkDeep : Colors.transparent,
                 ),
-                child: isCompleted ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-              ),
-            ),
-            const SizedBox(width: 14),
-            // Title & Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task['name'] ?? task['task'] ?? 'Task',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isCompleted ? kNeutral400 : const Color(0xFF1F2937),
-                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
+                const SizedBox(width: 12),
+                // Title & Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (task['category'] ?? 'General').toString(),
-                        style: TextStyle(fontSize: 12, color: kNeutral400),
-                      ),
-                      if (timeLabel.isNotEmpty) ...[
-                        Text(' • ', style: TextStyle(color: kNeutral400)),
-                        Text(
-                          timeLabel,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isOverdue ? const Color(0xFFEF4444) : isToday ? const Color(0xFFF59E0B) : kNeutral400,
-                          ),
+                        task['name'] ?? task['task'] ?? 'Task',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF1F2937),
+                          decoration: isCompleted ? TextDecoration.lineThrough : null,
                         ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(category, style: categoryStyle),
+                          if (timeLabel.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text(timeLabel, style: timeLabelStyle),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            // Badge
-            if (!isCompleted)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: categoryColor,
-                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
-                  category,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    letterSpacing: 0.5,
+                // More options button (three dots)
+                const SizedBox(width: 12),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showTaskOptions(task),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.more_horiz, size: 18, color: Color(0xFFD1D5DB)),
                   ),
                 ),
-              ),
-            // More
-            const SizedBox(width: 12),
-            Icon(Icons.more_horiz, size: 18, color: kNeutral300),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
-  }
-
-  Widget _buildBottomStatItem(String val, String label) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          children: [
-            Text(
-              val,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: kNeutral400,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(height: 30, width: 1, color: kNeutral100);
   }
 
   // ---- Logic & Dialogs (Preserved from original but updated) ----
@@ -621,6 +568,7 @@ class _TasksCardState extends State<TasksCard> {
     String? selectedTask;
     String selectedFrequency = 'Weekly';
     bool isCustomTask = false;
+    DateTime? selectedCustomDate;
     final TextEditingController customTaskController = TextEditingController();
 
     List<Map<String, dynamic>> taskDirectoryItems = [];
@@ -722,7 +670,7 @@ class _TasksCardState extends State<TasksCard> {
                             icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
                             items: [
                               ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))),
-                              const DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: kPinkDeep))),
+                              const DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF8B5CF6)))),
                             ],
                             onChanged: (val) {
                               setDialogState(() {
@@ -747,7 +695,7 @@ class _TasksCardState extends State<TasksCard> {
                             hintStyle: const TextStyle(fontSize: 14, color: kNeutral400),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPinkDeep)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF8B5CF6))),
                           ),
                         ),
                       ],
@@ -761,13 +709,52 @@ class _TasksCardState extends State<TasksCard> {
                             value: selectedFrequency,
                             isExpanded: true,
                             icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
-                            items: ['Daily', 'Weekly', 'Bi-Weekly', 'Monthly', 'Once']
+                            items: ['Daily', 'Weekly', 'Bi-Weekly', 'Monthly', 'Once', 'Select Custom Date...']
                                 .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
                                 .toList(),
                             onChanged: (val) => setDialogState(() => selectedFrequency = val!),
                           ),
                         ),
                       ),
+                      if (selectedFrequency == 'Select Custom Date...') ...[
+                        const SizedBox(height: 16),
+                        _buildDialogLabel('Custom Due Date'),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedCustomDate ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)), // Enable past dates up to 10 years
+                              lastDate: DateTime.now().add(const Duration(days: 365 * 10)),   // Enable future dates up to 10 years
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedCustomDate = picked;
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: _inputBoxDecoration(),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  selectedCustomDate == null
+                                      ? 'Choose date...'
+                                      : DateFormat('MMM d, yyyy').format(selectedCustomDate!),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: selectedCustomDate == null ? kNeutral400 : const Color(0xFF1F2937),
+                                  ),
+                                ),
+                                Icon(Icons.calendar_today, size: 18, color: kNeutral500),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
@@ -775,13 +762,17 @@ class _TasksCardState extends State<TasksCard> {
                           onPressed: () async {
                             String finalTaskName = isCustomTask ? customTaskController.text : (selectedTask ?? '');
                             if (finalTaskName.isEmpty) return;
+                            final isCustomDate = selectedFrequency == 'Select Custom Date...';
+                            if (isCustomDate && selectedCustomDate == null) return;
                             try {
                               await _db.insertScheduledTask({
                                 'name': finalTaskName,
                                 'category': selectedCategory,
-                                'frequency': selectedFrequency,
+                                'frequency': isCustomDate ? 'Once' : selectedFrequency,
                                 'linkType': 'rabbit',
-                                'linkedEntities': [{'id': widget.rabbit.id, 'name': widget.rabbit.name, 'code': widget.rabbit.cage ?? 'No cage'}]
+                                'linkedEntities': [{'id': widget.rabbit.id, 'name': widget.rabbit.name, 'code': widget.rabbit.cage ?? 'No cage'}],
+                                if (isCustomDate && selectedCustomDate != null)
+                                  'dueDate': selectedCustomDate!.toIso8601String(),
                               });
                               Navigator.pop(dialogContext);
                               _loadTasks();
@@ -790,7 +781,7 @@ class _TasksCardState extends State<TasksCard> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: kPinkDeep,
+                            backgroundColor: const Color(0xFF8B5CF6),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -865,3 +856,69 @@ class _TasksCardState extends State<TasksCard> {
 // Keeping ScheduleCard separate or removing if redundant. 
 // For now, I'll keep it but it might need its own modernization if needed.
 // The user asked for "Tasks", "Stats", "Records".
+
+class DashedRectPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double radius;
+
+  DashedRectPainter({
+    this.color = const Color(0xFFD1D5DB),
+    this.strokeWidth = 1.5,
+    this.gap = 3.0,
+    this.radius = 6.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final double w = size.width;
+    final double h = size.height;
+    final double r = radius;
+
+    // Straight sides
+    _drawDashedLine(canvas, Offset(r, 0), Offset(w - r, 0), paint);
+    _drawDashedLine(canvas, Offset(w, r), Offset(w, h - r), paint);
+    _drawDashedLine(canvas, Offset(w - r, h), Offset(r, h), paint);
+    _drawDashedLine(canvas, Offset(0, h - r), Offset(0, r), paint);
+
+    // Diagonal corner connectors (approximate rounded corners)
+    canvas.drawLine(Offset(0, r), Offset(r, 0), paint);
+    canvas.drawLine(Offset(w - r, 0), Offset(w, r), paint);
+    canvas.drawLine(Offset(w, h - r), Offset(w - r, h), paint);
+    canvas.drawLine(Offset(r, h), Offset(0, h - r), paint);
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    final double distance = (end - start).distance;
+    final double dashWidth = 3.5;
+    final double dashGap = gap;
+    
+    double currentDistance = 0.0;
+    while (currentDistance < distance) {
+      final double nextDistance = currentDistance + dashWidth;
+      final double endLerp = nextDistance > distance ? distance : nextDistance;
+      
+      final double startFraction = currentDistance / distance;
+      final double endFraction = endLerp / distance;
+      
+      final Offset startPoint = Offset.lerp(start, end, startFraction)!;
+      final Offset endPoint = Offset.lerp(start, end, endFraction)!;
+      
+      canvas.drawLine(startPoint, endPoint, paint);
+      
+      currentDistance += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedRectPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth || oldDelegate.gap != gap || oldDelegate.radius != radius;
+  }
+}
+

@@ -8,12 +8,6 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 
-enum EntryMode {
-  single,
-  multiple,
-  wholeLitter,
-}
-
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? transaction;
 
@@ -29,8 +23,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   // Form state
   TransactionType _type = TransactionType.income;
-  EntryMode _entryMode = EntryMode.single;
-  TransactionCategory? _category = TransactionCategory.soldKit;
+  TransactionCategory? _category = TransactionCategory.litterSale;
   LinkType _linkType = LinkType.general;
 
   final _amountController = TextEditingController();
@@ -40,10 +33,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _date = DateTime.now();
   String? _selectedRabbitId;
   String? _selectedLitterId;
-
-  // For kit sales
-  List<Map<String, dynamic>> _selectedKits = [];
-  bool _usePerItem = true;
+  String? _selectedKitId;
+  String? _selectedKitKey;
 
   // Data lists
   List<Rabbit> _rabbits = [];
@@ -73,6 +64,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _date = t.date;
     _selectedRabbitId = t.rabbitId;
     _selectedLitterId = t.litterId;
+    _selectedKitId = t.kitId;
+    if (t.litterId != null && t.kitId != null) {
+      _selectedKitKey = '${t.litterId}_${t.kitId}';
+    }
   }
 
   Future<void> _loadData() async {
@@ -99,12 +94,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  List<Map<String, dynamic>> get _availableWeanedKits {
+    final List<Map<String, dynamic>> result = [];
+    final today = DateTime.now();
+    for (final litter in _litters) {
+      final ageInDays = litter.dob != null ? today.difference(litter.dob).inDays : litter.ageDays;
+      for (final kit in litter.kits) {
+        final st = kit.status.toLowerCase();
+        if (st == 'weaned' || st == 'growout' || ageInDays >= 49) {
+          if (st != 'sold' && st != 'died' && st != 'dead' && st != 'archived') {
+            final dam = litter.doeName.isNotEmpty ? litter.doeName : litter.dam;
+            result.add({
+              'litterId': litter.id,
+              'kitId': kit.id,
+              'key': '${litter.id}_${kit.id}',
+              'label': 'Kit ${litter.id}-${kit.id} ($dam • ${kit.color} ${kit.sex})',
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAF7FE),
       appBar: AppBar(
-        backgroundColor: kLilacWash,
+        backgroundColor: const Color(0xFFE6BEFE),
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -116,7 +134,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           style: const TextStyle(
             color: kLilacText,
             fontSize: 18,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
         ),
@@ -129,50 +147,48 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               child: Form(
                 key: _formKey,
                 child: ListView(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   children: [
                     // Income/Expense toggle
                     _buildTypeToggle(),
-                    SizedBox(height: 24),
-
-                    // Entry mode (for income only)
-                    if (_type == TransactionType.income && _category == TransactionCategory.soldKit) ...[
-                      _buildEntryModeSelector(),
-                      SizedBox(height: 24),
-                    ],
+                    const SizedBox(height: 16),
 
                     // Category dropdown
                     _buildCategoryDropdown(),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
                     // Link type selector
                     _buildLinkTypeSelector(),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                    // Rabbit/Litter selector based on link type
-                    if (_linkType == LinkType.rabbit) _buildRabbitSelector(),
-                    if (_linkType == LinkType.litter) _buildLitterSelector(),
+                    // Rabbit/Kit selector based on link type
+                    if (_linkType == LinkType.rabbit) ...[
+                      _buildRabbitSelector(),
+                      const SizedBox(height: 16),
+                    ],
+                    if (_linkType == LinkType.kit) ...[
+                      _buildKitSelector(),
+                      const SizedBox(height: 16),
+                    ],
 
-                    SizedBox(height: 16),
-
-                    // Kit selector for whole litter mode
-                    if (_entryMode == EntryMode.wholeLitter && _selectedLitterId != null) _buildKitSelector(),
-
-                    // Amount field
-                    _buildAmountField(),
-                    SizedBox(height: 16),
-
-                    // Date picker
-                    _buildDatePicker(),
-                    SizedBox(height: 16),
+                    // Amount & Date side-by-side
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _buildAmountField()),
+                        const SizedBox(width: 12),
+                        Expanded(child: _buildDatePicker()),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
                     // Description
                     _buildDescriptionField(),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
                     // Notes
                     _buildNotesField(),
-                    SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // Save button
                     _buildSaveButton(),
@@ -226,7 +242,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               onTap: () => setState(() {
                 _type = TransactionType.expense;
                 _category = TransactionCategory.feed; // Default expense to Feed
-                _entryMode = EntryMode.single;
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -255,68 +270,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildEntryModeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'ENTRY MODE',
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: kNeutral500,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: kNeutral100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kNeutral200),
-          ),
-          child: Row(
-            children: [
-              _buildModeChip(EntryMode.single, 'Single'),
-              _buildModeChip(EntryMode.multiple, 'Multiple'),
-              _buildModeChip(EntryMode.wholeLitter, 'Whole Litter'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildModeChip(EntryMode mode, String label) {
-    final isSelected = _entryMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _entryMode = mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected 
-              ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
-              : null,
-            border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? kLilacDeep : kNeutral500,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildCategoryDropdown() {
     return Column(
@@ -396,7 +350,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             children: [
               _buildLinkTypeChip(LinkType.general, 'General'),
               _buildLinkTypeChip(LinkType.rabbit, 'Rabbit'),
-              _buildLinkTypeChip(LinkType.litter, 'Litter'),
+              _buildLinkTypeChip(LinkType.kit, 'Kit'),
             ],
           ),
         ),
@@ -412,6 +366,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           _linkType = type;
           _selectedRabbitId = null;
           _selectedLitterId = null;
+          _selectedKitId = null;
+          _selectedKitKey = null;
         }),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -460,11 +416,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           child: DropdownButtonFormField<String>(
             value: _selectedRabbitId,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: Text('Select rabbit'),
+            hint: const Text('Select rabbit'),
             items: _rabbits.map((rabbit) {
               return DropdownMenuItem(
                 value: rabbit.id,
@@ -478,12 +434,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildLitterSelector() {
+  Widget _buildKitSelector() {
+    final kits = _availableWeanedKits;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'SELECT LITTER',
+          'SELECT WEANED KIT',
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -499,60 +456,39 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedLitterId,
-            decoration: InputDecoration(
+            value: _selectedKitKey,
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: Text('Select litter'),
-            items: _litters.map((litter) {
-              final dam = _rabbits.firstWhere(
-                (r) => r.id == litter.doeId,
-                orElse: () => Rabbit(id: '', name: 'Unknown', type: RabbitType.doe, status: RabbitStatus.open, breed: ''),
-              );
-              return DropdownMenuItem(
-                value: litter.id,
-                child: Text('${litter.id} - ${dam.name}'),
+            hint: const Text('Select weaned kit'),
+            items: kits.map((item) {
+              return DropdownMenuItem<String>(
+                value: item['key'] as String,
+                child: Text(
+                  item['label'] as String,
+                  style: const TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }).toList(),
-            onChanged: (value) => setState(() => _selectedLitterId = value),
+            onChanged: (value) {
+              if (value != null) {
+                final match = kits.firstWhere((k) => k['key'] == value);
+                setState(() {
+                  _selectedKitKey = value;
+                  _selectedLitterId = match['litterId'] as String;
+                  _selectedKitId = match['kitId'] as String;
+                });
+              }
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildKitSelector() {
-    // Placeholder for kit selection from litter
-    return Container(
-      padding: EdgeInsets.all(16),
-      margin: EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Color(0xFFEDE9FE),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFF7B6BA0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'SELECT KITS',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF7B6BA0),
-              letterSpacing: 0.5,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Kit selection for whole litter entry will be implemented.',
-            style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildAmountField() {
     return Column(
@@ -568,17 +504,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        if (_entryMode == EntryMode.wholeLitter && _selectedKits.isNotEmpty) _buildAmountToggle(),
         TextFormField(
           controller: _amountController,
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             prefixText: '${FormatUtils.currencySymbol} ',
             prefixStyle: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               color: _type == TransactionType.income ? kBlueDeep : kPinkDeep,
             ),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: kNeutral300),
@@ -596,7 +533,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
           ),
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 16,
             fontWeight: FontWeight.w800,
             color: _type == TransactionType.income ? kBlueDeep : kPinkDeep,
             letterSpacing: -0.5,
@@ -612,66 +549,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           },
         ),
       ],
-    );
-  }
-
-  Widget _buildAmountToggle() {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Color(0xFFF7F7F5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _usePerItem = true),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _usePerItem ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: _usePerItem ? Border.all(color: Color(0xFF7B6BA0)) : null,
-                ),
-                child: Center(
-                  child: Text(
-                    'Per Item',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: _usePerItem ? FontWeight.w600 : FontWeight.w500,
-                      color: _usePerItem ? Color(0xFF7B6BA0) : Color(0xFF787774),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _usePerItem = false),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: !_usePerItem ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: !_usePerItem ? Border.all(color: Color(0xFF7B6BA0)) : null,
-                ),
-                child: Center(
-                  child: Text(
-                    'Total Split',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: !_usePerItem ? FontWeight.w600 : FontWeight.w500,
-                      color: !_usePerItem ? Color(0xFF7B6BA0) : Color(0xFF787774),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -692,7 +569,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         GestureDetector(
           onTap: _selectDate,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: kNeutral300),
@@ -700,18 +577,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.bold), color: kNeutral600, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  FormatUtils.formatDateLong(_date),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: kNeutral900,
+                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.bold), color: kNeutral600, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    FormatUtils.formatDate(_date),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: kNeutral500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: kNeutral400, size: 18),
+                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: kNeutral400, size: 16),
               ],
             ),
           ),
@@ -750,8 +629,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         TextFormField(
           controller: _descriptionController,
           decoration: InputDecoration(
-            hintText: 'e.g., Kit #1 - Black Otter, Buck',
-            hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: kNeutral300),
@@ -787,10 +664,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const SizedBox(height: 10),
         TextFormField(
           controller: _notesController,
-          maxLines: 3,
+          maxLines: 2,
           decoration: InputDecoration(
-            hintText: 'Additional notes...',
-            hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: kNeutral300),
@@ -869,6 +744,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         linkType: _linkType,
         rabbitId: _selectedRabbitId,
         litterId: _selectedLitterId,
+        kitId: _selectedKitId,
       );
 
       if (_isEditing) {

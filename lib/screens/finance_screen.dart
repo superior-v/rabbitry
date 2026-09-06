@@ -10,12 +10,10 @@ import '../constants/app_colors.dart';
 import 'add_transaction_screen.dart';
 
 enum GroupingMode {
-  chronological,
+  byMonth,
   byRabbit,
   byLitter,
   byCategory,
-  byMonth,
-  byBatch,
 }
 
 enum DateFilter {
@@ -26,7 +24,13 @@ enum DateFilter {
   custom,
 }
 
-enum TransactionTypeFilter { all, income, expense }
+enum TransactionTypeFilter {
+  all,
+  income,
+  expense
+}
+
+const kFinanceHeaderPurple = Color(0xFFE6BEFE);
 
 class FinanceScreen extends StatefulWidget {
   final String? initialRabbitId;
@@ -46,7 +50,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   bool _isLoading = true;
   String _searchQuery = '';
-  GroupingMode _groupingMode = GroupingMode.chronological;
+  GroupingMode _groupingMode = GroupingMode.byMonth;
   DateFilter _dateFilter = DateFilter.allTime;
   TransactionTypeFilter _typeFilter = TransactionTypeFilter.all;
   DateTime? _customStartDate;
@@ -59,7 +63,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   // Expanded groups tracking
   Set<String> _expandedGroups = {};
-  
+
   final FocusNode _searchFocusNode = FocusNode();
 
   @override
@@ -67,6 +71,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     _searchFocusNode.dispose();
     super.dispose();
   }
+
   void initState() {
     super.initState();
     if (widget.initialRabbitId != null) {
@@ -109,33 +114,30 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   List<Transaction> get _filteredTransactions {
+    final now = DateTime.now();
+    final twelveMonthsAgo = DateTime(now.year, now.month - 11, 1);
+
     var filtered = _transactions.where((t) {
       // Date filter
-      if (_dateFilter != DateFilter.allTime) {
-        final now = DateTime.now();
-        DateTime startDate;
-        DateTime endDate = now;
-
-        switch (_dateFilter) {
-          case DateFilter.thisMonth:
-            startDate = DateTime(now.year, now.month, 1);
-            break;
-          case DateFilter.lastMonth:
-            startDate = DateTime(now.year, now.month - 1, 1);
-            endDate = DateTime(now.year, now.month, 0);
-            break;
-          case DateFilter.thisYear:
-            startDate = DateTime(now.year, 1, 1);
-            break;
-          case DateFilter.custom:
-            startDate = _customStartDate ?? DateTime(2020);
-            endDate = _customEndDate ?? now;
-            break;
-          default:
-            startDate = DateTime(2020);
-        }
-
+      if (_dateFilter == DateFilter.custom) {
+        final startDate = _customStartDate ?? DateTime(2020);
+        final endDate = _customEndDate ?? now;
         if (t.date.isBefore(startDate) || t.date.isAfter(endDate)) {
+          return false;
+        }
+      } else if (_dateFilter == DateFilter.thisMonth) {
+        final startDate = DateTime(now.year, now.month, 1);
+        if (t.date.isBefore(startDate)) return false;
+      } else if (_dateFilter == DateFilter.lastMonth) {
+        final startDate = DateTime(now.year, now.month - 1, 1);
+        final endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
+        if (t.date.isBefore(startDate) || t.date.isAfter(endDate)) return false;
+      } else if (_dateFilter == DateFilter.thisYear) {
+        final startDate = DateTime(now.year, 1, 1);
+        if (t.date.isBefore(startDate)) return false;
+      } else {
+        // Default: display each month sales up to 12 months all the time. Beyond 12 months archived.
+        if (t.date.isBefore(twelveMonthsAgo)) {
           return false;
         }
       }
@@ -186,7 +188,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFEEDAFE),
         appBar: _buildAppBar(),
         body: const Center(
           child: CircularProgressIndicator(
@@ -197,7 +199,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFEEDAFE),
       appBar: _buildAppBar(),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -218,13 +220,13 @@ class _FinanceScreenState extends State<FinanceScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'finance_fab',
         onPressed: _addTransaction,
-        backgroundColor: kLilacDeep,
+        backgroundColor: const Color(0xFFE6BEFE),
         shape: const CircleBorder(),
-        elevation: 4,
+        elevation: 6,
         child: Icon(
           PhosphorIcons.plus(PhosphorIconsStyle.bold),
           size: 28,
-          color: Colors.white,
+          color: kLilacText,
         ),
       ),
     );
@@ -232,18 +234,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: kLilacWash,
+      backgroundColor: kFinanceHeaderPurple,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
       title: Row(
         children: [
-          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 24),
+          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF787880), size: 24),
           const SizedBox(width: 8),
           const Text(
-            'Finance & Ledger',
+            'Finance',
             style: TextStyle(
-              color: kLilacText,
+              color: kNeutral700,
               fontSize: 19,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.2,
@@ -260,17 +262,17 @@ class _FinanceScreenState extends State<FinanceScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: kLilacLight,
-                borderRadius: BorderRadius.circular(100),
+                color: kNeutral200,
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: kLilacText),
+                  Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: const Color(0xFF787880)),
                   const SizedBox(width: 6),
                   Text(
                     _getDateFilterLabel(),
                     style: const TextStyle(
-                      color: kLilacText,
+                      color: kNeutral700,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -282,7 +284,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
         ),
         // Export button
         IconButton(
-          icon: Icon(PhosphorIcons.export(PhosphorIconsStyle.duotone), color: kLilacDeep),
+          icon: Icon(PhosphorIcons.export(PhosphorIconsStyle.duotone), color: const Color(0xFF787880)),
           onPressed: _exportData,
         ),
       ],
@@ -304,49 +306,72 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
   }
 
+  double get _filteredIncome {
+    double sum = 0;
+    for (var t in _filteredTransactions) {
+      if (t.type == TransactionType.income) sum += t.amount;
+    }
+    return sum;
+  }
+
+  double get _filteredExpense {
+    double sum = 0;
+    for (var t in _filteredTransactions) {
+      if (t.type == TransactionType.expense) sum += t.amount;
+    }
+    return sum;
+  }
+
+  double get _filteredNet => _filteredIncome - _filteredExpense;
+
   Widget _buildSummaryCards() {
+    final income = _filteredIncome;
+    final expense = _filteredExpense;
+    final net = _filteredNet;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF4EBFE),
         border: Border(bottom: BorderSide(color: kNeutral200)),
       ),
       child: Row(
         children: [
           Expanded(
             child: _buildSummaryCard(
-              'INCOME',
-              _totalIncome,
-              kBlueDeep,
-              kBlueWash,
-              kBlueLight,
-              kBlueText,
+              'Income',
+              income,
+              kNeutral800,
+              kNeutral100,
+              kNeutral300,
+              kNeutral700,
               true,
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _buildSummaryCard(
-              'EXPENSE',
-              _totalExpense,
-              kPinkDeep,
-              kPinkWash,
-              kPinkLight,
-              kPinkText,
+              'Expense',
+              expense,
+              kNeutral800,
+              kNeutral100,
+              kNeutral300,
+              kNeutral700,
               false,
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _buildSummaryCard(
-              'NET',
-              _netAmount.abs(),
-              kLilacDeep,
-              kLilacWash,
-              kLilacLight,
-              kLilacText,
+              'Net',
+              net.abs(),
+              kNeutral800,
+              kNeutral100,
+              kNeutral300,
+              kNeutral700,
               true,
               isNet: true,
+              netVal: net,
             ),
           ),
         ],
@@ -354,39 +379,49 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String label, double amount, Color deep, Color wash, Color light, Color text, bool isIncome, {bool isNet = false}) {
-    bool isNegNet = isNet && _netAmount < 0;
-    Color displayColor = isNegNet ? kPinkText : deep;
-    
+  Widget _buildSummaryCard(String label, double amount, Color deep, Color wash, Color light, Color text, bool isIncome, {bool isNet = false, double? netVal}) {
+    Color displayColor = kNeutral500;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 8),
       decoration: BoxDecoration(
-        color: wash,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: light),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: text,
-              letterSpacing: 0.5,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              isNet ? '${(netVal ?? 0.0) >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}' : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: displayColor,
+                height: 1.1,
+              ),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
-            isNet 
-                ? '${_netAmount >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}'
-                : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: displayColor,
-              letterSpacing: -0.5,
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: kNeutral500,
+              height: 1.1,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -397,7 +432,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF4EBFE),
         border: Border(bottom: BorderSide(color: kNeutral200)),
       ),
       child: Row(
@@ -408,20 +443,35 @@ class _FinanceScreenState extends State<FinanceScreen> {
               height: 40,
               decoration: BoxDecoration(
                 color: kNeutral100,
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: kNeutral300),
               ),
-              child: TextField(
-                focusNode: _searchFocusNode,
-                onChanged: (value) => setState(() => _searchQuery = value),
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Search entries...',
-                  hintStyle: TextStyle(color: kNeutral500, fontSize: 16),
-                  prefixIcon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold), color: kNeutral500, size: 16),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 12),
+                  Icon(
+                    PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold),
+                    color: kNeutral500,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      focusNode: _searchFocusNode,
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      style: const TextStyle(fontSize: 14, color: kNeutral800),
+                      decoration: InputDecoration(
+                        hintText: 'Search entries...',
+                        hintStyle: const TextStyle(color: kNeutral500, fontSize: 14),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
               ),
             ),
           ),
@@ -433,18 +483,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: kLilacWash,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: kLilacLight),
+                color: kNeutral200,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: kNeutral300),
               ),
               child: Row(
                 children: [
-                  Icon(PhosphorIcons.rows(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+                  Icon(PhosphorIcons.rows(PhosphorIconsStyle.bold), color: kNeutral700, size: 16),
                   const SizedBox(width: 6),
                   Text(
                     _getGroupingLabel(),
                     style: const TextStyle(
-                      color: kLilacDeep,
+                      color: kNeutral700,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -465,15 +515,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   width: 40,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kLilacLight : kNeutral300),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kNeutral400 : kNeutral300),
                   ),
                   child: Center(
-                    child: Icon(
-                      PhosphorIcons.funnel(PhosphorIconsStyle.bold), 
-                      color: _typeFilter != TransactionTypeFilter.all ? kLilacDeep : kNeutral700, 
-                      size: 18
-                    ),
+                    child: Icon(PhosphorIcons.funnel(PhosphorIconsStyle.bold), color: kNeutral700, size: 18),
                   ),
                 ),
                 if (_typeFilter != TransactionTypeFilter.all)
@@ -484,7 +530,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: kLilacDeep,
+                        color: kNeutral700,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -500,7 +546,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   String _getGroupingLabel() {
     switch (_groupingMode) {
-      case GroupingMode.chronological:
+      case GroupingMode.byMonth:
         return 'Month';
       case GroupingMode.byRabbit:
         return 'Rabbit';
@@ -508,10 +554,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
         return 'Litter';
       case GroupingMode.byCategory:
         return 'Category';
-      case GroupingMode.byMonth:
-        return 'Month';
-      case GroupingMode.byBatch:
-        return 'Batch';
     }
   }
 
@@ -539,7 +581,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
 
     switch (_groupingMode) {
-      case GroupingMode.chronological:
       case GroupingMode.byMonth:
         return _buildMonthGroupedList(transactions);
       case GroupingMode.byRabbit:
@@ -548,8 +589,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
         return _buildLitterGroupedList(transactions);
       case GroupingMode.byCategory:
         return _buildCategoryGroupedList(transactions);
-      case GroupingMode.byBatch:
-        return _buildBatchGroupedList(transactions);
     }
   }
 
@@ -596,14 +635,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: kNeutral500),
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: kNeutral700),
                     const SizedBox(width: 12),
                     Text(
                       monthKey,
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: kNeutral900,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -611,31 +650,31 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       '${monthTransactions.length} entries',
                       style: const TextStyle(
                         fontSize: 13,
-                        color: kNeutral600,
+                        color: kNeutral700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '${monthTotal >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: monthTotal >= 0 ? kBlueDeep : kPinkText,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: kNeutral400,
+                      color: kNeutral700,
                     ),
                   ],
                 ),
               ),
             ),
             // Transactions
-            if (isExpanded) ...monthTransactions.map((t) => _buildTransactionCard(t)),
+            if (isExpanded) ...monthTransactions.asMap().entries.map((e) => _buildTransactionCard(e.value, index: e.key)),
           ],
         );
       },
@@ -727,14 +766,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
-                              color: kNeutral900,
+                              color: kNeutral700,
                             ),
                           ),
                           Text(
                             '${rabbitTransactions.length} entries',
                             style: const TextStyle(
                               fontSize: 13,
-                              color: kNeutral600,
+                              color: kNeutral700,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -743,24 +782,24 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: total >= 0 ? kBlueDeep : kPinkText,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: kNeutral400,
+                      color: kNeutral700,
                     ),
                   ],
                 ),
               ),
             ),
             // Transactions
-            if (isExpanded) ...rabbitTransactions.map((t) => _buildTransactionCard(t, showRabbit: false)),
+            if (isExpanded) ...rabbitTransactions.asMap().entries.map((e) => _buildTransactionCard(e.value, showRabbit: false, index: e.key)),
           ],
         );
       },
@@ -822,7 +861,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     Icon(
                       PhosphorIcons.gitBranch(PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: isNoLitter ? kNeutral500 : kLilacDeep,
+                      color: isNoLitter ? kNeutral700 : kLilacDeep,
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -830,7 +869,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: kNeutral900,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -838,31 +877,31 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       '${litterTransactions.length} entries',
                       style: const TextStyle(
                         fontSize: 13,
-                        color: kNeutral600,
+                        color: kNeutral700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: total >= 0 ? kBlueDeep : kPinkText,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: kNeutral400,
+                      color: kNeutral700,
                     ),
                   ],
                 ),
               ),
             ),
             // Transactions
-            if (isExpanded) ...litterTransactions.map((t) => _buildTransactionCard(t)),
+            if (isExpanded) ...litterTransactions.asMap().entries.map((e) => _buildTransactionCard(e.value, index: e.key)),
           ],
         );
       },
@@ -926,7 +965,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: kNeutral900,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -934,31 +973,31 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       '${categoryTransactions.length} entries',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: kNeutral600,
+                        color: kNeutral700,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: total >= 0 ? kBlueDeep : kPinkText,
+                        color: kNeutral700,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: kNeutral400,
+                      color: kNeutral700,
                     ),
                   ],
                 ),
               ),
             ),
             // Transactions
-            if (isExpanded) ...categoryTransactions.map((t) => _buildTransactionCard(t, showCategory: false)),
+            if (isExpanded) ...categoryTransactions.asMap().entries.map((e) => _buildTransactionCard(e.value, showCategory: false, index: e.key)),
           ],
         );
       },
@@ -996,9 +1035,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: kLilacWash,
+                color: kNeutral100,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kLilacLight),
+                border: Border.all(color: kNeutral300),
               ),
               child: Row(
                 children: [
@@ -1013,7 +1052,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       child: Icon(
                         PhosphorIcons.stack(PhosphorIconsStyle.bold),
                         size: 20,
-                        color: kLilacDeep,
+                        color: kNeutral700,
                       ),
                     ),
                   ),
@@ -1035,7 +1074,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                           ],
                         ),
                         Text(
-                          '$dateStr • ${firstTxn.litterId ?? 'Litter'}',
+                          '$dateStr - ${firstTxn.categoryName}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: kNeutral500,
@@ -1050,7 +1089,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: kLilacDeep,
+                      color: kNeutral800,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1075,27 +1114,29 @@ class _FinanceScreenState extends State<FinanceScreen> {
               ),
             ),
           ),
-          ...individual.map((t) => _buildTransactionCard(t)),
+          ...individual.asMap().entries.map((e) => _buildTransactionCard(e.value, index: e.key)),
         ],
       ],
     );
   }
 
-  Widget _buildTransactionCard(Transaction t, {bool showRabbit = true, bool showCategory = true}) {
+  Widget _buildTransactionCard(Transaction t, {bool showRabbit = true, bool showCategory = true, int index = 0}) {
     final isIncome = t.type == TransactionType.income;
     final dateStr = FormatUtils.formatDateShort(t.date);
-    final themeColor = isIncome ? kBlueDeep : kPinkDeep;
-    final themeWash = isIncome ? kBlueWash : kPinkWash;
-    final themeLight = isIncome ? kBlueLight : kPinkLight;
+    final themeWash = kNeutral100;
+    final themeLight = kNeutral300;
+
+    final isOdd = index % 2 == 1;
+    final backgroundColor = isOdd ? const Color(0xFFF2F2F7) : Colors.white;
 
     return GestureDetector(
       onTap: () => _editTransaction(t),
       onLongPress: () => _showTransactionOptions(t),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: kNeutral200)),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          border: const Border(bottom: BorderSide(color: kNeutral200)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1120,13 +1161,19 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        t.categoryName,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: kNeutral900,
-                          letterSpacing: -0.2,
+                      Expanded(
+                        child: Text(
+                          (t.description != null && t.description!.isNotEmpty)
+                              ? t.description!
+                              : t.categoryName,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: kNeutral900,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (t.isBatchTransaction) ...[
@@ -1134,16 +1181,16 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: kLilacWash,
-                            borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: kLilacLight),
+                            color: kNeutral200,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: kNeutral300),
                           ),
                           child: const Text(
                             'Batch',
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
-                              color: kLilacDeep,
+                              color: kNeutral700,
                             ),
                           ),
                         ),
@@ -1151,70 +1198,29 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (showRabbit && t.rabbitId != null)
-                        Row(
-                          children: [
-                            Icon(
-                              t.linkType == LinkType.litter ? PhosphorIcons.gitBranch(PhosphorIconsStyle.bold) : PhosphorIcons.pawPrint(PhosphorIconsStyle.bold),
-                              size: 11,
-                              color: kNeutral500,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              t.linkType == LinkType.litter ? t.litterId ?? '' : _getRabbitName(t.rabbitId),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: kNeutral600,
-                              ),
-                            ),
-                          ],
-                        )
-                      else if (t.linkType == LinkType.general)
-                        Row(
-                          children: [
-                            Icon(PhosphorIcons.house(PhosphorIconsStyle.bold), size: 11, color: kNeutral500),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'General Herd',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: kNeutral600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (t.description != null && t.description!.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        const Text('•', style: TextStyle(color: kNeutral400, fontSize: 11)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            t.description!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: kNeutral500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
                   Text(
-                    dateStr,
+                    (t.description != null && t.description!.isNotEmpty)
+                        ? '$dateStr - ${t.categoryName}'
+                        : dateStr,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: kNeutral400,
+                      color: kNeutral600,
                     ),
                   ),
+                  if (t.notes != null && t.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      t.notes!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: kNeutral600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1225,7 +1231,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: isIncome ? kBlueDeep : kPinkText,
+                color: kNeutral900,
                 letterSpacing: -0.5,
               ),
             ),
@@ -1237,11 +1243,33 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   Widget _getCategoryIcon(TransactionCategory category, {required bool isIncome}) {
     IconData iconData;
-    Color color = isIncome ? kBlueDeep : kPinkDeep;
+    Color color = kNeutral700;
 
     switch (category) {
+      case TransactionCategory.rabbitSale:
+        iconData = PhosphorIcons.rabbit(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.litterSale:
       case TransactionCategory.soldKit:
         iconData = PhosphorIcons.tag(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.studFee:
+        iconData = PhosphorIcons.genderMale(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.manureSales:
+        iconData = PhosphorIcons.leaf(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.meatHarvest:
+        iconData = PhosphorIcons.knife(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.showWinnings:
+        iconData = PhosphorIcons.trophy(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.refund:
+        iconData = PhosphorIcons.arrowUUpLeft(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.otherIncome:
+        iconData = PhosphorIcons.coins(PhosphorIconsStyle.duotone);
         break;
       case TransactionCategory.medical:
         iconData = PhosphorIcons.firstAidKit(PhosphorIconsStyle.duotone);
@@ -1249,32 +1277,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
       case TransactionCategory.feed:
         iconData = PhosphorIcons.bowlFood(PhosphorIconsStyle.duotone);
         break;
-      case TransactionCategory.meatHarvest:
-        iconData = PhosphorIcons.knife(PhosphorIconsStyle.duotone);
-        break;
-      case TransactionCategory.showFee:
-        iconData = PhosphorIcons.trophy(PhosphorIconsStyle.duotone);
-        break;
-      case TransactionCategory.studFee:
-        iconData = PhosphorIcons.genderMale(PhosphorIconsStyle.duotone);
-        break;
       case TransactionCategory.equipment:
+      case TransactionCategory.supplies:
         iconData = PhosphorIcons.wrench(PhosphorIconsStyle.duotone);
         break;
       case TransactionCategory.vetVisit:
         iconData = PhosphorIcons.stethoscope(PhosphorIconsStyle.duotone);
         break;
-      case TransactionCategory.manureSales:
-        iconData = PhosphorIcons.leaf(PhosphorIconsStyle.duotone);
-        break;
-      case TransactionCategory.supplies:
-        iconData = PhosphorIcons.package(PhosphorIconsStyle.duotone);
+      case TransactionCategory.showFee:
+        iconData = PhosphorIcons.ticket(PhosphorIconsStyle.duotone);
         break;
       case TransactionCategory.otherExpense:
         iconData = PhosphorIcons.receipt(PhosphorIconsStyle.duotone);
-        break;
-      case TransactionCategory.otherIncome:
-        iconData = PhosphorIcons.coins(PhosphorIconsStyle.duotone);
         break;
     }
 
@@ -1282,10 +1296,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   Color _getCategoryColor(TransactionCategory category) {
-    if (category.index <= 2 || category == TransactionCategory.otherIncome || category == TransactionCategory.manureSales) {
-      return kBlueDeep;
-    }
-    return kPinkDeep;
+    return kNeutral700;
   }
 
   void _showGroupingMenu() async {
@@ -1315,12 +1326,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildGroupingOption(GroupingMode.chronological, 'Chronological', PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byMonth, 'By Month', PhosphorIcons.calendar(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byRabbit, 'By Rabbit', PhosphorIcons.pawPrint(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byLitter, 'By Litter', PhosphorIcons.gitBranch(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byCategory, 'By Category', PhosphorIcons.tag(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byBatch, 'By Batch', PhosphorIcons.stack(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byMonth, 'Month', PhosphorIcons.calendar(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byRabbit, 'Rabbit', PhosphorIcons.pawPrint(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byLitter, 'Litter', PhosphorIcons.gitBranch(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byCategory, 'Category', PhosphorIcons.tag(PhosphorIconsStyle.bold), setModalState),
               const SizedBox(height: 16),
             ],
           ),
@@ -1337,7 +1346,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
     return GestureDetector(
       onTap: () {
         setModalState(() => _groupingMode = mode); // Update modal's local state
-        setState(() { // Update main state and trigger rebuild of the underlying screen
+        setState(() {
+          // Update main state and trigger rebuild of the underlying screen
           _groupingMode = mode;
           _expandedGroups.clear();
         });
@@ -1349,22 +1359,22 @@ class _FinanceScreenState extends State<FinanceScreen> {
         decoration: BoxDecoration(
           color: isSelected ? kLilacWash : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
+          border: Border.all(color: isSelected ? kNeutral300 : Colors.transparent),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? kLilacDeep : kNeutral500, size: 20),
+            Icon(icon, color: isSelected ? kNeutral700 : kNeutral500, size: 20),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? kLilacDeep : kNeutral700,
+                color: isSelected ? kNeutral700 : kNeutral700,
                 fontSize: 15,
               ),
             ),
             const Spacer(),
-            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kNeutral700, size: 16),
           ],
         ),
       ),
@@ -1431,7 +1441,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
         decoration: BoxDecoration(
           color: isSelected ? kLilacWash : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
+          border: Border.all(color: isSelected ? kNeutral300 : Colors.transparent),
         ),
         child: Row(
           children: [
@@ -1439,12 +1449,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
               label,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? kLilacDeep : kNeutral700,
+                color: isSelected ? kNeutral700 : kNeutral700,
                 fontSize: 15,
               ),
             ),
             const Spacer(),
-            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kLilacDeep, size: 16),
+            if (isSelected) Icon(PhosphorIcons.check(PhosphorIconsStyle.bold), color: kNeutral700, size: 16),
           ],
         ),
       ),
@@ -1566,11 +1576,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: kLilacDeep,
+                          color: kNeutral700,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: kLilacDeep.withOpacity(0.2),
+                              color: kNeutral700.withOpacity(0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -1605,16 +1615,16 @@ class _FinanceScreenState extends State<FinanceScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? kLilacWash : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isSelected ? kLilacLight : kNeutral200),
+            color: isSelected ? kNeutral100 : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: isSelected ? kNeutral300 : kNeutral200),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                color: isSelected ? kLilacDeep : kNeutral500,
+                color: isSelected ? kNeutral700 : kNeutral500,
                 size: 18,
               ),
               const SizedBox(height: 4),
@@ -1623,7 +1633,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected ? kLilacText : kNeutral500,
+                  color: isSelected ? kNeutral700 : kNeutral500,
                 ),
               ),
             ],
@@ -1640,7 +1650,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       context,
       MaterialPageRoute(builder: (context) => AddTransactionScreen()),
     );
-    
+
     _searchFocusNode.canRequestFocus = true;
     _searchFocusNode.unfocus();
 
@@ -1744,6 +1754,30 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
 
     if (confirm == true) {
+      if (t.category == TransactionCategory.soldKit && t.litterId != null && t.litterId!.isNotEmpty && t.kitId != null && t.kitId!.isNotEmpty) {
+        try {
+          final litter = await _db.getLitter(t.litterId!);
+          if (litter != null) {
+            final int ageDays = litter.kindleDate != null
+                ? DateTime.now().difference(litter.kindleDate!).inDays
+                : (litter.dob != null ? DateTime.now().difference(litter.dob).inDays : litter.ageDays);
+            final bool isNursing = ageDays < 49;
+            final String restoredStatus = isNursing ? 'Nursing' : 'Weaned';
+
+            final updatedKits = litter.kits.map((k) {
+              if (k.id == t.kitId) {
+                return k.copyWith(status: restoredStatus, price: 0);
+              }
+              return k;
+            }).toList();
+
+            await _db.updateLitter(litter.copyWith(kits: updatedKits));
+          }
+        } catch (e) {
+          print('⚠️ Error reverting kit status on transaction delete: $e');
+        }
+      }
+
       await _db.deleteTransaction(t.id);
       await _loadData();
 

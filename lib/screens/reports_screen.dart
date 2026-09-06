@@ -10,6 +10,9 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import 'package:path_provider/path_provider.dart'; // ✅ Add this
 import 'package:open_filex/open_filex.dart'; // ✅ Add this
+import 'package:path/path.dart' as p;
+import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/notification_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -17,9 +20,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 const kLilac = Color(0xFFC3B1E1);
 const kLilacLight = Color(0xFFE8DFFA);
 const kLilacWash = Color(0xFFF5F1FC);
-const kLilacDeep = Color(0xFF7B6BA0);
-const kLilacText = Color(0xFF5A4880);
-const kPurple = Color(0xFF8B5CF6);
+const kLilacDeep = Color(0xFF5E4A8A);
+const kLilacText = Color(0xFF463466);
+const kPurple = Color(0xFF6D3FD1);
 
 const kBlue = Color(0xFFA8D4F0);
 const kBlueLight = Color(0xFFD9EEFB);
@@ -27,16 +30,16 @@ const kBlueWash = Color(0xFFF0F7FD);
 const kBlueDeep = Color(0xFF3A7BB8);
 
 const kPink = Color(0xFFF2B8C6);
-const kPinkLight = Color(0xFFFADCE5);
+const kPinkLight = Color(0xFFFFBCE7);
 const kPinkWash = Color(0xFFFDF2F5);
 const kPinkDeep = Color(0xFFD4809A);
 
 const kNeutral900 = Color(0xFF2C2C2E);
 const kNeutral800 = Color(0xFF3A3A3C);
-const kNeutral700 = Color(0xFF636366);
-const kNeutral600 = Color(0xFF8E8E93);
-const kNeutral500 = Color(0xFFAEAEB2);
-const kNeutral400 = Color(0xFFC7C7CC);
+const kNeutral700 = Color(0xFF4F4F56);
+const kNeutral600 = Color(0xFF66666D);
+const kNeutral500 = Color(0xFF787880);
+const kNeutral400 = Color(0xFF67676F);
 const kNeutral300 = Color(0xFFE5E5EA);
 const kNeutral200 = Color(0xFFF2F2F7);
 const kNeutral100 = Color(0xFFF9F9FB);
@@ -220,7 +223,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final prevPeriodStart = prevPeriodEnd.subtract(Duration(days: periodDuration));
 
     final prevPeriodLitters = _allLitters.where((l) => l.breedDate.isAfter(prevPeriodStart) && l.breedDate.isBefore(prevPeriodEnd)).toList();
-    
+
     int prevKits = 0;
     for (final l in prevPeriodLitters) {
       prevKits += l.aliveKits ?? 0;
@@ -228,7 +231,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
     final litterDiff = periodLitters.length - prevPeriodLitters.length;
     final kitDiff = _totalLiveKitsBorn - prevKits;
-    
+
     _littersTrend = litterDiff >= 0 ? '+$litterDiff' : '$litterDiff';
     _kitsTrend = kitDiff >= 0 ? '+$kitDiff' : '$kitDiff';
     _avgLitterSize = littersWithKits > 0 ? totalLitterSize / littersWithKits : 0;
@@ -339,10 +342,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     // GROWTH ANALYTICS
     // ========================
     // Growth: Include both Butchered and Sold rabbits as 'Harvested' data points
-    final butchered = periodArchived.where((r) => 
-      r.archiveReason == ArchiveReason.butchered || 
-      r.archiveReason == ArchiveReason.sold
-    ).toList();
+    final butchered = periodArchived.where((r) => r.archiveReason == ArchiveReason.butchered || r.archiveReason == ArchiveReason.sold).toList();
 
     _totalMeatYield = 0;
     double totalHarvestWeight = 0;
@@ -357,7 +357,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       if (r.archiveReason == ArchiveReason.butchered) {
         _totalMeatYield += (r.butcherYield ?? 0);
       }
-      
+
       if (r.weight != null && r.weight! > 0) {
         totalHarvestWeight += r.weight!;
         harvestCount++;
@@ -386,17 +386,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     List<double> w4_weights = [];
     List<double> w8_weights = [];
     List<double> w12_weights = [];
-    
+
     // Growth curve data points
     Map<int, List<double>> ageWeights = {};
 
     // 1. Process data from individual rabbit profiles (Active & Archived)
-    final allRelevant = [..._allRabbits, ..._archivedRabbits];
+    final allRelevant = [
+      ..._allRabbits,
+      ..._archivedRabbits
+    ];
     for (final r in allRelevant) {
       if (r.dateOfBirth != null && r.weight != null && r.weight! > 0) {
         final referenceDate = r.archiveDate ?? now;
         final ageDays = referenceDate.difference(r.dateOfBirth!).inDays;
-        
+
         // Broaden buckets to ensure we capture data
         if (ageDays >= 21 && ageDays <= 38) w4_weights.add(r.weight!);
         if (ageDays >= 49 && ageDays <= 70) w8_weights.add(r.weight!);
@@ -417,7 +420,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         if (kit.weight > 0) {
           // If kit is sold/butchered, use weaning date or current date for age
           final ageDays = (l.weanDate ?? now).difference(litterDob).inDays;
-          
+
           if (ageDays >= 21 && ageDays <= 38) w4_weights.add(kit.weight);
           if (ageDays >= 49 && ageDays <= 70) w8_weights.add(kit.weight);
           if (ageDays >= 77 && ageDays <= 110) w12_weights.add(kit.weight);
@@ -431,15 +434,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           // If kit is sold/butchered in THIS period, add to Harvest stats
           final isHarvested = kit.status == 'Sold' || kit.status == 'Butchered';
           // Approximate check: if litter age is within period or weanDate is in period
-          bool inPeriod = (l.weanDate != null && l.weanDate!.isAfter(periodStart)) || 
-                          (l.kindleDate != null && l.kindleDate!.isAfter(periodStart));
-          
+          bool inPeriod = (l.weanDate != null && l.weanDate!.isAfter(periodStart)) || (l.kindleDate != null && l.kindleDate!.isAfter(periodStart));
+
           if (isHarvested && inPeriod) {
             totalHarvestWeight += kit.weight;
             harvestCount++;
-            if (kit.weight < 4.5) lightCount++;
-            else if (kit.weight <= 5.5) targetCount++;
-            else heavyCount++;
+            if (kit.weight < 4.5)
+              lightCount++;
+            else if (kit.weight <= 5.5)
+              targetCount++;
+            else
+              heavyCount++;
 
             if (kit.status == 'Butchered') {
               // Yield estimation for kits if not recorded (typical 50-55%)
@@ -460,7 +465,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       final avg = ageWeights[w]!.reduce((a, b) => a + b) / ageWeights[w]!.length;
       return ChartData(label: '${w}w', value: double.parse(avg.toStringAsFixed(1)));
     }).toList();
-    
+
     // Ensure at least 2 points for the chart, even if empty
     if (_growthData.length < 2) {
       _growthData = [
@@ -472,9 +477,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
     // Refresh harvest percentages with the kit data included
     _avgHarvestWeight = harvestCount > 0 ? totalHarvestWeight / harvestCount : 0;
-    _dressOutPercent = (harvestCount > 0 && _totalMeatYield > 0 && totalHarvestWeight > 0) 
-        ? ((_totalMeatYield / totalHarvestWeight) * 100).round() 
-        : (_totalMeatYield > 0 ? 52 : 0); // fallback to typical yield if missing weights
+    _dressOutPercent = (harvestCount > 0 && _totalMeatYield > 0 && totalHarvestWeight > 0) ? ((_totalMeatYield / totalHarvestWeight) * 100).round() : (_totalMeatYield > 0 ? 52 : 0); // fallback to typical yield if missing weights
 
     // ========================
     // HEALTH ANALYTICS
@@ -617,7 +620,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         preferredSize: const Size.fromHeight(56),
         child: Container(
           decoration: const BoxDecoration(
-            color: kLilacWash,
+            color: Color(0xFFE6BEFE),
             border: Border(bottom: BorderSide(color: kLilacLight)),
           ),
           child: AppBar(
@@ -755,39 +758,26 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Future<Directory?> _getExportDirectory() async {
     if (Platform.isAndroid) {
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
-        var manageStatus = await Permission.manageExternalStorage.request();
-        if (!manageStatus.isGranted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Storage permission required to export CSV'),
-                backgroundColor: const Color(0xFFD44C47),
-                action: SnackBarAction(
-                  label: 'Settings',
-                  textColor: Colors.white,
-                  onPressed: () => openAppSettings(),
-                ),
-              ),
-            );
-          }
-          return null;
-        }
-      }
-
-      final List<String> paths = [
-        '/storage/emulated/0/Download',
-        '/storage/emulated/0/Downloads',
-        '/sdcard/Download',
-      ];
-      for (String p in paths) {
-        final dir = Directory(p);
-        try {
-          if (await dir.exists()) return dir;
-          await dir.create(recursive: true);
+      try {
+        final dir = await getExternalStorageDirectory();
+        if (dir != null) {
           return dir;
-        } catch (_) {}
+        }
+      } catch (e) {
+        print('Error getting external storage directory: $e');
+      }
+      return await getApplicationDocumentsDirectory();
+    } else if (Platform.isWindows) {
+      final homeDir = Platform.environment['USERPROFILE'];
+      if (homeDir != null) {
+        final downloads = Directory(p.join(homeDir, 'Downloads'));
+        if (await downloads.exists()) {
+          return downloads;
+        }
+        final documents = Directory(p.join(homeDir, 'Documents'));
+        if (await documents.exists()) {
+          return documents;
+        }
       }
       return await getApplicationDocumentsDirectory();
     } else {
@@ -795,65 +785,77 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     }
   }
 
-  String _csvEscape(String value) {
-    if (value.contains(',') || value.contains('"') || value.contains('\n')) {
-      return '"${value.replaceAll('"', '""')}"';
-    }
-    return value;
-  }
-
   Future<void> _exportAnalytics() async {
     try {
-      final buffer = StringBuffer();
-      
-      buffer.writeln('Analytics Report - $selectedPeriod');
-      buffer.writeln('Generated on: ${DateTime.now().toIso8601String()}');
-      buffer.writeln('');
-      
-      buffer.writeln('--- PRODUCTION ---');
-      buffer.writeln('Active Litters,$_activeLitters');
-      buffer.writeln('Live Kits Born,$_totalLiveKitsBorn');
-      buffer.writeln('Avg Litter Size,${_fmtNum(_avgLitterSize)}');
-      buffer.writeln('Gestation Days (Avg),${_avgGestationDays > 0 ? _fmtNum(_avgGestationDays) : "-"}');
-      buffer.writeln('Doe Conception Rate,$_doeConceptionRate%');
-      buffer.writeln('Buck Conception Rate,$_buckConceptionRate%');
-      buffer.writeln('');
+      final List<List<dynamic>> rows = [];
+      rows.add(['Analytics Report', selectedPeriod]);
+      rows.add(['Generated on', DateTime.now().toIso8601String()]);
+      rows.add([]);
 
-      buffer.writeln('--- GROWTH ---');
-      buffer.writeln('Total Meat Yield,${_fmtNum(_totalMeatYield)} ${FormatUtils.weightUnit}');
-      buffer.writeln('Avg Harvest Weight,${_avgHarvestWeight > 0 ? _fmtNum(_avgHarvestWeight) : "0"} ${FormatUtils.weightUnit}');
-      buffer.writeln('Dress-Out Percentage,${_dressOutPercent > 0 ? "$_dressOutPercent%" : "-"}');
-      buffer.writeln('Avg Age To Butcher,${_avgButcherAge > 0 ? "${_avgButcherAge}w" : "-"}');
-      buffer.writeln('');
+      rows.add(['PRODUCTION']);
+      rows.add(['Active Litters', _activeLitters]);
+      rows.add(['Live Kits Born', _totalLiveKitsBorn]);
+      rows.add(['Avg Litter Size', _fmtNum(_avgLitterSize)]);
+      rows.add(['Gestation Days (Avg)', _avgGestationDays > 0 ? _fmtNum(_avgGestationDays) : "-"]);
+      rows.add(['Doe Conception Rate', '$_doeConceptionRate%']);
+      rows.add(['Buck Conception Rate', '$_buckConceptionRate%']);
+      rows.add([]);
 
-      buffer.writeln('--- HEALTH ---');
-      buffer.writeln('Survival Rate,${_bornTotal > 0 ? "$_survivalRate%" : "-"}');
-      buffer.writeln('Total Losses,$_totalLosses');
-      buffer.writeln('Doe Mortality,$_doeMortality%');
-      buffer.writeln('Quarantine Count,$_quarantineCount');
-      buffer.writeln('');
+      rows.add(['GROWTH']);
+      rows.add(['Total Meat Yield', '${_fmtNum(_totalMeatYield)} ${FormatUtils.weightUnit}']);
+      rows.add(['Avg Harvest Weight', '${_avgHarvestWeight > 0 ? _fmtNum(_avgHarvestWeight) : "0"} ${FormatUtils.weightUnit}']);
+      rows.add(['Dress-Out Percentage', _dressOutPercent > 0 ? "$_dressOutPercent%" : "-"]);
+      rows.add(['Avg Age To Butcher', _avgButcherAge > 0 ? "${_avgButcherAge}w" : "-"]);
+      rows.add([]);
 
-      buffer.writeln('--- FINANCE ---');
-      buffer.writeln('Net Profit,${_netProfit != 0 ? _netProfit.toStringAsFixed(2) : "-"}');
-      buffer.writeln('Total Revenue,${_totalRevenue > 0 ? _totalRevenue.toStringAsFixed(2) : "0"}');
-      buffer.writeln('Total Expense,${_totalExpense > 0 ? _totalExpense.toStringAsFixed(2) : "0"}');
-      buffer.writeln('Cost Per Kit,${_costPerKit > 0 ? _costPerKit.toStringAsFixed(2) : "-"}');
+      rows.add(['HEALTH']);
+      rows.add(['Survival Rate', _bornTotal > 0 ? "$_survivalRate%" : "-"]);
+      rows.add(['Total Losses', _totalLosses]);
+      rows.add(['Doe Mortality', '$_doeMortality%']);
+      rows.add(['Quarantine Count', _quarantineCount]);
+      rows.add([]);
+
+      rows.add(['FINANCE']);
+      rows.add(['Net Profit', _netProfit != 0 ? _netProfit.toStringAsFixed(2) : "-"]);
+      rows.add(['Total Revenue', _totalRevenue > 0 ? _totalRevenue.toStringAsFixed(2) : "0"]);
+      rows.add(['Total Expense', _totalExpense > 0 ? _totalExpense.toStringAsFixed(2) : "0"]);
+      rows.add(['Cost Per Kit', _costPerKit > 0 ? _costPerKit.toStringAsFixed(2) : "-"]);
+
+      final csvContent = const ListToCsvConverter().convert(rows);
 
       final directory = await _getExportDirectory();
       if (directory == null) return;
-      final file = File('${directory.path}/analytics_export_${DateTime.now().millisecondsSinceEpoch}.csv');
-      await file.writeAsString(buffer.toString());
+      final file = File(p.normalize('${directory.path}/analytics_export_${DateTime.now().millisecondsSinceEpoch}.csv'));
+      await file.writeAsString(csvContent);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Analytics exported to ${file.path.split('/').last}'),
             backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'OPEN',
-              textColor: Colors.white,
-              onPressed: () => OpenFilex.open(file.path),
+            content: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Analytics exported',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    OpenFilex.open(file.path, type: 'text/csv');
+                  },
+                  child: const Text('OPEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Share.shareXFiles([XFile(file.path)]);
+                  },
+                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
           ),
         );
@@ -952,13 +954,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: Text(
-              _gestationMode > 0 
-                ? 'Mode: $_gestationMode days — ${_gestationMode >= 30 && _gestationMode <= 33 ? "within normal range (30–33d)" : "outside standard range"}'
-                : 'Insufficient data for gestation modal analysis',
-              textAlign: TextAlign.center, 
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)
-            ),
+            child: Text(_gestationMode > 0 ? 'Mode: $_gestationMode days — ${_gestationMode >= 30 && _gestationMode <= 33 ? "within normal range (30–33d)" : "outside standard range"}' : 'Insufficient data for gestation modal analysis', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
           ),
         ],
       ),
@@ -1029,10 +1025,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _growthData.map((d) => Text(
-              d.label, 
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)
-            )).toList(),
+            children: _growthData.map((d) => Text(d.label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400))).toList(),
           ),
           const SizedBox(height: 16),
           Row(
@@ -1048,13 +1041,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: Text(
-              _w12_avg > 0 
-                ? 'Growth peaking at ${_fmtNum(_w12_avg)} ${FormatUtils.weightUnit} — optimal butcher window'
-                : 'Steady linear growth curve — track to determine peak',
-              textAlign: TextAlign.center, 
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)
-            ),
+            child: Text(_w12_avg > 0 ? 'Growth peaking at ${_fmtNum(_w12_avg)} ${FormatUtils.weightUnit} — optimal butcher window' : 'Steady linear growth curve — track to determine peak', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
           ),
         ],
       ),
@@ -1114,24 +1101,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 16),
           if (_lossData.isEmpty)
-             const Padding(
-               padding: EdgeInsets.symmetric(vertical: 24),
-               child: Center(child: Text('No loss data recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
-             )
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('No loss data recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
+            )
           else ...[
             ..._lossData.take(3).map((d) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildRatioBar(d.label, d.value, kLilac),
-            )),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildRatioBar(d.label, d.value, kLilac),
+                )),
             const SizedBox(height: 4),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
               child: Text(
-                _lossData.isNotEmpty 
-                  ? '${_lossData.first.label} is the leading cause — review conditions'
-                  : 'Maintain healthy conditions to minimize losses',
+                _lossData.isNotEmpty ? '${_lossData.first.label} is the leading cause — review conditions' : 'Maintain healthy conditions to minimize losses',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
               ),
@@ -1288,24 +1273,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 16),
           if (_expenseData.isEmpty)
-             const Padding(
-               padding: EdgeInsets.symmetric(vertical: 24),
-               child: Center(child: Text('No expenses recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
-             )
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('No expenses recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
+            )
           else ...[
             ..._expenseData.take(3).map((d) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildRatioBar(d.label, d.value, kLilac),
-            )),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildRatioBar(d.label, d.value, kLilac),
+                )),
             const SizedBox(height: 4),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
               child: Text(
-                _expenseData.isNotEmpty 
-                  ? '${_expenseData.first.label} accounts for ${(_expenseData.first.value).toInt()}% of total expenses'
-                  : 'Track your expenses to see cost breakdown',
+                _expenseData.isNotEmpty ? '${_expenseData.first.label} accounts for ${(_expenseData.first.value).toInt()}% of total expenses' : 'Track your expenses to see cost breakdown',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
               ),
@@ -1348,10 +1331,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: _incomeData.take(4).map((d) => Text(
-                d.label,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400),
-              )).toList(),
+              children: _incomeData
+                  .take(4)
+                  .map((d) => Text(
+                        d.label,
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400),
+                      ))
+                  .toList(),
             ),
             const SizedBox(height: 16),
             Row(
@@ -1364,10 +1350,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
               child: Text(
-                _incomeData.isNotEmpty 
-                  ? '${_incomeData.first.label} is the top revenue source this period'
-                  : 'Track your sales to see revenue sources',
-                textAlign: TextAlign.center, 
+                _incomeData.isNotEmpty ? '${_incomeData.first.label} is the top revenue source this period' : 'Track your sales to see revenue sources',
+                textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500),
               ),
             ),
@@ -1461,10 +1445,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   ),
                 )
               else if (kpi.label.toLowerCase().contains('avg') || kpi.label.toLowerCase().contains('gestation'))
-                 Text(
-                   kpi.subtitle ?? '',
-                   style: const TextStyle(fontSize: 10, color: kNeutral500, fontWeight: FontWeight.w500),
-                 ),
+                Text(
+                  kpi.subtitle ?? '',
+                  style: const TextStyle(fontSize: 10, color: kNeutral500, fontWeight: FontWeight.w500),
+                ),
             ],
           ),
         );
@@ -1692,7 +1676,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                         color: kLilac.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(6),
                         gradient: LinearGradient(
-                          colors: [kLilac, kLilac.withOpacity(0.6)],
+                          colors: [
+                            kLilac,
+                            kLilac.withOpacity(0.6)
+                          ],
                         ),
                       ),
                     ),
@@ -1763,7 +1750,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [kLilac, kLilac.withOpacity(0.4)],
+                              colors: [
+                                kLilac,
+                                kLilac.withOpacity(0.4)
+                              ],
                             ),
                           ),
                         ),
@@ -1788,7 +1778,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildDonutChart(String title, List<ChartData> data) {
-    const colors = [kLilacDeep, kLilac, kLilacLight, kBlueDeep, kPinkDeep, kPurple];
+    const colors = [
+      kLilacDeep,
+      kLilac,
+      kLilacLight,
+      kBlueDeep,
+      kPinkDeep,
+      kPurple
+    ];
     if (data.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -1823,36 +1820,36 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           const SizedBox(height: 24),
           Row(
             children: [
-               SizedBox(
-                 width: 100,
-                 height: 100,
-                 child: Stack(
-                   children: [
-                     Center(child: Container(width: 70, height: 70, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
-                     // Placeholder for a real donut chart if needed, or just visual
-                     Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: kNeutral100, width: 20))),
-                   ],
-                 ),
-               ),
-               const SizedBox(width: 24),
-               Expanded(
-                 child: Column(
-                   children: List.generate(data.length.clamp(0, 4), (i) {
-                     double pct = total > 0 ? (data[i].value / total * 100) : 0;
-                     return Padding(
-                       padding: const EdgeInsets.symmetric(vertical: 4),
-                       child: Row(
-                         children: [
-                           Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[i % colors.length], shape: BoxShape.circle)),
-                           const SizedBox(width: 8),
-                           Expanded(child: Text(data[i].label, style: const TextStyle(fontSize: 11, color: kNeutral600, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
-                           Text('${pct.toInt()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral800)),
-                         ],
-                       ),
-                     );
-                   }),
-                 ),
-               ),
+              SizedBox(
+                width: 100,
+                height: 100,
+                child: Stack(
+                  children: [
+                    Center(child: Container(width: 70, height: 70, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+                    // Placeholder for a real donut chart if needed, or just visual
+                    Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: kNeutral100, width: 20))),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  children: List.generate(data.length.clamp(0, 4), (i) {
+                    double pct = total > 0 ? (data[i].value / total * 100) : 0;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[i % colors.length], shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(data[i].label, style: const TextStyle(fontSize: 11, color: kNeutral600, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                          Text('${pct.toInt()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral800)),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ],
           ),
         ],
@@ -2058,11 +2055,11 @@ class LineChartPainter extends CustomPainter {
     if (maxValue == 0) maxValue = 1;
 
     final double stepX = size.width / (data.length - 1);
-    
+
     for (int i = 0; i < data.length; i++) {
       double x = i * stepX;
       double y = size.height - (data[i].value / maxValue * size.height * 0.8) - (size.height * 0.1);
-      
+
       if (i == 0) {
         pathLine.moveTo(x, y);
         pathFill.moveTo(x, size.height);
@@ -2071,7 +2068,7 @@ class LineChartPainter extends CustomPainter {
         pathLine.lineTo(x, y);
         pathFill.lineTo(x, y);
       }
-      
+
       if (i == data.length - 1) {
         pathFill.lineTo(x, size.height);
         pathFill.close();
@@ -2082,15 +2079,20 @@ class LineChartPainter extends CustomPainter {
     canvas.drawPath(pathLine, paintLine);
 
     // Draw dots
-    final paintDot = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    final paintDotStroke = Paint()..color = color.withOpacity(0.5)..strokeWidth = 1.5..style = PaintingStyle.stroke;
+    final paintDot = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final paintDotStroke = Paint()
+      ..color = color.withOpacity(0.5)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
 
     for (int i = 0; i < data.length; i++) {
-        double x = i * stepX;
-        double y = size.height - (data[i].value / maxValue * size.height * 0.8) - (size.height * 0.1);
-        
-        canvas.drawCircle(Offset(x, y), 3, paintDot);
-        canvas.drawCircle(Offset(x, y), 3, paintDotStroke);
+      double x = i * stepX;
+      double y = size.height - (data[i].value / maxValue * size.height * 0.8) - (size.height * 0.1);
+
+      canvas.drawCircle(Offset(x, y), 3, paintDot);
+      canvas.drawCircle(Offset(x, y), 3, paintDotStroke);
     }
   }
 

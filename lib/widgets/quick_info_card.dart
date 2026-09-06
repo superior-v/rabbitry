@@ -56,6 +56,46 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Rows in display order — isEven drives alternating bg
+    final rows = [
+      _buildInfoRow(context, 'ID',
+          _currentRabbit.id.length > 8
+              ? _currentRabbit.id.substring(0, 8).toUpperCase()
+              : _currentRabbit.id.toUpperCase(),
+          icon: Icons.fingerprint_rounded, rowIndex: 0),
+      _buildInfoRow(context, 'Cage No.',
+          [
+            if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
+            if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
+          ].join(' • '),
+          icon: Icons.grid_view_rounded,
+          actionLabel: 'Move',
+          onAction: () => _showCageSelector(context),
+          rowIndex: 1),
+      _buildInfoRow(context, 'Ear No.',
+          _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
+          icon: Icons.tag, rowIndex: 2),
+      _buildInfoRow(context, 'Date of Birth',
+          _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : '-',
+          icon: Icons.calendar_today_rounded, rowIndex: 3),
+      _buildInfoRow(context, 'Age',
+          _calculateAge(),
+          icon: Icons.hourglass_empty_rounded, rowIndex: 4),
+      _buildInfoRow(context, 'Weight',
+          _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '-',
+          icon: Icons.scale_outlined, rowIndex: 5),
+      _buildInfoRow(context, 'Markers',
+          _currentRabbit.color?.isNotEmpty == true ? _currentRabbit.color! : '-',
+          icon: Icons.palette_outlined,
+          onAction: widget.isEditing ? () => _showColorSelector(context) : null,
+          actionLabel: widget.isEditing ? 'EDIT' : null,
+          rowIndex: 6),
+      _buildInfoRow(context, 'Notes',
+          _currentRabbit.notes?.isNotEmpty == true ? _currentRabbit.notes! : '-',
+          icon: Icons.notes_rounded,
+          isLast: true, rowIndex: 7),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -63,58 +103,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
         borderRadius: BorderRadius.circular(14),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          _buildInfoRow(
-            context,
-            'Cage',
-            '${_currentRabbit.location ?? 'Row A'} • ${_currentRabbit.cage ?? 'A-02'}',
-            icon: Icons.grid_view_rounded,
-            actionLabel: 'Move',
-            onAction: () => _showCageSelector(context),
-          ),
-          _buildInfoRow(
-            context,
-            'Ear #',
-            _currentRabbit.earNumber ?? '-',
-            icon: Icons.tag,
-          ),
-          _buildInfoRow(
-            context,
-            'Born',
-            _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : 'Mar 15, 2024',
-            icon: Icons.calendar_today_rounded,
-          ),
-          _buildInfoRow(
-            context,
-            'Age',
-            _calculateAge(),
-            icon: Icons.hourglass_empty_rounded,
-          ),
-          _buildInfoRow(
-            context,
-            'Color',
-            _currentRabbit.color ?? 'Castor',
-            icon: Icons.palette_outlined,
-            onAction: widget.isEditing ? () => _showColorSelector(context) : null,
-            actionLabel: widget.isEditing ? 'EDIT' : null,
-          ),
-          _buildInfoRow(
-            context,
-            'Weight',
-            _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '9.5 lbs',
-            icon: Icons.scale_outlined,
-          ),
-          _buildInfoRow(
-            context,
-            'Origin',
-            _currentRabbit.origin ?? 'Homebred',
-            icon: Icons.home_outlined,
-            onAction: widget.isEditing ? () => _showOriginSelector(context) : null,
-            actionLabel: widget.isEditing ? 'EDIT' : null,
-          ),
-        ],
-      ),
+      child: Column(children: rows),
     );
   }
 
@@ -125,11 +114,16 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
     required IconData icon,
     String? actionLabel,
     VoidCallback? onAction,
+    bool isLast = false,
+    int rowIndex = 0,
   }) {
+    final bool isEven = rowIndex.isEven;
+    final Color rowBg = isEven ? Colors.white : const Color(0xFFF5F3F8);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: kNeutral100)),
+      decoration: BoxDecoration(
+        color: rowBg,
+        border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -148,38 +142,47 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
               ),
             ],
           ),
-          Row(
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: kNeutral900,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (actionLabel != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: onAction,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: kNeutral100,
-                      borderRadius: BorderRadius.circular(100),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: kNeutral900,
+                      fontWeight: FontWeight.w700,
                     ),
-                    child: Text(
-                      actionLabel,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: kNeutral600,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ),
+                if (actionLabel != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onAction,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: kNeutral100,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        actionLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: kNeutral600,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),

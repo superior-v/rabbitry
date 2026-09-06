@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/rabbit.dart';
@@ -8,6 +10,7 @@ import '../models/transaction.dart' as finance_model;
 import '../models/pedigree.dart';
 import 'dart:convert';
 import 'settings_service.dart';
+import 'app_event_service.dart';
 
 class DatabaseService {
   static const int _databaseVersion = 22;
@@ -779,6 +782,10 @@ class DatabaseService {
         '✅ Converted all weight values from $fromUnit to $toUnit (factor: ${conversionFactor.toStringAsFixed(4)})');
   }
 
+  bool _isRabbitColumnsEnsured = false;
+  bool _isLittersTableMigrated = false;
+  String? _cachedDocDirPath;
+
   // ==================== RABBIT CRUD ====================
 
   Future<void> insertRabbit(Rabbit rabbit) async {
@@ -786,10 +793,147 @@ class DatabaseService {
     await _ensureRabbitColumns(db);
     await db.insert('rabbits', rabbit.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
+    notifyDataChanged();
     print('✅ Inserted rabbit: ${rabbit.name}');
   }
 
+  Future<String?> _fixPhotoPath(String? path) async {
+    if (path == null || path.isEmpty) return null;
+    if (File(path).existsSync()) return path;
+    try {
+      _cachedDocDirPath ??= (await getApplicationDocumentsDirectory()).path;
+      final fileName = basename(path);
+      final photosDirPath = join(_cachedDocDirPath!, 'rabbit_photos', fileName);
+      if (File(photosDirPath).existsSync()) {
+        return photosDirPath;
+      }
+      final directDocPath = join(_cachedDocDirPath!, fileName);
+      if (File(directDocPath).existsSync()) {
+        return directDocPath;
+      }
+    } catch (e) {
+      print('Error resolving photo path: $e');
+    }
+    return path;
+  }
+
+  Future<Rabbit> _resolveRabbitPhotos(Rabbit rabbit) async {
+    if (rabbit.photos == null || rabbit.photos!.isEmpty) return rabbit;
+    final List<String> resolvedPhotos = [];
+    for (final path in rabbit.photos!) {
+      final resolved = await _fixPhotoPath(path);
+      if (resolved != null) {
+        resolvedPhotos.add(resolved);
+      }
+    }
+    return rabbit.copyWith(photos: resolvedPhotos);
+  }
+
+  /// Checks all resting / breeding does and updates their status to OPEN once rebreeding day is reached.
+  Future<void> checkAndUpdateRebreedStatuses() async {
+    final db = await database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final rebreedDaysSetting = SettingsService.instance.rebreedDays;
+
+    final candidateRabbitsMap = await db.query(
+      'rabbits',
+      where: 'status = ? OR status = ? OR status = ? OR status = ?',
+      whereArgs: [
+        RabbitStatus.resting.toString(),
+        'resting',
+        'Resting',
+        'nursing'
+      ],
+    );
+
+    for (final map in candidateRabbitsMap) {
+      final doeId = map['id'] as String;
+      final statusStr = (map['status'] as String? ?? '').toLowerCase();
+      
+      // Don't auto-open active nursing does with litters under weaning age unless in resting
+      if (statusStr.contains('nursing')) {
+        final activeLitters = await db.query(
+          'litters',
+          where: 'doeId = ? AND (status = ? OR status = ?)',
+          whereArgs: [doeId, 'nursing', 'Nursing'],
+        );
+        if (activeLitters.isNotEmpty) {
+          // If doe still has an active nursing litter, check if rebreed target date from kindle DOB has passed
+          final firstLitter = activeLitters.first;
+          final dobStr = firstLitter['dob'] as String?;
+          final dob = dobStr != null ? DateTime.tryParse(dobStr) : null;
+          if (dob != null) {
+            final targetRebreedDate = dob.add(Duration(days: rebreedDaysSetting));
+            if (!today.isBefore(DateTime(targetRebreedDate.year, targetRebreedDate.month, targetRebreedDate.day))) {
+              await db.update(
+                'rabbits',
+                {'status': RabbitStatus.open.toString(), 'updatedAt': now.toIso8601String()},
+                where: 'id = ?',
+                whereArgs: [doeId],
+              );
+            }
+          }
+          continue;
+        }
+      }
+
+      final updatedAtStr = map['updatedAt'] as String?;
+      final updatedAt = updatedAtStr != null ? DateTime.tryParse(updatedAtStr) : null;
+
+      final tasks = await db.query(
+        'tasks',
+        where: 'rabbitId = ? AND (taskType = ? OR taskType = ?)',
+        whereArgs: [doeId, 'open_breeding', 'resting'],
+      );
+
+      bool isRebreedDue = false;
+
+      if (tasks.isNotEmpty) {
+        for (final t in tasks) {
+          final dueDateStr = t['dueDate'] as String?;
+          if (dueDateStr != null) {
+            final dueDate = DateTime.tryParse(dueDateStr);
+            if (dueDate != null && !today.isBefore(DateTime(dueDate.year, dueDate.month, dueDate.day))) {
+              isRebreedDue = true;
+              break;
+            }
+          }
+        }
+      } else if (updatedAt != null) {
+        final rebreedTargetDate = updatedAt.add(Duration(days: rebreedDaysSetting));
+        if (!today.isBefore(DateTime(rebreedTargetDate.year, rebreedTargetDate.month, rebreedTargetDate.day))) {
+          isRebreedDue = true;
+        }
+      } else {
+        isRebreedDue = true;
+      }
+
+      if (isRebreedDue) {
+        await db.update(
+          'rabbits',
+          {
+            'status': RabbitStatus.open.toString(),
+            'updatedAt': now.toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [doeId],
+        );
+        await db.update(
+          'tasks',
+          {
+            'completed': 1,
+            'completedAt': now.toIso8601String(),
+          },
+          where: 'rabbitId = ? AND (taskType = ? OR taskType = ?)',
+          whereArgs: [doeId, 'open_breeding', 'resting'],
+        );
+      }
+    }
+  }
+
   Future<List<Rabbit>> getAllRabbits() async {
+    await checkAndUpdateRebreedStatuses();
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
@@ -797,7 +941,12 @@ class DatabaseService {
       whereArgs: ['RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<List<Rabbit>> getArchivedRabbits() async {
@@ -808,7 +957,12 @@ class DatabaseService {
       whereArgs: ['RabbitStatus.archived'],
       orderBy: 'archiveDate DESC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<Rabbit?> getRabbit(String id) async {
@@ -819,7 +973,8 @@ class DatabaseService {
       whereArgs: [id],
     );
     if (maps.isEmpty) return null;
-    return Rabbit.fromMap(maps.first);
+    final r = Rabbit.fromMap(maps.first);
+    return await _resolveRabbitPhotos(r);
   }
 
   Future<List<Rabbit>> getRabbitsByType(RabbitType type) async {
@@ -830,7 +985,12 @@ class DatabaseService {
       whereArgs: [type.toString(), 'RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<List<Rabbit>> getRabbitsByStatus(RabbitStatus status) async {
@@ -841,7 +1001,12 @@ class DatabaseService {
       whereArgs: [status.toString()],
       orderBy: 'name ASC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<List<Rabbit>> getRabbitsByTypeAndStatus(
@@ -853,7 +1018,12 @@ class DatabaseService {
       whereArgs: [type.toString(), status.toString()],
       orderBy: 'name ASC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<List<Rabbit>> getAvailableBucks() async {
@@ -864,10 +1034,32 @@ class DatabaseService {
       whereArgs: ['RabbitType.buck', 'RabbitStatus.archived'],
       orderBy: 'name ASC',
     );
-    return List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
+  }
+
+  Future<List<Rabbit>> getOpenDoes() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'rabbits',
+      where: 'type = ? AND status = ?',
+      whereArgs: ['RabbitType.doe', 'RabbitStatus.open'],
+      orderBy: 'name ASC',
+    );
+    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
   }
 
   Future<void> _ensureRabbitColumns(Database db) async {
+    if (_isRabbitColumnsEnsured) return;
     try {
       final List<Map<String, dynamic>> columns = await db.rawQuery('PRAGMA table_info(rabbits)');
       final existingCols = columns.map((c) => c['name'] as String).toSet();
@@ -911,6 +1103,7 @@ class DatabaseService {
           print('🔨 Added missing column: ${entry.key}');
         }
       }
+      _isRabbitColumnsEnsured = true;
     } catch (e) {
       print('❌ _ensureRabbitColumns error: $e');
     }
@@ -922,6 +1115,7 @@ class DatabaseService {
     rabbit.updatedAt = DateTime.now();
     await db.update('rabbits', rabbit.toMap(),
         where: 'id = ?', whereArgs: [rabbit.id]);
+    notifyDataChanged();
     print('✅ Updated rabbit: ${rabbit.name}');
   }
 
@@ -929,6 +1123,7 @@ class DatabaseService {
   Future<void> deleteRabbit(String id) async {
     final db = await database;
     await db.delete('rabbits', where: 'id = ?', whereArgs: [id]);
+    notifyDataChanged();
     print('🗑️ Deleted rabbit: $id');
   }
 
@@ -1063,6 +1258,38 @@ class DatabaseService {
         'createdAt': DateTime.now().toIso8601String(),
       });
     } else {
+      // Archive breeding as "Not Taken" litter before resetting
+      if (rabbit.lastBreedDate != null) {
+        String buckName = '';
+        if (rabbit.lastBreedBuckId != null) {
+          final buck = await getRabbit(rabbit.lastBreedBuckId!);
+          buckName = buck?.name ?? '';
+        }
+        final notTakenId = 'litter_nt_${DateTime.now().millisecondsSinceEpoch}';
+        await insertLitter({
+          'id': notTakenId,
+          'doeId': doeId,
+          'doeName': rabbit.name,
+          'buckId': rabbit.lastBreedBuckId ?? '',
+          'buckName': buckName,
+          'breedDate': rabbit.lastBreedDate!.toIso8601String(),
+          'kindleDate': DateTime.now().toIso8601String(),
+          'dob': DateTime.now().toIso8601String(),
+          'totalBorn': 0,
+          'aliveBorn': 0,
+          'deadBorn': 0,
+          'currentAlive': 0,
+          'weanDate': DateTime.now().toIso8601String(),
+          'status': 'Not Taken',
+          'missedLitter': 1,
+          'sire': buckName,
+          'dam': rabbit.name,
+          'kits': '[]',
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+      }
+
       await db.update(
         'rabbits',
         {
@@ -1092,6 +1319,7 @@ class DatabaseService {
 
     print('✅ Confirmed pregnancy for $doeId: $isPregnant');
   }
+
 
   Future<void> logBirth(
     String doeId,
@@ -1209,6 +1437,7 @@ class DatabaseService {
       whereArgs: [doeId, 'kindle', 'nestbox', 0],
     );
 
+    notifyDataChanged();
     print(
         '✅ Logged birth for $doeId: $aliveBorn alive out of $totalBorn (Litter ID: $finalLitterId)');
   }
@@ -1639,6 +1868,19 @@ class DatabaseService {
     print('✅ Inserted litter: ${litter['id']}');
   }
 
+  Future<Litter> _resolveLitterPhotos(Litter litter) async {
+    final List<Kit> resolvedKits = [];
+    for (final kit in litter.kits) {
+      if (kit.imagePath != null && kit.imagePath!.isNotEmpty) {
+        final resolved = await _fixPhotoPath(kit.imagePath);
+        resolvedKits.add(kit.copyWith(imagePath: resolved));
+      } else {
+        resolvedKits.add(kit);
+      }
+    }
+    return litter.copyWith(kits: resolvedKits);
+  }
+
   // ✅ NEW: Get all litters as Litter objects
   // Replace the getLitters() method at line 770 with this:
 
@@ -1664,17 +1906,8 @@ class DatabaseService {
       final litters = <Litter>[];
       for (var map in result) {
         try {
-          print('  🔄 Parsing litter ${map['id']}...');
-          print('     - dob: ${map['dob']}');
-          print('     - location: ${map['location']}');
-          print('     - cage: ${map['cage']}');
-          print(
-              '     - kits: ${map['kits']?.toString().substring(0, (map['kits']?.toString().length ?? 0).clamp(0, 50))}...');
-
           final litter = Litter.fromMap(map);
-          litters.add(litter);
-          print(
-              '  ✅ Parsed litter ${map['id']} with ${litter.kits.length} kits');
+          litters.add(await _resolveLitterPhotos(litter));
         } catch (e) {
           print('  ❌ Error parsing litter ${map['id']}: $e');
         }
@@ -1712,7 +1945,8 @@ class DatabaseService {
       whereArgs: [litterId],
     );
     if (maps.isEmpty) return null;
-    return Litter.fromMap(maps.first);
+    final l = Litter.fromMap(maps.first);
+    return await _resolveLitterPhotos(l);
   }
 
   // ✅ NEW: Update litter
@@ -1778,6 +2012,7 @@ class DatabaseService {
         );
         print('✅ Updated litter: ${litter.id} with ${litter.kits.length} kits');
       }
+      notifyDataChanged();
     } catch (e, stackTrace) {
       print('❌ Error updating litter: $e');
       print('Stack trace: $stackTrace');
@@ -1833,19 +2068,19 @@ class DatabaseService {
     // Save back to database
     final updatedLitter = litter.copyWith(kits: updatedKits);
 
-    // Check if all kits are now dead
-    final allKitsStatusDead = updatedKits.every((k) =>
-        k.status.toLowerCase() == 'dead' ||
-        k.status.toLowerCase() == 'died' ||
-        k.status.toLowerCase() == 'deceased');
+    // Check if all kits are now dead or fostered
+    final allKitsDeadOrFostered = updatedKits.every((k) {
+      final s = k.status.toLowerCase();
+      return s == 'dead' || s == 'died' || s == 'deceased' || s == 'fostered';
+    });
 
-    if (allKitsStatusDead) {
+    if (allKitsDeadOrFostered) {
       final db = await database;
-      // If all kits are dead, mark doe as open and clear breeding dates
+      // If all kits are dead/fostered, mark doe as open and clear breeding dates
       await db.update(
         'rabbits',
         {
-          'status': 'open',
+          'status': RabbitStatus.open.toString(),
           'kindleDate': null,
           'weanDate': null,
           'dueDate': null,
@@ -1865,7 +2100,51 @@ class DatabaseService {
     }
 
     print(
-        '✅ Updated kit ${kit.id} in litter $litterId ${allKitsStatusDead ? '(All kits dead, doe reset to Open)' : ''}');
+        '✅ Updated kit ${kit.id} in litter $litterId ${allKitsDeadOrFostered ? '(All kits dead/fostered, doe reset to Open)' : ''}');
+  }
+
+  /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
+  /// If all kits are dead or fostered across her active litters, changes the doe's status to OPEN.
+  Future<void> checkAndUpdateDoeStatusIfLitterEmpty(String doeId) async {
+    try {
+      final litters = await getLitters();
+      final doeLitters = litters.where((l) => l.doeId == doeId && l.status != 'archived' && l.status != 'weaned').toList();
+
+      bool hasActiveNursingKits = false;
+      for (final litter in doeLitters) {
+        final activeKits = litter.kits.where((k) {
+          final s = k.status.toLowerCase().trim();
+          return s != 'dead' && s != 'died' && s != 'deceased' && s != 'fostered' && s != 'archived';
+        }).toList();
+
+        if (activeKits.isNotEmpty && (litter.aliveKits ?? 0) > 0) {
+          hasActiveNursingKits = true;
+          break;
+        }
+      }
+
+      if (!hasActiveNursingKits) {
+        final db = await database;
+        await db.update(
+          'rabbits',
+          {
+            'status': RabbitStatus.open.toString(),
+            'kindleDate': null,
+            'weanDate': null,
+            'dueDate': null,
+            'lastBreedDate': null,
+            'lastBreedBuckId': null,
+            'currentLitterSize': 0,
+            'updatedAt': DateTime.now().toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [doeId],
+        );
+        print('🐰 Doe $doeId status updated to OPEN because all kits are dead or fostered.');
+      }
+    } catch (e) {
+      print('⚠️ Error in checkAndUpdateDoeStatusIfLitterEmpty: $e');
+    }
   }
 
   // ✅ NEW: Delete litter
@@ -2545,9 +2824,53 @@ class DatabaseService {
   Future<void> deleteBreed(String id) async {
     final db = await database;
     await _ensureBreedsTable(db);
-    await db.delete('breeds', where: 'id = ?', whereArgs: [id]);
-    print('🗑️ Deleted breed: $id');
+    final breedList = await db.query('breeds', where: 'id = ?', whereArgs: [id]);
+    if (breedList.isNotEmpty) {
+      final breedName = breedList.first['name'] as String;
+      await clearBreedName(breedName);
+    } else {
+      await db.delete('breeds', where: 'id = ?', whereArgs: [id]);
+      print('🗑️ Deleted breed ID (not found in database): $id');
+    }
   }
+
+  Future<void> clearBreedName(String breedName) async {
+    final db = await database;
+    await _ensureBreedsTable(db);
+    
+    // Delete the breed from the breeds library table (case-insensitive)
+    await db.delete('breeds', where: 'LOWER(name) = LOWER(?)', whereArgs: [breedName.trim()]);
+    
+    // Determine replacement breed name
+    final lower = breedName.trim().toLowerCase();
+    String replacement = '';
+    if (lower == 'hotot' || lower == 'hotots') {
+      replacement = 'Dwarf Hotot';
+    } else if (lower == 'netherlands' || lower == 'netherland dwarfs') {
+      replacement = 'Netherland Dwarf';
+    }
+
+    // Update all rabbits that have this breed name (case-insensitive)
+    await db.update(
+      'rabbits',
+      {'breed': replacement},
+      where: 'LOWER(breed) = LOWER(?)',
+      whereArgs: [breedName.trim()],
+    );
+    await db.update(
+      'litters',
+      {'breed': replacement},
+      where: 'LOWER(breed) = LOWER(?)',
+      whereArgs: [breedName.trim()],
+    );
+
+    try {
+      await SettingsService.instance.removeBreed(breedName);
+    } catch (_) {}
+
+    print('🗑️ Cleared breed $breedName from all tables (migrated to "$replacement")');
+  }
+
 
   /// Update genetics on all rabbits that have the given breed name
   Future<void> updateGeneticsForBreed(String breedName, String genetics) async {
@@ -2866,6 +3189,58 @@ class DatabaseService {
 
   Future<void> deleteTransaction(String id) async {
     final db = await database;
+    
+    // Get transaction details first
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    
+    if (maps.isNotEmpty) {
+      final txn = finance_model.Transaction.fromMap(maps.first);
+      
+      // If it is a sold kit transaction
+      if (txn.category == finance_model.TransactionCategory.soldKit && txn.litterId != null && txn.kitId != null) {
+        // Find litter
+        final litterList = await db.query('litters', where: 'id = ?', whereArgs: [txn.litterId]);
+        if (litterList.isNotEmpty) {
+          final litter = Litter.fromMap(litterList.first);
+          final updatedKits = litter.kits.map((k) {
+            if (k.id.toString() == txn.kitId) {
+              return k.copyWith(status: 'Weaned', price: 0);
+            }
+            return k;
+          }).toList();
+          final updatedLitter = litter.copyWith(kits: updatedKits);
+          await db.update(
+            'litters',
+            updatedLitter.toMap(),
+            where: 'id = ?',
+            whereArgs: [litter.id],
+          );
+          print('🔄 Restored Kit ${litter.id}-${txn.kitId} status to Weaned due to sale transaction deletion.');
+        }
+      }
+      
+      // If it is a sold adult rabbit transaction
+      if (txn.category == finance_model.TransactionCategory.soldKit && txn.litterId == null && txn.rabbitId != null) {
+        // Update rabbit to be active again
+        await db.update(
+          'rabbits',
+          {
+            'status': 'RabbitStatus.active',
+            'archiveReason': null,
+            'salePrice': null,
+            'archiveDate': null,
+          },
+          where: 'id = ?',
+          whereArgs: [txn.rabbitId],
+        );
+        print('🔄 Restored Rabbit ${txn.rabbitId} status to active due to sale transaction deletion.');
+      }
+    }
+    
     await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted transaction: $id');
   }
@@ -3515,6 +3890,7 @@ class DatabaseService {
 
   // ✅ Add this method to migrate existing tables
   Future<void> _migrateLittersTable(Database db) async {
+    if (_isLittersTableMigrated) return;
     try {
       // Check if columns exist, add them if missing
       final columns = await db.rawQuery("PRAGMA table_info(litters)");
@@ -3553,6 +3929,7 @@ class DatabaseService {
         print('✅ Added kits column');
       }
 
+      _isLittersTableMigrated = true;
       print('✅ Litters table migration complete');
     } catch (e) {
       print('❌ Error migrating litters table: $e');

@@ -25,198 +25,150 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Confirm Bred',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with X
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Palpation result for ${widget.doe.name} (${widget.doe.id})',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF616161),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF424242), size: 24),
+                onPressed: () => Navigator.pop(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Purple Container holding options
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD6CDEC).withOpacity(0.6),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                _buildOption(
+                  title: 'Yes, Bred',
+                  isYes: true,
+                  isSelected: _isPregnant == true,
+                  onTap: () => setState(() => _isPregnant = true),
+                ),
+                const SizedBox(height: 10),
+                _buildOption(
+                  title: 'No, Not Bred',
+                  isYes: false,
+                  isSelected: _isPregnant == false,
+                  onTap: () => setState(() => _isPregnant = false),
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            Text(
-              'Palpation result for ${widget.doe.name} (${widget.doe.id})',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF787774),
-              ),
-            ),
-            SizedBox(height: 24),
+          ),
+          const SizedBox(height: 20),
 
-            // Pregnancy Options
-            Text(
-              'Is the doe bred?',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            SizedBox(height: 12),
-
-            // Pregnant Option
-            _buildOption(
-              title: 'Yes, Bred',
-              subtitle: 'Continue gestation pipeline',
-              icon: Icons.check_circle,
-              color: Color(0xFF7B6BA0),
-              isSelected: _isPregnant == true,
-              onTap: () => setState(() => _isPregnant = true),
-            ),
-            SizedBox(height: 12),
-
-            // Not Pregnant Option
-            _buildOption(
-              title: 'No, Not Bred (Open)',
-              subtitle: 'Reset to open status',
-              icon: Icons.cancel,
-              color: Color(0xFFD44C47),
-              isSelected: _isPregnant == false,
-              onTap: () => setState(() => _isPregnant = false),
-            ),
-            SizedBox(height: 24),
-
-            // Due Date Preview (if pregnant)
-            if (_isPregnant == true && widget.doe.dueDate != null)
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFFEDF3EE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: Color(0xFF7B6BA0)),
-                    SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Expected Due Date',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF787774),
-                          ),
-                        ),
-                        Text(
-                          '${widget.doe.dueDate!.day}/${widget.doe.dueDate!.month}/${widget.doe.dueDate!.year}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF7B6BA0),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+          // Submit Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7B6BA0),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
-            SizedBox(height: 24),
-
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF7B6BA0),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isSaving
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        'Confirm',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-              ),
+                    )
+                  : const Text(
+                      'Confirm',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
-            SizedBox(height: 16),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+        ],
       ),
     );
   }
 
   Widget _buildOption({
     required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
+    required bool isYes,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final activeBorderColor = isYes ? const Color(0xFF7B6BA0) : const Color(0xFFD9534F);
+    
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : Color(0xFFE9E9E7),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? activeBorderColor : Colors.transparent,
+            width: 2,
           ),
-          borderRadius: BorderRadius.circular(12),
-          color: isSelected ? color.withOpacity(0.05) : null,
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 28),
-            SizedBox(width: 12),
+            Icon(
+              isYes ? Icons.check_circle : Icons.cancel,
+              color: isYes ? const Color(0xFF7B6BA0) : const Color(0xFFD9534F),
+              size: 28,
+            ),
+            const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF787774),
-                    ),
-                  ),
-                ],
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF212121),
+                ),
               ),
             ),
-            if (isSelected) Icon(Icons.check_circle, color: color),
+            if (isYes && isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF7B6BA0),
+                size: 24,
+              ),
           ],
         ),
       ),

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../models/pedigree.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -23,8 +29,9 @@ const Color _kNeutral800 = Color(0xFF1F2937);
 
 class PedigreeScreen extends StatefulWidget {
   final String rabbitId;
+  final Rabbit? initialRabbit;
 
-  const PedigreeScreen({super.key, required this.rabbitId});
+  const PedigreeScreen({super.key, required this.rabbitId, this.initialRabbit});
 
   @override
   State<PedigreeScreen> createState() => _PedigreeScreenState();
@@ -51,7 +58,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final rabbit = await _db.getRabbit(widget.rabbitId);
+      Rabbit? rabbit = widget.initialRabbit;
+      if (rabbit == null) {
+        rabbit = await _db.getRabbit(widget.rabbitId);
+      }
       if (rabbit == null) return;
       _baseRabbit = rabbit;
 
@@ -257,9 +267,19 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   ),
                   child: Row(
                     children: [
-                      _ActionButton(icon: PhosphorIcons.filePdf(), label: 'Export PDF', color: Color(0xFFD44C47)),
+                      _ActionButton(
+                        icon: PhosphorIcons.filePdf(),
+                        label: 'Export PDF',
+                        color: const Color(0xFFD44C47),
+                        onTap: _exportPDF,
+                      ),
                       const SizedBox(width: 12),
-                      _ActionButton(icon: PhosphorIcons.printer(), label: 'Print Chart', color: Color(0xFF6B7280)),
+                      _ActionButton(
+                        icon: PhosphorIcons.printer(),
+                        label: 'Print Chart',
+                        color: const Color(0xFF6B7280),
+                        onTap: _printPedigree,
+                      ),
                     ],
                   ),
                 ),
@@ -289,6 +309,436 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         else
           Row(children: cards),
       ],
+    );
+  }
+
+  void _updateRabbitProfileImage(PedigreeRabbit rabbit, String? imagePath) {
+    setState(() {
+      rabbit.updateProfileImage(imagePath);
+    });
+  }
+
+  void _editAncestor(Rabbit? current, String? childId, bool isSire) {
+    if (childId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot add parent to unknown child')));
+      return;
+    }
+
+    final nameController = TextEditingController(text: current != null ? current.name : '');
+    final idController = TextEditingController(text: current != null ? current.id : '');
+    final breedController = TextEditingController(text: current != null ? current.breed : '');
+    final colorController = TextEditingController(text: current != null ? current.color ?? '' : '');
+    final regController = TextEditingController(text: current != null ? current.registrationNumber ?? '' : '');
+
+    bool isExternal = current == null || current.type == RabbitType.pedigree;
+    Rabbit? selectedHerdRabbit;
+    List<Rabbit> herdOptions = [];
+    bool optionsLoaded = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          if (!optionsLoaded) {
+            _db.getAllRabbits().then((all) {
+              if (mounted) {
+                setModalState(() {
+                  herdOptions = all.where((r) => (isSire ? r.type == RabbitType.buck : r.type == RabbitType.doe) && r.id != childId).toList();
+                  optionsLoaded = true;
+                });
+              }
+            });
+          }
+
+          return Container(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(current == null ? 'Add ${isSire ? 'Sire' : 'Dam'}' : 'Edit ${isSire ? 'Sire' : 'Dam'}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: const Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        _buildTabButton('Search Herd', !isExternal, () => setModalState(() => isExternal = false)),
+                        _buildTabButton('Manual Entry', isExternal, () => setModalState(() => isExternal = true)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (!isExternal) ...[
+                    const Text('Select from Herd', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF787774))),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<Rabbit>(
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF7F7F5),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      hint: const Text('Choose a rabbit'),
+                      value: selectedHerdRabbit,
+                      items: herdOptions.map((r) => DropdownMenuItem(value: r, child: Text('${r.name} (${r.id})'))).toList(),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedHerdRabbit = val;
+                          if (val != null) {
+                            nameController.text = val.name;
+                            idController.text = val.id;
+                            breedController.text = val.breed;
+                            colorController.text = val.color ?? '';
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildTextField('Name', nameController),
+                  const SizedBox(height: 12),
+                  if (isExternal) ...[
+                    _buildTextField('ID / Ear Tag', idController),
+                    const SizedBox(height: 12),
+                  ],
+                  _buildTextField('Breed', breedController),
+                  const SizedBox(height: 12),
+                  _buildTextField('Color', colorController),
+                  const SizedBox(height: 12),
+                  _buildTextField('Registration #', regController),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B6BA0), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, bool isActive, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isActive ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? const Color(0xFF7B6BA0) : const Color(0xFF787774))),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveAncestorUpdate(String childId, bool isSire, bool isExternal, Rabbit? selectedHerd, String name, String id, String breed, String color, String reg) async {
+    Navigator.pop(context);
+    setState(() => _isLoading = true);
+
+    try {
+      String finalParentId = id;
+
+      if (!isExternal && selectedHerd != null) {
+        finalParentId = selectedHerd.id;
+      } else if (isExternal) {
+        final existing = await _db.getRabbit(id);
+        if (existing == null) {
+          final newPedRabbit = Rabbit(
+            id: id,
+            name: name,
+            type: RabbitType.pedigree,
+            status: RabbitStatus.active,
+            breed: breed,
+            color: color,
+            registrationNumber: reg,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          await _db.insertRabbit(newPedRabbit);
+        } else {
+          final updated = existing.copyWith(name: name, breed: breed, color: color, registrationNumber: reg);
+          await _db.updateRabbit(updated);
+        }
+      }
+
+      final child = await _db.getRabbit(childId);
+      if (child != null) {
+        final updatedChild = isSire ? child.copyWith(sireId: finalParentId) : child.copyWith(damId: finalParentId);
+        await _db.updateRabbit(updatedChild);
+      }
+
+      await _loadPedigreeData();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pedigree updated successfully'), backgroundColor: Color(0xFF7B6BA0)));
+    } catch (e) {
+      print('Error updating ancestor: $e');
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update pedigree'), backgroundColor: Color(0xFFD44C47)));
+    }
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF787774),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Enter $label',
+            filled: true,
+            fillColor: const Color(0xFFF7F7F5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAncestorMenu(PedigreeRabbit? rabbit) {
+    if (rabbit == null || rabbit.name == 'Unknown') return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(rabbit.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      Text(rabbit.id, style: const TextStyle(fontSize: 14, color: Color(0xFF787774))),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+            ),
+            _buildMenuOption(Icons.camera_alt, 'Change Photo', () {
+              Navigator.pop(context);
+              _changeProfilePicture(rabbit);
+            }),
+            _buildMenuOption(Icons.delete_outline, 'Remove from Pedigree', () {
+              Navigator.pop(context);
+              _confirmRemoveAncestor(rabbit);
+            }, isDestructive: true),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeProfilePicture(PedigreeRabbit rabbit) async {
+    final picker = ImagePicker();
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Change Profile Picture',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF787774)),
+              title: const Text('Take Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickAndSaveImage(rabbit, ImageSource.camera, picker);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF787774)),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickAndSaveImage(rabbit, ImageSource.gallery, picker);
+              },
+            ),
+            if (rabbit.profileImage != null && rabbit.profileImage!.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Color(0xFFD44C47)),
+                title: const Text('Remove Photo', style: TextStyle(color: Color(0xFFD44C47))),
+                onTap: () {
+                  Navigator.pop(context);
+                  _updateRabbitProfileImage(rabbit, null);
+                },
+              ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndSaveImage(PedigreeRabbit rabbit, ImageSource source, ImagePicker picker) async {
+    try {
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        final directory = await getApplicationDocumentsDirectory();
+        final photosDir = Directory(p.join(directory.path, 'rabbit_photos'));
+        if (!await photosDir.exists()) {
+          await photosDir.create(recursive: true);
+        }
+        final ext = p.extension(image.path).isNotEmpty ? p.extension(image.path) : '.jpg';
+        final fileName = 'pedigree_${rabbit.id}_${DateTime.now().millisecondsSinceEpoch}$ext';
+        final savedFile = await File(image.path).copy(p.join(photosDir.path, fileName));
+        
+        _updateRabbitProfileImage(rabbit, savedFile.path);
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
+  Future<void> _confirmRemoveAncestor(PedigreeRabbit rabbit) async {
+    final all = await _db.getAllRabbits();
+    final children = all.where((r) => r.sireId == rabbit.id || r.damId == rabbit.id).toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Ancestor'),
+        content: Text('Are you sure you want to remove ${rabbit.name} from the pedigree? This only removes the link, it doesn\'t delete the record.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              for (var child in children) {
+                final updated = child.sireId == rabbit.id ? child.copyWith(sireId: '') : child.copyWith(damId: '');
+                await _db.updateRabbit(updated);
+              }
+              await _loadPedigreeData();
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Removed ${rabbit.name} from pedigree')));
+            },
+            child: const Text('Remove', style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuOption(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774),
+              size: 22,
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: isDestructive ? const Color(0xFFD44C47) : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _sharePedigree() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Share pedigree feature coming soon')),
+    );
+  }
+
+  void _printPedigree() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Print pedigree feature coming soon')),
+    );
+  }
+
+  void _exportPDF() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Export PDF feature coming soon')),
     );
   }
 }
@@ -462,399 +912,116 @@ class _PairGroup extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               label,
-          await _loadPedigreeData();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile picture updated successfully'), backgroundColor: Color(0xFF7B6BA0)));
-        }
-      } catch (e) {
-        print('Error updating photo: $e');
-        setState(() => _isLoading = false);
-      }
-    }
-  } on PlatformException catch (e) {
-      print('Platform Exception: ${e.code} - ${e.message}');
-
-      String errorMessage = 'Failed to pick image';
-
-      if (e.code == 'camera_access_denied') {
-        errorMessage = 'Camera permission denied. Please enable it in settings.';
-      } else if (e.code == 'photo_access_denied') {
-        errorMessage = 'Photo library permission denied. Please enable it in settings.';
-      } else if (e.message?.contains('channel') ?? false) {
-        errorMessage = 'Camera/Gallery not available. Please check permissions.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Color(0xFFD44C47),
-          action: SnackBarAction(
-            label: 'Settings',
-            textColor: Colors.white,
-            onPressed: () => openAppSettings(),
-          ),
-        ),
-      );
-    } catch (e) {
-      print('General Exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred: $e'),
-          backgroundColor: Color(0xFFD44C47),
-        ),
-      );
-    }
-  }
-
-  void _updateRabbitProfileImage(PedigreeRabbit rabbit, String? imagePath) {
-    setState(() {
-      rabbit.updateProfileImage(imagePath);
-      // Force UI rebuild
-    });
-
-    // In production, save to database here
-    // Example: _saveToDatabase(rabbit);
-  }
-
-  void _editAncestor(PedigreeRabbit? current, String? childId, bool isSire) {
-    if (childId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cannot add parent to unknown child')));
-      return;
-    }
-
-    final TextEditingController nameController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.name : '');
-    final TextEditingController idController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.id : '');
-    final TextEditingController breedController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.breed : '');
-    final TextEditingController colorController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.color : '');
-    final TextEditingController regController = TextEditingController(text: (current != null && current.name != 'Unknown') ? current.registrationNumber : '');
-
-    bool isExternal = current?.isExternal ?? true;
-    Rabbit? selectedHerdRabbit;
-    List<Rabbit> herdOptions = [];
-    bool optionsLoaded = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          if (!optionsLoaded) {
-            _db.getAllRabbits().then((all) {
-              if (mounted) {
-                setModalState(() {
-                  herdOptions = all.where((r) => (isSire ? r.type == RabbitType.buck : r.type == RabbitType.doe) && r.id != childId).toList();
-                  optionsLoaded = true;
-                });
-              }
-            });
-          }
-
-          return Container(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(isEmpty(current) ? 'Add ${isSire ? 'Sire' : 'Dam'}' : 'Edit ${isSire ? 'Sire' : 'Dam'}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: Color(0xFFF7F7F5), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        _buildTabButton('Search Herd', !isExternal, () => setModalState(() => isExternal = false)),
-                        _buildTabButton('Manual Entry', isExternal, () => setModalState(() => isExternal = true)),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  if (!isExternal) ...[
-                    Text('Select from Herd', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF787774))),
-                    SizedBox(height: 6),
-                    DropdownButtonFormField<Rabbit>(
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Color(0xFFF7F7F5),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      hint: Text('Choose a rabbit'),
-                      value: selectedHerdRabbit,
-                      items: herdOptions.map((r) => DropdownMenuItem(value: r, child: Text('${r.name} (${r.id})'))).toList(),
-                      onChanged: (val) {
-                        setModalState(() {
-                          selectedHerdRabbit = val;
-                          if (val != null) {
-                            nameController.text = val.name;
-                            idController.text = val.id;
-                            breedController.text = val.breed;
-                            colorController.text = val.color ?? '';
-                          }
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
-                  ],
-                  _buildTextField('Name', nameController),
-                  SizedBox(height: 12),
-                  if (isExternal) ...[
-                    _buildTextField('ID / Ear Tag', idController),
-                    SizedBox(height: 12),
-                  ],
-                  _buildTextField('Breed', breedController),
-                  SizedBox(height: 12),
-                  _buildTextField('Color', colorController),
-                  SizedBox(height: 12),
-                  _buildTextField('Registration #', regController),
-                  SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
-                      style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF7B6BA0), padding: EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                ],
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _kNeutral700),
             ),
-          );
-        },
+          ),
+          top,
+          const SizedBox(height: 10),
+          bottom,
+        ],
       ),
     );
   }
+}
 
-  bool isEmpty(PedigreeRabbit? r) => r == null || r.name == 'Unknown';
+class _GenToggle extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
 
-  Widget _buildTabButton(String label, bool isActive, VoidCallback onTap) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: isActive ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
-          ),
-          alignment: Alignment.center,
-          child: Text(label, style: TextStyle(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? Color(0xFF7B6BA0) : Color(0xFF787774))),
-        ),
+  const _GenToggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kNeutral100,
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-  }
-
-  Future<void> _saveAncestorUpdate(String childId, bool isSire, bool isExternal, Rabbit? selectedHerd, String name, String id, String breed, String color, String reg) async {
-    Navigator.pop(context);
-    setState(() => _isLoading = true);
-
-    try {
-      String finalParentId = id;
-
-      if (!isExternal && selectedHerd != null) {
-        finalParentId = selectedHerd.id;
-      } else if (isExternal) {
-        // Create an external rabbit entry if it doesn't exist
-        final existing = await _db.getRabbit(id);
-        if (existing == null) {
-          final newPedRabbit = Rabbit(
-            id: id,
-            name: name,
-            type: RabbitType.pedigree,
-            status: RabbitStatus.active,
-            breed: breed,
-            color: color,
-            registrationNumber: reg,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
-          await _db.insertRabbit(newPedRabbit);
-        } else {
-          // Update existing external rabbit
-          final updated = existing.copyWith(name: name, breed: breed, color: color, registrationNumber: reg);
-          await _db.updateRabbit(updated);
-        }
-      }
-
-      // Link to child
-      final child = await _db.getRabbit(childId);
-      if (child != null) {
-        final updatedChild = isSire ? child.copyWith(sireId: finalParentId) : child.copyWith(damId: finalParentId);
-        await _db.updateRabbit(updatedChild);
-      }
-
-      await _loadPedigreeData();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pedigree updated successfully'), backgroundColor: Color(0xFF7B6BA0)));
-    } catch (e) {
-      print('Error updating ancestor: $e');
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update pedigree'), backgroundColor: Color(0xFFD44C47)));
-    }
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-          ),
-        ),
-        SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Enter $label',
-            filled: true,
-            fillColor: Color(0xFFF7F7F5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showAncestorMenu(PedigreeRabbit? rabbit) {
-    if (rabbit == null || rabbit.name == 'Unknown') return;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(rabbit.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      Text(rabbit.id, style: TextStyle(fontSize: 14, color: Color(0xFF787774))),
-                    ],
-                  ),
-                  Spacer(),
-                  IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                ],
-              ),
-            ),
-            _buildMenuOption(Icons.camera_alt, 'Change Photo', () {
-              Navigator.pop(context);
-              _changeProfilePicture(rabbit);
-            }),
-            _buildMenuOption(Icons.delete_outline, 'Remove from Pedigree', () {
-              Navigator.pop(context);
-              _confirmRemoveAncestor(rabbit);
-            }, isDestructive: true),
-            SizedBox(height: 30),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmRemoveAncestor(PedigreeRabbit rabbit) async {
-    final all = await _db.getAllRabbits();
-    final children = all.where((r) => r.sireId == rabbit.id || r.damId == rabbit.id).toList();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remove Ancestor'),
-        content: Text('Are you sure you want to remove ${rabbit.name} from the pedigree? This only removes the link, it doesn\'t delete the record.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() => _isLoading = true);
-              for (var child in children) {
-                final updated = child.sireId == rabbit.id ? child.copyWith(sireId: '') : child.copyWith(damId: '');
-                await _db.updateRabbit(updated);
-              }
-              await _loadPedigreeData();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Removed ${rabbit.name} from pedigree')));
-            },
-            child: Text('Remove', style: TextStyle(color: Colors.red)),
-          ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildBtn(3),
+          _buildBtn(4),
         ],
       ),
     );
   }
 
-  Widget _buildMenuOption(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    return InkWell(
-      onTap: onTap,
+  Widget _buildBtn(int gen) {
+    final isSelected = value == gen;
+    return GestureDetector(
+      onTap: () => onChanged(gen),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFF7F7F5))),
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
         ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isDestructive ? Color(0xFFD44C47) : Color(0xFF787774),
-              size: 22,
-            ),
-            SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: isDestructive ? Color(0xFFD44C47) : Colors.black87,
-              ),
-            ),
-          ],
+        child: Text(
+          '${gen}G',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? _kNeutral800 : _kNeutral500,
+          ),
         ),
       ),
     );
   }
+}
 
-  void _sharePedigree() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Share pedigree feature coming soon')),
-    );
-  }
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 
-  void _printPedigree() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Print pedigree feature coming soon')),
-    );
-  }
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
-  void _exportPDF() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Export PDF feature coming soon')),
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

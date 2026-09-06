@@ -84,7 +84,7 @@ class FormatUtils {
       case 'inr':
         return '₹';
       case 'cad':
-        return 'C\$';
+        return '\$';
       case 'aud':
         return 'A\$';
       case 'cny':

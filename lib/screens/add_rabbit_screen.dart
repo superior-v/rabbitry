@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
@@ -10,6 +12,7 @@ import '../models/barn.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../services/settings_service.dart';
+import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 
 class AddRabbitScreen extends StatefulWidget {
@@ -25,9 +28,9 @@ class AddRabbitScreen extends StatefulWidget {
 class _UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,
@@ -55,6 +58,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _weightPoundsController = TextEditingController();
   final TextEditingController _weightOuncesController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _sireController = TextEditingController();
+  final TextEditingController _damController = TextEditingController();
 
   RabbitType _selectedType = RabbitType.doe;
   RabbitStatus _selectedStatus = RabbitStatus.open;
@@ -127,6 +133,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _selectedLocation = r.location;
     _selectedCage = r.cage;
     _dateOfBirth = r.dateOfBirth;
+    if (r.dateOfBirth != null) {
+      _dobController.text = FormatUtils.formatDate(r.dateOfBirth!);
+    }
     _autoGenetics = r.genetics;
     _parseGeneticsToMap(r.genetics);
     _broken = r.broken ?? false;
@@ -206,11 +215,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           _availableDoes = does;
           if (_selectedSireId != null) {
             final sire = bucks.where((b) => b.id == _selectedSireId).toList();
-            if (sire.isNotEmpty) _selectedSireName = sire.first.name;
+            if (sire.isNotEmpty) {
+              _selectedSireName = sire.first.name;
+              _sireController.text = sire.first.name;
+            }
           }
           if (_selectedDamId != null) {
             final dam = does.where((d) => d.id == _selectedDamId).toList();
-            if (dam.isNotEmpty) _selectedDamName = dam.first.name;
+            if (dam.isNotEmpty) {
+              _selectedDamName = dam.first.name;
+              _damController.text = dam.first.name;
+            }
           }
         });
       }
@@ -236,23 +251,32 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _notesController.dispose();
     _weightPoundsController.dispose();
     _weightOuncesController.dispose();
+    _dobController.dispose();
+    _sireController.dispose();
+    _damController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Doe = herd pink (0xFFB5567A), Buck = herd blue (0xFF3A7BB8)
+    const Color _doeAccent = Color(0xFFEC4899);
+    const Color _buckAccent = Color(0xFF2E7BB5);
+    final Color _accentColor = _selectedType == RabbitType.doe ? _doeAccent : _buckAccent;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kSurfaceTint, // Bottom portion can be 1 shade lighter: kSurfaceTint
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFE6BEFE), // Top bar should be same purple as home page
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: const Icon(Icons.close, color: Color(0xFF4F4F56)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           _isEditing ? 'Edit Rabbit' : 'Add New Rabbit',
-          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 18),
+          style: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 18),
         ),
         actions: [
           TextButton(
@@ -260,7 +284,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             child: Text(
               'SAVE',
               style: TextStyle(
-                color: _isSaving ? kNeutral400 : (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep),
+                color: _isSaving ? kNeutral400 : _accentColor,
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
@@ -273,15 +297,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildProfilePictureSection(),
-            const SizedBox(height: 12),
-
-            // a. Rabbit Type (Buck / Doe)
-            const Text(
-              'Rabbit Type',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-            ),
-            const SizedBox(height: 8),
+            // 1. Rabbit Type (Buck / Doe) at the very top
             Row(
               children: [
                 Expanded(
@@ -303,64 +319,23 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 16),
 
-            // b. Breed (and Other Breed)
-            const Text(
-              'Breed *',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-            ),
-            const SizedBox(height: 8),
+            // 2. Profile picture section below the gender toggles
+            _buildProfilePictureSection(),
+            const SizedBox(height: 16),
+
+            // 3. Breed Selector
             _buildBreedSelector(),
             const SizedBox(height: 12),
+
+            // 4. Other Breed text field
             _buildTextField(
               controller: _otherBreedController,
               label: 'Other Breed',
-              icon: Icons.category_outlined,
-              hint: 'Secondary breed (if mixed)',
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // c. Breeder Prefix
-            _buildTextField(
-              controller: _breederPrefixController,
-              label: 'Breeder Prefix',
-              icon: Icons.badge_outlined,
-              hint: 'Breeder prefix',
-              inputFormatters: [_UpperCaseTextFormatter()],
-              textCapitalization: TextCapitalization.characters,
-            ),
-            const SizedBox(height: 16),
-
-            // d. Name
-            _buildTextField(
-              controller: _nameController,
-              label: 'Name *',
-              icon: Icons.pets,
-              hint: 'Enter rabbit name',
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 16),
-
-            // e. Ear Number
-            _buildTextField(
-              controller: _earNumberController,
-              label: 'Ear Number',
-              icon: Icons.hearing,
-              hint: 'Enter ear number',
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 16),
-
-            // f. Date of Birth
-            _buildDateField(),
-            const SizedBox(height: 16),
-
-            // g. Color
-            const Text(
-              'Color',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-            ),
-            const SizedBox(height: 8),
+            // 5. Color Autocomplete
             Autocomplete<String>(
               optionsBuilder: (TextEditingValue textEditingValue) {
                 final colors = SettingsService.instance.colors;
@@ -380,20 +355,24 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(fontSize: 17),
                   decoration: InputDecoration(
-                    hintText: 'e.g., White, Black',
-                    hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
+                    labelText: 'Color',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    filled: true,
+                    fillColor: Colors.white,
+                    labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                   ),
                 );
@@ -403,11 +382,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               },
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Other Color',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-            ),
-            const SizedBox(height: 8),
+
+            // 6. Other Color Autocomplete
             Autocomplete<String>(
               optionsBuilder: (TextEditingValue textEditingValue) {
                 final colors = SettingsService.instance.colors;
@@ -427,20 +403,24 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   textCapitalization: TextCapitalization.words,
                   style: const TextStyle(fontSize: 17),
                   decoration: InputDecoration(
-                    hintText: 'Secondary color',
-                    hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
+                    labelText: 'Other Color',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    filled: true,
+                    fillColor: Colors.white,
+                    labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
+                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                     ),
                   ),
                 );
@@ -449,32 +429,64 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 _otherColorController.text = color;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // h. Broken / Vienna Marked / Vienna Carrier toggles
+            // 7. Broken, VM, VC compact toggles row
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildCompactToggle('Broken', _broken, (val) => setState(() => _broken = val)),
+                  _buildCompactToggle('VM', _viennaMarked, (val) => setState(() => _viennaMarked = val)),
+                  _buildCompactToggle('VC', _viennaCarrier, (val) => setState(() => _viennaCarrier = val)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 8. Name text field
+            _buildTextField(
+              controller: _nameController,
+              label: 'Name',
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+
+            // 9. Breeder Prefix & Ear Number Row
             Row(
               children: [
                 Expanded(
-                  child: _buildToggleRow('Broken', _broken, (val) => setState(() => _broken = val)),
+                  child: _buildTextField(
+                    controller: _breederPrefixController,
+                    label: 'Breeder Prefix',
+                    inputFormatters: [_UpperCaseTextFormatter()],
+                    textCapitalization: TextCapitalization.characters,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: _buildToggleRow('VM', _viennaMarked, (val) => setState(() => _viennaMarked = val)),
+                  child: _buildTextField(
+                    controller: _earNumberController,
+                    label: 'Ear Number',
+                    textCapitalization: TextCapitalization.words,
+                  ),
                 ),
               ],
             ),
-            _buildToggleRow('Vienna Carrier (VC)', _viennaCarrier, (val) => setState(() => _viennaCarrier = val)),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // i. Weight (pounds / ounces)
+            // 10. Date of Birth
+            _buildDateField(),
+            const SizedBox(height: 12),
+
+            // 11. Pounds & Ounce Row
             Row(
               children: [
                 Expanded(
                   child: _buildTextField(
                     controller: _weightPoundsController,
                     label: 'Pounds',
-                    icon: Icons.monitor_weight,
-                    hint: '0',
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -482,33 +494,37 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Expanded(
                   child: _buildTextField(
                     controller: _weightOuncesController,
-                    label: 'Ounces',
-                    icon: Icons.monitor_weight_outlined,
-                    hint: '0',
+                    label: 'Ounce',
                     keyboardType: TextInputType.number,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // j. Dam / Sire
-            _buildParentSelector('Dam', _selectedDamId, _selectedDamName, _availableDoes, (id, name) {
-              setState(() {
-                _selectedDamId = id;
-                _selectedDamName = name;
-              });
-            }),
             const SizedBox(height: 12),
-            _buildParentSelector('Sire', _selectedSireId, _selectedSireName, _availableBucks, (id, name) {
-              setState(() {
-                _selectedSireId = id;
-                _selectedSireName = name;
-              });
-            }),
-            const SizedBox(height: 16),
 
-            // k. Genotype (expandable, updated to 4 columns to prevent cutting off text)
+            // 12. Sire & Dam selector Row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildParentSelector('Sire', _selectedSireId, _selectedSireName, _availableBucks, (id, name) {
+                    setState(() {
+                      _selectedSireId = id;
+                      _selectedSireName = name;
+                    });
+                  }),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildParentSelector('Dam', _selectedDamId, _selectedDamName, _availableDoes, (id, name) {
+                    setState(() {
+                      _selectedDamId = id;
+                      _selectedDamName = name;
+                    });
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _buildGenotypeSection(),
             const SizedBox(height: 16),
 
@@ -516,8 +532,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             _buildTextField(
               controller: _registrationNumberController,
               label: 'Registration Number',
-              icon: Icons.card_membership,
-              hint: 'Registration #',
             ),
             const SizedBox(height: 12),
             Row(
@@ -527,8 +541,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: _buildTextField(
                     controller: _grandChampionNumberController,
                     label: 'GC Number',
-                    icon: Icons.emoji_events,
-                    hint: 'GC Number',
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -537,8 +549,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: _buildTextField(
                     controller: _grandChampionLegsController,
                     label: 'GC Legs',
-                    icon: Icons.emoji_events_outlined,
-                    hint: '0',
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -594,7 +604,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             _buildTextField(
               controller: _idController,
               label: 'Rabbit ID',
-              icon: Icons.tag,
               readOnly: true,
             ),
             const SizedBox(height: 16),
@@ -612,17 +621,19 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               decoration: InputDecoration(
                 hintText: 'Add any notes...',
                 hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
+                filled: true,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                 ),
               ),
             ),
@@ -653,17 +664,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     image: _profileImagePath != null
                         ? DecorationImage(
-                      image: FileImage(File(_profileImagePath!)),
-                      fit: BoxFit.cover,
-                    )
+                            image: FileImage(File(_profileImagePath!)),
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: _profileImagePath == null
                       ? Icon(
-                    _selectedType == RabbitType.doe ? Icons.female : Icons.male,
-                    size: 50,
-                    color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
-                  )
+                          _selectedType == RabbitType.doe ? Icons.female : Icons.male,
+                          size: 50,
+                          color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                        )
                       : null,
                 ),
                 Positioned(
@@ -687,18 +698,20 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _showImagePickerOptions,
-            child: Text(
-              _profileImagePath == null ? 'Add Photo' : 'Change Photo',
-              style: TextStyle(
-                color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
+          if (_profileImagePath != null) ...[  
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _showImagePickerOptions,
+              child: Text(
+                'Change Photo',
+                style: TextStyle(
+                  color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -826,9 +839,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       );
 
       if (image != null) {
+        final savedPath = await _saveRabbitPhoto(image.path);
+        FileImage(File(savedPath)).evict();
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
         setState(() {
-          _profileImagePath = image.path;
+          _profileImagePath = savedPath;
         });
+        notifyDataChanged();
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -846,6 +864,19 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         ),
       );
     }
+  }
+
+  Future<String> _saveRabbitPhoto(String sourcePath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final photosDir = Directory(p.join(directory.path, 'rabbit_photos'));
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+
+    final extension = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+    final fileName = 'rabbit_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final savedFile = await File(sourcePath).copy(p.join(photosDir.path, fileName));
+    return savedFile.path;
   }
 
   Future<bool> _requestPermission(ImageSource source) async {
@@ -870,15 +901,20 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     required IconData icon,
   }) {
     final isSelected = _selectedType == type;
-    final color = type == RabbitType.doe ? kFemaleColor : kMaleColor;
+    // Herd page matching colors
+    const Color doeSelected = Color(0xFFEC4899);
+    const Color buckSelected = Color(0xFF2E7BB5);
+    final Color selectedColor = type == RabbitType.doe ? doeSelected : buckSelected;
+    // Unselected: softer tint of the accent
+    final Color unselectedIconColor = type == RabbitType.doe ? kFemaleColor : kMaleColor;
 
     return InkWell(
       onTap: _isEditing ? null : () => setState(() => _selectedType = type),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
-          border: Border.all(color: isSelected ? color : const Color(0xFFE9E9E7)),
+          color: isSelected ? selectedColor : Colors.white,
+          border: Border.all(color: isSelected ? selectedColor : const Color(0xFFE9E9E7)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -886,7 +922,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : color,
+              color: isSelected ? Colors.white : unselectedIconColor,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -895,7 +931,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : color,
+                color: isSelected ? Colors.white : unselectedIconColor,
               ),
             ),
           ],
@@ -910,7 +946,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         final breedNames = _availableBreeds.map((b) => b.name).toList();
         if (textEditingValue.text.isEmpty) return breedNames;
         return breedNames.where(
-              (name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+          (name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
         );
       },
       initialValue: TextEditingValue(text: _breedController.text),
@@ -924,20 +960,24 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           textCapitalization: TextCapitalization.words,
           style: const TextStyle(fontSize: 17),
           decoration: InputDecoration(
-            hintText: 'e.g., New Zealand White',
-            hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
+            labelText: 'Breed',
+            floatingLabelBehavior: FloatingLabelBehavior.always,
+            filled: true,
+            fillColor: Colors.white,
+            labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+            floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep, width: 2),
+              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
             ),
           ),
         );
@@ -972,9 +1012,19 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     final upper = key.substring(0, 1).toUpperCase();
     final lower = key.substring(0, 1).toLowerCase();
     if (key == 'En') {
-      return ['--', 'EnEn', 'Enen', 'enen'];
+      return [
+        '--',
+        'EnEn',
+        'Enen',
+        'enen'
+      ];
     }
-    return ['--', '$upper$upper', '$upper$lower', '$lower$lower'];
+    return [
+      '--',
+      '$upper$upper',
+      '$upper$lower',
+      '$lower$lower'
+    ];
   }
 
   void _parseGeneticsToMap(String? genetics) {
@@ -1011,9 +1061,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           onTap: () => setState(() => _genotypeExpanded = !_genotypeExpanded),
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1021,8 +1073,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Text(
                   'Select Genotype',
                   style: TextStyle(
-                    fontSize: 19,
-                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep) : Colors.black54,
+                    fontSize: 17,
+                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep) : const Color(0xFF636366),
                     fontWeight: FontWeight.normal,
                   ),
                 ),
@@ -1119,9 +1171,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
-    IconData? icon,
-    String? hint,
     bool readOnly = false,
+    VoidCallback? onTap,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     TextCapitalization textCapitalization = TextCapitalization.none,
@@ -1129,27 +1180,30 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return TextField(
       controller: controller,
       readOnly: readOnly,
+      onTap: onTap,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
       style: const TextStyle(fontSize: 17),
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        labelStyle: const TextStyle(fontSize: 14, color: Color(0xFFBBB9B2)),
-        hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
+        filled: true,
+        fillColor: Colors.white,
+        labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+        floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
         ),
       ),
     );
@@ -1161,7 +1215,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       style: const TextStyle(fontSize: 17, color: Colors.black87),
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
+        focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
@@ -1223,7 +1287,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       style: const TextStyle(fontSize: 17, color: Colors.black87),
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
+        focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
@@ -1262,16 +1336,28 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       style: const TextStyle(fontSize: 17, color: Colors.black87),
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        filled: true,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        ),
       ),
-      hint: Text(_selectedLocation == null
-          ? 'Select Location'
-          : cageNames.isEmpty
-          ? 'No cages'
-          : 'Cage', style: const TextStyle(fontSize: 16)),
+      hint: Text(
+          _selectedLocation == null
+              ? 'Select Location'
+              : cageNames.isEmpty
+                  ? 'No cages'
+                  : 'Cage',
+          style: const TextStyle(fontSize: 16)),
       items: cageNames.map((cage) {
         return DropdownMenuItem(value: cage, child: Text(cage));
       }).toList(),
@@ -1280,118 +1366,243 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildDateField() {
-    return Row(
+    return Stack(
+      alignment: Alignment.centerRight,
       children: [
-        Expanded(
-          child: InkWell(
-            onTap: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _dateOfBirth ?? DateTime.now(),
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-              );
-              if (date != null) {
-                setState(() => _dateOfBirth = date);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE9E9E7)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Date Born',
-                          style: TextStyle(fontSize: 14, color: Color(0xFFBBB9B2)),
-                        ),
-                        Text(
-                          _dateOfBirth != null ? FormatUtils.formatDate(_dateOfBirth!) : 'Not set',
-                          style: const TextStyle(fontSize: 18, color: Colors.black87),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+        GestureDetector(
+          onTap: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: _dateOfBirth ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now(),
+            );
+            if (date != null) {
+              setState(() {
+                _dateOfBirth = date;
+                _dobController.text = FormatUtils.formatDate(date);
+              });
+            }
+          },
+          child: AbsorbPointer(
+            child: TextField(
+              controller: _dobController,
+              style: const TextStyle(fontSize: 17),
+              decoration: InputDecoration(
+                labelText: 'Date of Birth',
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
+                filled: true,
+                fillColor: Colors.white,
+                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
               ),
             ),
           ),
         ),
-        if (_dateOfBirth != null) ...[
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => setState(() => _dateOfBirth = null),
-            child: const Text('Clear', style: TextStyle(color: Color(0xFF2E7BB5), fontWeight: FontWeight.normal, fontSize: 16)),
+        if (_dateOfBirth != null)
+          Positioned(
+            right: 4,
+            child: IconButton(
+              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
+              onPressed: () {
+                setState(() {
+                  _dateOfBirth = null;
+                  _dobController.clear();
+                });
+              },
+            ),
           ),
-        ],
       ],
     );
   }
 
   Widget _buildToggleRow(String label, bool value, ValueChanged<bool> onChanged) {
+    // Herd page matching colors
+    const Color doeActive = Color(0xFFEC4899);
+    const Color buckActive = Color(0xFF2E7BB5);
+    final Color activeColor = _selectedType == RabbitType.doe ? doeActive : buckActive;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: Colors.black87),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: Color(0xFF4F4F56)),
         ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: const Color(0xFF7B6BA0),
+        // Pill-style toggle: white unselected, pink/blue selected
+        GestureDetector(
+          onTap: () => onChanged(!value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 52,
+            height: 28,
+            decoration: BoxDecoration(
+              color: value ? activeColor : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: value ? activeColor : const Color(0xFFD1D1D6),
+                width: 1.5,
+              ),
+            ),
+            child: Stack(
+              children: [
+                AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Color(0x29000000), blurRadius: 4, offset: Offset(0, 1))
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactToggle(String label, bool value, ValueChanged<bool> onChanged) {
+    // Herd page matching colors
+    const Color doeActive = Color(0xFFEC4899);
+    const Color buckActive = Color(0xFF2E7BB5);
+    final Color activeColor = _selectedType == RabbitType.doe ? doeActive : buckActive;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+        ),
+        const SizedBox(width: 6),
+        GestureDetector(
+          onTap: () => onChanged(!value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 44,
+            height: 24,
+            decoration: BoxDecoration(
+              color: value ? activeColor : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: value ? activeColor : const Color(0xFFC7C7CC),
+                width: 1.5,
+              ),
+            ),
+            child: Stack(
+              children: [
+                AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildParentSelector(String label, String? selectedId, String? selectedName, List<Rabbit> options, void Function(String?, String?) onSelect) {
-    return Row(
+    final hasSelection = selectedId != null && selectedName != null;
+    final controller = label == 'Sire' ? _sireController : _damController;
+    final color = label == 'Dam' ? kFemaleColor : kMaleColor;
+
+    return Stack(
+      alignment: Alignment.centerRight,
       children: [
-        SizedBox(
-          width: 50,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: Colors.black87),
-          ),
-        ),
-        const SizedBox(width: 8),
-        if (selectedId != null && selectedName != null) ...[
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: _selectedType == RabbitType.doe ? kPinkWash : kBlueWash,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: (_selectedType == RabbitType.doe ? kFemaleColor : kMaleColor).withOpacity(0.3)),
-              ),
-              child: Text(
-                selectedName,
-                style: TextStyle(fontSize: 17, color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal),
+        GestureDetector(
+          onTap: () {
+            _showParentPickerDialog(label, options, (id, name) {
+              onSelect(id, name);
+              setState(() {
+                controller.text = name;
+              });
+            });
+          },
+          child: AbsorbPointer(
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(fontSize: 17),
+              decoration: InputDecoration(
+                labelText: label,
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
+                filled: true,
+                fillColor: Colors.white,
+                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
               ),
             ),
           ),
-        ],
-        if (selectedId == null) const Expanded(child: SizedBox()),
-        TextButton(
-          onPressed: () {
-            _showParentPickerDialog(label, options, (id, name) {
-              onSelect(id, name);
-            });
-          },
-          child: Text('Select', style: TextStyle(color: label == 'Dam' ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal, fontSize: 16)),
         ),
-        if (selectedId != null)
-          TextButton(
-            onPressed: () => onSelect(null, null),
-            child: Text('Clear', style: TextStyle(color: label == 'Dam' ? kFemaleColor : kMaleColor, fontWeight: FontWeight.normal, fontSize: 16)),
+        if (hasSelection)
+          Positioned(
+            right: 4,
+            child: IconButton(
+              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
+              onPressed: () {
+                onSelect(null, null);
+                setState(() {
+                  controller.clear();
+                });
+              },
+            ),
+          )
+        else
+          Positioned(
+            right: 12,
+            child: Icon(Icons.arrow_drop_down, color: color, size: 24),
           ),
       ],
     );
@@ -1407,24 +1618,24 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           child: options.isEmpty
               ? const Text('No rabbits available', style: TextStyle(fontSize: 17))
               : ListView.builder(
-            shrinkWrap: true,
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final rabbit = options[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
-                  child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?', style: TextStyle(fontSize: 17, color: label == 'Dam' ? kFemaleColor : kMaleColor)),
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final rabbit = options[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
+                        child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?', style: TextStyle(fontSize: 17, color: label == 'Dam' ? kFemaleColor : kMaleColor)),
+                      ),
+                      title: Text(rabbit.name, style: const TextStyle(fontSize: 17)),
+                      subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 15)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(rabbit.id, rabbit.name);
+                      },
+                    );
+                  },
                 ),
-                title: Text(rabbit.name, style: const TextStyle(fontSize: 17)),
-                subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 15)),
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(rabbit.id, rabbit.name);
-                },
-              );
-            },
-          ),
         ),
         actions: [
           TextButton(
@@ -1458,14 +1669,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
     // Case-insensitive check
     final exists = _availableBreeds.any((b) => b.name.toLowerCase() == name.toLowerCase());
-    
+
     if (!exists) {
       final newBreed = Breed(
         id: 'B-${DateTime.now().millisecondsSinceEpoch}',
         name: name,
-        genetics: _autoGenetics != null && name == _breedController.text.trim()
-            ? _autoGenetics!.split(RegExp(r'[,\s]+')).where((g) => g.isNotEmpty).toList()
-            : [],
+        genetics: _autoGenetics != null && name == _breedController.text.trim() ? _autoGenetics!.split(RegExp(r'[,\s]+')).where((g) => g.isNotEmpty).toList() : [],
       );
       await _db.insertBreed(newBreed);
       // Update local list to prevent double insertion if saving multiple times
@@ -1495,7 +1704,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
       List<String>? newPhotos;
       if (_profileImagePath != null) {
-        newPhotos = [_profileImagePath!];
+        newPhotos = [
+          _profileImagePath!
+        ];
       } else if (_photoRemoved) {
         newPhotos = [];
       } else {
@@ -1531,7 +1742,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           activeInRabbitry: _activeInRabbitry,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
         );
-        
+
         // Ensure null-clearable fields are explicitly set because copyWith uses ?? internally
         updated.breederPrefix = _breederPrefixController.text.isEmpty ? null : _breederPrefixController.text;
         updated.earNumber = _earNumberController.text.isEmpty ? null : _earNumberController.text;

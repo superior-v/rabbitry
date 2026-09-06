@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../models/litter.dart';
 import '../services/format_utils.dart';
 import '../services/database_service.dart';
@@ -112,8 +114,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       );
 
       if (image != null) {
+        final savedPath = await _saveKitPhoto(image.path);
         setState(() {
-          _kit = _kit.copyWith(imagePath: image.path);
+          _kit = _kit.copyWith(imagePath: savedPath);
         });
         await _saveKit();
 
@@ -135,6 +138,19 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         ),
       );
     }
+  }
+
+  Future<String> _saveKitPhoto(String sourcePath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final photosDir = Directory(p.join(directory.path, 'rabbit_photos'));
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+
+    final extension = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+    final fileName = 'kit_${_kit.id}_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final savedFile = await File(sourcePath).copy(p.join(photosDir.path, fileName));
+    return savedFile.path;
   }
 
   void _showImagePickerOptions() {

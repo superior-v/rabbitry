@@ -11,11 +11,12 @@ import 'rabbit_detail_screen.dart';
 import 'add_rabbit_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/action_sheets/rabbit_action_sheet.dart';
 import 'home_dashboard_screen.dart';
 
 // Re-defining for local scope consistency or using imported ones
-const kPrimary = Color(0xFF7B6BA0);
+const kPrimary = Color(0xFF5E4A8A);
 const kDoeTheme = Color(0xFFB5567A);
 const kDoeIcon = Color(0xFFD4809A);
 const kBuckTheme = Color(0xFF3A7BB8);
@@ -49,10 +50,10 @@ const Color hBlueDeep = Color(0xFF4A7FA0);
 const Color hBlueLight = Color(0xFFD6E9F5);
 
 // Specific constants to match the provided image
-const Color iHeaderBg = Color(0xFFECD9FA);
-const Color iAppBg = Color(0xFFF5F5F7);
-const Color iTextDark = Color(0xFF4A4A4A);
-const Color iTextLight = Color(0xFF9B9B9B);
+const Color iHeaderBg = Color(0xFFE6BEFE);
+const Color iAppBg = Color(0xFFEEDAFE);
+const Color iTextDark = Color(0xFF3F3B46);
+const Color iTextLight = Color(0xFFA5A1AE);
 
 class HerdScreen extends StatefulWidget {
   const HerdScreen({Key? key}) : super(key: key);
@@ -70,6 +71,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   String _grouping = 'none';
   bool _isBarnEditMode = false;
   bool _isSearchEnabled = false; // New flag for the ultimate focus block
+  bool _keyboardWasOpen = false;
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -101,7 +103,17 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     });
     // Start with focus disabled to prevent auto-popup
     _searchFocusNode.canRequestFocus = false;
+    _searchFocusNode.addListener(_handleSearchFocusChange);
     _loadData();
+  }
+
+  void _handleSearchFocusChange() {
+    if (!_searchFocusNode.hasFocus && mounted && _isSearchEnabled) {
+      setState(() {
+        _isSearchEnabled = false;
+        _searchFocusNode.canRequestFocus = false;
+      });
+    }
   }
 
   @override
@@ -116,7 +128,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     if (!mounted) return;
 
     try {
-      print('🔄 Loading herd data...');
+      print('ðŸ”„ Loading herd data...');
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
       final barnsData = await _db.getAllBarns();
@@ -136,13 +148,13 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         }
       }
 
-      print('📊 Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived, ${growOutKits.length} grow-out kits');
+      print('ðŸ“Š Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived, ${growOutKits.length} grow-out kits');
 
       for (var rabbit in rabbits) {
         final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
         final photoPath = hasPhoto ? rabbit.photos!.first : null;
         final exists = photoPath != null ? File(photoPath).existsSync() : false;
-        print('  📸 ${rabbit.name}: hasPhoto=$hasPhoto, path=$photoPath, exists=$exists');
+        print('  ðŸ“¸ ${rabbit.name}: hasPhoto=$hasPhoto, path=$photoPath, exists=$exists');
       }
 
       if (mounted) {
@@ -155,9 +167,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         });
       }
 
-      print('✅ Herd data loaded and UI updated');
+      print('âœ… Herd data loaded and UI updated');
     } catch (e, stackTrace) {
-      print('❌ Error loading herd data: $e');
+      print('âŒ Error loading herd data: $e');
       print('Stack trace: $stackTrace');
 
       if (mounted) {
@@ -172,35 +184,85 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     }
   }
 
+  String _normalizeBreed(String rawBreed) {
+    final b = rawBreed.trim();
+    final bLower = b.toLowerCase();
+    if (bLower == 'netherlands' || bLower == 'netherland dwarfs' || bLower == 'netherland dwarf') {
+      return 'Netherland Dwarf';
+    }
+    if (bLower == 'dwarf hotot' || bLower == 'hotots' || bLower == 'hotot') {
+      return 'Dwarf Hotot';
+    }
+    return b;
+  }
+
   List<String> _getUniqueBreeds() {
     final breeds = _allRabbits
         .where((r) => r.breed.isNotEmpty)
-        .map((r) {
-          final b = r.breed.trim();
-          // Normalize Netherland Dwarf variations
-          if (b.toLowerCase() == 'netherlands' || b.toLowerCase() == 'netherland dwarfs' || b.toLowerCase() == 'netherland dwarf') {
-            return 'Netherland Dwarf';
-          }
-          return b;
-        })
+        .map((r) => _normalizeBreed(r.breed))
         .toSet()
         .toList();
 
-    // Ensure 'Dwarf Hotot' is included if present in rabbits but was previously mapped away
-    // (The mapping above handles the merging, but we should make sure the set is clean)
-
-    breeds.sort();
+    breeds.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return [
       'All',
       ...breeds
     ];
   }
 
+  Future<void> _confirmAndDeleteBreed(String breedName) async {
+    if (breedName == 'All') return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Breed Category?'),
+        content: Text('Remove "$breedName" from breed filters and update any rabbits assigned to this breed?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _db.clearBreedName(breedName);
+      
+      final replacement = breedName.toLowerCase() == 'hotot' ? 'Dwarf Hotot' : '';
+      for (var r in _allRabbits) {
+        if (r.breed.toLowerCase() == breedName.toLowerCase()) {
+          r.breed = replacement;
+        }
+      }
+
+      if (_breedFilter.toLowerCase() == breedName.toLowerCase()) {
+        _breedFilter = 'All';
+      }
+
+      await _loadData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Breed category "$breedName" removed'),
+            backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _refreshData() async {
     if (!mounted) return;
 
     try {
-      print('🔄 Refreshing herd data...');
+      print('ðŸ”„ Refreshing herd data...');
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
       final barnsData = await _db.getAllBarns();
@@ -214,9 +276,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         });
       }
 
-      print('✅ Herd data refreshed: ${rabbits.length} rabbits');
+      print('âœ… Herd data refreshed: ${rabbits.length} rabbits');
     } catch (e) {
-      print('❌ Error refreshing herd data: $e');
+      print('âŒ Error refreshing herd data: $e');
     }
   }
 
@@ -231,14 +293,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     }
   }
 
-  Future<void> _navigateToDetail(Rabbit rabbit) async {
+  Future<void> _navigateToDetail(Rabbit rabbit, {int tabIndex = 1}) async {
     _searchFocusNode.canRequestFocus = false;
     FocusScope.of(context).unfocus();
 
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RabbitDetailScreen(rabbit: rabbit),
+        builder: (context) => RabbitDetailScreen(rabbit: rabbit, initialTabIndex: tabIndex),
       ),
     );
 
@@ -303,7 +365,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         onActionComplete: () async {
           // Don't call Navigator.pop - the modal already handles its own closing
           // Just refresh the data immediately
-          print('🔄 Action complete callback triggered - refreshing data...');
+          print('ðŸ”„ Action complete callback triggered - refreshing data...');
 
           await _refreshData();
 
@@ -368,79 +430,87 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       );
     }
 
-    final activeIconColor = const Color(0xFFDCA8FC); // Matching the plus button from image
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    if (keyboardVisible) {
+      _keyboardWasOpen = true;
+    } else if (_keyboardWasOpen && _searchFocusNode.hasFocus) {
+      _keyboardWasOpen = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+        }
+      });
+    }
+
+    final activeIconColor = const Color(0xFFB388C7);
+    final screenTextTheme = GoogleFonts.nunitoSansTextTheme(Theme.of(context).textTheme);
 
     return Scaffold(
       backgroundColor: iAppBg,
-      body: Column(
-        children: [
-          // Nav Hero: Header + Segmented Control (Purple solid block)
-          Container(
-            color: iHeaderBg,
-            child: Column(
-              children: [
-                _buildHeader(),
-                _buildSegmentedControl(),
-              ],
-            ),
-          ),
-
-          // Action Row + Pipeline Menu (on light grey bg)
-          Container(
-            color: iHeaderBg,
-            child: _buildActionRow(),
-          ),
-          if (_locationFilter != null) _buildFilterBanner(),
-          _buildPipelineMenu(),
-
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _refreshData,
-              color: hLilacDeep,
-              child: TabBarView(
-                controller: _tabController,
-                physics: const NeverScrollableScrollPhysics(),
+      body: Theme(
+        data: Theme.of(context).copyWith(textTheme: screenTextTheme),
+        child: Column(
+          children: [
+            Container(
+              color: iHeaderBg,
+              child: Column(
                 children: [
-                  KeyedSubtree(key: ValueKey('does_$_dataVersion'), child: _buildRabbitList(RabbitType.doe)),
-                  KeyedSubtree(key: ValueKey('bucks_$_dataVersion'), child: _buildRabbitList(RabbitType.buck)),
-                  KeyedSubtree(key: ValueKey('archive_$_dataVersion'), child: _buildArchivedList()),
+                  _buildHeader(),
+                  _buildSegmentedControl(),
+                  _buildActionRow(),
                 ],
               ),
             ),
-          ),
-        ],
+            if (_locationFilter != null) _buildFilterBanner(),
+            _buildPipelineMenu(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshData,
+                color: hLilacDeep,
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    KeyedSubtree(key: ValueKey('does_$_dataVersion'), child: _buildRabbitList(RabbitType.doe)),
+                    KeyedSubtree(key: ValueKey('bucks_$_dataVersion'), child: _buildRabbitList(RabbitType.buck)),
+                    KeyedSubtree(key: ValueKey('archive_$_dataVersion'), child: _buildArchivedList()),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: _tabController.index < 2
-          ? Container(
-              margin: const EdgeInsets.only(bottom: 8, right: 8),
-              height: 56,
-              width: 56,
-              child: FloatingActionButton(
-                heroTag: 'herd_fab',
-                onPressed: () async {
-                  _searchFocusNode.canRequestFocus = false;
+          ? FloatingActionButton(
+              heroTag: 'herd_fab',
+              onPressed: () async {
+                _searchFocusNode.canRequestFocus = false;
+                FocusScope.of(context).unfocus();
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen()));
+                if (mounted) {
+                  setState(() {
+                    _isSearchEnabled = false;
+                    _searchFocusNode.canRequestFocus = false;
+                  });
                   FocusScope.of(context).unfocus();
-                  final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen()));
+                }
+                if (result == true) {
+                  await _refreshData();
                   if (mounted) {
-                    setState(() {
-                      _isSearchEnabled = false;
-                      _searchFocusNode.canRequestFocus = false;
-                    });
-                    FocusScope.of(context).unfocus();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('ðŸ° Rabbit added successfully'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating, backgroundColor: hLilacDeep),
+                    );
                   }
-                  if (result == true) {
-                    await _refreshData();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('🐰 Rabbit added successfully'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating, backgroundColor: hLilacDeep),
-                      );
-                    }
-                  }
-                },
-                backgroundColor: activeIconColor,
-                shape: const CircleBorder(),
-                elevation: 4,
-                child: const Icon(Icons.add, size: 30, color: Colors.white),
+                }
+              },
+              backgroundColor: const Color(0xFFE6BEFE),
+              shape: const CircleBorder(),
+              elevation: 6,
+              child: Icon(
+                PhosphorIcons.plus(PhosphorIconsStyle.bold),
+                size: 28,
+                color: const Color(0xFF463466),
               ),
             )
           : null,
@@ -451,19 +521,28 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     return SafeArea(
       bottom: false,
       child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Stack(
           children: [
-            const Center(
-              child: Text(
-                'Breeders',
-                style: TextStyle(
-                  color: Color(0xFF6C5A96),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.3,
-                ),
+            Align(
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Herd',
+                    style: TextStyle(
+                      color: Color(0xFF4F4F56),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      height: 1,
+                    ),
+                  ),
+                ],
               ),
             ),
             Positioned(
@@ -471,25 +550,28 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
               top: 0,
               bottom: 0,
               child: Center(
-                // Centers the icon vertically
-                child: GestureDetector(
-                  onTap: () async {
-                    _searchFocusNode.canRequestFocus = false;
-                    FocusScope.of(context).unfocus();
-                    await _showBarnDrawer();
-                    if (mounted) {
-                      setState(() {
-                        _isSearchEnabled = false;
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
                         _searchFocusNode.canRequestFocus = false;
-                      });
-                      FocusScope.of(context).unfocus();
-                    }
-                  },
-                  // Restored your visible warehouse icon here
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: const Color(0xFF6C5A96), size: 26),
-                  ),
+                        FocusScope.of(context).unfocus();
+                        await _showBarnDrawer();
+                        if (mounted) {
+                          setState(() {
+                            _isSearchEnabled = false;
+                            _searchFocusNode.canRequestFocus = false;
+                          });
+                          FocusScope.of(context).unfocus();
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.regular), color: const Color(0xFF787880), size: 23),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                 ),
               ),
             ),
@@ -501,12 +583,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
 
   Widget _buildSegmentedControl() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFFE4E4E9), // Grey base background
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
@@ -532,13 +614,13 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             boxShadow: isActive
                 ? [
-                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))
+                    BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, 2))
                   ]
                 : null,
           ),
@@ -547,8 +629,8 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isActive ? iTextDark : iTextLight,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              color: isActive ? const Color(0xFF3B3B43) : const Color(0xFF66666D),
             ),
           ),
         ),
@@ -558,69 +640,51 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
 
   Widget _buildActionRow() {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
       child: Row(
         children: [
-          // Search Bar
           Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (!_isSearchEnabled) {
-                  setState(() {
-                    _isSearchEnabled = true;
-                    _searchFocusNode.canRequestFocus = true;
-                  });
-                  Future.delayed(const Duration(milliseconds: 50), () {
-                    if (mounted) _searchFocusNode.requestFocus();
-                  });
-                }
-              },
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _isSearchEnabled ? hLilacDeep : Colors.grey.shade300),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: IgnorePointer(
-                  ignoring: !_isSearchEnabled,
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: Colors.grey.shade400, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          enabled: _isSearchEnabled,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          onChanged: (value) => setState(() => _searchQuery = value),
-                          style: const TextStyle(fontSize: 14, color: iTextDark),
-                          decoration: InputDecoration(
-                            hintText: 'Search by name or ID',
-                            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.w400),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.025), blurRadius: 8, offset: const Offset(0, 2))
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: Colors.grey.shade400, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      onChanged: (value) => setState(() => _searchQuery = value),
+                      style: const TextStyle(fontSize: 14, color: iTextDark, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name or ID...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.w500),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
-                      if (_searchQuery.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                          child: Icon(Icons.clear, size: 18, color: Colors.grey.shade500),
-                        ),
-                    ],
+                    ),
                   ),
-                ),
+                  if (_searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      child: Icon(Icons.clear, size: 18, color: Colors.grey.shade500),
+                    ),
+                ],
               ),
             ),
           ),
@@ -643,7 +707,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           _buildIconBtnMenu(
             icon: PhosphorIcons.funnel(PhosphorIconsStyle.regular),
             isActive: _breedFilter != 'All',
-            items: _getUniqueBreeds().map((f) => _buildPopupItem(f, f, _breedFilter == f)).toList(),
+            items: _getUniqueBreeds().map((f) => _buildPopupItem(
+              f,
+              f,
+              _breedFilter == f,
+              onDelete: f == 'All' ? null : () => _confirmAndDeleteBreed(f),
+            )).toList(),
             onSelected: (v) => setState(() => _breedFilter = v),
           ),
           const SizedBox(width: 8),
@@ -680,17 +749,51 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  PopupMenuItem<String> _buildPopupItem(String label, String value, bool isSelected) {
+  PopupMenuItem<String> _buildPopupItem(
+    String label,
+    String value,
+    bool isSelected, {
+    VoidCallback? onDelete,
+  }) {
+    final isBreedCategoryItem = onDelete != null && value != 'All';
     return PopupMenuItem<String>(
       value: value,
-      child: Row(
-        children: [
-          Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400, color: iTextDark, fontSize: 14)),
-          if (isSelected) ...[
-            const Spacer(),
-            const Icon(Icons.check, size: 16, color: hLilacDeep)
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () {
+          if (isBreedCategoryItem) {
+            Navigator.pop(context);
+            onDelete();
+          }
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: iTextDark,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (isBreedCategoryItem)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  onDelete();
+                },
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                ),
+              )
+            else if (isSelected) ...[
+              const Icon(Icons.check, size: 16, color: hLilacDeep)
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -712,12 +815,12 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         height: 44,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(13),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))
+            BoxShadow(color: Colors.black.withOpacity(0.025), blurRadius: 8, offset: const Offset(0, 2))
           ],
         ),
-        child: Icon(icon, size: 22, color: isActive ? hLilacDeep : Colors.grey.shade500),
+        child: Icon(icon, size: 20, color: isActive ? hLilacDeep : Colors.grey.shade500),
       ),
     );
   }
@@ -803,14 +906,14 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     }
 
     return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: iAppBg,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)),
+      height: 46,
+      decoration: const BoxDecoration(
+        color: Color(0xFF8F8A90),
+        border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
         itemCount: statuses.length,
         itemBuilder: (context, index) {
           final status = statuses[index];
@@ -820,31 +923,26 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           return GestureDetector(
             onTap: () => setState(() => _currentFilter = mappedStatus),
             child: Container(
-              margin: const EdgeInsets.only(right: 24),
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
-                        color: isActive ? iTextDark : Colors.grey.shade500,
-                      ),
-                    ),
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: isActive ? Colors.white : Colors.transparent,
+                    width: 2.2,
                   ),
-                  if (isActive)
-                    Container(
-                      height: 2.0,
-                      width: 24,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF333333),
-                        borderRadius: BorderRadius.only(topLeft: Radius.circular(2), topRight: Radius.circular(2)),
-                      ),
-                    ),
-                ],
+                ),
+              ),
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                    letterSpacing: 0.45,
+                  ),
+                ),
               ),
             ),
           );
@@ -1109,7 +1207,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   Widget _buildArchivedList() {
     List<Rabbit> filtered = _archivedList.where((r) {
       if (_breedFilter != 'All') {
-        if (r.breed != _breedFilter) return false;
+        final normalizedRabbitBreed = _normalizeBreed(r.breed);
+        final normalizedFilter = _normalizeBreed(_breedFilter);
+        if (normalizedRabbitBreed.toLowerCase() != normalizedFilter.toLowerCase()) return false;
       }
 
       if (_currentFilter != 'All') {
@@ -1275,9 +1375,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
       if (r.status == RabbitStatus.archived) return false;
 
       if (_breedFilter != 'All') {
-        final rb = r.breed;
-        final normalizedBreed = (rb == 'Hotot' || rb == 'Dwarf Hotot') ? 'Netherlands' : rb;
-        if (normalizedBreed != _breedFilter) return false;
+        final normalizedRabbitBreed = _normalizeBreed(r.breed);
+        final normalizedFilter = _normalizeBreed(_breedFilter);
+        if (normalizedRabbitBreed.toLowerCase() != normalizedFilter.toLowerCase()) return false;
       }
 
       if (_currentFilter != 'All') {
@@ -1451,15 +1551,15 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text(
             '$count RABBITS',
             style: const TextStyle(
-              fontSize: 10.5,
+              fontSize: 12,
               color: iTextLight,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.9,
             ),
           ),
         ],
@@ -1471,167 +1571,185 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
     final bool isDoe = rabbit.type == RabbitType.doe;
     final bool isArchive = rabbit.status == RabbitStatus.archived;
 
-    // Top gradient logic
-    final topGradientColor = isArchive ? Colors.grey.shade200 : (isDoe ? const Color(0xFFF9DCE6) : const Color(0xFFDDF0F9));
-
     final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
     final photoPath = hasPhoto ? rabbit.photos!.first : null;
     final isPhotoValid = photoPath != null && File(photoPath).existsSync();
 
     return GestureDetector(
-      onTap: () => isArchive ? _showArchiveMenu(rabbit) : _navigateToDetail(rabbit),
+      // Tapping anywhere on the card (except photo & 3-dots) → Breeding tab
+      onTap: () => isArchive ? _showArchiveMenu(rabbit) : _navigateToDetail(rabbit, tabIndex: 1),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200, width: 1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E5EA)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
+        padding: const EdgeInsets.all(4),
         child: Column(
           children: [
-            // Top Section (Gradient Header)
+            // 1. Inset Colored Header
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    topGradientColor,
-                    Colors.white
-                  ],
-                  stops: const [
-                    0.0,
-                    1.0
-                  ],
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Stack(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: isPhotoValid
-                              ? Image.file(File(photoPath), fit: BoxFit.cover)
-                              : Container(
-                                  color: Colors.grey.shade100,
-                                  child: Icon(
-                                    isDoe ? PhosphorIcons.genderFemale(PhosphorIconsStyle.fill) : PhosphorIcons.genderMale(PhosphorIconsStyle.fill),
-                                    color: Colors.grey.shade400,
-                                    size: 28,
-                                  ),
-                                ),
+                  // Photo Avatar — taps go to Profile tab (tab 0)
+                  GestureDetector(
+                    onTap: () => isArchive ? null : _navigateToDetail(rabbit, tabIndex: 0),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isArchive ? const Color(0xFF8E8E93) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3)),
+                          width: 2,
                         ),
                       ),
-                      const SizedBox(width: 14),
-
-                      // Card Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: Text(
-                                      rabbit.breederPrefix!,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w400,
-                                        color: iTextLight,
-                                      ),
-                                    ),
-                                  ),
-                                Flexible(
-                                  child: Text(
-                                    rabbit.name,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: iTextDark,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  ' • ${rabbit.age}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                    color: iTextLight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: iTextLight,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: isPhotoValid
+                            ? Image.file(File(photoPath!), fit: BoxFit.cover)
+                            : Container(
+                                color: Colors.white,
+                                child: Image.asset('assets/images/profilelogo.png', fit: BoxFit.contain),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Center Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
+                                TextSpan(
+                                  text: '${rabbit.breederPrefix} ',
+                                  style: const TextStyle(color: Color(0xFF787774), fontWeight: FontWeight.w700),
+                                ),
+                              TextSpan(
+                                text: rabbit.name,
+                                style: TextStyle(
+                                  color: isArchive ? const Color(0xFF636366) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3)),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF787774),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          rabbit.weight != null
+                              ? '${rabbit.age} • ${FormatUtils.formatWeight(rabbit.weight!)}'
+                              : rabbit.age,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF787774),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Status and Menu
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isDoe || rabbit.status == RabbitStatus.quarantine || isArchive) ...[
+                        _buildStatusBadge(rabbit),
+                        const SizedBox(height: 6),
+                      ],
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
+                        child: const Padding(
+                          // Larger tap area for 3-dots menu
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 22),
                         ),
                       ),
                     ],
-                  ),
-                  Positioned(
-                    right: -1,
-                    top: -1,
-                    child: _buildStatusBadge(rabbit),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 36,
-                    child: GestureDetector(
-                      onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: Icon(Icons.more_vert, color: Colors.grey.shade400, size: 20),
-                      ),
-                    ),
                   ),
                 ],
               ),
             ),
 
-            // Bottom Section (Ghost Bar)
+            // 2. Middle Stats Section
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              decoration: const BoxDecoration(
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5EA)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
                 children: [
-                  _buildGhostCol('CAGE', rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '-'),
-                  _buildGhostCol('EAR NO.', rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase()),
-                  _buildGhostCol('WEIGHT', rabbit.weight != null ? FormatUtils.formatWeight(rabbit.weight!) : '-'),
-                  _buildGhostCol('LITTERS', rabbit.type == RabbitType.doe ? (rabbit.currentLitterSize?.toString() ?? '0') : '-'),
+                  _buildStatsRow(
+                    'EAR NO.:',
+                    rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
+                    'CAGE NO.:',
+                    rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '',
+                    isDoe: isDoe,
+                    isTinted: true,
+                  ),
+                  _buildStatsRow(
+                    'SIRE:',
+                    rabbit.sireId?.isNotEmpty == true ? rabbit.sireId! : '',
+                    'LITTERS:',
+                    rabbit.type == RabbitType.doe ? (rabbit.currentLitterSize?.toString() ?? '0') : '',
+                    isDoe: isDoe,
+                    isTinted: false,
+                  ),
+                  _buildStatsRow(
+                    'DAM:',
+                    rabbit.damId?.isNotEmpty == true ? rabbit.damId! : '',
+                    'KITS:',
+                    '',
+                    isDoe: isDoe,
+                    isTinted: true,
+                  ),
+                  _buildNotesRow(
+                    'NOTES:',
+                    rabbit.notes?.isNotEmpty == true ? rabbit.notes! : '',
+                    isTinted: false,
+                  ),
                 ],
               ),
             ),
@@ -1642,47 +1760,91 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   }
 
   Widget _buildStatusBadge(Rabbit rabbit) {
-    final String label = rabbit.status == RabbitStatus.archived ? 'ARCHIVED' : rabbit.statusText.toUpperCase();
+    final isDoe = rabbit.type == RabbitType.doe;
+    final isArchive = rabbit.status == RabbitStatus.archived;
+    final String label = isArchive ? 'ARCHIVED' : rabbit.statusText.toUpperCase();
+    final Color badgeBg = isArchive ? const Color(0xFFF2F2F7) : (isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB));
+    final Color badgeText = isArchive ? const Color(0xFF636366) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E2E7)),
-        borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(10),
-          bottomLeft: Radius.circular(6),
-        ),
+        color: badgeBg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: badgeText.withOpacity(0.2)),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 10,
+        style: TextStyle(
+          fontSize: 9,
           fontWeight: FontWeight.w800,
-          color: Color(0xFF8A8A95),
-          letterSpacing: 0.6,
+          color: badgeText,
         ),
       ),
     );
   }
 
-  Widget _buildGhostCol(String label, String value) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: iTextDark),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: iTextLight, letterSpacing: 0.5),
-        ),
-      ],
+  Widget _buildStatsRow(String label1, String val1, String label2, String val2, {required bool isDoe, required bool isTinted}) {
+    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      color: isTinted ? tintBg : Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Text(label1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    val1,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: [
+                Text(label2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    val2,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesRow(String label, String val, {required bool isTinted}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      color: isTinted ? const Color(0xFFFDF2F5) : Colors.white,
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              val,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2287,7 +2449,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _searchFocusNode.removeListener(_handleSearchFocusChange);
     _searchFocusNode.dispose();
     super.dispose();
   }
 }
+

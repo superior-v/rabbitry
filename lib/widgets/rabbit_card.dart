@@ -61,8 +61,8 @@ class RabbitCard extends StatelessWidget {
                 children: [
                   // PROFILE PICTURE (Rounded square as per screenshot)
                   Container(
-                    width: 56,
-                    height: 56,
+                    width: 68,
+                    height: 68,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),

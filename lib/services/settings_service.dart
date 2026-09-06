@@ -14,6 +14,7 @@ class SettingsService {
   static const int _defaultNestBoxDays = 28;
   static const int _defaultWeanAge = 8; // weeks
   static const int _defaultRestingDays = 14;
+  static const int _defaultRebreedDays = 14;
   static const int _defaultQuarantineDays = 14;
   static const int _defaultMatureAge = 16; // weeks
 
@@ -23,6 +24,7 @@ class SettingsService {
   int get nestBoxDays => _prefs?.getInt('nestBoxDays') ?? _defaultNestBoxDays;
   int get weanAge => _prefs?.getInt('weanAge') ?? _defaultWeanAge;
   int get restingDays => _prefs?.getInt('restingDays') ?? _defaultRestingDays;
+  int get rebreedDays => _prefs?.getInt('rebreedDays') ?? _defaultRebreedDays;
   int get quarantineDays => _prefs?.getInt('quarantineDays') ?? _defaultQuarantineDays;
   int get matureAge => _prefs?.getInt('matureAge') ?? _defaultMatureAge;
 
@@ -305,6 +307,10 @@ class SettingsService {
     await _prefs?.setInt('restingDays', days);
   }
 
+  Future<void> setRebreedDays(int days) async {
+    await _prefs?.setInt('rebreedDays', days);
+  }
+
   Future<void> setQuarantineDays(int days) async {
     await _prefs?.setInt('quarantineDays', days);
   }
@@ -426,6 +432,7 @@ class SettingsService {
     await setNestBoxDays(_defaultNestBoxDays);
     await setWeanAge(_defaultWeanAge);
     await setRestingDays(_defaultRestingDays);
+    await setRebreedDays(_defaultRebreedDays);
     await setQuarantineDays(_defaultQuarantineDays);
     await setMatureAge(_defaultMatureAge);
     // Reset pipeline toggles
@@ -446,6 +453,7 @@ class SettingsService {
       'nestBoxDays': nestBoxDays,
       'weanAge': weanAge,
       'restingDays': restingDays,
+      'rebreedDays': rebreedDays,
       'quarantineDays': quarantineDays,
       'matureAge': matureAge,
       'palpationEnabled': palpationEnabled,
@@ -475,6 +483,7 @@ class SettingsService {
     if (settings['nestBoxDays'] != null) await setNestBoxDays(settings['nestBoxDays']);
     if (settings['weanAge'] != null) await setWeanAge(settings['weanAge']);
     if (settings['restingDays'] != null) await setRestingDays(settings['restingDays']);
+    if (settings['rebreedDays'] != null) await setRebreedDays(settings['rebreedDays']);
     if (settings['quarantineDays'] != null) await setQuarantineDays(settings['quarantineDays']);
     if (settings['matureAge'] != null) await setMatureAge(settings['matureAge']);
     // Pipeline toggles

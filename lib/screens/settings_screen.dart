@@ -3,13 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/settings_service.dart'; // ✅ ADD THIS
 import '../services/database_service.dart'; // ✅ ADD THIS for scheduled tasks
+import '../services/format_utils.dart';
 import '../models/breed.dart';
 import 'package:image_picker/image_picker.dart'; // ✅ ADD THIS
 import 'package:permission_handler/permission_handler.dart'; // ✅ ADD THIS
 import 'dart:io'; // ✅ ADD THIS
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:open_filex/open_filex.dart'; // ✅ Add this
+import 'package:csv/csv.dart'; // ✅ Add this
+import 'package:share_plus/share_plus.dart';
 import '../services/notification_service.dart'; // ✅ Add this
 import 'dart:convert';
 import '../utils/toast_utils.dart';
@@ -60,6 +64,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   int nestBoxDays = 28;
   int weanAge = 8;
   int restingDays = 14;
+  int rebreedDays = 14;
   int quarantineDays = 14;
   int matureAge = 16;
 
@@ -185,7 +190,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Future<void> _loadSettings() async {
     try {
       await _settings.init();
-      final loadedLogo = _settings.farmLogo;
+      var loadedLogo = _settings.farmLogo;
+      if (loadedLogo != null && loadedLogo.isNotEmpty) {
+        final docDir = await getApplicationDocumentsDirectory();
+        if (!File(loadedLogo).existsSync()) {
+          final fileName = p.basename(loadedLogo);
+          final resolvedLogo = p.join(docDir.path, fileName);
+          if (File(resolvedLogo).existsSync()) {
+            loadedLogo = resolvedLogo;
+          }
+        }
+      }
 
       // ✅ Load scheduled tasks from database
       final loadedTasks = await _db.getAllScheduledTasks();
@@ -227,6 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         nestBoxDays = _settings.nestBoxDays;
         weanAge = _settings.weanAge;
         restingDays = _settings.restingDays;
+        rebreedDays = _settings.rebreedDays;
         quarantineDays = _settings.quarantineDays;
         matureAge = _settings.matureAge;
 
@@ -333,6 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _settings.setNestBoxDays(nestBoxDays);
       await _settings.setWeanAge(weanAge);
       await _settings.setRestingDays(restingDays);
+      await _settings.setRebreedDays(rebreedDays);
       await _settings.setQuarantineDays(quarantineDays);
       await _settings.setMatureAge(matureAge);
 
@@ -353,6 +370,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
       // Task Logic
       await _settings.setSnowballEffect(snowballEffect);
+
+      // Reschedule digest with new settings
+      try {
+        await NotificationService.instance.scheduleDailyDigest();
+      } catch (e) {
+        print('Error rescheduling daily digest: $e');
+      }
 
       setState(() => _isSaving = false);
 
@@ -551,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   PreferredSizeWidget _buildHeader() {
     return AppBar(
-      backgroundColor: kLilacWash,
+      backgroundColor: const Color(0xFFE6BEFE),
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
@@ -913,7 +937,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onDayChanged: (val) => setState(() => palpationDays = val),
                 autoTask: true,
                 actions: const [
-                  {'tag': 'Positive', 'desc': 'Move to Bred'},
+                  {'tag': 'Positive', 'desc': 'Move to Pregnant'},
                   {'tag': 'Negative', 'desc': 'Move to Open'},
                 ],
               ),
@@ -951,6 +975,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 actions: const [
                   {'tag': 'Action', 'desc': 'Separate Kits & Doe'},
                   {'tag': 'Action', 'desc': 'Promote to Grow-out'},
+                ],
+              ),
+              _buildPipelineStep(
+                'Rebreeding Day',
+                dayLabel: 'DAY $rebreedDays',
+                dayValue: rebreedDays,
+                onDayChanged: (val) => setState(() => rebreedDays = val),
+                showScheduleDay: true,
+                actions: const [
+                  {'tag': 'Action', 'desc': 'Change Doe Status to OPEN'},
                 ],
               ),
               _buildPipelineStep(
@@ -1050,19 +1084,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           [
             _buildExportButton(PhosphorIconsBold.fileCsv, 'Export Herd Inventory (CSV)', kLilacDeep, _exportHerdData),
             _buildExportButton(PhosphorIconsBold.fileCsv, 'Export Financial Ledger (CSV)', kLilacDeep, _exportLedgerData),
-            _buildExportButton(PhosphorIconsBold.addressBook, 'Export Contact CRM (CSV)', kLilacDeep, () {}),
+            _buildExportButton(PhosphorIconsBold.addressBook, 'Export Contact CRM (CSV)', kLilacDeep, _exportContactData),
           ],
         ),
         _buildCard(
           'Privacy & Security',
           PhosphorIconsDuotone.shieldCheck,
           [
-            _buildSwitchRow(
-              'Biometric Lock',
-              'Require fingerprint or face ID to open the app.',
-              false,
-              (val) {},
-            ),
             _buildDangerRow(),
           ],
         ),
@@ -1085,7 +1113,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Push Notifications',
               'Allow app to send important reminders.',
               pushNotifications,
-              (val) => setState(() => pushNotifications = val),
+              (val) async {
+                if (val) {
+                  final status = await Permission.notification.request();
+                  if (status.isGranted) {
+                    setState(() => pushNotifications = true);
+                  } else {
+                    setState(() => pushNotifications = false);
+                    if (mounted) {
+                      ToastUtils.showError(context, 'Notification permission was denied');
+                    }
+                  }
+                } else {
+                  setState(() => pushNotifications = false);
+                }
+              },
             ),
             _buildSettingRow(
               'Daily Digest Time',
@@ -1151,32 +1193,62 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         return;
       }
 
-      final buffer = StringBuffer();
-      buffer.writeln('ID,Name,Type,Status,Breed,Location,Cage,DOB,Color,Weight,Origin,Sire ID,Dam ID');
+      final List<List<dynamic>> rows = [];
+      rows.add(['ID', 'Name', 'Type', 'Status', 'Breed', 'Location', 'Cage', 'DOB', 'Color', 'Weight', 'Origin', 'Sire ID', 'Dam ID']);
+      
       for (final r in allRabbits) {
-        buffer.writeln(
-          '${_csvEscape(r.id)},${_csvEscape(r.name)},${r.type.toString().split('.').last},${r.status.toString().split('.').last},'
-          '${_csvEscape(r.breed)},${_csvEscape(r.location ?? '')},${_csvEscape(r.cage ?? '')},'
-          '${r.dateOfBirth ?? ''},${_csvEscape(r.color ?? '')},${r.weight ?? ''},'
-          '${_csvEscape(r.origin ?? '')},${_csvEscape(r.sireId ?? '')},${_csvEscape(r.damId ?? '')}',
-        );
+        rows.add([
+          r.id,
+          r.name,
+          r.type.toString().split('.').last,
+          r.status.toString().split('.').last,
+          r.breed,
+          r.location ?? '',
+          r.cage ?? '',
+          r.dateOfBirth != null ? FormatUtils.formatDate(r.dateOfBirth!) : '',
+          r.color ?? '',
+          r.weight ?? '',
+          r.origin ?? '',
+          r.sireId ?? '',
+          r.damId ?? '',
+        ]);
       }
+
+      final csvContent = const ListToCsvConverter().convert(rows);
 
       final directory = await _getExportDirectory();
       if (directory == null) return;
-      final file = File('${directory.path}/herd_export_${DateTime.now().millisecondsSinceEpoch}.csv');
-      await file.writeAsString(buffer.toString());
+      final file = File(p.normalize('${directory.path}/herd_export_${DateTime.now().millisecondsSinceEpoch}.csv'));
+      await file.writeAsString(csvContent);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Exported ${allRabbits.length} rabbits to ${file.path.split('/').last}'),
             backgroundColor: kLilacDeep,
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'OPEN',
-              textColor: Colors.white,
-              onPressed: () => OpenFilex.open(file.path),
+            content: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Exported ${allRabbits.length} rabbits',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    OpenFilex.open(file.path, type: 'text/csv');
+                  },
+                  child: const Text('OPEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Share.shareXFiles([XFile(file.path)]);
+                  },
+                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
           ),
         );
@@ -1185,6 +1257,91 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         await NotificationService.instance.showFileNotification(
           title: 'Herd Data Exported',
           body: 'Tap to open herd_export.csv',
+          filePath: file.path,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportContactData() async {
+    try {
+      final contacts = await DatabaseService().getAllContacts();
+
+      if (contacts.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No contact data to export'), backgroundColor: Color(0xFFD44C47)),
+          );
+        }
+        return;
+      }
+
+      final List<List<dynamic>> rows = [];
+      rows.add(['ID', 'Name', 'Type', 'Phone', 'Email', 'Farm Name', 'Total Bought', 'Total Revenue', 'Notes', 'CreatedAt']);
+      for (final c in contacts) {
+        rows.add([
+          c['id']?.toString() ?? '',
+          c['name']?.toString() ?? '',
+          c['type']?.toString() ?? '',
+          c['phone']?.toString() ?? '',
+          c['email']?.toString() ?? '',
+          c['farmName']?.toString() ?? '',
+          c['totalBought'] ?? 0,
+          c['totalRevenue'] ?? 0.0,
+          c['notes']?.toString() ?? '',
+          c['createdAt'] ?? '',
+        ]);
+      }
+
+      final csvContent = const ListToCsvConverter().convert(rows);
+
+      final directory = await _getExportDirectory();
+      if (directory == null) return;
+      final file = File(p.normalize('${directory.path}/contacts_export_${DateTime.now().millisecondsSinceEpoch}.csv'));
+      await file.writeAsString(csvContent);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: kLilacDeep,
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Contacts exported',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    OpenFilex.open(file.path, type: 'text/csv');
+                  },
+                  child: const Text('OPEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Share.shareXFiles([XFile(file.path)]);
+                  },
+                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        // Show system notification
+        await NotificationService.instance.showFileNotification(
+          title: 'Contacts Data Exported',
+          body: 'Tap to open contacts_export.csv',
           filePath: file.path,
         );
       }
@@ -1210,30 +1367,55 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         return;
       }
 
-      final buffer = StringBuffer();
-      buffer.writeln('ID,Type,Category,Amount,Description,Date,Rabbit ID');
+      final List<List<dynamic>> rows = [];
+      rows.add(['ID', 'Type', 'Category', 'Amount', 'Description', 'Date', 'Rabbit ID']);
       for (final t in transactions) {
-        buffer.writeln(
-          '${_csvEscape(t.id)},${t.type.name},${t.category.name},'
-          '${t.amount},${_csvEscape(t.description ?? '')},${t.date.toIso8601String()},${_csvEscape(t.rabbitId ?? '')}',
-        );
+        rows.add([
+          t.id,
+          t.type.name,
+          t.category.name,
+          t.amount,
+          t.description ?? '',
+          FormatUtils.formatDate(t.date),
+          t.rabbitId ?? '',
+        ]);
       }
+
+      final csvContent = const ListToCsvConverter().convert(rows);
 
       final directory = await _getExportDirectory();
       if (directory == null) return;
-      final file = File('${directory.path}/ledger_export_${DateTime.now().millisecondsSinceEpoch}.csv');
-      await file.writeAsString(buffer.toString());
+      final file = File(p.normalize('${directory.path}/ledger_export_${DateTime.now().millisecondsSinceEpoch}.csv'));
+      await file.writeAsString(csvContent);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Exported ${transactions.length} transactions to ${file.path.split('/').last}'),
             backgroundColor: kLilacDeep,
             behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'OPEN',
-              textColor: Colors.white,
-              onPressed: () => OpenFilex.open(file.path),
+            content: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Exported ${transactions.length} transactions',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    OpenFilex.open(file.path, type: 'text/csv');
+                  },
+                  child: const Text('OPEN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Share.shareXFiles([XFile(file.path)]);
+                  },
+                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
           ),
         );
@@ -1256,58 +1438,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Future<Directory?> _getExportDirectory() async {
     if (Platform.isAndroid) {
-      // For Android 13+, Permission.storage is split into media permissions.
-      // For general file access, Permission.manageExternalStorage or specialized approaches are needed.
-      // However, writing to Downloads often works with simple permissions or via MediaStore.
-      
-      var status = await Permission.storage.request();
-      
-      if (!status.isGranted) {
-        // If storage permission is denied, try manageExternalStorage (Android 11+)
-        var manageStatus = await Permission.manageExternalStorage.request();
-        
-        if (!manageStatus.isGranted) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Storage permission required to export CSV'),
-                backgroundColor: const Color(0xFFD44C47),
-                action: SnackBarAction(
-                  label: 'Settings',
-                  textColor: Colors.white,
-                  onPressed: () => openAppSettings(),
-                ),
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-          return null;
+      try {
+        final dir = await getExternalStorageDirectory();
+        if (dir != null) {
+          return dir;
+        }
+      } catch (e) {
+        print('Error getting external storage directory: $e');
+      }
+      return await getApplicationDocumentsDirectory();
+    } else if (Platform.isWindows) {
+      final homeDir = Platform.environment['USERPROFILE'];
+      if (homeDir != null) {
+        final downloads = Directory(p.join(homeDir, 'Downloads'));
+        if (await downloads.exists()) {
+          return downloads;
+        }
+        final documents = Directory(p.join(homeDir, 'Documents'));
+        if (await documents.exists()) {
+          return documents;
         }
       }
-
-      // Try multiple potential download paths
-      final List<String> potentialPaths = [
-        '/storage/emulated/0/Download',
-        '/storage/emulated/0/Downloads',
-        '/sdcard/Download',
-      ];
-
-      for (String path in potentialPaths) {
-        final dir = Directory(path);
-        try {
-          if (await dir.exists()) {
-            return dir;
-          } else {
-            // Try creating it if it doesn't exist (less likely for Download, but possible for subdirs)
-            await dir.create(recursive: true);
-            return dir;
-          }
-        } catch (_) {
-          continue;
-        }
-      }
-
-      // Fallback to app documents if all else fails
       return await getApplicationDocumentsDirectory();
     } else {
       // For iOS/other platforms, use temp or documents
@@ -1364,13 +1515,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           PhosphorIconsDuotone.sparkle,
           [
             _buildSubsectionHeader('OPERATIONS'),
-            ...husbandryTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(t['id'] as int))),
+            ...husbandryTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Operations')),
             _buildSubsectionHeader('HEALTH'),
-            ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(t['id'] as int))),
+            ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Health')),
             _buildSubsectionHeader('MAINTENANCE'),
-            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(t['id'] as int))),
+            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Maintenance')),
           ],
         ),
@@ -1490,8 +1641,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onTap: () => _showAddEditContactDialog(),
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(color: kLilacDeep, shape: BoxShape.circle),
-                  child: Icon(PhosphorIconsBold.plus, size: 18, color: Colors.white),
+                  decoration: const BoxDecoration(color: Color(0xFFE6BEFE), shape: BoxShape.circle),
+                  child: Icon(PhosphorIconsBold.plus, size: 18, color: kLilacText),
                 ),
               ),
             ],
@@ -1837,8 +1988,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: kLilacDeep,
-                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFFE6BEFE),
+                            foregroundColor: kLilacText,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
@@ -2177,64 +2328,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               ),
                               Row(
                                 children: [
-                                  Container(
-                                    width: 70,
-                                    height: 36,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: kNeutral200),
-                                      borderRadius: BorderRadius.circular(6),
+                                  if (onDayChanged != null && dayValue != null)
+                                    _PipelineDayInputField(
+                                      key: ValueKey(title),
+                                      value: dayValue,
+                                      onChanged: onDayChanged,
+                                    )
+                                  else
+                                    Container(
+                                      width: 70,
+                                      height: 36,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: kNeutral200),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        dayValue?.toString() ?? '0',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: kNeutral900,
+                                        ),
+                                      ),
                                     ),
-                                    child: onDayChanged != null
-                                        ? Focus(
-                                            onFocusChange: (hasFocus) {
-                                              if (!hasFocus) {
-                                                // Sync value on focus loss if needed
-                                              }
-                                            },
-                                            child: TextField(
-                                              key: ValueKey('${title}_$dayValue'),
-                                              controller: TextEditingController()
-                                                ..text = dayValue.toString()
-                                                ..selection = TextSelection.fromPosition(
-                                                  TextPosition(offset: dayValue.toString().length),
-                                                ),
-                                              textAlign: TextAlign.center,
-                                              keyboardType: TextInputType.number,
-                                              inputFormatters: [
-                                                FilteringTextInputFormatter.digitsOnly,
-                                                LengthLimitingTextInputFormatter(2),
-                                              ],
-                                              decoration: const InputDecoration(
-                                                border: InputBorder.none,
-                                                contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                                isDense: true,
-                                              ),
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: kNeutral900,
-                                              ),
-                                              onChanged: (val) {
-                                                if (val.isNotEmpty) {
-                                                  final parsed = int.tryParse(val);
-                                                  if (parsed != null && parsed > 0 && parsed <= 31) {
-                                                    onDayChanged(parsed);
-                                                  }
-                                                }
-                                              },
-                                            ),
-                                          )
-                                        : Text(
-                                            dayValue.toString(),
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: kNeutral900,
-                                            ),
-                                          ),
-                                  ),
                                   if (dayUnit != 'days') ...[
                                     const SizedBox(width: 8),
                                     Text(
@@ -3767,12 +3885,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF7B6BA0),
+                            backgroundColor: const Color(0xFFE6BEFE),
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                          child: Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
                         ),
                       ),
 
@@ -3922,10 +4040,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF7B6BA0),
+              backgroundColor: const Color(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: Text('Add', style: TextStyle(color: Colors.white)),
+            child: Text('Add', style: TextStyle(color: kLilacText)),
           ),
         ],
       ),
@@ -4003,10 +4121,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: kLilacDeep,
+              backgroundColor: const Color(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
+            child: const Text('Add', style: TextStyle(color: kLilacText)),
           ),
         ],
       ),
@@ -4054,10 +4172,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: kLilacDeep,
+              backgroundColor: const Color(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
+            child: const Text('Add', style: TextStyle(color: kLilacText)),
           ),
         ],
       ),
@@ -4395,10 +4513,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: kLilacDeep,
+              backgroundColor: const Color(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -4485,3 +4603,90 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _addTaskDirectory(category);
   }
 }
+
+class _PipelineDayInputField extends StatefulWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  const _PipelineDayInputField({
+    Key? key,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  State<_PipelineDayInputField> createState() => _PipelineDayInputFieldState();
+}
+
+class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.toString());
+  }
+
+  @override
+  void didUpdateWidget(covariant _PipelineDayInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final currentNum = int.tryParse(_controller.text);
+      if (currentNum != widget.value) {
+        final newText = widget.value.toString();
+        _controller.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 70,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: _SettingsScreenState.kNeutral300),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: TextField(
+        controller: _controller,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(3),
+        ],
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 8),
+          isDense: true,
+        ),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: _SettingsScreenState.kNeutral900,
+        ),
+        onChanged: (val) {
+          final parsed = int.tryParse(val);
+          if (parsed != null && parsed >= 0 && parsed <= 365) {
+            widget.onChanged(parsed);
+          } else if (val.isEmpty) {
+            widget.onChanged(0);
+          }
+        },
+      ),
+    );
+  }
+}
+

@@ -97,79 +97,49 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Icon(PhosphorIcons.treeStructure(PhosphorIconsStyle.bold), size: 16, color: kNeutral500),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'PEDIGREE',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.6),
+                PopupMenuButton<int>(
+                  offset: const Offset(0, 32),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  onSelected: (val) {
+                    setState(() {
+                      selectedGenerations = val;
+                      _loadPedigree();
+                    });
+                  },
+                  itemBuilder: (context) => [2, 3, 4].map((g) => PopupMenuItem(
+                    value: g,
+                    child: Text('$g Generations', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  )).toList(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kNeutral100,
+                      borderRadius: BorderRadius.circular(100),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Text('$selectedGenerations Generations', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                        const SizedBox(width: 4),
+                        Icon(Icons.keyboard_arrow_down, size: 16, color: kNeutral500),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('$selectedGenerations', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), height: 1)),
-                    const SizedBox(width: 8),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text('generations visibility', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral500)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    // Generations Selector
-                    PopupMenuButton<int>(
-                      offset: const Offset(0, 32),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      onSelected: (val) {
-                        setState(() {
-                          selectedGenerations = val;
-                          _loadPedigree();
-                        });
-                      },
-                      itemBuilder: (context) => [2, 3, 4].map((g) => PopupMenuItem(
-                        value: g,
-                        child: Text('$g Generations', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      )).toList(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: kNeutral100,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Row(
-                          children: [
-                            Text('$selectedGenerations Generations', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
-                            const SizedBox(width: 4),
-                            Icon(Icons.keyboard_arrow_down, size: 16, color: kNeutral500),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
-                      child: Row(
-                        children: [
-                          Icon(PhosphorIcons.downloadSimple(), size: 14, color: kNeutral600),
-                          const SizedBox(width: 6),
-                          const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
-                        ],
-                      ),
-                    ),
-                  ],
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
+                  child: Row(
+                    children: [
+                      Icon(PhosphorIcons.downloadSimple(), size: 14, color: kNeutral600),
+                      const SizedBox(width: 6),
+                      const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -512,11 +482,14 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   
   // Manual Entry Controllers
   final _nameController = TextEditingController();
+  final _colorController = TextEditingController();
+  final _weightController = TextEditingController();
   final _idController = TextEditingController();
-  final _breedController = TextEditingController();
   final _regController = TextEditingController();
-  final _champController = TextEditingController();
+  final _gcController = TextEditingController();
   final _legsController = TextEditingController();
+  final _breedController = TextEditingController();
+  final _champController = TextEditingController();
   final _genotypeController = TextEditingController();
   
   DateTime? _dateOfBirth;
@@ -630,75 +603,52 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   }
 
   Widget _buildManualTab() {
+    final accentColor = widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         children: [
-          _buildTextField('NAME', _nameController, hint: 'e.g. Blue Moon'),
+          // NAME
+          _buildTextField('NAME', _nameController),
           const SizedBox(height: 16),
-          _buildTextField('ID / EAR #', _idController, hint: 'e.g. BM-001'),
-          const SizedBox(height: 16),
-          _buildTextField('BREED', _breedController, hint: 'e.g. Netherland Dwarf'),
-          const SizedBox(height: 24),
-          
-          Row(
-            children: [
-              Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
-              const SizedBox(width: 16),
-              Expanded(child: _buildDatePicker('ACQUIRED', _acquiredDate, (d) => setState(() => _acquiredDate = d))),
-            ],
-          ),
-          const SizedBox(height: 24),
-          
-          Row(
-            children: [
-              const Text('SEX', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral500)),
-              const Spacer(),
-              _buildSexToggle(),
-            ],
-          ),
-          const SizedBox(height: 24),
 
+          // Color | Weight
           Row(
             children: [
-              Expanded(child: _buildTextField('REG #', _regController, hint: 'Optional')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTextField('CHAMP #', _champController, hint: 'Optional')),
+              Expanded(child: _buildTextField('Color', _colorController)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildTextField('Weight', _weightController, isNumber: true)),
             ],
           ),
           const SizedBox(height: 16),
-          
+
+          // EAR # | BORN
           Row(
-             children: [
-               Expanded(child: _buildTextField('LEGS', _legsController, hint: '0', isNumber: true)),
-               const SizedBox(width: 16),
-               Expanded(
-                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     const Text('BROKEN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500)),
-                     CheckboxListTile(
-                       value: _isBroken,
-                       onChanged: (val) => setState(() => _isBroken = val ?? false),
-                       title: const Text('Broken Pattern', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                       contentPadding: EdgeInsets.zero,
-                       controlAffinity: ListTileControlAffinity.leading,
-                       dense: true,
-                     ),
-                   ],
-                 ),
-               ),
-             ],
+            children: [
+              Expanded(child: _buildTextField('EAR #', _idController)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
+            ],
           ),
           const SizedBox(height: 16),
-          _buildTextField('GENETICS / GENOTYPE', _genotypeController, hint: 'e.g. aa B- C- D- E-'),
-          
-          const SizedBox(height: 40),
+
+          // LEGS | REG # | GC #
+          Row(
+            children: [
+              Expanded(flex: 1, child: _buildTextField('LEGS', _legsController, isNumber: true)),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildTextField('REG #', _regController)),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildTextField('GC #', _gcController)),
+            ],
+          ),
+          const SizedBox(height: 32),
+
           ElevatedButton(
             onPressed: _saveManual,
             style: ElevatedButton.styleFrom(
-              backgroundColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
+              backgroundColor: accentColor,
               minimumSize: const Size(double.infinity, 54),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
@@ -720,19 +670,22 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     }
     
     final id = _idController.text.isNotEmpty ? _idController.text : 'PED-${DateTime.now().millisecondsSinceEpoch}';
-    
+    final weight = double.tryParse(_weightController.text);
+
     final newRabbit = Rabbit(
       id: id,
       name: _nameController.text,
       type: _gender,
-      status: RabbitStatus.inactive, // Pedigree entries are inactive/non-herd
+      status: RabbitStatus.inactive,
       breed: _breedController.text.isNotEmpty ? _breedController.text : 'Unknown',
+      color: _colorController.text.isNotEmpty ? _colorController.text : null,
+      weight: weight,
       dateOfBirth: _dateOfBirth,
       acquiredDate: _acquiredDate,
-      registrationNumber: _regController.text,
-      grandChampionNumber: _champController.text,
+      registrationNumber: _regController.text.isNotEmpty ? _regController.text : null,
+      grandChampionNumber: _gcController.text.isNotEmpty ? _gcController.text : null,
       grandChampionLegs: int.tryParse(_legsController.text) ?? 0,
-      genetics: _genotypeController.text,
+      genetics: _genotypeController.text.isNotEmpty ? _genotypeController.text : null,
       broken: _isBroken,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),

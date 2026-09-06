@@ -3,11 +3,14 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
+import '../services/app_event_service.dart';
 import '../widgets/quick_info_card.dart';
 import '../widgets/genetics_card.dart';
 import '../widgets/parentage_card.dart';
@@ -25,6 +28,9 @@ import '../widgets/modals/log_weight_modal.dart';
 import '../widgets/modals/health_record_modal.dart';
 import '../widgets/modals/move_cage_modal.dart';
 import '../widgets/modals/archive_modal.dart';
+import '../widgets/modals/quarantine_modal.dart';
+import '../widgets/weight_history_card.dart';
+import '../widgets/modals/stop_quarantine_modal.dart';
 import 'add_rabbit_screen.dart';
 import 'finance_screen.dart';
 import 'home_dashboard_screen.dart' show HomeDashboardScreen;
@@ -32,14 +38,21 @@ import '../constants/app_colors.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
+  final int initialTabIndex;
 
-  const RabbitDetailScreen({Key? key, required this.rabbit}) : super(key: key);
+  const RabbitDetailScreen({Key? key, required this.rabbit, this.initialTabIndex = 0}) : super(key: key);
 
   @override
   State<RabbitDetailScreen> createState() => _RabbitDetailScreenState();
 }
 
 class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTickerProviderStateMixin {
+  static const Color _detailPurple = Color(0xFFE6BEFE);
+  static const Color _detailPink = kHeaderPink;
+  static const Color _detailTabGray = Color(0xFF8F8A90);
+  static const Color _detailTabInactive = Color(0xB3FFFFFF);
+  static const Color _detailSectionText = Color(0xFF787880);
+
   final DatabaseService _db = DatabaseService();
   final ImagePicker _imagePicker = ImagePicker();
   late TabController _tabController;
@@ -54,7 +67,11 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   Color get _washColor => _currentRabbit.type == RabbitType.buck ? kBlueWash : kPinkWash;
   Color get _pastelColor => _currentRabbit.type == RabbitType.buck ? kBluePastel : kPinkPastel;
   Color get _textColor => _currentRabbit.type == RabbitType.buck ? kBlueText : kPinkText;
-  Color get _heroTopColor => _currentRabbit.type == RabbitType.buck ? const Color(0xFFE0E6F6) : const Color(0xFFF6E0E6);
+
+  // Specific hero colors based on the image provided
+  Color get _heroBackgroundColor => _currentRabbit.type == RabbitType.buck 
+      ? kBlueLight 
+      : kHeaderPink;
 
   // Breeding stats
   List<Litter> _litters = [];
@@ -64,7 +81,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   void initState() {
     super.initState();
     _currentRabbit = widget.rabbit;
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex);
     _scrollController.addListener(_handleScroll);
     _loadBreedingStats();
   }
@@ -73,7 +90,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     try {
       final littersData = await _db.getLittersByDoe(_currentRabbit.id);
 
-      // Also check if rabbit is a sire (for bucks)
       final db = await _db.database;
       final sireLitters = await db.query(
         'litters',
@@ -84,7 +100,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         orderBy: 'breedDate DESC',
       );
 
-      // Combine and deduplicate
       final allLittersData = [
         ...littersData,
         ...sireLitters
@@ -127,7 +142,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     super.dispose();
   }
 
-  // ✅ Request Permission
+  // âœ… Request Permission
   Future<bool> _requestPermission(ImageSource source) async {
     if (source == ImageSource.camera) {
       var status = await Permission.camera.status;
@@ -144,7 +159,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     }
   }
 
-  // ✅ Pick Image
+  // âœ… Pick Image
   Future<void> _pickImage(ImageSource source) async {
     try {
       bool hasPermission = await _requestPermission(source);
@@ -174,17 +189,23 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       );
 
       if (image != null) {
-        // Update rabbit with new photo
+        final savedPath = await _saveRabbitPhoto(image.path);
         final updatedRabbit = _currentRabbit.copyWith(
           photos: [
-            image.path
+            savedPath
           ],
         );
 
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+        FileImage(File(savedPath)).evict();
+
         await _db.updateRabbit(updatedRabbit);
+        notifyDataChanged();
 
         setState(() {
           _currentRabbit = updatedRabbit;
+          _refreshCounter++;
         });
 
         if (!mounted) return;
@@ -207,7 +228,20 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     }
   }
 
-  // ✅ Show Image Picker Options
+  Future<String> _saveRabbitPhoto(String sourcePath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final photosDir = Directory(p.join(directory.path, 'rabbit_photos'));
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+
+    final extension = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+    final fileName = 'rabbit_${_currentRabbit.id}_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final savedFile = await File(sourcePath).copy(p.join(photosDir.path, fileName));
+    return savedFile.path;
+  }
+
+  // âœ… Show Image Picker Options
   void _showImagePickerOptions() {
     showModalBottomSheet(
       context: context,
@@ -260,8 +294,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   final updatedRabbit = _currentRabbit.copyWith(
                     photos: [],
                   );
+                  PaintingBinding.instance.imageCache.clear();
+                  PaintingBinding.instance.imageCache.clearLiveImages();
                   await _db.updateRabbit(updatedRabbit);
-                  setState(() => _currentRabbit = updatedRabbit);
+                  notifyDataChanged();
+                  setState(() {
+                    _currentRabbit = updatedRabbit;
+                    _refreshCounter++;
+                  });
 
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -280,7 +320,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
-  // ✅ Photo Option Widget
+  // âœ… Photo Option Widget
   Widget _buildPhotoOption({
     required IconData icon,
     required String label,
@@ -315,13 +355,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _detailPurple,
       body: NestedScrollView(
         controller: _scrollController,
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             _buildAppBar(),
             _buildHeroSection(),
+            _buildTabBar(),
           ];
         },
         body: TabBarView(
@@ -335,50 +376,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomTabBar(),
-    );
-  }
-
-  Widget _buildBottomTabBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: kNeutral200, width: 1)),
-      ),
-      child: SafeArea(
-        child: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          indicator: UnderlineTabIndicator(
-            borderSide: BorderSide(color: _primaryColor, width: 3),
-            insets: const EdgeInsets.symmetric(horizontal: 20),
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(4),
-              bottomRight: Radius.circular(4),
-            ),
-          ),
-          labelColor: _primaryColor,
-          unselectedLabelColor: kNeutral500,
-          labelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.2,
-          ),
-          labelPadding: EdgeInsets.zero,
-          tabs: const [
-            Tab(height: 56, text: 'Profile'),
-            Tab(height: 56, text: 'Breeding'),
-            Tab(height: 56, text: 'Tasks'),
-            Tab(height: 56, text: 'Stats'),
-            Tab(height: 56, text: 'Records'),
-          ],
-        ),
-      ),
     );
   }
 
@@ -387,26 +384,36 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return SliverAppBar(
       pinned: true,
       elevation: 0,
-      backgroundColor: _heroTopColor,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: _primaryColor, size: 20),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title: Text(
-        '${_currentRabbit.type.name.toUpperCase()} • ${_currentRabbit.breed.toUpperCase()}',
-        style: TextStyle(
-          color: _primaryColor.withOpacity(0.8),
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
+      toolbarHeight: 48,
+      backgroundColor: _detailPurple,
+      leadingWidth: 118,
+      leading: InkWell(
+        onTap: () => Navigator.pop(context),
+        child: const Row(
+          children: [
+            SizedBox(width: 14),
+            Icon(Icons.arrow_back_ios_new, color: Color(0xFF4F4F56), size: 20),
+            SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Herd',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Color(0xFF4F4F56),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       actions: [
         IconButton(
-          icon: Icon(PhosphorIcons.dotsThreeVertical(), color: _primaryColor, size: 24),
+          icon: const Icon(Icons.more_vert, color: Color(0xFF787880), size: 26),
           onPressed: _openActionSheet,
         ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -418,32 +425,23 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              _heroTopColor,
-              kNeutral100,
-            ],
-          ),
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        color: _heroBackgroundColor,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ✅ Avatar
+            // âœ… Avatar
             Container(
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(14),
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: _primaryColor.withOpacity(0.15),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
                 border: Border.all(color: Colors.white, width: 3),
@@ -457,62 +455,44 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
               child: hasPhoto && photoPath != null && File(photoPath).existsSync()
                   ? null
                   : Icon(
-                      _currentRabbit.type == RabbitType.doe ? PhosphorIconsDuotone.rabbit : PhosphorIconsDuotone.rabbit, // Or appropriate icon
+                      PhosphorIconsDuotone.rabbit,
                       size: 44,
                       color: _primaryColor,
                     ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             // Info
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          _currentRabbit.name,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: _primaryColor,
-                            letterSpacing: -0.6,
-                            height: 1.1,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _calculateAge(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: _primaryColor.withOpacity(0.5),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '${_currentRabbit.breederPrefix != null && _currentRabbit.breederPrefix!.isNotEmpty ? '${_currentRabbit.breederPrefix} ' : ''}${_currentRabbit.name}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF4A4451),
+                      letterSpacing: -0.5,
+                      height: 1.1,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${_currentRabbit.breed} • ${_currentRabbit.color ?? "Unknown"}',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: _primaryColor.withOpacity(0.75),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6A6171),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   // Badges
                   _buildBadge(
                     _getStatusDisplayText(),
                     Colors.white,
-                    _primaryColor,
-                    hasShadow: true,
+                    const Color(0xFF4A4A4A),
                   ),
                 ],
               ),
@@ -531,23 +511,18 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     return _getStatusText(_currentRabbit.status).toUpperCase();
   }
 
-  Widget _buildBadge(String text, Color bg, Color textColor, {bool hasShadow = false}) {
+  Widget _buildBadge(String text, Color bg, Color textColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: hasShadow
-            ? [
-                BoxShadow(color: _primaryColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))
-              ]
-            : null,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text.toUpperCase(),
         style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w800,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
           color: textColor,
           letterSpacing: 0.8,
         ),
@@ -561,36 +536,41 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       pinned: true,
       delegate: _TabBarDelegate(
         PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: TabBar(
-            controller: _tabController,
-            isScrollable: false,
-            indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(color: _primaryColor, width: 2),
-              insets: const EdgeInsets.symmetric(horizontal: 32),
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            color: _detailTabGray,
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: false,
+              indicatorSize: TabBarIndicatorSize.label,
+              indicator: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.white, width: 3),
+                ),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: _detailTabInactive,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+              labelPadding: EdgeInsets.zero,
+              padding: EdgeInsets.zero,
+              indicatorPadding: EdgeInsets.zero,
+              tabs: const [
+                Tab(text: 'PROFILE'),
+                Tab(text: 'BREEDING'),
+                Tab(text: 'TASKS'),
+                Tab(text: 'STATS'),
+                Tab(text: 'RECORDS'),
+              ],
             ),
-            labelColor: _primaryColor,
-            unselectedLabelColor: kNeutral600,
-            labelStyle: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0,
-            ),
-            labelPadding: EdgeInsets.zero,
-            padding: EdgeInsets.zero,
-            indicatorPadding: EdgeInsets.zero,
-            tabs: const [
-              Tab(icon: Icon(PhosphorIconsDuotone.rabbit, size: 18), text: 'Profile', iconMargin: EdgeInsets.only(bottom: 2)),
-              Tab(icon: Icon(PhosphorIconsDuotone.heart, size: 18), text: 'Breeding', iconMargin: EdgeInsets.only(bottom: 2)),
-              Tab(icon: Icon(PhosphorIconsDuotone.checkSquare, size: 18), text: 'Tasks', iconMargin: EdgeInsets.only(bottom: 2)),
-              Tab(icon: Icon(PhosphorIconsDuotone.chartBar, size: 18), text: 'Stats', iconMargin: EdgeInsets.only(bottom: 2)),
-              Tab(icon: Icon(PhosphorIconsDuotone.folderSimple, size: 18), text: 'Records', iconMargin: EdgeInsets.only(bottom: 2)),
-            ],
           ),
         ),
         showShadow: _showTabShadow,
@@ -605,12 +585,17 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('QUICK INFO'),
+          _buildSectionHeader('MARKERS'),
           QuickInfoCard(
             key: ValueKey('${_currentRabbit.id}_$_refreshCounter'),
             rabbit: _currentRabbit,
             isEditing: false,
           ),
+          if (SettingsService.instance.showRabbitryEnabled) ...[
+            const SizedBox(height: 24),
+            _buildSectionHeader('SHOW WINNINGS'),
+            RegistrationCard(rabbit: _currentRabbit),
+          ],
           const SizedBox(height: 24),
           _buildSectionHeader('PARENTAGE'),
           ParentageCard(
@@ -623,13 +608,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             },
           ),
           const SizedBox(height: 24),
-          _buildSectionHeader('GENETICS'),
+          _buildSectionHeader('GENOTYPE'),
           GeneticsCard(rabbit: _currentRabbit, isEditing: false),
-          if (SettingsService.instance.showRabbitryEnabled) ...[
-            const SizedBox(height: 24),
-            _buildSectionHeader('REGISTRATION'),
-            RegistrationCard(rabbit: _currentRabbit),
-          ],
           const SizedBox(height: 40),
         ],
       ),
@@ -638,14 +618,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: const TextStyle(
-          fontSize: 10,
+          fontSize: 13,
           fontWeight: FontWeight.w800,
-          color: kNeutral500,
-          letterSpacing: 0.6,
+          color: _detailSectionText,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -653,7 +633,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Widget _buildBreedingTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -765,10 +745,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('UPCOMING TASKS'),
           TasksCard(rabbit: _currentRabbit),
           const SizedBox(height: 24),
-          _buildSectionHeader('HEALTH RECORDS'),
           HealthRecordsCard(rabbit: _currentRabbit),
         ],
       ),
@@ -778,19 +756,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   Widget _buildStatsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('BREEDING STATS'),
-          _buildBreedingStats(),
-          const SizedBox(height: 24),
-          _buildSectionHeader('ANALYTICS'),
-          StatsCards(
-            rabbit: _currentRabbit,
-            onAddTransaction: () => _showAddTransactionDialog(),
-            onViewAllTransactions: () => _navigateToTransactions(),
-          ),
-        ],
+      child: StatsCards(
+        rabbit: _currentRabbit,
+        onAddTransaction: () => _showAddTransactionDialog(),
+        onViewAllTransactions: () => _navigateToTransactions(),
       ),
     );
   }
@@ -801,10 +770,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NotesCard(rabbit: _currentRabbit),
-          const SizedBox(height: 24),
-          DocumentsCard(rabbit: _currentRabbit),
-          const SizedBox(height: 24),
           PedigreeInlineCard(
             rabbit: _currentRabbit,
             onUpdated: () async {
@@ -816,12 +781,16 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           ),
           const SizedBox(height: 24),
           CertificateCard(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
+          DocumentsCard(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
+          NotesCard(rabbit: _currentRabbit),
         ],
       ),
     );
   }
 
-  // ✅ Show Add Transaction Modal
+  // âœ… Show Add Transaction Modal
   void _showAddTransactionDialog() {
     showModalBottomSheet(
       context: context,
@@ -1062,7 +1031,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     HomeDashboardScreen.switchToTab(4, rabbitId: _currentRabbit.id);
   }
 
-  // ✅ Helper Methods
+  // âœ… Helper Methods
   String _getStatusText(RabbitStatus status) {
     switch (status) {
       case RabbitStatus.open:
@@ -1122,7 +1091,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     }
   }
 
-  // ✅ Action Methods
+  // âœ… Action Methods
   void _openActionSheet() {
     showModalBottomSheet(
       context: context,
@@ -1160,14 +1129,33 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildMenuItem(Icons.edit, 'Edit Rabbit', _showEditRabbitScreen),
-                    _buildMenuItem(Icons.swap_horiz, 'Move Cage', _showMoveCageModal),
-                    _buildMenuItem(Icons.scale, 'Log Weight', _showLogWeightModal),
-                    _buildMenuItem(Icons.medical_services, 'Add Health Record', _showHealthRecordModal),
-                    _buildMenuItem(Icons.camera_alt, 'Change Photo', _showImagePickerOptions),
-                    const Divider(),
-                    _buildMenuItem(Icons.archive, 'Archive Rabbit', _showArchiveModal, isDestructive: true),
-                    _buildMenuItem(Icons.delete_forever, 'Delete Rabbit', _confirmDeleteRabbit, isDestructive: true),
+                    _buildMenuItem(Icons.edit, 'Edit Profile', _showEditRabbitScreen),
+                    if (_currentRabbit.status != RabbitStatus.quarantine)
+                      _buildMenuItem(Icons.shield_outlined, 'Quarantine', () {
+                        Navigator.pop(context);
+                        _showQuarantineModal();
+                      })
+                    else
+                      _buildMenuItem(Icons.check_circle_outline, 'Stop Quarantine', () {
+                        Navigator.pop(context);
+                        _showStopQuarantineModal();
+                      }),
+                    _buildMenuItem(Icons.shopping_cart_outlined, 'Sell', () {
+                      Navigator.pop(context);
+                      _showArchiveModalWithReason(ArchiveReason.sold);
+                    }),
+                    _buildMenuItem(Icons.gavel_outlined, 'Cull', () {
+                      Navigator.pop(context);
+                      _showArchiveModalWithReason(ArchiveReason.cull);
+                    }),
+                    _buildMenuItem(Icons.sentiment_very_dissatisfied_outlined, 'Died', () {
+                      Navigator.pop(context);
+                      _showArchiveModalWithReason(ArchiveReason.dead);
+                    }),
+                    _buildMenuItem(Icons.delete_forever, 'Delete', () {
+                      Navigator.pop(context);
+                      _confirmDeleteRabbit();
+                    }, isDestructive: true),
                   ],
                 ),
               ),
@@ -1175,6 +1163,52 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showQuarantineModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => QuarantineModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          _refreshRabbitData();
+        },
+      ),
+    );
+  }
+
+  void _showStopQuarantineModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StopQuarantineModal(
+        rabbit: _currentRabbit,
+        onComplete: () {
+          Navigator.pop(context);
+          _refreshRabbitData();
+        },
+      ),
+    );
+  }
+
+  void _showArchiveModalWithReason(ArchiveReason reason) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ArchiveModal(
+        rabbit: _currentRabbit,
+        preselectedReason: reason,
+        onComplete: () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -1318,11 +1352,11 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(bottom: BorderSide(color: kNeutral200)),
+        color: _RabbitDetailScreenState._detailTabGray,
+        border: const Border(bottom: BorderSide(color: Color(0xFF888794))),
         boxShadow: showShadow
             ? [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 3, offset: const Offset(0, 1))
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))
               ]
             : null,
       ),
@@ -1333,3 +1367,4 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_TabBarDelegate oldDelegate) => showShadow != oldDelegate.showShadow || tabBar != oldDelegate.tabBar;
 }
+

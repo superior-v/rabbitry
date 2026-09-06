@@ -25,9 +25,6 @@ const kPinkDeep = Color(0xFFD4809A);
 const kPinkLight = Color(0xFFFADCE5);
 const kPinkWash = Color(0xFFFDF2F5);
 const kPinkText = Color(0xFFB5567A);
-const kPinkHeroTop = Color(0xFFF6E0E6);
-
-const kBlueHeroTop = Color(0xFFE0E6F6);
 
 const kNeutral900 = Color(0xFF2C2C2E);
 const kNeutral800 = Color(0xFF3A3A3C);
@@ -43,3 +40,5 @@ const kNeutral50 = Color(0xFFFCFCFD);
 /// Gender specific colors
 const kMaleColor = Color(0xFF5B8AD0); // Matches kBlueDeep
 const kFemaleColor = Color(0xFFD4809A); // Matches kPinkDeep
+const kHeaderPink = Color(0xFFFFBCE7); // Lighter soft pastel pink
+
