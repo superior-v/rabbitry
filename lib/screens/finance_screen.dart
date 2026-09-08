@@ -37,11 +37,18 @@ class FinanceScreen extends StatefulWidget {
   const FinanceScreen({Key? key, this.initialRabbitId}) : super(key: key);
 
   @override
-  _FinanceScreenState createState() => _FinanceScreenState();
+  FinanceScreenState createState() => FinanceScreenState();
 }
 
-class _FinanceScreenState extends State<FinanceScreen> {
+class FinanceScreenState extends State<FinanceScreen> {
   final DatabaseService _db = DatabaseService();
+  final ScrollController _scrollController = ScrollController();
+
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
 
   List<Transaction> _transactions = [];
   List<Rabbit> _rabbits = [];
@@ -69,6 +76,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   @override
   void dispose() {
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -237,18 +245,19 @@ class _FinanceScreenState extends State<FinanceScreen> {
       backgroundColor: kFinanceHeaderPurple,
       elevation: 0,
       scrolledUnderElevation: 0,
-      centerTitle: false,
+      centerTitle: true,
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF787880), size: 24),
+          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
           const SizedBox(width: 8),
           const Text(
             'Finance',
             style: TextStyle(
-              color: kNeutral700,
-              fontSize: 19,
+              color: Color(0xFF4F4F56),
+              fontSize: 20,
               fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
+              letterSpacing: -0.3,
             ),
           ),
         ],
@@ -256,36 +265,34 @@ class _FinanceScreenState extends State<FinanceScreen> {
       actions: [
         // Date filter button
         Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
-            onTap: _showDateFilterDialog,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: kNeutral200,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: const Color(0xFF787880)),
-                  const SizedBox(width: 6),
-                  Text(
-                    _getDateFilterLabel(),
-                    style: const TextStyle(
-                      color: kNeutral700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+          padding: const EdgeInsets.only(right: 16),
+          child: Center(
+            child: GestureDetector(
+              onTap: _showDateFilterDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: kNeutral200,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: const Color(0xFF787880)),
+                    const SizedBox(width: 6),
+                    Text(
+                      _getDateFilterLabel(),
+                      style: const TextStyle(
+                        color: kNeutral700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        // Export button
-        IconButton(
-          icon: Icon(PhosphorIcons.export(PhosphorIconsStyle.duotone), color: const Color(0xFF787880)),
-          onPressed: _exportData,
         ),
       ],
     );
@@ -601,6 +608,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       itemCount: grouped.length,
       itemBuilder: (context, index) {
@@ -706,6 +714,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       });
 
     return ListView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.all(16),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
@@ -823,6 +832,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       });
 
     return ListView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.all(16),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
@@ -924,6 +934,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       });
 
     return ListView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.all(16),
       itemCount: sortedCategories.length,
       itemBuilder: (context, index) {
@@ -1018,6 +1029,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     }
 
     return ListView(
+      controller: _scrollController,
       padding: EdgeInsets.all(16),
       children: [
         // Batch transactions

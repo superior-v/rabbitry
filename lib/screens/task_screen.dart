@@ -33,6 +33,20 @@ class TaskScreen extends StatefulWidget {
 
 class TaskScreenState extends State<TaskScreen> {
   final DatabaseService _db = DatabaseService();
+  final ScrollController _scrollController = ScrollController();
+
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   String _selectedCategory = 'All'; // Matches the tabs in tasks.html
   String _breedFilter = 'All';
   String _searchQuery = '';
@@ -671,7 +685,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   PreferredSizeWidget _buildHeader() {
     return AppBar(
-      backgroundColor: kTaskHeaderPurple,
+      backgroundColor: const Color(0xFFE6BEFE),
       elevation: 0,
       centerTitle: true,
       leadingWidth: 0,
@@ -679,15 +693,15 @@ class TaskScreenState extends State<TaskScreen> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF5E4E7A), size: 24),
+          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
           const SizedBox(width: 8),
           const Text(
             'Tasks',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Color(0xFF2B2138),
-              letterSpacing: -0.2,
+              color: Color(0xFF4F4F56),
+              letterSpacing: -0.3,
             ),
           ),
         ],
@@ -811,6 +825,7 @@ class TaskScreenState extends State<TaskScreen> {
     }
 
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       children: [
         // DUE SECTION
@@ -1624,6 +1639,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildBreedingPlanView() {
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       children: [
         _buildSectionTitle('PLANNED MATINGS', _breedingPlans.length),
@@ -1655,6 +1671,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildContactsView() {
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       children: [
         _buildSectionTitle('BREEDER CONTACTS', _contacts.length),

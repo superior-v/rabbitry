@@ -81,9 +81,11 @@ class HomeDashboardScreen extends StatefulWidget {
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedNavIndex = 0;
 
-  final GlobalKey<_KindleHomeScreenState> _homeTabKey = GlobalKey<_KindleHomeScreenState>();
+  final GlobalKey<KindleHomeScreenState> _homeTabKey = GlobalKey<KindleHomeScreenState>();
+  final GlobalKey<HerdScreenState> _herdTabKey = GlobalKey<HerdScreenState>();
+  final GlobalKey<LittersScreenState> _littersTabKey = GlobalKey<LittersScreenState>();
   final GlobalKey<TaskScreenState> _taskTabKey = GlobalKey<TaskScreenState>();
-  final GlobalKey<State<FinanceScreen>> _financeTabKey = GlobalKey<State<FinanceScreen>>();
+  final GlobalKey<FinanceScreenState> _financeTabKey = GlobalKey<FinanceScreenState>();
   late final List<Widget> _navScreens;
 
   @override
@@ -91,8 +93,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     super.initState();
     _navScreens = [
       KindleHomeScreen(key: _homeTabKey),
-      HerdScreen(),
-      LittersScreen(),
+      HerdScreen(key: _herdTabKey),
+      LittersScreen(key: _littersTabKey),
       TaskScreen(key: _taskTabKey),
       FinanceScreen(key: _financeTabKey),
     ];
@@ -100,8 +102,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   void _onNavTap(int index) {
     setState(() => _selectedNavIndex = index);
-    if (index == 0) _homeTabKey.currentState?._loadData(showLoading: false);
-    if (index == 3) _taskTabKey.currentState?.refresh();
+    if (index == 0) {
+      _homeTabKey.currentState?._loadData(showLoading: false);
+      _homeTabKey.currentState?.scrollToTop();
+    } else if (index == 1) {
+      _herdTabKey.currentState?.scrollToTop();
+    } else if (index == 2) {
+      _littersTabKey.currentState?.scrollToTop();
+    } else if (index == 3) {
+      _taskTabKey.currentState?.refresh();
+      _taskTabKey.currentState?.scrollToTop();
+    } else if (index == 4) {
+      _financeTabKey.currentState?.scrollToTop();
+    }
   }
 
   void switchTab(int index) {
@@ -167,11 +180,12 @@ class KindleHomeScreen extends StatefulWidget {
   const KindleHomeScreen({Key? key}) : super(key: key);
 
   @override
-  _KindleHomeScreenState createState() => _KindleHomeScreenState();
+  KindleHomeScreenState createState() => KindleHomeScreenState();
 }
 
-class _KindleHomeScreenState extends State<KindleHomeScreen> {
+class KindleHomeScreenState extends State<KindleHomeScreen> {
   final DatabaseService _db = DatabaseService();
+  final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
   String _breedFilter = 'All';
   List<String> _availableBreeds = [];
@@ -185,6 +199,12 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
   int _tasksDue = 0;
 
   Map<String, List<Map<String, dynamic>>> _kindleByBreed = {};
+
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
 
   @override
   void initState() {
@@ -200,14 +220,12 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
   @override
   void dispose() {
     dataChangeNotifier.removeListener(_onDataChanged);
+    _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _loadData({bool showLoading = true}) async {
-    if (!mounted) return;
-    if (showLoading) {
-      setState(() => _isLoading = true);
-    }
+    if (showLoading) setState(() => _isLoading = true);
     try {
       final rabbits = await _db.getAllRabbits();
       final litters = await _db.getLitters();
@@ -349,6 +367,7 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
         onRefresh: () => _loadData(showLoading: false),
         color: kLilacDeep,
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
@@ -367,9 +386,24 @@ class _KindleHomeScreenState extends State<KindleHomeScreen> {
       backgroundColor: kAppBgPurple,
       elevation: 0,
       centerTitle: true,
-      title: Text(
-        SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kNeutral700, letterSpacing: -0.3),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(PhosphorIcons.house(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
+              style: const TextStyle(
+                color: Color(0xFF4F4F56),
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
       actions: [
         IconButton(

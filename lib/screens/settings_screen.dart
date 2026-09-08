@@ -4620,30 +4620,42 @@ class _PipelineDayInputField extends StatefulWidget {
 
 class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value.toString());
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        if (_controller.text.isEmpty) {
+          _controller.text = '0';
+          widget.onChanged(0);
+        }
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant _PipelineDayInputField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
-      final currentNum = int.tryParse(_controller.text);
-      if (currentNum != widget.value) {
+      if (!_focusNode.hasFocus) {
         final newText = widget.value.toString();
-        _controller.value = TextEditingValue(
-          text: newText,
-          selection: TextSelection.collapsed(offset: newText.length),
-        );
+        if (_controller.text != newText) {
+          _controller.value = TextEditingValue(
+            text: newText,
+            selection: TextSelection.collapsed(offset: newText.length),
+          );
+        }
       }
     }
   }
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -4661,6 +4673,7 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
       ),
       child: TextField(
         controller: _controller,
+        focusNode: _focusNode,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         inputFormatters: [
@@ -4689,4 +4702,5 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
     );
   }
 }
+
 

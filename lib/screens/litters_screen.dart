@@ -24,10 +24,17 @@ class LittersScreen extends StatefulWidget {
   const LittersScreen({Key? key, this.initialLitterId}) : super(key: key);
 
   @override
-  _LittersScreenState createState() => _LittersScreenState();
+  LittersScreenState createState() => LittersScreenState();
 }
 
-class _LittersScreenState extends State<LittersScreen> {
+class LittersScreenState extends State<LittersScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+  }
 
   final DatabaseService _db = DatabaseService();
 
@@ -192,7 +199,7 @@ class _LittersScreenState extends State<LittersScreen> {
                     'Nursery Manager',
                     style: TextStyle(
                       color: Color(0xFF4F4F56),
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
                     ),
@@ -666,6 +673,7 @@ class _LittersScreenState extends State<LittersScreen> {
 
     if (_grouping == 'none') {
       return ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         itemCount: filtered.length,
         itemBuilder: (context, index) => _buildLitterCard(filtered[index]),
@@ -684,6 +692,7 @@ class _LittersScreenState extends State<LittersScreen> {
     List<String> sortedKeys = groups.keys.toList()..sort();
 
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       children: sortedKeys.map((key) {
         return Column(
@@ -5810,6 +5819,7 @@ class _LittersScreenState extends State<LittersScreen> {
   void dispose() {
     dataChangeNotifier.removeListener(_onDataChanged);
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 }

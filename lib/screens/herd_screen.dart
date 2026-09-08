@@ -59,11 +59,20 @@ class HerdScreen extends StatefulWidget {
   const HerdScreen({Key? key}) : super(key: key);
 
   @override
-  _HerdScreenState createState() => _HerdScreenState();
+  HerdScreenState createState() => HerdScreenState();
 }
 
-class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
+class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ScrollController _doeScrollController = ScrollController();
+  final ScrollController _buckScrollController = ScrollController();
+  final ScrollController _archiveScrollController = ScrollController();
+
+  void scrollToTop() {
+    if (_doeScrollController.hasClients) _doeScrollController.jumpTo(0.0);
+    if (_buckScrollController.hasClients) _buckScrollController.jumpTo(0.0);
+    if (_archiveScrollController.hasClients) _archiveScrollController.jumpTo(0.0);
+  }
   String _currentFilter = 'All'; // This is for status
   String _breedFilter = 'All'; // This is for breed
   String _searchQuery = '';
@@ -1254,6 +1263,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         _buildCountHeader(filtered.length),
         Expanded(
           child: ListView.builder(
+            controller: _archiveScrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: filtered.length,
             itemBuilder: (context, index) => _buildRedesignedRabbitCard(filtered[index]),
@@ -1467,6 +1477,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
           _buildCountHeader(filtered.length),
           Expanded(
             child: ListView.builder(
+              controller: type == RabbitType.doe ? _doeScrollController : _buckScrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: filtered.length,
               itemBuilder: (context, index) {
@@ -1497,6 +1508,7 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
         _buildCountHeader(filtered.length),
         Expanded(
           child: ListView(
+            controller: type == RabbitType.doe ? _doeScrollController : _buckScrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: sortedKeys.map((key) {
               return Column(
@@ -2447,6 +2459,9 @@ class _HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMi
 
   @override
   void dispose() {
+    _doeScrollController.dispose();
+    _buckScrollController.dispose();
+    _archiveScrollController.dispose();
     _tabController.dispose();
     _searchController.dispose();
     _searchFocusNode.removeListener(_handleSearchFocusChange);
