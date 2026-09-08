@@ -508,6 +508,7 @@ class TaskScreenState extends State<TaskScreen> {
           showModalBottomSheet(
               context: context,
               isScrollControlled: true,
+              enableDrag: false,
               backgroundColor: Colors.transparent,
               builder: (context) => LogBirthModal(
                   doe: rabbit!,
@@ -812,7 +813,7 @@ class TaskScreenState extends State<TaskScreen> {
       backgroundColor: const Color(0xFFE6BEFE),
       elevation: 6,
       shape: const CircleBorder(),
-      child: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), color: kLilacText, size: 28),
+      child: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), color: Colors.white, size: 28),
     );
   }
 

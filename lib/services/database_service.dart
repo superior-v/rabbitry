@@ -1907,7 +1907,20 @@ class DatabaseService {
       for (var map in result) {
         try {
           final litter = Litter.fromMap(map);
-          litters.add(await _resolveLitterPhotos(litter));
+          final ageDays = DateTime.now().difference(litter.dob).inDays;
+          // If the litter is < 49 days old (e.g. 3 weeks old) and has kits mistakenly marked 'Weaned', heal them to 'Nursing'
+          Litter cleanedLitter = litter;
+          if (ageDays < 49 && litter.kits.any((k) => k.status.toLowerCase() == 'weaned')) {
+            final healedKits = litter.kits.map((k) {
+              if (k.status.toLowerCase() == 'weaned') {
+                return k.copyWith(status: 'Nursing');
+              }
+              return k;
+            }).toList();
+            cleanedLitter = litter.copyWith(kits: healedKits);
+            db.update('litters', cleanedLitter.toMap(), where: 'id = ?', whereArgs: [cleanedLitter.id]).ignore();
+          }
+          litters.add(await _resolveLitterPhotos(cleanedLitter));
         } catch (e) {
           print('  ❌ Error parsing litter ${map['id']}: $e');
         }
@@ -3206,9 +3219,11 @@ class DatabaseService {
         final litterList = await db.query('litters', where: 'id = ?', whereArgs: [txn.litterId]);
         if (litterList.isNotEmpty) {
           final litter = Litter.fromMap(litterList.first);
+          final ageDays = DateTime.now().difference(litter.dob).inDays;
+          final restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
           final updatedKits = litter.kits.map((k) {
             if (k.id.toString() == txn.kitId) {
-              return k.copyWith(status: 'Weaned', price: 0);
+              return k.copyWith(status: restoredStatus, price: null, details: null);
             }
             return k;
           }).toList();
@@ -3219,7 +3234,7 @@ class DatabaseService {
             where: 'id = ?',
             whereArgs: [litter.id],
           );
-          print('🔄 Restored Kit ${litter.id}-${txn.kitId} status to Weaned due to sale transaction deletion.');
+          print('🔄 Restored Kit ${litter.id}-${txn.kitId} status to $restoredStatus due to sale transaction deletion.');
         }
       }
       

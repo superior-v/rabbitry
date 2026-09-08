@@ -461,6 +461,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           showModalBottomSheet(
                             context: context,
                             isScrollControlled: true,
+                            enableDrag: false,
                             backgroundColor: Colors.transparent,
                             builder: (_) => LogBirthModal(
                               doe: widget.rabbit,

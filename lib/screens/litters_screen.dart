@@ -36,6 +36,10 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
+  Future<void> refresh() async {
+    await _refreshLitters();
+  }
+
   final DatabaseService _db = DatabaseService();
 
   String _currentStage = 'All';
@@ -171,7 +175,7 @@ class LittersScreenState extends State<LittersScreen> {
         child: Icon(
           PhosphorIcons.plus(PhosphorIconsStyle.bold),
           size: 28,
-          color: kLilacText,
+          color: Colors.white,
         ),
       ),
     );
@@ -728,6 +732,7 @@ class LittersScreenState extends State<LittersScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        enableDrag: false,
         backgroundColor: Colors.transparent,
         builder: (context) => LogBirthModal(doe: doe, existingLitter: litter, onComplete: () => _refreshLitters()),
       );
@@ -1633,6 +1638,7 @@ class LittersScreenState extends State<LittersScreen> {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
+                      enableDrag: false,
                       backgroundColor: Colors.transparent,
                       builder: (context) => LogBirthModal(doe: doe, existingLitter: litter, onComplete: () => _loadLitters()),
                     );

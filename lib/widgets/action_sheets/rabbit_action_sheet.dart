@@ -551,6 +551,7 @@ class RabbitActionSheet extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (context) => LogBirthModal(
         doe: rabbit,

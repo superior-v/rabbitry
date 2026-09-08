@@ -18,6 +18,7 @@ import '../services/settings_service.dart';
 import '../services/format_utils.dart';
 import '../widgets/modals/log_birth_modal.dart';
 import '../widgets/modals/confirm_pregnancy_modal.dart';
+import '../widgets/modals/log_breeding_modal.dart';
 import '../services/app_event_service.dart';
 
 // === EXACT HTML PALETTE ===
@@ -106,13 +107,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _homeTabKey.currentState?._loadData(showLoading: false);
       _homeTabKey.currentState?.scrollToTop();
     } else if (index == 1) {
+      _herdTabKey.currentState?.refresh();
       _herdTabKey.currentState?.scrollToTop();
     } else if (index == 2) {
+      _littersTabKey.currentState?.refresh();
       _littersTabKey.currentState?.scrollToTop();
     } else if (index == 3) {
       _taskTabKey.currentState?.refresh();
       _taskTabKey.currentState?.scrollToTop();
     } else if (index == 4) {
+      _financeTabKey.currentState?.refresh();
       _financeTabKey.currentState?.scrollToTop();
     }
   }
@@ -234,29 +238,47 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       final today = DateTime(now.year, now.month, now.day);
       final monthStart = DateTime(now.year, now.month, 1);
 
-      // Litters: Current number of nursing litters
-      _activeLitters = litters.where((l) => l.status.toLowerCase() == 'nursing').length;
+      // Litters: Current number of active nursing litters (same as All in Nursery Manager)
+      _activeLitters = litters.where((litter) {
+        final lStatus = litter.status.toLowerCase().trim();
+        final aliveCount = litter.aliveKits ?? litter.kits.where((k) => !k.isArchived).length;
+        if (aliveCount == 0 ||
+            lStatus == 'died' ||
+            lStatus == 'dead' ||
+            lStatus == 'archived' ||
+            lStatus == 'not taken') {
+          return false;
+        }
+        return true;
+      }).length;
 
       // Breeders: Current number of active does and bucks
       _breederCount = rabbits.where((r) => (r.type == RabbitType.doe || r.type == RabbitType.buck) && r.status != RabbitStatus.archived).length;
 
-      // Nursing Kits: Current number of kits being nursed in nursing litters
-      _nursingKits = litters.where((l) => l.status.toLowerCase() == 'nursing').fold(0, (sum, l) => sum + l.kits.where((k) => k.status.toLowerCase() == 'nursing' || (k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'archived')).length);
-
-      // Weaned Kits: Kits that are 7 weeks (49 days) or older, or status is Weaned / Growout
+      // Kits calculation:
+      // Nursing kits: non-archived kits with age < 49 days (7 weeks)
+      // Weaned kits: non-archived kits with age >= 49 days (7 weeks)
+      int nursingKits = 0;
       int kitsWeaned = 0;
       for (final litter in litters) {
-        final dob = litter.dob;
-        final ageInDays = dob != null ? today.difference(dob).inDays : 0;
+        final lStatus = litter.status.toLowerCase().trim();
+        if (lStatus == 'died' || lStatus == 'dead' || lStatus == 'archived' || lStatus == 'not taken') continue;
+
+        final ageInDays = today.difference(litter.dob).inDays;
+
         for (final kit in litter.kits) {
-          final st = kit.status.toLowerCase();
-          if (st != 'died' && st != 'dead' && st != 'archived' && st != 'sold') {
-            if (st == 'weaned' || st == 'growout' || ageInDays >= 49) {
-              kitsWeaned++;
-            }
+          if (kit.isArchived) continue;
+          final st = kit.status.toLowerCase().trim();
+          if (st == 'sold' || st == 'dead' || st == 'died' || st == 'archived' || st == 'cull' || st == 'butchered') continue;
+
+          if (ageInDays >= 49) {
+            kitsWeaned++;
+          } else {
+            nursingKits++;
           }
         }
       }
+      _nursingKits = nursingKits;
       _kitsWeanedCount = kitsWeaned;
 
       final transactions = await _db.getAllTransactions();
@@ -376,6 +398,27 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               const SizedBox(height: 100),
             ],
           ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'home_log_breeding_fab',
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => LogBreedingModal(
+              onComplete: _loadData,
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFFE6BEFE),
+        shape: const CircleBorder(),
+        elevation: 6,
+        child: Icon(
+          PhosphorIcons.plus(PhosphorIconsStyle.bold),
+          color: Colors.white,
+          size: 28,
         ),
       ),
     );
@@ -613,7 +656,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF3A3A3C),
+              color: Color(0xFF4F4F56),
             ),
           ),
         ),
@@ -669,6 +712,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
+            enableDrag: false,
             backgroundColor: Colors.transparent,
             builder: (_) => LogBirthModal(
               doe: entry['doe'],
@@ -851,34 +895,17 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               ListTile(
                 leading: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.duotone), color: kNeutral700),
                 title: const Text('Edit Breeding', style: TextStyle(fontWeight: FontWeight.w600)),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(context);
-                  final pickedDate = await showDatePicker(
+                  showModalBottomSheet(
                     context: context,
-                    initialDate: doe.kindleDate ?? DateTime.now().add(const Duration(days: 31)),
-                    firstDate: DateTime.now().subtract(const Duration(days: 31)),
-                    lastDate: DateTime.now().add(const Duration(days: 45)),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: kPinkDeep,
-                            onPrimary: Colors.white,
-                            onSurface: kNeutral900,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => LogBreedingModal(
+                      doe: doe,
+                      onComplete: _loadData,
+                    ),
                   );
-                  if (pickedDate != null) {
-                    final updatedDoe = doe.copyWith(
-                      kindleDate: pickedDate,
-                      dueDate: pickedDate,
-                    );
-                    await _db.updateRabbit(updatedDoe);
-                    _loadData();
-                  }
                 },
               ),
               ListTile(

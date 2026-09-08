@@ -50,6 +50,10 @@ class FinanceScreenState extends State<FinanceScreen> {
     }
   }
 
+  Future<void> refresh() async {
+    await _loadData();
+  }
+
   List<Transaction> _transactions = [];
   List<Rabbit> _rabbits = [];
   // ignore: unused_field
@@ -234,7 +238,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         child: Icon(
           PhosphorIcons.plus(PhosphorIconsStyle.bold),
           size: 28,
-          color: kLilacText,
+          color: Colors.white,
         ),
       ),
     );

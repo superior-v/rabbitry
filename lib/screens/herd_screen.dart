@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/action_sheets/rabbit_action_sheet.dart';
 import 'home_dashboard_screen.dart';
+import '../services/app_event_service.dart';
 
 // Re-defining for local scope consistency or using imported ones
 const kPrimary = Color(0xFF5E4A8A);
@@ -114,6 +115,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     _searchFocusNode.canRequestFocus = false;
     _searchFocusNode.addListener(_handleSearchFocusChange);
     _loadData();
+    dataChangeNotifier.addListener(_onDataChanged);
+  }
+
+  void _onDataChanged() {
+    if (mounted) _refreshData();
+  }
+
+  Future<void> refresh() async {
+    await _refreshData();
   }
 
   void _handleSearchFocusChange() {
@@ -519,7 +529,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Icon(
                 PhosphorIcons.plus(PhosphorIconsStyle.bold),
                 size: 28,
-                color: const Color(0xFF463466),
+                color: Colors.white,
               ),
             )
           : null,
@@ -2459,6 +2469,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   @override
   void dispose() {
+    dataChangeNotifier.removeListener(_onDataChanged);
     _doeScrollController.dispose();
     _buckScrollController.dispose();
     _archiveScrollController.dispose();

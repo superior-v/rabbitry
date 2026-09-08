@@ -1754,6 +1754,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         updated.cage = _selectedCage;
 
         await _db.updateRabbit(updated);
+        notifyDataChanged();
 
         // ✅ SYNC BREEDS TO LIBRARY
         await _syncBreedToLibrary(_breedController.text);
@@ -1808,6 +1809,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         );
 
         await _db.insertRabbit(rabbit);
+        notifyDataChanged();
 
         // ✅ SYNC BREEDS TO LIBRARY
         await _syncBreedToLibrary(_breedController.text);

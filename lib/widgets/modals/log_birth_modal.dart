@@ -36,6 +36,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
   final TextEditingController _doesProducedController = TextEditingController();
   final TextEditingController _peanutsProducedController = TextEditingController();
   DateTime _kindleDate = DateTime.now();
+  DateTime? _bredDate;
   bool _isSaving = false;
   bool _isMissedLitter = false;
   String? _buckName;
@@ -57,6 +58,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
   void initState() {
     super.initState();
     _buckName = null;
+    _bredDate = widget.doe.lastBreedDate ?? widget.existingLitter?.breedDate;
     if (widget.doe.lastBreedBuckId != null) {
       _db.getRabbit(widget.doe.lastBreedBuckId!).then((buck) {
         if (buck != null && mounted) {
@@ -214,7 +216,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Birth Date: ${DateFormat('MM/dd/yyyy').format(_kindleDate)}',
+                      _bredDate != null
+                          ? 'Bred Date: ${DateFormat('MM/dd/yyyy').format(_bredDate!)}'
+                          : 'Bred Date: -',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kLilacText),
                     ),
                   ],
@@ -471,7 +475,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
             const SizedBox(width: 8),
             Text(
-              DateFormat('MM-dd-yyyy').format(value),
+              DateFormat('MM/dd/yyyy').format(value),
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
             ),
           ],
@@ -759,10 +763,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final firstAllowed = _bredDate ?? DateTime.now().subtract(const Duration(days: 90));
     final picked = await showDatePicker(
       context: context,
       initialDate: _kindleDate,
-      firstDate: DateTime.now().subtract(Duration(days: 7)),
+      firstDate: firstAllowed.isBefore(DateTime.now()) ? firstAllowed : DateTime.now().subtract(const Duration(days: 90)),
       lastDate: DateTime.now(),
     );
     if (picked != null) {

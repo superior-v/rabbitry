@@ -495,6 +495,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (context) => LogBirthModal(
         doe: widget.rabbit,
