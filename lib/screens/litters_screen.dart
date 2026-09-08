@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/litter.dart';
@@ -273,14 +274,18 @@ class LittersScreenState extends State<LittersScreen> {
 
   Widget _buildMetricCard({required String count, required String label}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+        ),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 6,
+            color: const Color(0xFF0284C7).withOpacity(0.08),
+            blurRadius: 8,
             offset: const Offset(0, 3),
           ),
         ],
@@ -291,9 +296,9 @@ class LittersScreenState extends State<LittersScreen> {
           Text(
             count,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF4A4A4A),
+              color: Color(0xFF2C2C2E),
             ),
           ),
           const SizedBox(height: 2),
@@ -301,8 +306,8 @@ class LittersScreenState extends State<LittersScreen> {
             label,
             style: const TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF787774),
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6E6E73),
             ),
           ),
         ],
@@ -1132,6 +1137,26 @@ class LittersScreenState extends State<LittersScreen> {
       'Cull'
     ].contains(kit.status);
 
+    final bool isFostered = kit.status.toLowerCase() == 'fostered' ||
+        (kit.details != null && kit.details!.toLowerCase().contains('fostered')) ||
+        kit.id.startsWith('F-') ||
+        kit.id.startsWith('foster_');
+
+    String displayKitId;
+    if (isFostered) {
+      final fosteredKitsInLitter = litter.kits.where((k) =>
+        k.status.toLowerCase() == 'fostered' ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered')) ||
+        k.id.startsWith('F-') ||
+        k.id.startsWith('foster_')
+      ).toList();
+      final fosterIndex = fosteredKitsInLitter.indexOf(kit) + 1;
+      displayKitId = 'F-${fosterIndex > 0 ? fosterIndex : 1}';
+    } else {
+      final numericPart = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      displayKitId = 'K-${numericPart.isEmpty ? (litter.kits.indexOf(kit) + 1) : numericPart}';
+    }
+
     return InkWell(
       onTap: () => _openKitDetail(litter, kit),
       child: Container(
@@ -1143,22 +1168,31 @@ class LittersScreenState extends State<LittersScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Index Pill (matches HTML kit-id-pill)
+            // Index Pill (matches HTML kit-id-pill / Fostered kit styling)
             Container(
-              width: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               height: 24,
+              constraints: const BoxConstraints(minWidth: 40),
               decoration: BoxDecoration(
-                color: isOutcome ? kNeutral200 : kLilacWash,
+                color: isFostered
+                    ? const Color(0xFF3A3A3C) // Dark grey base for foster kits
+                    : (isOutcome ? kNeutral200 : kLilacWash),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isOutcome ? kNeutral300 : kLilacLight),
+                border: Border.all(
+                  color: isFostered
+                      ? const Color(0xFF55555A)
+                      : (isOutcome ? kNeutral300 : kLilacLight),
+                ),
               ),
               child: Center(
                 child: Text(
-                  kit.id,
+                  displayKitId,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isOutcome ? kNeutral600 : kLilacText,
+                    fontWeight: FontWeight.w800,
+                    color: isFostered
+                        ? const Color(0xFFE2BFFB) // Light purple number
+                        : (isOutcome ? kNeutral600 : kLilacText),
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -1602,95 +1636,255 @@ class LittersScreenState extends State<LittersScreen> {
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      enableDrag: false,
       builder: (context) => Container(
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top drag bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E5EA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Header
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Litter ${litter.id}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.5)),
-                      Text(litter.status, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kNeutral500)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Litter ${litter.id}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2C2C2E),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          litter.status.toLowerCase(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF8E8E93),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
-                  IconButton(icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), size: 20), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-            _buildActionOption(
-                icon: PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold),
-                label: 'Edit Birth Info',
-                color: kLilacDeep,
-                onTap: () async {
-                  Navigator.pop(context);
-                  final doe = await _db.getRabbit(litter.doeId);
-                  if (doe != null && mounted) {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      enableDrag: false,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => LogBirthModal(doe: doe, existingLitter: litter, onComplete: () => _loadLitters()),
-                    );
-                  }
-                }),
-            _buildActionOption(
-                icon: PhosphorIcons.scissors(PhosphorIconsStyle.bold),
-                label: 'Wean Litter',
-                color: kNeutral600,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showWeanLitterDialog(litter);
-                }),
-            _buildActionOption(
-                icon: PhosphorIcons.firstAid(PhosphorIconsStyle.bold),
-                label: 'Health Record',
-                color: kNeutral600,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showHealthRecordDialog(litter);
-                }),
-            _buildActionOption(
-                icon: PhosphorIcons.scales(PhosphorIconsStyle.bold),
-                label: 'Bulk Weigh',
-                color: kNeutral600,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showBulkWeighDialog(litter);
-                }),
-            _buildActionOption(
-                icon: PhosphorIcons.arrowsLeftRight(PhosphorIconsStyle.bold),
-                label: 'Move Cage',
-                color: kNeutral600,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showMoveCageDialog(litter);
-                }),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Divider(height: 1, color: kNeutral100)),
-            _buildActionOption(
-                icon: PhosphorIcons.trash(PhosphorIconsStyle.bold),
-                label: 'Delete Litter',
-                color: kPinkDeep,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showDeleteConfirmation(litter);
-                }),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 16),
+
+              // Soft Purple/Lilac Container holding white pill buttons
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE6F6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    _buildLitterActionPill(
+                      label: 'Edit Birth Info',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        final doe = await _db.getRabbit(litter.doeId);
+                        if (doe != null && mounted) {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            enableDrag: false,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => LogBirthModal(
+                              doe: doe,
+                              existingLitter: litter,
+                              onComplete: () => _loadLitters(),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLitterActionPill(
+                      label: 'Foster Litter',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showFosterKitsModal(context, litter);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLitterActionPill(
+                      label: 'Move Cage',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showMoveCageDialog(litter);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLitterActionPill(
+                      label: 'Litter Died',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _markLitterAsDied(litter);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLitterActionPill(
+                      label: 'Delete Litter',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDeleteConfirmation(litter);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
     _searchFocusNode.canRequestFocus = true;
+  }
+
+  Widget _buildLitterActionPill({required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C2C2E),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _markLitterAsDied(Litter litter) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Mark Litter as Died'),
+        content: Text('Are you sure you want to mark all kits in Litter ${litter.id} as died? This will reset the doe to Open.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final updatedKits = litter.kits.map((k) {
+                  if (!k.isArchived && k.status != 'Sold' && k.status != 'Butchered') {
+                    return k.copyWith(status: 'Died');
+                  }
+                  return k;
+                }).toList();
+
+                final updatedLitter = litter.copyWith(
+                  kits: updatedKits,
+                  status: 'Died',
+                  aliveKits: 0,
+                  deadKits: (litter.deadKits ?? 0) + (litter.aliveKits ?? litter.kits.length),
+                );
+
+                await _db.updateLitter(updatedLitter);
+                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+                await _refreshLitters();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Litter ${litter.id} marked as died'),
+                      backgroundColor: const Color(0xFF7B6BA0),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD44C47),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getKitDisplayTag(Litter litter, Kit kit) {
+    final bool isFostered = kit.status.toLowerCase() == 'fostered' ||
+        (kit.details != null && kit.details!.toLowerCase().contains('fostered')) ||
+        kit.id.startsWith('F-') ||
+        kit.id.startsWith('foster_');
+
+    if (isFostered) {
+      if (kit.id.startsWith('F-')) return kit.id;
+      final fosteredKits = litter.kits.where((k) =>
+        k.status.toLowerCase() == 'fostered' ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered')) ||
+        k.id.startsWith('F-') ||
+        k.id.startsWith('foster_')
+      ).toList();
+      final idx = fosteredKits.indexOf(kit) + 1;
+      return 'F-${idx > 0 ? idx : 1}';
+    } else {
+      final numericPart = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      final idx = (numericPart.isNotEmpty && numericPart.length <= 4)
+          ? numericPart
+          : (litter.kits.indexOf(kit) + 1).toString();
+      return 'K-$idx';
+    }
   }
 
   void _showKitActions(Litter litter, Kit kit) {
@@ -1698,12 +1892,28 @@ class LittersScreenState extends State<LittersScreen> {
         ? DateTime.now().difference(litter.dob).inDays
         : (litter.kindleDate != null ? DateTime.now().difference(litter.kindleDate!).inDays : litter.ageDays);
 
-    final isEligibleForSale = ageInDays >= 49 || kit.status == 'Weaned' || kit.status == 'GrowOut';
+    final bool isLitterNursing = litter.status.toLowerCase() == 'nursing';
+    final bool isKitNursing = kit.status.toLowerCase() == 'nursing';
+
+    // Eligible for sale ONLY if at least 7 weeks (49 days) old, NOT a nursing doe/kit, and weaned
+    final isEligibleForSale = ageInDays >= 49 &&
+        !isLitterNursing &&
+        !isKitNursing &&
+        (kit.status == 'Weaned' || kit.status == 'GrowOut' || litter.status.toLowerCase() == 'weaned') &&
+        kit.status.toLowerCase() != 'sold' &&
+        kit.status.toLowerCase() != 'dead' &&
+        kit.status.toLowerCase() != 'died';
+
+    final bool isFostered = kit.status.toLowerCase() == 'fostered' ||
+        (kit.details != null && kit.details!.toLowerCase().contains('fostered')) ||
+        kit.id.startsWith('F-') ||
+        kit.id.startsWith('foster_');
+
+    final String kitTag = _getKitDisplayTag(litter, kit);
 
     final List<Widget> actions = [];
 
     actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.pencilSimple(PhosphorIconsStyle.bold),
       label: 'Edit Details',
       color: kLilacDeep,
       onTap: () {
@@ -1714,7 +1924,6 @@ class LittersScreenState extends State<LittersScreen> {
 
     if (kit.status == 'Nursing') {
       actions.add(_buildCompactActionTile(
-        icon: PhosphorIcons.scissors(PhosphorIconsStyle.bold),
         label: 'Wean Kit',
         color: kLilacDeep,
         onTap: () {
@@ -1724,7 +1933,6 @@ class LittersScreenState extends State<LittersScreen> {
       ));
     } else if (kit.status == 'Weaned') {
       actions.add(_buildCompactActionTile(
-        icon: PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
         label: 'Move to Grow Out',
         color: const Color(0xFF2E7B32),
         onTap: () {
@@ -1734,7 +1942,6 @@ class LittersScreenState extends State<LittersScreen> {
       ));
     } else if (kit.status == 'GrowOut') {
       actions.add(_buildCompactActionTile(
-        icon: PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
         label: 'Promote to Mature',
         color: const Color(0xFF2E7B32),
         onTap: () {
@@ -1746,7 +1953,6 @@ class LittersScreenState extends State<LittersScreen> {
 
     if (isEligibleForSale) {
       actions.add(_buildCompactActionTile(
-        icon: PhosphorIcons.currencyDollar(PhosphorIconsStyle.bold),
         label: 'Sell Kit',
         color: const Color(0xFF2E7B32),
         onTap: () {
@@ -1756,8 +1962,18 @@ class LittersScreenState extends State<LittersScreen> {
       ));
     }
 
+    if (kit.status.toLowerCase() == 'sold') {
+      actions.add(_buildCompactActionTile(
+        label: 'Cancel Sale',
+        color: const Color(0xFF7B6BA0),
+        onTap: () {
+          Navigator.pop(context);
+          _cancelKitSale(litter, kit);
+        },
+      ));
+    }
+
     actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.firstAid(PhosphorIconsStyle.bold),
       label: 'Health Record',
       color: kNeutral700,
       onTap: () {
@@ -1768,7 +1984,6 @@ class LittersScreenState extends State<LittersScreen> {
 
     if (SettingsService.instance.meatProductionEnabled) {
       actions.add(_buildCompactActionTile(
-        icon: PhosphorIcons.knife(PhosphorIconsStyle.bold),
         label: 'Harvest / Butcher',
         color: kNeutral700,
         onTap: () {
@@ -1779,7 +1994,6 @@ class LittersScreenState extends State<LittersScreen> {
     }
 
     actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.warning(PhosphorIconsStyle.bold),
       label: 'Quarantine',
       color: kNeutral700,
       onTap: () {
@@ -1788,18 +2002,27 @@ class LittersScreenState extends State<LittersScreen> {
       },
     ));
 
-    actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.arrowsLeftRight(PhosphorIconsStyle.bold),
-      label: 'Foster Kit',
-      color: kNeutral700,
-      onTap: () {
-        Navigator.pop(context);
-        _showFosterKitDialog(litter, kit);
-      },
-    ));
+    if (isFostered) {
+      actions.add(_buildCompactActionTile(
+        label: 'Cancel Foster',
+        color: const Color(0xFF7B6BA0),
+        onTap: () {
+          Navigator.pop(context);
+          _cancelFosterKit(litter, kit);
+        },
+      ));
+    } else {
+      actions.add(_buildCompactActionTile(
+        label: 'Foster Kit',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showFosterKitDialog(litter, kit);
+        },
+      ));
+    }
 
     actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.scales(PhosphorIconsStyle.bold),
       label: 'Log Weight',
       color: kNeutral700,
       onTap: () {
@@ -1808,15 +2031,16 @@ class LittersScreenState extends State<LittersScreen> {
       },
     ));
 
-    actions.add(_buildCompactActionTile(
-      icon: PhosphorIcons.skull(PhosphorIconsStyle.bold),
-      label: 'Mark as Died',
-      color: kPinkDeep,
-      onTap: () {
-        Navigator.pop(context);
-        _markKitAsDied(litter, kit);
-      },
-    ));
+    if (kit.status != 'Dead' && kit.status != 'Died') {
+      actions.add(_buildCompactActionTile(
+        label: 'Mark as Died',
+        color: kPinkDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, kit);
+        },
+      ));
+    }
 
     showModalBottomSheet(
       context: context,
@@ -1836,7 +2060,7 @@ class LittersScreenState extends State<LittersScreen> {
             Row(
               children: [
                 Text(
-                  'Kit ${litter.id}-${kit.id}',
+                  'Kit $kitTag',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kNeutral900),
                 ),
                 const SizedBox(width: 8),
@@ -1853,7 +2077,7 @@ class LittersScreenState extends State<LittersScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              childAspectRatio: 3.6,
+              childAspectRatio: 3.4,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               children: actions,
@@ -1865,36 +2089,273 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Widget _buildCompactActionTile({
-    required IconData icon,
     required String label,
     required Color color,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFFF7F7FA),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFEEEEEE)),
         ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color),
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
+  }
+
+  Future<void> _cancelFosterKit(Litter currentLitter, Kit fosteredKit) async {
+    try {
+      final allLitters = await _db.getLitters();
+      final db = await _db.database;
+
+      final detailsText = fosteredKit.details ?? '';
+      String? originalDamName;
+      final matchFrom = RegExp(r'Fostered from ([^\n•]+)', caseSensitive: false).firstMatch(detailsText);
+      if (matchFrom != null) {
+        originalDamName = matchFrom.group(1)?.trim();
+      }
+
+      String? targetDoeName;
+      final matchTo = RegExp(r'Fostered to ([^\n•]+)', caseSensitive: false).firstMatch(detailsText);
+      if (matchTo != null) {
+        targetDoeName = matchTo.group(1)?.trim();
+      }
+
+      final bool isCurrentSurrogate = fosteredKit.status.toLowerCase() != 'fostered';
+
+      if (isCurrentSurrogate) {
+        // Kit is in the surrogate litter -> return to original mother's litter
+        Litter? birthLitter;
+        if (originalDamName != null && originalDamName.isNotEmpty) {
+          final candidates = allLitters.where((l) =>
+            l.id != currentLitter.id &&
+            (l.doeName.toLowerCase() == originalDamName!.toLowerCase() || l.dam.toLowerCase() == originalDamName!.toLowerCase())
+          ).toList();
+          if (candidates.isNotEmpty) {
+            birthLitter = candidates.first;
+          }
+        }
+
+        // Fallback: look for any litter with a kit marked 'Fostered'
+        if (birthLitter == null) {
+          final candidates = allLitters.where((l) =>
+            l.id != currentLitter.id &&
+            l.kits.any((k) => k.status.toLowerCase() == 'fostered')
+          ).toList();
+          if (candidates.isNotEmpty) {
+            birthLitter = candidates.first;
+          }
+        }
+
+        if (birthLitter != null) {
+          bool matched = false;
+          final updatedBirthKits = birthLitter.kits.map((k) {
+            if (!matched && (k.status.toLowerCase() == 'fostered' || k.id == fosteredKit.id)) {
+              matched = true;
+              return k.copyWith(status: 'Nursing', details: null);
+            }
+            return k;
+          }).toList();
+
+          if (!matched) {
+            final cleanId = 'K-${birthLitter.kits.length + 1}';
+            updatedBirthKits.add(fosteredKit.copyWith(id: cleanId, status: 'Nursing', details: null));
+          }
+
+          final birthAlive = updatedBirthKits.where((k) =>
+            !k.isArchived &&
+            k.status.toLowerCase() != 'dead' &&
+            k.status.toLowerCase() != 'died' &&
+            k.status.toLowerCase() != 'fostered'
+          ).length;
+
+          await db.update('litters', {
+            'kits': jsonEncode(updatedBirthKits.map((k) => k.toMap()).toList()),
+            'currentAlive': birthAlive,
+            'aliveKits': birthAlive,
+            'status': 'Nursing',
+            'updatedAt': DateTime.now().toIso8601String(),
+          }, where: 'id = ?', whereArgs: [birthLitter.id]);
+
+          if (birthLitter.doeId.isNotEmpty) {
+            await _db.restoreDoeNursingStatus(birthLitter.doeId, birthLitter.copyWith(aliveKits: birthAlive));
+          }
+        }
+
+        // Remove from surrogate litter (currentLitter)
+        final updatedSurrogateKits = currentLitter.kits.where((k) => k.id != fosteredKit.id).toList();
+        final surrogateAlive = updatedSurrogateKits.where((k) =>
+          !k.isArchived &&
+          k.status.toLowerCase() != 'dead' &&
+          k.status.toLowerCase() != 'died' &&
+          k.status.toLowerCase() != 'fostered'
+        ).length;
+
+        await db.update('litters', {
+          'kits': jsonEncode(updatedSurrogateKits.map((k) => k.toMap()).toList()),
+          'currentAlive': surrogateAlive,
+          'aliveKits': surrogateAlive,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, where: 'id = ?', whereArgs: [currentLitter.id]);
+
+        await _db.checkAndUpdateDoeStatusIfLitterEmpty(currentLitter.doeId);
+
+      } else {
+        // Kit is currently sitting in original litter marked as 'Fostered'
+        Litter? surrogateLitter;
+        if (targetDoeName != null && targetDoeName.isNotEmpty) {
+          final candidates = allLitters.where((l) =>
+            l.id != currentLitter.id &&
+            (l.doeName.toLowerCase() == targetDoeName!.toLowerCase() || l.dam.toLowerCase() == targetDoeName!.toLowerCase())
+          ).toList();
+          if (candidates.isNotEmpty) {
+            surrogateLitter = candidates.first;
+          }
+        }
+
+        if (surrogateLitter != null) {
+          final updatedTargetKits = surrogateLitter.kits.where((k) =>
+            !(k.color == fosteredKit.color && (k.details?.toLowerCase().contains('fostered from') == true || k.id.startsWith('F-')))
+          ).toList();
+          final targetAlive = updatedTargetKits.where((k) =>
+            !k.isArchived &&
+            k.status.toLowerCase() != 'dead' &&
+            k.status.toLowerCase() != 'died' &&
+            k.status.toLowerCase() != 'fostered'
+          ).length;
+
+          await db.update('litters', {
+            'kits': jsonEncode(updatedTargetKits.map((k) => k.toMap()).toList()),
+            'currentAlive': targetAlive,
+            'aliveKits': targetAlive,
+            'updatedAt': DateTime.now().toIso8601String(),
+          }, where: 'id = ?', whereArgs: [surrogateLitter.id]);
+
+          await _db.checkAndUpdateDoeStatusIfLitterEmpty(surrogateLitter.doeId);
+        }
+
+        final updatedBirthKits = currentLitter.kits.map((k) {
+          if (k.id == fosteredKit.id) {
+            return k.copyWith(status: 'Nursing', details: null);
+          }
+          return k;
+        }).toList();
+        final birthAlive = updatedBirthKits.where((k) =>
+          !k.isArchived &&
+          k.status.toLowerCase() != 'dead' &&
+          k.status.toLowerCase() != 'died' &&
+          k.status.toLowerCase() != 'fostered'
+        ).length;
+
+        await db.update('litters', {
+          'kits': jsonEncode(updatedBirthKits.map((k) => k.toMap()).toList()),
+          'currentAlive': birthAlive,
+          'aliveKits': birthAlive,
+          'status': 'Nursing',
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, where: 'id = ?', whereArgs: [currentLitter.id]);
+
+        if (currentLitter.doeId.isNotEmpty) {
+          await _db.restoreDoeNursingStatus(currentLitter.doeId, currentLitter.copyWith(aliveKits: birthAlive));
+        }
+      }
+
+      notifyDataChanged();
+      await _refreshLitters();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(originalDamName != null ? 'Kit returned to mother ($originalDamName)' : 'Foster cancelled. Kit returned to mother.'),
+            backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cancelling foster: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _cancelKitSale(Litter litter, Kit kit) async {
+    try {
+      final db = await _db.database;
+      final dob = litter.kindleDate ?? litter.dob;
+      final int ageDays = dob != null
+          ? DateTime.now().difference(dob).inDays
+          : litter.ageDays;
+      final String restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
+
+      // 1. Delete matching finance transactions
+      final cleanNumeric = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      await db.delete(
+        'transactions',
+        where: 'litterId = ? AND (kitId = ? OR kitId = ?)',
+        whereArgs: [litter.id, kit.id, cleanNumeric],
+      );
+
+      // 2. Restore kit in litter
+      final updatedKits = litter.kits.map((k) {
+        if (k.id == kit.id) {
+          final cleanDetails = (k.details != null && k.details!.toLowerCase().startsWith('sold to')) ? null : k.details;
+          return k.copyWith(status: restoredStatus, price: null, details: cleanDetails);
+        }
+        return k;
+      }).toList();
+
+      final aliveCount = updatedKits.where((k) =>
+        !k.isArchived &&
+        k.status.toLowerCase() != 'dead' &&
+        k.status.toLowerCase() != 'died' &&
+        k.status.toLowerCase() != 'fostered'
+      ).length;
+
+      final updatedLitter = litter.copyWith(
+        kits: updatedKits,
+        aliveKits: aliveCount,
+        status: (litter.status.toLowerCase() == 'sold' || litter.status.toLowerCase() == 'archived') ? 'Nursing' : litter.status,
+      );
+
+      await _db.updateLitter(updatedLitter);
+
+      if (updatedLitter.doeId.isNotEmpty) {
+        await _db.restoreDoeNursingStatus(updatedLitter.doeId, updatedLitter);
+      }
+
+      notifyDataChanged();
+      await _refreshLitters();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sale cancelled. Kit restored to $restoredStatus.'),
+            backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cancelling sale: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
   }
 
   void _promoteKitToMature(Litter litter, Kit kit, {bool isGrowOut = false}) async {
@@ -2109,7 +2570,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Kit ${litter.id}-${kit.id}',
+                                        'Kit ${_getKitDisplayTag(litter, kit)}',
                                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF37352F)),
                                       ),
                                       SizedBox(height: 2),
@@ -2430,7 +2891,7 @@ class LittersScreenState extends State<LittersScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Kit ${litter.id}-${kit.id}',
+                            'Kit ${_getKitDisplayTag(litter, kit)}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -2937,7 +3398,7 @@ class LittersScreenState extends State<LittersScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Kit ${litter.id}-${kit.id}',
+                      'Kit ${_getKitDisplayTag(litter, kit)}',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral500),
                     ),
                   ],
@@ -3244,16 +3705,17 @@ class LittersScreenState extends State<LittersScreen> {
     final fosterLitters = litters.where((l) =>
       l.id != litter.id &&
       l.doeId != litter.doeId &&
-      l.status.toLowerCase() == 'nursing'
+      l.status.toLowerCase() == 'nursing' &&
+      l.status.toLowerCase() != 'archived' &&
+      l.status.toLowerCase() != 'weaned'
     ).toList();
-
-    final sourceDamName = litter.doeName.isNotEmpty ? litter.doeName : litter.dam;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Foster Kit'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Foster Kit', style: TextStyle(fontWeight: FontWeight.w700)),
           content: fosterLitters.isEmpty
               ? const Text('No active nursing litters found to foster with.')
               : Column(
@@ -3268,7 +3730,7 @@ class LittersScreenState extends State<LittersScreen> {
                           .map((l) {
                             final fosterDoeName = l.doeName.isNotEmpty ? l.doeName : l.dam;
                             final shortLitterId = l.id.length > 6 ? l.id.substring(l.id.length - 4) : l.id;
-                            final nursingKitsCount = l.kits.where((k) => k.status.toLowerCase() == 'nursing').length;
+                            final nursingKitsCount = l.kits.where((k) => k.status.toLowerCase() == 'nursing' || (!k.isArchived && k.status != 'Dead' && k.status != 'Died')).length;
                             return DropdownMenuItem(
                               value: l.id,
                               child: Text(
@@ -3292,75 +3754,324 @@ class LittersScreenState extends State<LittersScreen> {
                   ],
                 ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            ),
             if (fosterLitters.isNotEmpty)
-              TextButton(
+              ElevatedButton(
                 onPressed: selectedLitterId == null
                     ? null
                     : () async {
                         Navigator.pop(context);
                         final target = fosterLitters.firstWhere((l) => l.id == selectedLitterId);
-                        final targetDoeName = target.doeName.isNotEmpty ? target.doeName : target.dam;
-
-                        // 1. Update source litter kit status
-                        final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-                        if (litterIndex != -1) {
-                          final updatedKits = litters[litterIndex].kits.map((k) {
-                            if (k.id == kit.id) {
-                              return k.copyWith(
-                                status: 'Fostered',
-                                details: 'Fostered to $targetDoeName',
-                              );
-                            }
-                            return k;
-                          }).toList();
-
-                          final updatedSourceLitter = litters[litterIndex].copyWith(
-                            kits: updatedKits,
-                            aliveKits: (litters[litterIndex].aliveKits ?? 1) - 1,
-                          );
-
-                          await _db.updateLitter(updatedSourceLitter);
-
-                          // 2. Add fostered kit to target surrogate litter
-                          final existingNote = kit.details ?? '';
-                          final fosterNote = 'Fostered from $sourceDamName';
-                          final newDetails = existingNote.contains(fosterNote)
-                              ? existingNote
-                              : (existingNote.isEmpty ? fosterNote : '$existingNote • $fosterNote');
-
-                          final fosteredKitForTarget = kit.copyWith(
-                            id: 'foster_${DateTime.now().millisecondsSinceEpoch}',
-                            status: 'Nursing',
-                            details: newDetails,
-                          );
-
-                          final updatedTargetKits = [...target.kits, fosteredKitForTarget];
-                          final updatedTargetLitter = target.copyWith(
-                            kits: updatedTargetKits,
-                            aliveKits: (target.aliveKits ?? target.kits.length) + 1,
-                            totalKits: (target.totalKits ?? target.kits.length) + 1,
-                          );
-
-                          await _db.updateLitter(updatedTargetLitter);
-
-                          // 3. Check if source doe has remaining nursing kits; if not, change status to OPEN
-                          await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-
-                          await _refreshLitters();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Kit fostered to $targetDoeName')),
-                            );
-                          }
-                        }
+                        await _handleFosterKits(litter, target, [kit.id]);
                       },
-                child: const Text('Confirm'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7B6BA0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
               ),
           ],
         ),
       ),
     );
+  }
+
+  void _showFosterKitsModal(BuildContext context, Litter sourceLitter) async {
+    final allLitters = await _db.getLitters();
+    final candidates = allLitters.where((l) =>
+      l.id != sourceLitter.id &&
+      l.doeId != sourceLitter.doeId &&
+      l.status.toLowerCase() == 'nursing' &&
+      l.status.toLowerCase() != 'archived' &&
+      l.status.toLowerCase() != 'weaned'
+    ).toList();
+
+    final aliveKits = sourceLitter.kits.where((k) =>
+      !k.isArchived &&
+      k.status.toLowerCase() != 'fostered' &&
+      k.status.toLowerCase() != 'dead' &&
+      k.status.toLowerCase() != 'died'
+    ).toList();
+
+    if (aliveKits.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No active kits to foster in this litter'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Color(0xFF7B6BA0),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        Litter? selectedTarget;
+        final Set<String> selectedKitIds = {};
+
+        return StatefulBuilder(builder: (ctx, setModalState) {
+          return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Foster Kits', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2C2C2E))),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 22),
+                        onPressed: () => Navigator.pop(ctx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'SELECT KITS TO FOSTER',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF787880), letterSpacing: 0.5),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            if (selectedKitIds.length == aliveKits.length) {
+                              selectedKitIds.clear();
+                            } else {
+                              selectedKitIds.addAll(aliveKits.map((k) => k.id));
+                            }
+                          });
+                        },
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 24)),
+                        child: Text(
+                          selectedKitIds.length == aliveKits.length ? 'Deselect All' : 'Select All (${aliveKits.length})',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...aliveKits.map((kit) {
+                            final numericPart = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                            final kitLabel = 'K-${numericPart.isEmpty ? (sourceLitter.kits.indexOf(kit) + 1) : numericPart}';
+                            final isChecked = selectedKitIds.contains(kit.id);
+                            return CheckboxListTile(
+                              value: isChecked,
+                              contentPadding: EdgeInsets.zero,
+                              activeColor: const Color(0xFF7B6BA0),
+                              onChanged: (v) => setModalState(() {
+                                if (v == true) {
+                                  selectedKitIds.add(kit.id);
+                                } else {
+                                  selectedKitIds.remove(kit.id);
+                                }
+                              }),
+                              title: Text(
+                                '$kitLabel • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} (${kit.sex})',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              subtitle: kit.weight > 0 ? Text('Weight: ${kit.weight}g', style: const TextStyle(fontSize: 11)) : null,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'FOSTER INTO (SURROGATE DOE)',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF787880), letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 8),
+                          if (candidates.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(12)),
+                              child: const Text('No other active nursing litters available to foster into.', style: TextStyle(color: Color(0xFF856404), fontSize: 13)),
+                            )
+                          else
+                            ...candidates.map((targetLitter) {
+                              final doeName = targetLitter.doeName.isNotEmpty ? targetLitter.doeName : targetLitter.dam;
+                              final shortLitterId = targetLitter.id.length > 6 ? targetLitter.id.substring(targetLitter.id.length - 4) : targetLitter.id;
+                              final count = targetLitter.kits.where((k) => k.status.toLowerCase() == 'nursing' || (!k.isArchived && k.status != 'Dead' && k.status != 'Died')).length;
+                              return RadioListTile<Litter>(
+                                value: targetLitter,
+                                groupValue: selectedTarget,
+                                contentPadding: EdgeInsets.zero,
+                                activeColor: const Color(0xFF7B6BA0),
+                                onChanged: (v) => setModalState(() => selectedTarget = v),
+                                title: Text(doeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                subtitle: Text('Litter #$shortLitterId • $count active kits', style: const TextStyle(fontSize: 12, color: Color(0xFF787880))),
+                                dense: true,
+                              );
+                            }),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: (selectedKitIds.isNotEmpty && selectedTarget != null)
+                          ? () async {
+                              Navigator.pop(ctx);
+                              await _handleFosterKits(sourceLitter, selectedTarget!, selectedKitIds.toList());
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7B6BA0),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text(
+                        selectedKitIds.isEmpty
+                            ? 'Select Kits to Foster'
+                            : (selectedTarget == null
+                                ? 'Select Target Doe'
+                                : 'Foster ${selectedKitIds.length} Kit${selectedKitIds.length > 1 ? 's' : ''}'),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Future<void> _handleFosterKits(Litter source, Litter target, List<String> kitIds) async {
+    try {
+      final db = await _db.database;
+      final sourceDamName = source.doeName.isNotEmpty ? source.doeName : source.dam;
+      final targetDoeName = target.doeName.isNotEmpty ? target.doeName : target.dam;
+
+      // Count existing foster kits in target litter for F-1, F-2 naming
+      int existingTargetFosterCount = target.kits.where((k) =>
+        k.status.toLowerCase() == 'fostered' ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered')) ||
+        k.id.startsWith('F-') ||
+        k.id.startsWith('foster_')
+      ).length;
+
+      // Mark moved kits with foster note and F- index
+      final List<Kit> kitsToMove = [];
+      for (final k in source.kits.where((k) => kitIds.contains(k.id))) {
+        existingTargetFosterCount++;
+        final existingNote = k.details ?? '';
+        final fosterNote = 'Fostered from $sourceDamName';
+        final newDetails = existingNote.contains(fosterNote)
+            ? existingNote
+            : (existingNote.isEmpty ? fosterNote : '$existingNote • $fosterNote');
+        kitsToMove.add(k.copyWith(
+          id: 'F-$existingTargetFosterCount',
+          status: 'Nursing',
+          details: newDetails,
+        ));
+      }
+
+      // Mark source kits as Fostered
+      final updatedSourceKits = source.kits.map((k) {
+        if (kitIds.contains(k.id)) {
+          return k.copyWith(status: 'Fostered', details: 'Fostered to $targetDoeName');
+        }
+        return k;
+      }).toList();
+
+      // Add kits to target litter
+      final targetKits = [...target.kits, ...kitsToMove];
+
+      // Update source litter
+      final sourceAliveCount = updatedSourceKits.where((k) =>
+        !k.isArchived &&
+        k.status.toLowerCase() != 'fostered' &&
+        k.status.toLowerCase() != 'dead' &&
+        k.status.toLowerCase() != 'died'
+      ).length;
+
+      await db.update('litters', {
+        'kits': jsonEncode(updatedSourceKits.map((k) => k.toMap()).toList()),
+        'currentAlive': sourceAliveCount,
+        'aliveKits': sourceAliveCount,
+        if (sourceAliveCount == 0) 'status': 'Fostered',
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, where: 'id = ?', whereArgs: [source.id]);
+
+      // Update target litter
+      final targetAliveCount = targetKits.where((k) =>
+        !k.isArchived &&
+        k.status.toLowerCase() != 'dead' &&
+        k.status.toLowerCase() != 'died'
+      ).length;
+
+      await db.update('litters', {
+        'kits': jsonEncode(targetKits.map((k) => k.toMap()).toList()),
+        'currentAlive': targetAliveCount,
+        'aliveKits': targetAliveCount,
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, where: 'id = ?', whereArgs: [target.id]);
+
+      // Check if source doe has remaining active nursing kits; if not, change doe status to OPEN
+      await _db.checkAndUpdateDoeStatusIfLitterEmpty(source.doeId);
+
+      await _refreshLitters();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${kitsToMove.length} kit${kitsToMove.length > 1 ? 's' : ''} fostered to $targetDoeName'),
+            backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fostering kits: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _markKitAsDied(Litter litter, Kit kit) {
@@ -3768,7 +4479,7 @@ class LittersScreenState extends State<LittersScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              '${litter.id}-K-${kit.id}',
+                                              'Kit ${_getKitDisplayTag(litter, kit)}',
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
@@ -4577,24 +5288,24 @@ class LittersScreenState extends State<LittersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Kit ${litter.id}-${kit.id}',
-                        style: TextStyle(
+                        'Kit ${_getKitDisplayTag(litter, kit)}',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
                         kit.status,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF787774),
                         ),
                       ),
                     ],
                   ),
-                  Spacer(),
+                  const Spacer(),
                   IconButton(
-                    icon: Icon(Icons.close),
+                    icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -4607,25 +5318,48 @@ class LittersScreenState extends State<LittersScreen> {
                 true,
                 () async {
                   Navigator.pop(context);
+                  final dob = litter.kindleDate ?? litter.dob;
+                  final ageDays = dob != null
+                      ? DateTime.now().difference(dob).inDays
+                      : litter.ageDays;
+                  final String restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
+
                   final litterIndex = litters.indexWhere((l) => l.id == litter.id);
                   if (litterIndex != -1) {
                     final updatedKits = litters[litterIndex].kits.map((k) {
                       if (k.id == kit.id) {
-                        return k.copyWith(status: 'Weaned');
+                        return k.copyWith(status: restoredStatus, price: null, details: null);
                       }
                       return k;
                     }).toList();
 
-                    final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+                    final aliveCount = updatedKits.where((k) =>
+                      !k.isArchived &&
+                      k.status.toLowerCase() != 'dead' &&
+                      k.status.toLowerCase() != 'died' &&
+                      k.status.toLowerCase() != 'fostered'
+                    ).length;
+
+                    final updatedLitter = litters[litterIndex].copyWith(
+                      kits: updatedKits,
+                      aliveKits: aliveCount,
+                      status: (litters[litterIndex].status.toLowerCase() == 'sold' || litters[litterIndex].status.toLowerCase() == 'archived') ? 'Nursing' : litters[litterIndex].status,
+                    );
                     await _db.updateLitter(updatedLitter);
+
+                    if (updatedLitter.doeId.isNotEmpty) {
+                      await _db.restoreDoeNursingStatus(updatedLitter.doeId, updatedLitter);
+                    }
+
+                    notifyDataChanged();
                     await _refreshLitters();
                   }
 
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Kit restored'),
-                        backgroundColor: Color(0xFF7B6BA0),
+                      SnackBar(
+                        content: Text('Kit restored to $restoredStatus'),
+                        backgroundColor: const Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -5798,27 +6532,29 @@ class LittersScreenState extends State<LittersScreen> {
   Future<void> _showAddLitterDialog() async {
     _searchFocusNode.canRequestFocus = false;
     FocusScope.of(context).unfocus();
-    await showModalBottomSheet(
+    final result = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => AddLitterSheet(
+      enableDrag: false,
+      builder: (ctx) => AddLitterSheet(
         barns: _barns,
         onComplete: () async {
           await _refreshLitters();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Å“â€¦ Litter added successfully'),
-                backgroundColor: Color(0xFF7B6BA0),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
         },
       ),
     );
     _searchFocusNode.canRequestFocus = true;
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Litter added successfully'),
+          backgroundColor: Color(0xFF7B6BA0),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -6609,7 +7345,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
         'createdAt': DateTime.now().toIso8601String(),
       });
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
       widget.onComplete();
     } catch (e) {
       print('ÃƒÂ¢ÂÃ…â€™ Error saving litter: $e');

@@ -576,6 +576,31 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
     }
   }
 
+  String get _displayKitTag {
+    final bool isFostered = _kit.status.toLowerCase() == 'fostered' ||
+        (_kit.details != null && _kit.details!.toLowerCase().contains('fostered')) ||
+        _kit.id.startsWith('F-') ||
+        _kit.id.startsWith('foster_');
+
+    if (isFostered) {
+      if (_kit.id.startsWith('F-')) return _kit.id;
+      final fosteredKits = _litter.kits.where((k) =>
+        k.status.toLowerCase() == 'fostered' ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered')) ||
+        k.id.startsWith('F-') ||
+        k.id.startsWith('foster_')
+      ).toList();
+      final idx = fosteredKits.indexOf(_kit) + 1;
+      return 'F-${idx > 0 ? idx : 1}';
+    } else {
+      final numericPart = _kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      final idx = (numericPart.isNotEmpty && numericPart.length <= 4)
+          ? numericPart
+          : (_litter.kits.indexOf(_kit) + 1).toString();
+      return 'K-$idx';
+    }
+  }
+
   // ==================== BUILD ====================
 
   @override
@@ -590,7 +615,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '${_litter.id}-K-${_kit.id}',
+          'Kit $_displayKitTag',
           style: const TextStyle(
             color: Color(0xFF37352F),
             fontSize: 16,
@@ -673,7 +698,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _kit.color != 'Unknown' ? _kit.color : 'Kit ${_kit.id}',
+                  _kit.color != 'Unknown' && _kit.color.isNotEmpty ? _kit.color : 'Kit $_displayKitTag',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -685,7 +710,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                   spacing: 4,
                   runSpacing: 4,
                   children: [
-                    Text('#${_litter.id}-K-${_kit.id}', style: const TextStyle(fontSize: 13, color: Color(0xFF787774))),
+                    Text('#$_displayKitTag • ${_litter.doeName.isNotEmpty ? _litter.doeName : _litter.dam}', style: const TextStyle(fontSize: 13, color: Color(0xFF787774))),
                     const Text('•', style: TextStyle(color: Color(0xFF787774))),
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -828,7 +853,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         children: [
           const Text('Kit Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF37352F))),
           const SizedBox(height: 16),
-          _buildDetailRow('Kit ID', '${_litter.id}-K-${_kit.id}'),
+          _buildDetailRow('Kit ID', '${_litter.id}-${_kit.id.startsWith('F-') || _kit.id.startsWith('K-') ? _kit.id : (_kit.status.toLowerCase() == 'fostered' || (_kit.details != null && _kit.details!.toLowerCase().contains('fostered')) ? 'F-${_kit.id}' : 'K-${_kit.id}')}'),
           _buildEditableDetailRow('Sex', _sexLabel, _showEditSexDialog),
           _buildEditableDetailRow('Color', _kit.color, _showEditColorDialog),
           _buildEditableDetailRow('Weight', '${_kit.weight} ${FormatUtils.weightUnit}', _showEditWeightDialog),

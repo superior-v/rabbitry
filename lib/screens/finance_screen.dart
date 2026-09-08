@@ -1770,36 +1770,14 @@ class FinanceScreenState extends State<FinanceScreen> {
     );
 
     if (confirm == true) {
-      if (t.category == TransactionCategory.soldKit && t.litterId != null && t.litterId!.isNotEmpty && t.kitId != null && t.kitId!.isNotEmpty) {
-        try {
-          final litter = await _db.getLitter(t.litterId!);
-          if (litter != null) {
-            final int ageDays = litter.kindleDate != null
-                ? DateTime.now().difference(litter.kindleDate!).inDays
-                : (litter.dob != null ? DateTime.now().difference(litter.dob).inDays : litter.ageDays);
-            final bool isNursing = ageDays < 49;
-            final String restoredStatus = isNursing ? 'Nursing' : 'Weaned';
-
-            final updatedKits = litter.kits.map((k) {
-              if (k.id == t.kitId) {
-                return k.copyWith(status: restoredStatus, price: 0);
-              }
-              return k;
-            }).toList();
-
-            await _db.updateLitter(litter.copyWith(kits: updatedKits));
-          }
-        } catch (e) {
-          print('⚠️ Error reverting kit status on transaction delete: $e');
-        }
-      }
-
       await _db.deleteTransaction(t.id);
       await _loadData();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Transaction deleted')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Transaction deleted')),
+        );
+      }
     }
   }
 

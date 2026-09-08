@@ -2117,20 +2117,32 @@ class DatabaseService {
   }
 
   /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
+  /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
   /// If all kits are dead or fostered across her active litters, changes the doe's status to OPEN.
   Future<void> checkAndUpdateDoeStatusIfLitterEmpty(String doeId) async {
     try {
       final litters = await getLitters();
-      final doeLitters = litters.where((l) => l.doeId == doeId && l.status != 'archived' && l.status != 'weaned').toList();
+      final doeLitters = litters.where((l) =>
+        l.doeId == doeId &&
+        l.status.toLowerCase() != 'archived' &&
+        l.status.toLowerCase() != 'weaned'
+      ).toList();
 
       bool hasActiveNursingKits = false;
       for (final litter in doeLitters) {
         final activeKits = litter.kits.where((k) {
           final s = k.status.toLowerCase().trim();
-          return s != 'dead' && s != 'died' && s != 'deceased' && s != 'fostered' && s != 'archived';
+          return s != 'dead' &&
+              s != 'died' &&
+              s != 'deceased' &&
+              s != 'fostered' &&
+              s != 'archived' &&
+              s != 'sold' &&
+              s != 'butchered' &&
+              s != 'cull';
         }).toList();
 
-        if (activeKits.isNotEmpty && (litter.aliveKits ?? 0) > 0) {
+        if (activeKits.isNotEmpty) {
           hasActiveNursingKits = true;
           break;
         }
@@ -2153,6 +2165,22 @@ class DatabaseService {
           where: 'id = ?',
           whereArgs: [doeId],
         );
+
+        // Also update any active litters of this doe that have no alive kits left
+        for (final litter in doeLitters) {
+          final allFostered = litter.kits.isNotEmpty && litter.kits.every((k) => k.status.toLowerCase() == 'fostered');
+          await db.update(
+            'litters',
+            {
+              'currentAlive': 0,
+              if (allFostered) 'status': 'Fostered',
+              'updatedAt': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [litter.id],
+          );
+        }
+
         print('🐰 Doe $doeId status updated to OPEN because all kits are dead or fostered.');
       }
     } catch (e) {
@@ -3219,15 +3247,40 @@ class DatabaseService {
         final litterList = await db.query('litters', where: 'id = ?', whereArgs: [txn.litterId]);
         if (litterList.isNotEmpty) {
           final litter = Litter.fromMap(litterList.first);
-          final ageDays = DateTime.now().difference(litter.dob).inDays;
-          final restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
+          final dob = litter.kindleDate ?? litter.dob;
+          final int ageDays = dob != null
+              ? DateTime.now().difference(dob).inDays
+              : litter.ageDays;
+          final String restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
+
+          bool isMatch(String kId, String targetId) {
+            if (kId == targetId || kId.toLowerCase() == targetId.toLowerCase()) return true;
+            final num1 = kId.replaceAll(RegExp(r'[^0-9]'), '');
+            final num2 = targetId.replaceAll(RegExp(r'[^0-9]'), '');
+            return num1.isNotEmpty && num1 == num2;
+          }
+
           final updatedKits = litter.kits.map((k) {
-            if (k.id.toString() == txn.kitId) {
-              return k.copyWith(status: restoredStatus, price: null, details: null);
+            if (isMatch(k.id, txn.kitId!)) {
+              final cleanDetails = (k.details != null && k.details!.toLowerCase().startsWith('sold to')) ? null : k.details;
+              return k.copyWith(status: restoredStatus, price: null, details: cleanDetails);
             }
             return k;
           }).toList();
-          final updatedLitter = litter.copyWith(kits: updatedKits);
+
+          final aliveCount = updatedKits.where((k) =>
+            !k.isArchived &&
+            k.status.toLowerCase() != 'dead' &&
+            k.status.toLowerCase() != 'died' &&
+            k.status.toLowerCase() != 'fostered'
+          ).length;
+
+          final updatedLitter = litter.copyWith(
+            kits: updatedKits,
+            aliveKits: aliveCount,
+            status: (litter.status.toLowerCase() == 'sold' || litter.status.toLowerCase() == 'archived') ? 'Nursing' : litter.status,
+          );
+
           await db.update(
             'litters',
             updatedLitter.toMap(),
@@ -3235,6 +3288,11 @@ class DatabaseService {
             whereArgs: [litter.id],
           );
           print('🔄 Restored Kit ${litter.id}-${txn.kitId} status to $restoredStatus due to sale transaction deletion.');
+
+          // Restore doe nursing status if needed
+          if (litter.doeId.isNotEmpty) {
+            await restoreDoeNursingStatus(litter.doeId, updatedLitter);
+          }
         }
       }
       
@@ -3258,6 +3316,34 @@ class DatabaseService {
     
     await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
     print('🗑️ Deleted transaction: $id');
+    notifyDataChanged();
+  }
+
+  Future<void> restoreDoeNursingStatus(String doeId, Litter litter) async {
+    try {
+      final db = await database;
+      final rabbitMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
+      if (rabbitMap.isNotEmpty) {
+        final rStatus = rabbitMap.first['status']?.toString() ?? '';
+        if (rStatus.toLowerCase().contains('open')) {
+          await db.update(
+            'rabbits',
+            {
+              'status': RabbitStatus.nursing.toString(),
+              'kindleDate': (litter.kindleDate ?? litter.dob)?.toIso8601String(),
+              'weanDate': litter.weanDate?.toIso8601String(),
+              'currentLitterSize': litter.aliveKits,
+              'updatedAt': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [doeId],
+          );
+          print('🐰 Restored Doe $doeId status to NURSING after transaction/foster revert.');
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error in restoreDoeNursingStatus: $e');
+    }
   }
 
   Future<List<finance_model.Transaction>> getAllTransactions() async {
