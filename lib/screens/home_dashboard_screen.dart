@@ -884,6 +884,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
+                      enableDrag: false,
                       backgroundColor: Colors.transparent,
                       builder: (_) => ConfirmPregnancyModal(
                         doe: doe,

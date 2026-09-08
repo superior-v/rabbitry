@@ -828,59 +828,14 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   void _showPalpationDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Log Palpation', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'What was the palpation result?',
-              style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-            ),
-            SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _handlePalpationResult(true);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF4CAF50),
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text('Pregnancy Confirmed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _handlePalpationResult(false);
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: Color(0xFFC47070)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Not Pregnant',
-                  style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ConfirmPregnancyModal(
+        doe: widget.rabbit,
+        onComplete: () => widget.onRefresh?.call(),
       ),
     );
   }

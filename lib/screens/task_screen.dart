@@ -483,6 +483,7 @@ class TaskScreenState extends State<TaskScreen> {
           showModalBottomSheet(
               context: context,
               isScrollControlled: true,
+              enableDrag: false,
               backgroundColor: Colors.transparent,
               builder: (context) => ConfirmPregnancyModal(
                   doe: rabbit!,

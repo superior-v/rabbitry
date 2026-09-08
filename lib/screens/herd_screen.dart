@@ -602,19 +602,22 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildSegmentedControl() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE4E4E9), // Grey base background
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            _buildSegmentBtn('Does', 0),
-            _buildSegmentBtn('Bucks', 1),
-            _buildSegmentBtn('Archive', 2),
-          ],
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      alignment: Alignment.center,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4E4E9), // Grey base background
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              _buildSegmentBtn('Does', 0),
+              _buildSegmentBtn('Bucks', 1),
+              _buildSegmentBtn('Archive', 2),
+            ],
+          ),
         ),
       ),
     );
@@ -1619,7 +1622,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           children: [
             // 1. Inset Colored Header
             Container(
-              padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -1631,8 +1634,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   GestureDetector(
                     onTap: () => isArchive ? null : _navigateToDetail(rabbit, tabIndex: 0),
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      width: 54,
+                      height: 54,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
@@ -1680,7 +1683,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
                           style: const TextStyle(
@@ -1734,41 +1737,41 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
             // 2. Middle Stats Section
             Container(
-              margin: const EdgeInsets.only(top: 4),
+              margin: const EdgeInsets.only(top: 2),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFEBE8F0)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
                   _buildStatsRow(
-                    'EAR NO.:',
+                    'Ear No.:',
                     rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
-                    'CAGE NO.:',
+                    'Cage No.:',
                     rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
                   _buildStatsRow(
-                    'SIRE:',
+                    'Sire:',
                     rabbit.sireId?.isNotEmpty == true ? rabbit.sireId! : '',
-                    'LITTERS:',
+                    'Litters:',
                     rabbit.type == RabbitType.doe ? (rabbit.currentLitterSize?.toString() ?? '0') : '',
                     isDoe: isDoe,
                     isTinted: false,
                   ),
                   _buildStatsRow(
-                    'DAM:',
+                    'Dam:',
                     rabbit.damId?.isNotEmpty == true ? rabbit.damId! : '',
-                    'KITS:',
+                    'Kits:',
                     '',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
                   _buildNotesRow(
-                    'NOTES:',
+                    'Notes:',
                     rabbit.notes?.isNotEmpty == true ? rabbit.notes! : '',
                     isTinted: false,
                   ),
@@ -1809,19 +1812,30 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   Widget _buildStatsRow(String label1, String val1, String label2, String val2, {required bool isDoe, required bool isTinted}) {
     final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
       color: isTinted ? tintBg : Colors.white,
       child: Row(
         children: [
           Expanded(
             child: Row(
               children: [
-                Text(label1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
-                const SizedBox(width: 6),
+                Text(
+                  label1,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F4F56),
+                  ),
+                ),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     val1,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -1832,12 +1846,23 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           Expanded(
             child: Row(
               children: [
-                Text(label2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
-                const SizedBox(width: 6),
+                Text(
+                  label2,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F4F56),
+                  ),
+                ),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     val2,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -1852,16 +1877,28 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   Widget _buildNotesRow(String label, String val, {required bool isTinted}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
       color: isTinted ? const Color(0xFFFDF2F5) : Colors.white,
       child: Row(
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF787774))),
-          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF4F4F56),
+            ),
+          ),
+          const SizedBox(width: 5),
           Expanded(
             child: Text(
               val,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E293B),
+              ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),

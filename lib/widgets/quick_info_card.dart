@@ -58,48 +58,45 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   Widget build(BuildContext context) {
     // Rows in display order — isEven drives alternating bg
     final rows = [
-      _buildInfoRow(context, 'ID',
+      _buildInfoRow(context, 'ID:',
           _currentRabbit.id.length > 8
               ? _currentRabbit.id.substring(0, 8).toUpperCase()
               : _currentRabbit.id.toUpperCase(),
-          icon: Icons.fingerprint_rounded, rowIndex: 0),
-      _buildInfoRow(context, 'Cage No.',
+          rowIndex: 0),
+      _buildInfoRow(context, 'Cage No.:',
           [
             if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
             if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
           ].join(' • '),
-          icon: Icons.grid_view_rounded,
           actionLabel: 'Move',
           onAction: () => _showCageSelector(context),
           rowIndex: 1),
-      _buildInfoRow(context, 'Ear No.',
+      _buildInfoRow(context, 'Ear No.:',
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
-          icon: Icons.tag, rowIndex: 2),
-      _buildInfoRow(context, 'Date of Birth',
+          rowIndex: 2),
+      _buildInfoRow(context, 'Date of Birth:',
           _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : '-',
-          icon: Icons.calendar_today_rounded, rowIndex: 3),
-      _buildInfoRow(context, 'Age',
+          rowIndex: 3),
+      _buildInfoRow(context, 'Age:',
           _calculateAge(),
-          icon: Icons.hourglass_empty_rounded, rowIndex: 4),
-      _buildInfoRow(context, 'Weight',
+          rowIndex: 4),
+      _buildInfoRow(context, 'Weight:',
           _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '-',
-          icon: Icons.scale_outlined, rowIndex: 5),
-      _buildInfoRow(context, 'Markers',
+          rowIndex: 5),
+      _buildInfoRow(context, 'Markers:',
           _currentRabbit.color?.isNotEmpty == true ? _currentRabbit.color! : '-',
-          icon: Icons.palette_outlined,
           onAction: widget.isEditing ? () => _showColorSelector(context) : null,
           actionLabel: widget.isEditing ? 'EDIT' : null,
           rowIndex: 6),
-      _buildInfoRow(context, 'Notes',
+      _buildInfoRow(context, 'Notes:',
           _currentRabbit.notes?.isNotEmpty == true ? _currentRabbit.notes! : '-',
-          icon: Icons.notes_rounded,
           isLast: true, rowIndex: 7),
     ];
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: kNeutral200),
+        border: Border.all(color: const Color(0xFFEBE8F0)),
         borderRadius: BorderRadius.circular(14),
       ),
       clipBehavior: Clip.antiAlias,
@@ -111,36 +108,29 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
     BuildContext context,
     String label,
     String value, {
-    required IconData icon,
     String? actionLabel,
     VoidCallback? onAction,
     bool isLast = false,
     int rowIndex = 0,
   }) {
     final bool isEven = rowIndex.isEven;
-    final Color rowBg = isEven ? Colors.white : const Color(0xFFF5F3F8);
+    final Color rowBg = isEven ? Colors.white : const Color(0xFFF7F5FA);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
       decoration: BoxDecoration(
         color: rowBg,
-        border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral100)),
+        border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFEBE8F0), width: 0.8)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: kNeutral400),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: kNeutral600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF4F4F56),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           Flexible(
             child: Row(
@@ -165,7 +155,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   GestureDetector(
                     onTap: onAction,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: kNeutral100,
                         borderRadius: BorderRadius.circular(100),

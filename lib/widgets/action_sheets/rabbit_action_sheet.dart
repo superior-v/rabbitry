@@ -279,6 +279,18 @@ class RabbitActionSheet extends StatelessWidget {
       ));
     }
 
+    // Log Palpation for pregnant does
+    if (rabbit.type == RabbitType.doe && rabbit.status == RabbitStatus.pregnant) {
+      items.add(_buildActionItem(
+        context,
+        icon: Icons.check_circle_outline,
+        iconColor: const Color(0xFF7B6BA0),
+        label: 'Log Palpation',
+        subtitle: 'Record or update palpation result',
+        onTap: () => _showConfirmPregnancyModal(context),
+      ));
+    }
+
     // Cancel Pregnancy for palpateDue or pregnant does
     if (rabbit.type == RabbitType.doe && (rabbit.status == RabbitStatus.palpateDue || rabbit.status == RabbitStatus.pregnant)) {
       items.add(_buildActionItem(
@@ -347,7 +359,7 @@ class RabbitActionSheet extends StatelessWidget {
         return _buildPrimaryActionItem(
           context,
           icon: Icons.pregnant_woman,
-          label: 'Confirm Bred Status',
+          label: 'Log Palpation',
           subtitle: 'Record palpation result',
           onTap: () => _showConfirmPregnancyModal(context),
         );
@@ -539,6 +551,7 @@ class RabbitActionSheet extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (context) => ConfirmPregnancyModal(
         doe: rabbit,

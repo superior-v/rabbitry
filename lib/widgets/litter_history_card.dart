@@ -131,13 +131,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               // 2. Light purple summary pill
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F2FD),
                     borderRadius: BorderRadius.circular(8),
@@ -154,7 +154,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               // 3. Compact space below summary pill
               if (_filteredLitters.isEmpty)
                 const Padding(
@@ -214,8 +214,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           ],
         ),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          visualDensity: VisualDensity.compact,
+          tilePadding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
           iconColor: const Color(0xFF7D7D86),
           collapsedIconColor: const Color(0xFF7D7D86),
           onExpansionChanged: (expanded) {
@@ -256,7 +257,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -284,7 +285,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

@@ -64,10 +64,10 @@ class _ParentageCardState extends State<ParentageCard> {
     required String? fallbackId,
     required bool isMale,
   }) {
-    // Vivid Figma colors — bright cyan for Sire, hot pink for Dam
+    // Pastel colors: #D8EEFB for Sire, #FFBCE7 for Dam
     final Color cardBg = isMale
-        ? const Color(0xFF38CDF3) // slightly lighter cyan for Sire
-        : const Color(0xFFF44CB0); // slightly lighter pink for Dam
+        ? const Color(0xFFD8EEFB)
+        : const Color(0xFFFFBCE7);
 
     return GestureDetector(
       onTap: rabbit != null
@@ -85,10 +85,10 @@ class _ParentageCardState extends State<ParentageCard> {
             // SIRE / DAM label
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: Colors.white.withValues(alpha: 0.85),
+                color: Color(0xFF55555C),
                 letterSpacing: 1.4,
               ),
             ),
@@ -101,18 +101,18 @@ class _ParentageCardState extends State<ParentageCard> {
                     TextSpan(
                       text: '${rabbit!.breederPrefix} ',
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: Color(0xFF2C2C2E),
                       ),
                     ),
                   ],
                   TextSpan(
                     text: rabbit?.name ?? fallbackId ?? 'Unknown',
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: Color(0xFF2C2C2E),
                     ),
                   ),
                 ],
@@ -124,10 +124,10 @@ class _ParentageCardState extends State<ParentageCard> {
               const SizedBox(height: 4),
               Text(
                 rabbit!.color!,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.82),
+                  color: Color(0xFF6A6171),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -138,19 +138,19 @@ class _ParentageCardState extends State<ParentageCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.55),
+                  color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
                   width: 1,
                 ),
               ),
               child: Text(
                 rabbit != null ? 'In Herd' : 'External',
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: Color(0xFF4F4F56),
                 ),
               ),
             ),

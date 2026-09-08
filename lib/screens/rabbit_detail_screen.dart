@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -425,26 +426,19 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
         color: _heroBackgroundColor,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // âœ… Avatar
+            // ✅ Avatar - grey outline, less rounded corner
             Container(
-              width: 88,
-              height: 88,
+              width: 82,
+              height: 82,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(8),
                 color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(color: Colors.white, width: 3),
+                border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
                 image: hasPhoto && photoPath != null && File(photoPath).existsSync()
                     ? DecorationImage(
                         image: FileImage(File(photoPath)),
@@ -456,7 +450,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ? null
                   : Icon(
                       PhosphorIconsDuotone.rabbit,
-                      size: 44,
+                      size: 42,
                       color: _primaryColor,
                     ),
             ),
@@ -505,8 +499,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   String _getStatusDisplayText() {
     if (_currentRabbit.status == RabbitStatus.pregnant && _currentRabbit.dueDate != null) {
-      final formattedDate = FormatUtils.formatDateShort(_currentRabbit.dueDate!);
-      return 'BRED • DUE $formattedDate'.toUpperCase();
+      final formattedDate = DateFormat('MMM d').format(_currentRabbit.dueDate!);
+      return 'BRED • DUE $formattedDate';
     }
     return _getStatusText(_currentRabbit.status).toUpperCase();
   }
@@ -519,12 +513,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        text.toUpperCase(),
+        text,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: textColor,
-          letterSpacing: 0.8,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -581,7 +575,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   // Tab Contents
   Widget _buildProfileTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -591,12 +585,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             rabbit: _currentRabbit,
             isEditing: false,
           ),
-          if (SettingsService.instance.showRabbitryEnabled) ...[
-            const SizedBox(height: 24),
-            _buildSectionHeader('SHOW WINNINGS'),
-            RegistrationCard(rabbit: _currentRabbit),
-          ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           _buildSectionHeader('PARENTAGE'),
           ParentageCard(
             rabbit: _currentRabbit,
@@ -607,10 +596,15 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
               }
             },
           ),
-          const SizedBox(height: 24),
+          if (SettingsService.instance.showRabbitryEnabled) ...[
+            const SizedBox(height: 14),
+            _buildSectionHeader('SHOW WINNINGS'),
+            RegistrationCard(rabbit: _currentRabbit),
+          ],
+          const SizedBox(height: 14),
           _buildSectionHeader('GENOTYPE'),
           GeneticsCard(rabbit: _currentRabbit, isEditing: false),
-          const SizedBox(height: 40),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -618,14 +612,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Text(
         title.toUpperCase(),
         style: const TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w800,
           color: _detailSectionText,
-          letterSpacing: 1.2,
+          letterSpacing: 1.1,
         ),
       ),
     );
