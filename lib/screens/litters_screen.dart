@@ -845,7 +845,7 @@ class LittersScreenState extends State<LittersScreen> {
                       ),
                       Text(
                         'Bred ${_formatTileDate(litter.breedDate)}',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFFAAAAAA)),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF555555)),
                       ),
                     ],
                   ),
@@ -925,8 +925,6 @@ class LittersScreenState extends State<LittersScreen> {
                 if (isExpanded) ...[
                   const Divider(height: 20),
                   ...litter.kits.where((kit) => _kitMatchesStage(kit)).map((kit) => _buildKitRow(litter, kit)).toList(),
-                  const SizedBox(height: 8),
-                  _buildLitterActionButtons(litter),
                 ],
               ],
             ),
@@ -1223,7 +1221,7 @@ class LittersScreenState extends State<LittersScreen> {
                   ),
                   if (kit.weight > 0)
                     Text(
-                      'Weight: ${kit.weight}g',
+                      'Weight: ${FormatUtils.formatWeight(kit.weight)}',
                       style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                     ),
                   if (kit.details != null && kit.details!.isNotEmpty) ...[
@@ -3362,7 +3360,6 @@ class LittersScreenState extends State<LittersScreen> {
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFD97706)),
             child: const Text('Quarantine'),
           ),
         ],
@@ -3373,40 +3370,44 @@ class LittersScreenState extends State<LittersScreen> {
   void _showEditKitDetails(Litter litter, Kit kit, {int initialTab = 0}) {
     String selectedSex = kit.sex;
     String? localImagePath = kit.imagePath;
-    final colorController = TextEditingController(text: kit.color);
-    final notesController = TextEditingController(text: kit.details);
+    final String initialColor = (kit.color.toLowerCase() == 'black' || kit.color.toLowerCase() == 'unknown') ? '' : kit.color;
+    final colorController = TextEditingController(text: initialColor);
+    final notesController = TextEditingController(text: kit.details ?? '');
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          backgroundColor: const Color(0xFFF1ECF7),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: Colors.white, width: 2),
+          ),
           titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
           contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
           actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Edit Kit Details',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.4),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Kit ${_getKitDisplayTag(litter, kit)}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral500),
-                    ),
-                  ],
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Edit Kit Details',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2E2D32), letterSpacing: -0.3),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Kit ${_getKitDisplayTag(litter, kit)}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF787774)),
+                  ),
+                ],
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, size: 20, color: kNeutral500),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.close, size: 20, color: Color(0xFF787774)),
               ),
             ],
           ),
@@ -3417,85 +3418,55 @@ class LittersScreenState extends State<LittersScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 10),
                   Center(
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            final picker = ImagePicker();
-                            final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                            if (image != null) {
-                              setDialogState(() => localImagePath = image.path);
-                            }
-                          },
-                          child: Container(
-                            width: 96,
-                            height: 96,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: kLilacWash,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(color: kLilacLight),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kLilacDeep.withOpacity(0.08),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                        if (image != null) {
+                          setDialogState(() => localImagePath = image.path);
+                        }
+                      },
+                      child: Container(
+                        width: 88,
+                        height: 88,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0xFFE5DDF0), width: 1.5),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: localImagePath != null
+                              ? Image.file(File(localImagePath!), fit: BoxFit.cover)
+                              : const Center(
+                                  child: Icon(Icons.add_a_photo_outlined, size: 34, color: Color(0xFF5E4B8B)),
                                 ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: localImagePath != null
-                                  ? Image.file(File(localImagePath!), fit: BoxFit.cover)
-                                  : Container(
-                                      color: Colors.white,
-                                      child: const Icon(Icons.add_a_photo_outlined, size: 32, color: kLilacDeep),
-                                    ),
-                            ),
-                          ),
                         ),
-                        const SizedBox(height: 10),
-                        TextButton.icon(
-                          onPressed: () async {
-                            final picker = ImagePicker();
-                            final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                            if (image != null) {
-                              setDialogState(() => localImagePath = image.path);
-                            }
-                          },
-                          icon: const Icon(Icons.photo_library_outlined, size: 16),
-                          label: Text(localImagePath != null ? 'Change Photo' : 'Add Photo'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: kLilacDeep,
-                            backgroundColor: kLilacWash,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  const Text('Gender', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral600)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
+                  const Text('Gender', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF6B6A70))),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildSexChip('M', 'Male', Icons.male, const Color(0xFF2E7BB5), selectedSex, (val) => setDialogState(() => selectedSex = val)),
+                        child: _buildSexChip('M', '♂ Buck', selectedSex, (val) => setDialogState(() => selectedSex = val)),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _buildSexChip('F', 'Female', Icons.female, kFemaleColor, selectedSex, (val) => setDialogState(() => selectedSex = val)),
+                        child: _buildSexChip('F', '♀ Doe', selectedSex, (val) => setDialogState(() => selectedSex = val)),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _buildSexChip('U', 'Unknown', Icons.help_outline, kNeutral500, selectedSex, (val) => setDialogState(() => selectedSex = val)),
+                        child: _buildSexChip('U', '⍰ Unsexed', selectedSex, (val) => setDialogState(() => selectedSex = val)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  const Text('Color', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral600)),
+                  const SizedBox(height: 16),
+                  const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF6B6A70))),
                   const SizedBox(height: 8),
                   Autocomplete<String>(
                     optionsBuilder: (TextEditingValue textEditingValue) {
@@ -3511,22 +3482,22 @@ class LittersScreenState extends State<LittersScreen> {
                       return TextField(
                         controller: controller,
                         focusNode: focusNode,
-                        style: const TextStyle(fontSize: 14, color: kNeutral900),
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
                         decoration: InputDecoration(
-                          hintText: 'e.g., Black, Broken',
+                          hintText: '',
                           filled: true,
-                          fillColor: const Color(0xFFFDFDFE),
+                          fillColor: Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: kNeutral300),
+                            borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: kNeutral300),
+                            borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: kLilacDeep, width: 1.5),
+                            borderSide: const BorderSide(color: Color(0xFF5E4B8B), width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         ),
@@ -3536,28 +3507,28 @@ class LittersScreenState extends State<LittersScreen> {
                       colorController.text = color;
                     },
                   ),
-                  const SizedBox(height: 18),
-                  const Text('Notes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral600)),
+                  const SizedBox(height: 16),
+                  const Text('Notes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF6B6A70))),
                   const SizedBox(height: 8),
                   TextField(
                     controller: notesController,
                     maxLines: 4,
-                    style: const TextStyle(fontSize: 14, color: kNeutral900),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
                     decoration: InputDecoration(
-                      hintText: 'Additional details...',
+                      hintText: '',
                       filled: true,
-                      fillColor: const Color(0xFFFDFDFE),
+                      fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: kNeutral300),
+                        borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: kNeutral300),
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: kLilacDeep, width: 1.5),
+                        borderSide: const BorderSide(color: Color(0xFF5E4B8B), width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                     ),
@@ -3569,8 +3540,8 @@ class LittersScreenState extends State<LittersScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(foregroundColor: kNeutral500),
-              child: const Text('Cancel'),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFF787774)),
+              child: const Text('Cancel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -3599,13 +3570,13 @@ class LittersScreenState extends State<LittersScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: kLilacDeep,
+                backgroundColor: const Color(0xFF5E4B8B),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text('Save'),
+              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ],
         ),
@@ -3613,24 +3584,28 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
-  Widget _buildSexChip(String value, String label, IconData icon, Color color, String current, Function(String) onSelect) {
+  Widget _buildSexChip(String value, String label, String current, Function(String) onSelect) {
     final isSelected = current == value;
     return GestureDetector(
       onTap: () => onSelect(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.12) : Colors.white,
-          border: Border.all(color: isSelected ? color : kNeutral300),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? const Color(0xFFF1ECF7) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF5E4B8B) : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: isSelected ? color : kNeutral500),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, color: isSelected ? color : kNeutral600)),
-          ],
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? const Color(0xFF5E4B8B) : const Color(0xFF2E2D32),
+          ),
         ),
       ),
     );

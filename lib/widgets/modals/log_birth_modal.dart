@@ -164,11 +164,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
             decoration: const BoxDecoration(
-              color: kLilacLight,
+              color: Color(0xFFEADBEE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              border: Border(bottom: BorderSide(color: kLilac, width: 1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,49 +176,40 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'LOG BIRTH',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: kLilacText, letterSpacing: 0.5),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${widget.doe.name} (${widget.doe.id})',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kLilacText),
-                          ),
-                        ],
-                      ),
+                    const Text(
+                      'LOG BIRTH',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF4A3E6D), letterSpacing: 0.3),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: kLilacText),
-                      onPressed: () => Navigator.pop(context),
-                      visualDensity: VisualDensity.compact,
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 24),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _buckName != null
-                            ? 'Sire: $_buckName'
-                            : (widget.doe.lastBreedBuckId != null ? 'Sire: ${widget.doe.lastBreedBuckId}' : 'Sire: Unknown'),
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kLilacText),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${widget.doe.name} (${widget.doe.id})',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _buckName != null
+                              ? '$_buckName (${widget.doe.lastBreedBuckId ?? ''})'
+                              : (widget.doe.lastBreedBuckId != null ? widget.doe.lastBreedBuckId! : 'Unknown Sire'),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
                     Text(
-                      _bredDate != null
-                          ? 'Bred Date: ${DateFormat('MM/dd/yyyy').format(_bredDate!)}'
-                          : 'Bred Date: -',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kLilacText),
+                      DateFormat('MM-dd-yyyy').format(_kindleDate),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
                     ),
                   ],
                 ),
@@ -488,166 +478,198 @@ class _LogBirthModalState extends State<LogBirthModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Color(0xFFF7EDE3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Color(0xFF7B6BA0), size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Add details for each kit. You can skip and update later.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF7B6BA0)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 16),
         ..._kitDetails.asMap().entries.map((entry) {
           final index = entry.key;
           final kit = entry.value;
           return _buildKitCard(index, kit);
         }).toList(),
-        SizedBox(height: 20),
+        const SizedBox(height: 10),
       ],
     );
   }
 
   Widget _buildKitCard(int index, Map<String, dynamic> kit) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Color(0xFFF7F7F5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFFE9E9E7)),
+        color: const Color(0xFFF9F7FA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5DEEC)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7B6BA0),
-                  borderRadius: BorderRadius.circular(12),
+          // Purple Header Banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFF6B2D6D),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'Kit ${index + 1}/${_kitDetails.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                // Row 1: Gender Pills: Buck, Doe, Unknown
+                Row(
+                  children: [
+                    _buildKitSexPill('M', 'Buck', kit['sex'] == 'M', () {
+                      setState(() => _kitDetails[index]['sex'] = 'M');
+                    }),
+                    const SizedBox(width: 8),
+                    _buildKitSexPill('F', 'Doe', kit['sex'] == 'F', () {
+                      setState(() => _kitDetails[index]['sex'] = 'F');
+                    }),
+                    const SizedBox(width: 8),
+                    _buildKitSexPill('U', 'Unknown', kit['sex'] == 'U' || kit['sex'] == null, () {
+                      setState(() => _kitDetails[index]['sex'] = 'U');
+                    }),
+                  ],
                 ),
-                child: Center(
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                const SizedBox(height: 10),
+                // Row 2: Color dropdown & Weight input
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 12,
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: (kit['color'] != null && _colorOptions.contains(kit['color']))
+                                ? kit['color']
+                                : null,
+                            hint: const Text('Color', style: TextStyle(color: Color(0xFF787774), fontSize: 14)),
+                            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2E2D32)),
+                            items: _colorOptions.map((color) {
+                              return DropdownMenuItem(
+                                value: color,
+                                child: Text(color, style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32))),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _kitDetails[index]['color'] = value);
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 9,
+                      child: SizedBox(
+                        height: 44,
+                        child: TextField(
+                          controller: TextEditingController(text: kit['weight'] != null && (kit['weight'] as num) > 0 ? kit['weight'].toString() : '')
+                            ..selection = TextSelection.collapsed(offset: (kit['weight'] != null && (kit['weight'] as num) > 0 ? kit['weight'].toString() : '').length),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
+                          decoration: InputDecoration(
+                            hintText: 'Weight',
+                            hintStyle: const TextStyle(color: Color(0xFF787774), fontSize: 14),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF6B2D6D), width: 1.5),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            _kitDetails[index]['weight'] = double.tryParse(val) ?? 0.0;
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Row 3: Notes
+                SizedBox(
+                  height: 44,
+                  child: TextField(
+                    controller: TextEditingController(text: kit['details'] ?? kit['notes'] ?? '')
+                      ..selection = TextSelection.collapsed(offset: (kit['details'] ?? kit['notes'] ?? '').length),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
+                    decoration: InputDecoration(
+                      hintText: 'Notes',
+                      hintStyle: const TextStyle(color: Color(0xFF787774), fontSize: 14),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF6B2D6D), width: 1.5),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      _kitDetails[index]['details'] = val;
+                      _kitDetails[index]['notes'] = val;
+                    },
                   ),
                 ),
-              ),
-              SizedBox(width: 12),
-              Text(
-                'Kit ${kit['id']}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-
-          // Sex selector
-          Text('Sex', style: TextStyle(fontSize: 13, color: Color(0xFF787774))),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              _buildSexChip('M', 'Male', kit['sex'] == 'M', () {
-                setState(() => _kitDetails[index]['sex'] = 'M');
-              }),
-              SizedBox(width: 8),
-              _buildSexChip('F', 'Female', kit['sex'] == 'F', () {
-                setState(() => _kitDetails[index]['sex'] = 'F');
-              }),
-              SizedBox(width: 8),
-              _buildSexChip('U', 'Unknown', kit['sex'] == 'U', () {
-                setState(() => _kitDetails[index]['sex'] = 'U');
-              }),
-            ],
-          ),
-          SizedBox(height: 16),
-
-          // Color dropdown
-          Text('Color', style: TextStyle(fontSize: 13, color: Color(0xFF787774))),
-          SizedBox(height: 8),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Color(0xFFE2E8F0)),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
+              ],
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: kit['color'],
-                items: _colorOptions.map((color) {
-                  return DropdownMenuItem(value: color, child: Text(color));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _kitDetails[index]['color'] = value);
-                },
-              ),
-            ),
-          ),
-          SizedBox(height: 16),
-
-          // Weight
-          Text('Weight (g)', style: TextStyle(fontSize: 13, color: Color(0xFF787774))),
-          SizedBox(height: 8),
-          TextField(
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              hintText: 'e.g., 50',
-              hintStyle: const TextStyle(color: Color(0xFFCCCBC8)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE9E9E7))),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            controller: TextEditingController(text: kit['weight'].toString()),
-            onChanged: (value) {
-              _kitDetails[index]['weight'] = double.tryParse(value) ?? 0.0;
-            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSexChip(String val, String label, bool isActive, VoidCallback onTap) {
-    Color activeBg = val == 'M' ? kBlueDeep : (val == 'F' ? kPinkDeep : const Color(0xFF7B6BA0));
-    Color activeText = Colors.white;
-
+  Widget _buildKitSexPill(String val, String label, bool isSelected, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 36,
+          height: 38,
           decoration: BoxDecoration(
-            color: isActive ? activeBg : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isActive ? activeBg : kNeutral300),
+            color: isSelected ? const Color(0xFF6B4E8C) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF6B4E8C) : const Color(0xFFE2E8F0),
+            ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-                color: isActive ? activeText : kNeutral600,
-              ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? Colors.white : const Color(0xFF787774),
             ),
           ),
         ),
@@ -697,35 +719,43 @@ class _LogBirthModalState extends State<LogBirthModal> {
       return Row(
         children: [
           Expanded(
-            child: OutlinedButton(
-              onPressed: () => setState(() => _currentStep = 1),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: const BorderSide(color: kLilac, width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Back',
-                style: TextStyle(color: kLilacText, fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5),
+            child: SizedBox(
+              height: 48,
+              child: OutlinedButton(
+                onPressed: () => setState(() => _currentStep = 1),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Back',
+                  style: TextStyle(color: Color(0xFF2E2D32), fontWeight: FontWeight.w700, fontSize: 15),
+                ),
               ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveBirth,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kLilacLight,
-                foregroundColor: kLilacText,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
+            child: SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _saveBirth,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEDE8F5),
+                  foregroundColor: const Color(0xFF6B2D6D),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: _isSaving
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6B2D6D)))
+                    : const Text(
+                        'LOG BIRTH',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5, color: Color(0xFF6B2D6D)),
+                      ),
               ),
-              child: _isSaving
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: kLilacText))
-                  : const Text('LOG BIRTH', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5, color: kLilacText)),
             ),
           ),
         ],
