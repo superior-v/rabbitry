@@ -1647,25 +1647,6 @@ class TaskScreenState extends State<TaskScreen> {
         _buildSectionTitle('PLANNED MATINGS', _breedingPlans.length),
         const SizedBox(height: 16),
         if (_breedingPlans.isEmpty) _buildEmptyState('No planned matings scheduled.') else ..._breedingPlans.map((plan) => _buildBreedingPlanCard(plan)).toList(),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _showAddBreedingPlanDialog(),
-            icon: Icon(PhosphorIcons.plus(), size: 18),
-            label: const Text('Add Breeding Plan'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: kLilacDeep,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: kLilac),
-              ),
-            ),
-          ),
-        ),
         const SizedBox(height: 100),
       ],
     );
@@ -1876,8 +1857,11 @@ class TaskScreenState extends State<TaskScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: kPinkWash, borderRadius: BorderRadius.circular(10)),
-                    child: Icon(PhosphorIcons.heart(), color: kPink, size: 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFBCE7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(PhosphorIcons.heart(PhosphorIconsStyle.fill), color: const Color(0xFFB5567A), size: 20),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

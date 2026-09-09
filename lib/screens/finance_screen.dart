@@ -391,8 +391,6 @@ class FinanceScreenState extends State<FinanceScreen> {
   }
 
   Widget _buildSummaryCard(String label, double amount, Color deep, Color wash, Color light, Color text, bool isIncome, {bool isNet = false, double? netVal}) {
-    Color displayColor = kNeutral500;
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 8),
       decoration: BoxDecoration(
@@ -413,10 +411,10 @@ class FinanceScreenState extends State<FinanceScreen> {
             fit: BoxFit.scaleDown,
             child: Text(
               isNet ? '${(netVal ?? 0.0) >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}' : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.w600,
-                color: displayColor,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2C2C2E),
                 height: 1.1,
               ),
             ),
@@ -426,8 +424,8 @@ class FinanceScreenState extends State<FinanceScreen> {
             label,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: kNeutral500,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6E6E73),
               height: 1.1,
             ),
             textAlign: TextAlign.center,
@@ -1287,23 +1285,43 @@ class FinanceScreenState extends State<FinanceScreen> {
       case TransactionCategory.otherIncome:
         iconData = PhosphorIcons.coins(PhosphorIconsStyle.duotone);
         break;
-      case TransactionCategory.medical:
-        iconData = PhosphorIcons.firstAidKit(PhosphorIconsStyle.duotone);
-        break;
+      case TransactionCategory.feedHay:
       case TransactionCategory.feed:
         iconData = PhosphorIcons.bowlFood(PhosphorIconsStyle.duotone);
         break;
-      case TransactionCategory.equipment:
-      case TransactionCategory.supplies:
-        iconData = PhosphorIcons.wrench(PhosphorIconsStyle.duotone);
+      case TransactionCategory.bedding:
+        iconData = PhosphorIcons.sparkle(PhosphorIconsStyle.duotone);
         break;
+      case TransactionCategory.veterinary:
       case TransactionCategory.vetVisit:
         iconData = PhosphorIcons.stethoscope(PhosphorIconsStyle.duotone);
         break;
+      case TransactionCategory.medicationsSupplements:
+      case TransactionCategory.medical:
+        iconData = PhosphorIcons.firstAidKit(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.cagesEquipment:
+      case TransactionCategory.equipment:
+        iconData = PhosphorIcons.wrench(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.supplies:
+        iconData = PhosphorIcons.package(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.showEntryFees:
       case TransactionCategory.showFee:
         iconData = PhosphorIcons.ticket(PhosphorIconsStyle.duotone);
         break;
+      case TransactionCategory.travel:
+        iconData = PhosphorIcons.car(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.registrationPedigreeFees:
+        iconData = PhosphorIcons.certificate(PhosphorIconsStyle.duotone);
+        break;
+      case TransactionCategory.marketingListings:
+        iconData = PhosphorIcons.megaphone(PhosphorIconsStyle.duotone);
+        break;
       case TransactionCategory.otherExpense:
+      default:
         iconData = PhosphorIcons.receipt(PhosphorIconsStyle.duotone);
         break;
     }
@@ -1342,10 +1360,10 @@ class FinanceScreenState extends State<FinanceScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildGroupingOption(GroupingMode.byMonth, 'Month', PhosphorIcons.calendar(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byRabbit, 'Rabbit', PhosphorIcons.pawPrint(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byLitter, 'Litter', PhosphorIcons.gitBranch(PhosphorIconsStyle.bold), setModalState),
-              _buildGroupingOption(GroupingMode.byCategory, 'Category', PhosphorIcons.tag(PhosphorIconsStyle.bold), setModalState),
+              _buildGroupingOption(GroupingMode.byMonth, 'Month', setModalState),
+              _buildGroupingOption(GroupingMode.byRabbit, 'Rabbit', setModalState),
+              _buildGroupingOption(GroupingMode.byLitter, 'Litter', setModalState),
+              _buildGroupingOption(GroupingMode.byCategory, 'Category', setModalState),
               const SizedBox(height: 16),
             ],
           ),
@@ -1356,7 +1374,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     _searchFocusNode.unfocus();
   }
 
-  Widget _buildGroupingOption(GroupingMode mode, String label, IconData icon, StateSetter setModalState) {
+  Widget _buildGroupingOption(GroupingMode mode, String label, StateSetter setModalState) {
     final isSelected = _groupingMode == mode;
 
     return GestureDetector(
@@ -1379,8 +1397,6 @@ class FinanceScreenState extends State<FinanceScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? kNeutral700 : kNeutral500, size: 20),
-            const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(

@@ -4,6 +4,7 @@ enum TransactionType {
 }
 
 enum TransactionCategory {
+  // Income
   rabbitSale,
   litterSale,
   studFee,
@@ -12,6 +13,20 @@ enum TransactionCategory {
   showWinnings,
   refund,
   otherIncome,
+
+  // Expense (FinanceExpense categories)
+  feedHay,
+  bedding,
+  veterinary,
+  medicationsSupplements,
+  cagesEquipment,
+  supplies,
+  showEntryFees,
+  travel,
+  registrationPedigreeFees,
+  marketingListings,
+
+  // Legacy mappings for backward-compatibility
   medical,
   feed,
   equipment,
@@ -19,7 +34,6 @@ enum TransactionCategory {
   showFee,
   otherExpense,
   soldKit,
-  supplies,
 }
 
 enum LinkType {
@@ -98,17 +112,31 @@ class Transaction {
         return 'Refund';
       case TransactionCategory.otherIncome:
         return 'Other income';
-      case TransactionCategory.medical:
-        return 'Medical';
+      case TransactionCategory.feedHay:
       case TransactionCategory.feed:
-        return 'Feed / Hay';
-      case TransactionCategory.equipment:
-      case TransactionCategory.supplies:
-        return 'Equipment / Supplies';
+        return 'Feed / hay';
+      case TransactionCategory.bedding:
+        return 'Bedding';
+      case TransactionCategory.veterinary:
       case TransactionCategory.vetVisit:
-        return 'Vet Visit';
+        return 'Veterinary';
+      case TransactionCategory.medicationsSupplements:
+      case TransactionCategory.medical:
+        return 'Medications / supplements';
+      case TransactionCategory.cagesEquipment:
+      case TransactionCategory.equipment:
+        return 'Cages & equipment';
+      case TransactionCategory.supplies:
+        return 'Supplies';
+      case TransactionCategory.showEntryFees:
       case TransactionCategory.showFee:
-        return 'Show / Entry Fee';
+        return 'Show entry fees';
+      case TransactionCategory.travel:
+        return 'Travel';
+      case TransactionCategory.registrationPedigreeFees:
+        return 'Registration / pedigree fees';
+      case TransactionCategory.marketingListings:
+        return 'Marketing / listings';
       case TransactionCategory.otherExpense:
         return 'Other expense';
     }
@@ -141,14 +169,18 @@ class Transaction {
         TransactionCategory.otherIncome,
       ];
 
-  // Get all expense categories
+  // Get all expense categories (10 items from FinanceExpense Category JPG)
   static List<TransactionCategory> get expenseCategories => [
-        TransactionCategory.medical,
-        TransactionCategory.feed,
-        TransactionCategory.equipment,
-        TransactionCategory.vetVisit,
-        TransactionCategory.showFee,
-        TransactionCategory.otherExpense,
+        TransactionCategory.feedHay,
+        TransactionCategory.bedding,
+        TransactionCategory.veterinary,
+        TransactionCategory.medicationsSupplements,
+        TransactionCategory.cagesEquipment,
+        TransactionCategory.supplies,
+        TransactionCategory.showEntryFees,
+        TransactionCategory.travel,
+        TransactionCategory.registrationPedigreeFees,
+        TransactionCategory.marketingListings,
       ];
 
   Map<String, dynamic> toMap() {
@@ -179,8 +211,6 @@ class Transaction {
     TransactionCategory cat = TransactionCategory.otherExpense;
     if (catStr == 'TransactionCategory.soldKit' || catStr == 'soldKit') {
       cat = TransactionCategory.litterSale;
-    } else if (catStr == 'TransactionCategory.supplies' || catStr == 'supplies') {
-      cat = TransactionCategory.equipment;
     } else {
       cat = TransactionCategory.values.firstWhere(
         (e) => e.toString() == catStr || e.name == catStr,

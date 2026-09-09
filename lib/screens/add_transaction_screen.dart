@@ -120,7 +120,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7FE),
+      backgroundColor: const Color(0xFFEEDAFE),
       appBar: AppBar(
         backgroundColor: const Color(0xFFE6BEFE),
         elevation: 0,
@@ -203,9 +203,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: kNeutral100,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: kNeutral200),
+        border: Border.all(color: const Color(0xFFD6CEE2)),
       ),
       child: Row(
         children: [
@@ -213,12 +213,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _type = TransactionType.income;
-                _category = TransactionCategory.soldKit;
+                _category = TransactionCategory.litterSale;
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _type == TransactionType.income ? Colors.white : Colors.transparent,
+                  color: _type == TransactionType.income ? const Color(0xFFE5E5EA) : Colors.transparent,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: _type == TransactionType.income 
                     ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
@@ -230,7 +230,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: _type == TransactionType.income ? kBlueDeep : kNeutral500,
+                      color: _type == TransactionType.income ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
                     ),
                   ),
                 ),
@@ -241,12 +241,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: GestureDetector(
               onTap: () => setState(() {
                 _type = TransactionType.expense;
-                _category = TransactionCategory.feed; // Default expense to Feed
+                _category = TransactionCategory.feedHay; // Default expense to Feed / hay
               }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _type == TransactionType.expense ? Colors.white : Colors.transparent,
+                  color: _type == TransactionType.expense ? const Color(0xFFE5E5EA) : Colors.transparent,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: _type == TransactionType.expense 
                     ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
@@ -258,7 +258,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: _type == TransactionType.expense ? kPinkDeep : kNeutral500,
+                      color: _type == TransactionType.expense ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
                     ),
                   ),
                 ),
@@ -270,8 +270,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-
-
   Widget _buildCategoryDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,26 +277,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'CATEGORY',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: kNeutral300),
+            border: Border.all(color: const Color(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonFormField<TransactionCategory>(
             value: _category,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: Text('Select category'),
+            hint: const Text('Select category', style: TextStyle(color: Color(0xFF787880))),
             items: _availableCategories.map((cat) {
               return DropdownMenuItem(
                 value: cat,
@@ -310,6 +308,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     amount: 0,
                     date: DateTime.now(),
                   ).categoryName,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
                 ),
               );
             }).toList(),
@@ -332,19 +331,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'LINK TO',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: kNeutral100,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kNeutral200),
+            border: Border.all(color: const Color(0xFFD6CEE2)),
           ),
           child: Row(
             children: [
@@ -372,12 +371,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? const Color(0xFFE5E5EA) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: isSelected
               ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
               : null,
-            border: Border.all(color: isSelected ? kLilacLight : Colors.transparent),
+            border: Border.all(color: isSelected ? const Color(0xFFD1D1D6) : Colors.transparent),
           ),
           child: Center(
             child: Text(
@@ -385,7 +384,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? kLilacDeep : kNeutral500,
+                color: isSelected ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
               ),
             ),
           ),
@@ -401,17 +400,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'SELECT RABBIT',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: kNeutral300),
+            border: Border.all(color: const Color(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonFormField<String>(
@@ -420,11 +419,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: const Text('Select rabbit'),
+            hint: const Text('Select rabbit', style: TextStyle(color: Color(0xFF787880))),
             items: _rabbits.map((rabbit) {
               return DropdownMenuItem(
                 value: rabbit.id,
-                child: Text('${rabbit.name} (${rabbit.id})'),
+                child: Text('${rabbit.name} (${rabbit.id})', style: const TextStyle(fontSize: 14, color: Color(0xFF2C2C2E))),
               );
             }).toList(),
             onChanged: (value) => setState(() => _selectedRabbitId = value),
@@ -442,17 +441,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'SELECT WEANED KIT',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border.all(color: kNeutral300),
+            border: Border.all(color: const Color(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonFormField<String>(
@@ -461,13 +460,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: const Text('Select weaned kit'),
+            hint: const Text('Select weaned kit', style: TextStyle(color: Color(0xFF787880))),
             items: kits.map((item) {
               return DropdownMenuItem<String>(
                 value: item['key'] as String,
                 child: Text(
                   item['label'] as String,
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF2C2C2E)),
                   overflow: TextOverflow.ellipsis,
                 ),
               );
@@ -488,8 +487,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-
-
   Widget _buildAmountField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,17 +494,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'AMOUNT',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextFormField(
           controller: _amountController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
             prefixText: '${FormatUtils.currencySymbol} ',
             prefixStyle: TextStyle(
               fontSize: 16,
@@ -518,11 +517,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
@@ -559,25 +558,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'DATE',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         GestureDetector(
           onTap: _selectDate,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border.all(color: kNeutral300),
+              border: Border.all(color: const Color(0xFFD6CEE2)),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.bold), color: kNeutral600, size: 18),
+                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.bold), color: const Color(0xFF4F4F56), size: 18),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -585,12 +584,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: kNeutral500,
+                      color: Color(0xFF2C2C2E),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: kNeutral400, size: 16),
+                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: const Color(0xFF787880), size: 16),
               ],
             ),
           ),
@@ -604,7 +603,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       context: context,
       initialDate: _date,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
     if (picked != null) {
@@ -619,23 +618,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'DESCRIPTION',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextFormField(
           controller: _descriptionController,
           decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
@@ -655,24 +656,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text(
           'NOTES (optional)',
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: kNeutral500,
+            color: Color(0xFF4F4F56),
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextFormField(
           controller: _notesController,
           maxLines: 2,
           decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: kNeutral300),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),

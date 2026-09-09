@@ -24,9 +24,9 @@ class FormatUtils {
     return DateFormat('MMM d').format(date);
   }
 
-  /// Month-year format (e.g., "February 2026")
+  /// Month-year format (e.g., "Sep 2026")
   static String formatMonthYear(DateTime date) {
-    return DateFormat('MMMM yyyy').format(date);
+    return DateFormat('MMM yyyy').format(date);
   }
 
   /// Long date (e.g., "February 14, 2026" or "14 February, 2026")

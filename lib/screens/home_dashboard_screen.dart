@@ -526,8 +526,8 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 value,
                 style: const TextStyle(
                   fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: kNeutral500,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
                   height: 1.1,
                 ),
               ),
@@ -537,8 +537,8 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               label,
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: kNeutral500,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6E6E73),
                 height: 1.1,
               ),
               textAlign: TextAlign.center,
