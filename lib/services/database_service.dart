@@ -2025,11 +2025,33 @@ class DatabaseService {
         );
         print('✅ Updated litter: ${litter.id} with ${litter.kits.length} kits');
       }
+      if (litter.doeId.isNotEmpty) {
+        await checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+      }
       notifyDataChanged();
     } catch (e, stackTrace) {
       print('❌ Error updating litter: $e');
       print('Stack trace: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// Scans all nursing does in the database and updates them to OPEN if all their kits are dead or fostered.
+  Future<void> syncAllNursingDoes() async {
+    try {
+      final db = await database;
+      final nursingDoes = await db.query(
+        'rabbits',
+        where: "type = 'RabbitType.doe' AND status LIKE '%nursing%'",
+      );
+      for (final doe in nursingDoes) {
+        final doeId = doe['id'] as String?;
+        if (doeId != null && doeId.isNotEmpty) {
+          await checkAndUpdateDoeStatusIfLitterEmpty(doeId);
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error in syncAllNursingDoes: $e');
     }
   }
 
@@ -2117,15 +2139,20 @@ class DatabaseService {
   }
 
   /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
-  /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
   /// If all kits are dead or fostered across her active litters, changes the doe's status to OPEN.
   Future<void> checkAndUpdateDoeStatusIfLitterEmpty(String doeId) async {
     try {
+      if (doeId.trim().isEmpty) return;
+      final db = await database;
+      final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
+      if (doeMap.isEmpty) return;
+
       final litters = await getLitters();
       final doeLitters = litters.where((l) =>
         l.doeId == doeId &&
         l.status.toLowerCase() != 'archived' &&
-        l.status.toLowerCase() != 'weaned'
+        l.status.toLowerCase() != 'weaned' &&
+        l.status.toLowerCase() != 'not taken'
       ).toList();
 
       bool hasActiveNursingKits = false;
@@ -2142,14 +2169,24 @@ class DatabaseService {
               s != 'cull';
         }).toList();
 
-        if (activeKits.isNotEmpty) {
-          hasActiveNursingKits = true;
-          break;
+        final int aliveCount = litter.aliveKits ?? 0;
+
+        if (litter.kits.isNotEmpty) {
+          if (activeKits.isNotEmpty) {
+            hasActiveNursingKits = true;
+            break;
+          }
+        } else {
+          // No individual kit items, rely on numeric alive count
+          if (aliveCount > 0) {
+            hasActiveNursingKits = true;
+            break;
+          }
         }
       }
 
       if (!hasActiveNursingKits) {
-        final db = await database;
+        // Doe has NO active nursing kits remaining (all died, fostered, or weaned/archived)
         await db.update(
           'rabbits',
           {
@@ -2169,11 +2206,13 @@ class DatabaseService {
         // Also update any active litters of this doe that have no alive kits left
         for (final litter in doeLitters) {
           final allFostered = litter.kits.isNotEmpty && litter.kits.every((k) => k.status.toLowerCase() == 'fostered');
+          final allDied = (litter.kits.isNotEmpty && litter.kits.every((k) => ['dead', 'died', 'deceased', 'cull'].contains(k.status.toLowerCase()))) || ((litter.aliveKits ?? 0) == 0);
           await db.update(
             'litters',
             {
               'currentAlive': 0,
-              if (allFostered) 'status': 'Fostered',
+              'aliveBorn': 0,
+              if (allFostered) 'status': 'Fostered' else if (allDied) 'status': 'Died',
               'updatedAt': DateTime.now().toIso8601String(),
             },
             where: 'id = ?',
@@ -2182,6 +2221,7 @@ class DatabaseService {
         }
 
         print('🐰 Doe $doeId status updated to OPEN because all kits are dead or fostered.');
+        notifyDataChanged();
       }
     } catch (e) {
       print('⚠️ Error in checkAndUpdateDoeStatusIfLitterEmpty: $e');

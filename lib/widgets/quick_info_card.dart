@@ -67,7 +67,12 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
           [
             if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
             if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
-          ].join(' • '),
+          ].isNotEmpty
+              ? [
+                  if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
+                  if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
+                ].join(' • ')
+              : 'N/A',
           actionLabel: 'Move',
           onAction: () => _showCageSelector(context),
           rowIndex: 1),
@@ -84,9 +89,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
           _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '-',
           rowIndex: 5),
       _buildInfoRow(context, 'Markers:',
-          _currentRabbit.color?.isNotEmpty == true ? _currentRabbit.color! : '-',
-          onAction: widget.isEditing ? () => _showColorSelector(context) : null,
-          actionLabel: widget.isEditing ? 'EDIT' : null,
+          _getMarkersDisplay(),
           rowIndex: 6),
       _buildInfoRow(context, 'Notes:',
           _currentRabbit.notes?.isNotEmpty == true ? _currentRabbit.notes! : '-',
@@ -177,6 +180,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
         ],
       ),
     );
+  }
+
+  String _getMarkersDisplay() {
+    final markers = <String>[];
+    if (_currentRabbit.broken == true) markers.add('Broken');
+    if (_currentRabbit.viennaMarked == true) markers.add('Vienna Marked');
+    if (_currentRabbit.viennaCarrier == true) markers.add('Vienna Carrier');
+    return markers.isNotEmpty ? markers.join(', ') : '-';
   }
 
   String _calculateAge() {

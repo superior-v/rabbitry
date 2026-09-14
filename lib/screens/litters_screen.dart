@@ -16,6 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../widgets/modals/log_birth_modal.dart';
+import '../widgets/modals/wean_litter_modal.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 import 'dart:developer' as developer;
@@ -219,24 +220,36 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Widget _buildTopMetricCards() {
-    final activeLitters = litters.where((l) => l.status.toLowerCase() == 'nursing').length;
-    final nursingKits = litters.where((l) => l.status.toLowerCase() == 'nursing').fold(0, (sum, l) => sum + l.kits.where((k) => k.status.toLowerCase() == 'nursing' || (k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'archived')).length);
+    final activeLitters = litters.where((litter) {
+      final lStatus = litter.status.toLowerCase().trim();
+      final aliveCount = litter.aliveKits ?? litter.kits.where((k) => !k.isArchived).length;
+      if (aliveCount == 0 ||
+          lStatus == 'died' ||
+          lStatus == 'dead' ||
+          lStatus == 'archived' ||
+          lStatus == 'not taken') {
+        return false;
+      }
+      return true;
+    }).length;
 
-    double weanedSales = 0.0;
+    int nursingKits = 0;
     int weanedKitsCount = 0;
     final today = DateTime.now();
+
     for (final litter in litters) {
+      final lStatus = litter.status.toLowerCase().trim();
+      if (lStatus == 'died' || lStatus == 'dead' || lStatus == 'archived' || lStatus == 'not taken') continue;
+
       final dob = litter.dob;
       final ageInDays = dob != null ? today.difference(dob).inDays : 0;
       for (final kit in litter.kits) {
-        final st = kit.status.toLowerCase();
-        if (st != 'died' && st != 'dead' && st != 'archived' && st != 'sold') {
-          if (st == 'weaned' || st == 'growout' || ageInDays >= 49) {
-            weanedKitsCount++;
-          }
-        }
-        if (st == 'sold' && kit.price != null) {
-          weanedSales += kit.price!;
+        final st = kit.status.toLowerCase().trim();
+        if (st == 'died' || st == 'dead' || st == 'archived' || st == 'sold' || st == 'cull' || st == 'butchered') continue;
+        if (st == 'weaned' || st == 'growout' || ageInDays >= 49) {
+          weanedKitsCount++;
+        } else {
+          nursingKits++;
         }
       }
     }
@@ -1745,13 +1758,43 @@ class LittersScreenState extends State<LittersScreen> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    _buildLitterActionPill(
-                      label: 'Foster Litter',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showFosterKitsModal(context, litter);
-                      },
-                    ),
+                    if (_currentStage == 'Weaned' || litter.status.toLowerCase() == 'weaned' || litter.weanDate != null) ...[
+                      _buildLitterActionPill(
+                        label: 'Sell Litter',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSellLitterDialog(litter);
+                        },
+                      ),
+                    ] else ...[
+                      _buildLitterActionPill(
+                        label: 'Foster Litter',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showFosterKitsModal(context, litter);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _buildLitterActionPill(
+                        label: 'Wean Litter',
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final doe = await _db.getRabbit(litter.doeId);
+                          if (doe != null && mounted) {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              enableDrag: false,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => WeanLitterModal(
+                                doe: doe,
+                                onComplete: () => _loadLitters(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     _buildLitterActionPill(
                       label: 'Move Cage',
@@ -1910,17 +1953,20 @@ class LittersScreenState extends State<LittersScreen> {
         ? DateTime.now().difference(litter.dob).inDays
         : (litter.kindleDate != null ? DateTime.now().difference(litter.kindleDate!).inDays : litter.ageDays);
 
-    final bool isLitterNursing = litter.status.toLowerCase() == 'nursing';
     final bool isKitNursing = kit.status.toLowerCase() == 'nursing';
 
-    // Eligible for sale ONLY if at least 7 weeks (49 days) old, NOT a nursing doe/kit, and weaned
-    final isEligibleForSale = ageInDays >= 49 &&
-        !isLitterNursing &&
-        !isKitNursing &&
-        (kit.status == 'Weaned' || kit.status == 'GrowOut' || litter.status.toLowerCase() == 'weaned') &&
+    // Eligible for sale once weaned / growout / mature (regardless of age, as long as not nursing/sold/dead)
+    final isEligibleForSale = !isKitNursing &&
+        (kit.status.toLowerCase() == 'weaned' ||
+            kit.status.toLowerCase() == 'growout' ||
+            kit.status.toLowerCase() == 'mature' ||
+            litter.status.toLowerCase() == 'weaned' ||
+            litter.weanDate != null) &&
         kit.status.toLowerCase() != 'sold' &&
         kit.status.toLowerCase() != 'dead' &&
-        kit.status.toLowerCase() != 'died';
+        kit.status.toLowerCase() != 'died' &&
+        kit.status.toLowerCase() != 'cull' &&
+        kit.status.toLowerCase() != 'butchered';
 
     final bool isFostered = kit.status.toLowerCase() == 'fostered' ||
         (kit.details != null && kit.details!.toLowerCase().contains('fostered')) ||
@@ -2201,7 +2247,7 @@ class LittersScreenState extends State<LittersScreen> {
           await db.update('litters', {
             'kits': jsonEncode(updatedBirthKits.map((k) => k.toMap()).toList()),
             'currentAlive': birthAlive,
-            'aliveKits': birthAlive,
+            'aliveBorn': birthAlive,
             'status': 'Nursing',
             'updatedAt': DateTime.now().toIso8601String(),
           }, where: 'id = ?', whereArgs: [birthLitter.id]);
@@ -2223,7 +2269,7 @@ class LittersScreenState extends State<LittersScreen> {
         await db.update('litters', {
           'kits': jsonEncode(updatedSurrogateKits.map((k) => k.toMap()).toList()),
           'currentAlive': surrogateAlive,
-          'aliveKits': surrogateAlive,
+          'aliveBorn': surrogateAlive,
           'updatedAt': DateTime.now().toIso8601String(),
         }, where: 'id = ?', whereArgs: [currentLitter.id]);
 
@@ -2256,7 +2302,7 @@ class LittersScreenState extends State<LittersScreen> {
           await db.update('litters', {
             'kits': jsonEncode(updatedTargetKits.map((k) => k.toMap()).toList()),
             'currentAlive': targetAlive,
-            'aliveKits': targetAlive,
+            'aliveBorn': targetAlive,
             'updatedAt': DateTime.now().toIso8601String(),
           }, where: 'id = ?', whereArgs: [surrogateLitter.id]);
 
@@ -2279,7 +2325,7 @@ class LittersScreenState extends State<LittersScreen> {
         await db.update('litters', {
           'kits': jsonEncode(updatedBirthKits.map((k) => k.toMap()).toList()),
           'currentAlive': birthAlive,
-          'aliveKits': birthAlive,
+          'aliveBorn': birthAlive,
           'status': 'Nursing',
           'updatedAt': DateTime.now().toIso8601String(),
         }, where: 'id = ?', whereArgs: [currentLitter.id]);
@@ -2808,11 +2854,26 @@ class LittersScreenState extends State<LittersScreen> {
           return k;
         }).toList();
 
+        final allKitsWeanedOrOutcome = updatedKits.every((k) =>
+            k.status.toLowerCase() == 'weaned' ||
+            k.status.toLowerCase() == 'growout' ||
+            k.status.toLowerCase() == 'mature' ||
+            k.status.toLowerCase() == 'sold' ||
+            k.status.toLowerCase() == 'dead' ||
+            k.status.toLowerCase() == 'died' ||
+            k.status.toLowerCase() == 'butchered' ||
+            k.status.toLowerCase() == 'cull');
+
         final updatedLitter = litters[index].copyWith(
           kits: updatedKits,
+          status: allKitsWeanedOrOutcome ? 'Weaned' : litters[index].status,
+          weanDate: allKitsWeanedOrOutcome ? (litters[index].weanDate ?? DateTime.now()) : litters[index].weanDate,
         );
 
         await _db.updateLitter(updatedLitter);
+        if (allKitsWeanedOrOutcome) {
+          await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.id);
+        }
         await _refreshLitters();
 
         if (mounted) {
@@ -2853,6 +2914,243 @@ class LittersScreenState extends State<LittersScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2)),
+      ),
+    );
+  }
+
+  void _showSellLitterDialog(Litter litter) {
+    final TextEditingController priceController = TextEditingController();
+    final TextEditingController buyerController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Sell Litter',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F7F5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Litter ${litter.id}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${litter.doeName} x ${litter.buckName ?? 'Unknown'} • ${litter.aliveKits} active kits',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF787774),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'SALE PRICE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF787774),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        prefixText: '${FormatUtils.currencySymbol} ',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF7B6BA0),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'BUYER NAME',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF787774),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _db.getContacts(),
+                      builder: (context, snapshot) {
+                        final contacts = snapshot.data ?? [];
+                        return Autocomplete<String>(
+                          initialValue: TextEditingValue(text: buyerController.text),
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return const Iterable<String>.empty();
+                            }
+                            return contacts
+                                .map((c) => c['name'] as String)
+                                .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                          },
+                          onSelected: (String selection) {
+                            buyerController.text = selection;
+                          },
+                          fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+                            fieldController.addListener(() {
+                              buyerController.text = fieldController.text;
+                            });
+                            return TextField(
+                              controller: fieldController,
+                              focusNode: focusNode,
+                              onSubmitted: (value) => onFieldSubmitted(),
+                              decoration: InputDecoration(
+                                hintText: 'Select or enter buyer',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF7B6BA0),
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+
+                    final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+                    if (litterIndex != -1) {
+                      final updatedKits = litters[litterIndex].kits.map((k) {
+                        if (k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'sold') {
+                          return k.copyWith(
+                            status: 'Sold',
+                            details: 'Sold to ${buyerController.text}',
+                            price: double.tryParse(priceController.text),
+                          );
+                        }
+                        return k;
+                      }).toList();
+
+                      final updatedLitter = litters[litterIndex].copyWith(
+                        kits: updatedKits,
+                        status: 'Sold',
+                        aliveKits: 0,
+                      );
+                      await _db.updateLitter(updatedLitter);
+
+                      final salePrice = double.tryParse(priceController.text);
+                      if (salePrice != null && salePrice > 0) {
+                        final transaction = finance.Transaction(
+                          id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+                          type: finance.TransactionType.income,
+                          category: finance.TransactionCategory.soldKit,
+                          amount: salePrice,
+                          date: DateTime.now(),
+                          description: 'Sold Litter ${litter.id}',
+                          notes: buyerController.text.isNotEmpty ? 'Buyer: ${buyerController.text}' : null,
+                          linkType: finance.LinkType.litter,
+                          litterId: litter.id,
+                        );
+                        await _db.insertTransaction(transaction);
+                      }
+
+                      await _loadLitters();
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Litter ${litter.id} marked as sold'),
+                            backgroundColor: const Color(0xFF7B6BA0),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7B6BA0),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Confirm Sale',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -4024,7 +4322,7 @@ class LittersScreenState extends State<LittersScreen> {
       await db.update('litters', {
         'kits': jsonEncode(updatedSourceKits.map((k) => k.toMap()).toList()),
         'currentAlive': sourceAliveCount,
-        'aliveKits': sourceAliveCount,
+        'aliveBorn': sourceAliveCount,
         if (sourceAliveCount == 0) 'status': 'Fostered',
         'updatedAt': DateTime.now().toIso8601String(),
       }, where: 'id = ?', whereArgs: [source.id]);
@@ -4039,7 +4337,7 @@ class LittersScreenState extends State<LittersScreen> {
       await db.update('litters', {
         'kits': jsonEncode(targetKits.map((k) => k.toMap()).toList()),
         'currentAlive': targetAliveCount,
-        'aliveKits': targetAliveCount,
+        'aliveBorn': targetAliveCount,
         'updatedAt': DateTime.now().toIso8601String(),
       }, where: 'id = ?', whereArgs: [target.id]);
 

@@ -1014,8 +1014,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       padding: const EdgeInsets.all(20),
       children: [
         _buildCard(
-          'Infrastructure',
-          PhosphorIconsDuotone.houseLine,
+          'Barn & Cage Manager',
+          PhosphorIconsDuotone.warehouse,
           [
             _buildSubsectionHeader('BARNS & LOCATIONS'),
             if (barns.isEmpty)

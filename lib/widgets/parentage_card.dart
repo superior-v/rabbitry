@@ -39,22 +39,29 @@ class _ParentageCardState extends State<ParentageCard> {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
     }
 
-    return Row(
-      children: [
-        Expanded(child: _buildParentCard(
-          label: 'SIRE',
-          rabbit: _sireRabbit,
-          fallbackId: widget.rabbit.sireId,
-          isMale: true,
-        )),
-        const SizedBox(width: 12),
-        Expanded(child: _buildParentCard(
-          label: 'DAM',
-          rabbit: _damRabbit,
-          fallbackId: widget.rabbit.damId,
-          isMale: false,
-        )),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _buildParentCard(
+              label: 'SIRE',
+              rabbit: _sireRabbit,
+              fallbackId: widget.rabbit.sireId,
+              isMale: true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildParentCard(
+              label: 'DAM',
+              rabbit: _damRabbit,
+              fallbackId: widget.rabbit.damId,
+              isMale: false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -69,15 +76,22 @@ class _ParentageCardState extends State<ParentageCard> {
         ? const Color(0xFFD8EEFB)
         : const Color(0xFFFFBCE7);
 
+    final bool hasDetails = rabbit != null || (fallbackId != null && fallbackId.isNotEmpty);
+
     return GestureDetector(
       onTap: rabbit != null
-          ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => RabbitDetailScreen(rabbit: rabbit)))
+          ? () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RabbitDetailScreen(rabbit: rabbit),
+                ),
+              )
           : null,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,33 +107,43 @@ class _ParentageCardState extends State<ParentageCard> {
               ),
             ),
             const SizedBox(height: 8),
-            // Prefix (bold) + Name
-            RichText(
-              text: TextSpan(
-                children: [
-                  if ((rabbit?.breederPrefix ?? '').isNotEmpty) ...[
+            // Prefix + Name or '-'
+            if (!hasDetails)
+              const Text(
+                '-',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
+                ),
+              )
+            else
+              RichText(
+                text: TextSpan(
+                  children: [
+                    if ((rabbit?.breederPrefix ?? '').isNotEmpty) ...[
+                      TextSpan(
+                        text: '${rabbit!.breederPrefix} ',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                    ],
                     TextSpan(
-                      text: '${rabbit!.breederPrefix} ',
+                      text: rabbit?.name ?? fallbackId ?? '-',
                       style: const TextStyle(
                         fontSize: 17,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF2C2C2E),
                       ),
                     ),
                   ],
-                  TextSpan(
-                    text: rabbit?.name ?? fallbackId ?? 'Unknown',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
-                    ),
-                  ),
-                ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
             if ((rabbit?.color ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -133,20 +157,23 @@ class _ParentageCardState extends State<ParentageCard> {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
+            const Spacer(),
             const SizedBox(height: 14),
-            // In Herd / External badge — white pill
+            // In Herd / External badge — corner radius matches rest of app (8)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
                   width: 1,
                 ),
               ),
               child: Text(
-                rabbit != null ? 'In Herd' : 'External',
+                !hasDetails
+                    ? '-'
+                    : (rabbit != null ? 'In Herd' : 'External'),
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,

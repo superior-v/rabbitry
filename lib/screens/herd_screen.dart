@@ -147,7 +147,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     if (!mounted) return;
 
     try {
-      print('ðŸ”„ Loading herd data...');
+      print('🔄 Loading herd data...');
+      await _db.syncAllNursingDoes();
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
       final barnsData = await _db.getAllBarns();
@@ -562,36 +563,6 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     ),
                   ),
                 ],
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        _searchFocusNode.canRequestFocus = false;
-                        FocusScope.of(context).unfocus();
-                        await _showBarnDrawer();
-                        if (mounted) {
-                          setState(() {
-                            _isSearchEnabled = false;
-                            _searchFocusNode.canRequestFocus = false;
-                          });
-                          FocusScope.of(context).unfocus();
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.regular), color: const Color(0xFF787880), size: 23),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                ),
               ),
             ),
           ],
@@ -1711,16 +1682,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (isDoe || rabbit.status == RabbitStatus.quarantine || isArchive) ...[
-                        _buildStatusBadge(rabbit),
-                        const SizedBox(height: 6),
-                      ],
+                      _buildStatusBadge(rabbit),
+                      const SizedBox(height: 4),
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
                         child: const Padding(
                           // Larger tap area for 3-dots menu
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 22),
                         ),
                       ),
@@ -1779,26 +1748,47 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
+  String _getStatusLetter(Rabbit rabbit) {
+    switch (rabbit.status) {
+      case RabbitStatus.open:
+        return 'O';
+      case RabbitStatus.pregnant:
+        return 'B'; // Bred
+      case RabbitStatus.palpateDue:
+        return 'P'; // Palpate Due
+      case RabbitStatus.nursing:
+        return 'N';
+      case RabbitStatus.resting:
+        return 'R';
+      case RabbitStatus.growout:
+        return 'G';
+      case RabbitStatus.quarantine:
+        return 'Q';
+      case RabbitStatus.active:
+        return 'A';
+      case RabbitStatus.inactive:
+        return 'I';
+      case RabbitStatus.archived:
+        return 'A';
+    }
+  }
+
   Widget _buildStatusBadge(Rabbit rabbit) {
-    final isDoe = rabbit.type == RabbitType.doe;
-    final isArchive = rabbit.status == RabbitStatus.archived;
-    final String label = isArchive ? 'ARCHIVED' : rabbit.statusText.toUpperCase();
-    final Color badgeBg = isArchive ? const Color(0xFFF2F2F7) : (isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB));
-    final Color badgeText = isArchive ? const Color(0xFF636366) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
+    final String letter = _getStatusLetter(rabbit);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: badgeBg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: badgeText.withOpacity(0.2)),
+        color: const Color(0xFFF2F2F7),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: const Color(0xFFDCDCE0)),
       ),
       child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
+        letter,
+        style: const TextStyle(
+          fontSize: 11,
           fontWeight: FontWeight.w800,
-          color: badgeText,
+          color: Color(0xFF636366),
         ),
       ),
     );

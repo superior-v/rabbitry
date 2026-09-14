@@ -187,14 +187,34 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bredDateStr = DateFormat('MMM d \'yy').format(litter.breedDate);
     final isExpanded = _expandedLitters.contains(litter.id);
 
-    String ageStr = 'Unknown';
-    if (litter.kindleDate != null) {
+    String fullAgeStr = '';
+    if (litter.status == 'Not Taken') {
+      fullAgeStr = '';
+    } else if (litter.status == 'Weaned') {
+      if (litter.kindleDate != null) {
+        final ageDays = DateTime.now().difference(litter.kindleDate!).inDays;
+        final weeks = (ageDays / 7).floor();
+        final remDays = ageDays % 7;
+        if (remDays == 0) {
+          fullAgeStr = 'Weaned • $weeks ${weeks == 1 ? 'week' : 'weeks'} old';
+        } else {
+          fullAgeStr = 'Weaned • $weeks ${weeks == 1 ? 'week' : 'weeks'}, $remDays ${remDays == 1 ? 'day' : 'days'} old';
+        }
+      } else {
+        fullAgeStr = 'Weaned';
+      }
+    } else if (litter.kindleDate != null) {
       final ageDays = DateTime.now().difference(litter.kindleDate!).inDays;
       if (ageDays < 7) {
-        ageStr = '$ageDays days';
+        fullAgeStr = 'Age: $ageDays ${ageDays == 1 ? 'day' : 'days'} old';
       } else {
         final weeks = (ageDays / 7).floor();
-        ageStr = '$weeks week${weeks > 1 ? 's' : ''}';
+        final remDays = ageDays % 7;
+        if (remDays == 0) {
+          fullAgeStr = 'Age: $weeks ${weeks == 1 ? 'week' : 'weeks'} old';
+        } else {
+          fullAgeStr = 'Age: $weeks ${weeks == 1 ? 'week' : 'weeks'}, $remDays ${remDays == 1 ? 'day' : 'days'} old';
+        }
       }
     }
 
@@ -228,14 +248,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               }
             });
           },
-          trailing: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _showLitterActionsMenu(context, litter),
-            child: const Padding(
-              padding: EdgeInsets.all(4.0),
-              child: Icon(Icons.more_horiz, size: 20, color: Color(0xFF9E9E9E)),
-            ),
-          ),
+          trailing: const SizedBox.shrink(),
           title: Row(
             children: [
               Text(
@@ -251,6 +264,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                 size: 20,
                 color: const Color(0xFF616161),
+              ),
+              const Spacer(),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showLitterActionsMenu(context, litter),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF9E9E9E)),
+                ),
               ),
             ],
           ),
@@ -293,7 +315,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     child: Text(
                       litter.status == 'Not Taken'
                           ? 'Not Taken'
-                          : '${litter.totalKits} born • ${litter.aliveKits} alive • ${litter.status == 'Weaned' ? 'Weaned' : ageStr}',
+                          : '${litter.totalKits} born • ${litter.aliveKits} alive',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -313,6 +335,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ),
                 ],
               ),
+              if (fullAgeStr.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  fullAgeStr,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF76668F),
+                  ),
+                ),
+              ],
             ],
           ),
           children: [

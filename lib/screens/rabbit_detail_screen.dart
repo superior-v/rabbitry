@@ -461,15 +461,31 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${_currentRabbit.breederPrefix != null && _currentRabbit.breederPrefix!.isNotEmpty ? '${_currentRabbit.breederPrefix} ' : ''}${_currentRabbit.name}',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF4A4451),
-                      letterSpacing: -0.5,
-                      height: 1.1,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (_currentRabbit.breederPrefix != null && _currentRabbit.breederPrefix!.isNotEmpty)
+                          TextSpan(
+                            text: '${_currentRabbit.breederPrefix} ',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        TextSpan(
+                          text: _currentRabbit.name,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF4A4451),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
@@ -574,12 +590,14 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   // Tab Contents
   Widget _buildProfileTab() {
+    final bool hasGenetics = _currentRabbit.genetics != null && _currentRabbit.genetics!.trim().isNotEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('MARKERS'),
+          _buildSectionHeader('PROFILE'),
           QuickInfoCard(
             key: ValueKey('${_currentRabbit.id}_$_refreshCounter'),
             rabbit: _currentRabbit,
@@ -601,9 +619,11 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             _buildSectionHeader('SHOW WINNINGS'),
             RegistrationCard(rabbit: _currentRabbit),
           ],
-          const SizedBox(height: 14),
-          _buildSectionHeader('GENOTYPE'),
-          GeneticsCard(rabbit: _currentRabbit, isEditing: false),
+          if (hasGenetics) ...[
+            const SizedBox(height: 14),
+            _buildSectionHeader('GENOTYPE'),
+            GeneticsCard(rabbit: _currentRabbit, isEditing: false),
+          ],
           const SizedBox(height: 30),
         ],
       ),

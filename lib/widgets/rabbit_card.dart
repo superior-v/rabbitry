@@ -121,18 +121,18 @@ class RabbitCard extends StatelessWidget {
                     children: [
                       Container(
                         margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFFF2F2F7),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: const Color(0xFFDCDCE0)),
                         ),
                         child: Text(
-                          rabbit.statusText,
-                          style: TextStyle(
-                            fontSize: 12,
+                          _getStatusLetter(rabbit),
+                          style: const TextStyle(
+                            fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: Color(rabbit.statusColor),
-                            letterSpacing: 0.2,
+                            color: Color(0xFF636366),
                           ),
                         ),
                       ),
@@ -236,5 +236,30 @@ class RabbitCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _getStatusLetter(Rabbit rabbit) {
+    switch (rabbit.status) {
+      case RabbitStatus.open:
+        return 'O';
+      case RabbitStatus.pregnant:
+        return 'B';
+      case RabbitStatus.palpateDue:
+        return 'P';
+      case RabbitStatus.nursing:
+        return 'N';
+      case RabbitStatus.resting:
+        return 'R';
+      case RabbitStatus.growout:
+        return 'G';
+      case RabbitStatus.quarantine:
+        return 'Q';
+      case RabbitStatus.active:
+        return 'A';
+      case RabbitStatus.inactive:
+        return 'I';
+      case RabbitStatus.archived:
+        return 'A';
+    }
   }
 }
