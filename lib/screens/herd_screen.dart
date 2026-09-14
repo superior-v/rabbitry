@@ -667,19 +667,16 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         children: [
           Expanded(
             child: Container(
-              height: 44,
+              height: 40,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.025), blurRadius: 8, offset: const Offset(0, 2))
-                ],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kNeutral300),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: Colors.grey.shade400, size: 18),
+                  Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: kNeutral400, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
@@ -688,10 +685,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       autocorrect: false,
                       enableSuggestions: false,
                       onChanged: (value) => setState(() => _searchQuery = value),
-                      style: const TextStyle(fontSize: 14, color: iTextDark, fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Search by name or ID...',
-                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.w500),
+                        hintText: 'Search by name or ID',
+                        hintStyle: TextStyle(color: kNeutral400, fontSize: 13),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
@@ -704,7 +701,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         _searchController.clear();
                         setState(() => _searchQuery = '');
                       },
-                      child: Icon(Icons.clear, size: 18, color: Colors.grey.shade500),
+                      child: Icon(Icons.clear, size: 18, color: kNeutral500),
                     ),
                 ],
               ),
@@ -714,7 +711,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
           // Group Button
           _buildIconBtnMenu(
-            icon: PhosphorIcons.squaresFour(PhosphorIconsStyle.regular),
+            icon: PhosphorIcons.squaresFour(PhosphorIconsStyle.bold),
             isActive: _grouping != 'none',
             items: [
               _buildPopupItem('None', 'none', _grouping == 'none'),
@@ -723,11 +720,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             ],
             onSelected: (v) => setState(() => _grouping = v),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // Filter Button
           _buildIconBtnMenu(
-            icon: PhosphorIcons.funnel(PhosphorIconsStyle.regular),
+            icon: PhosphorIcons.funnel(PhosphorIconsStyle.bold),
             isActive: _breedFilter != 'All',
             items: _getUniqueBreeds().map((f) => _buildPopupItem(
               f,
@@ -737,11 +734,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             )).toList(),
             onSelected: (v) => setState(() => _breedFilter = v),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // Sort Button
           _buildIconBtnMenu(
-            icon: PhosphorIcons.arrowDown(PhosphorIconsStyle.regular),
+            icon: PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
             isActive: _sortQuery != 'name',
             items: [
               _buildPopupItem('Breed', 'breed', _sortQuery == 'breed'),
@@ -828,21 +825,19 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }) {
     return PopupMenuButton<String>(
       onSelected: onSelected,
-      offset: const Offset(0, 48),
+      offset: const Offset(0, 44),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 4,
       itemBuilder: (ctx) => items,
       child: Container(
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(13),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.025), blurRadius: 8, offset: const Offset(0, 2))
-          ],
+          color: isActive ? kLilacWash : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isActive ? kLilacLight : kNeutral300),
         ),
-        child: Icon(icon, size: 20, color: isActive ? hLilacDeep : Colors.grey.shade500),
+        child: Icon(icon, size: 18, color: isActive ? kLilacDeep : kNeutral500),
       ),
     );
   }
@@ -1634,8 +1629,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   GestureDetector(
                     onTap: () => isArchive ? null : _navigateToDetail(rabbit, tabIndex: 0),
                     child: Container(
-                      width: 54,
-                      height: 54,
+                      width: 62,
+                      height: 62,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),

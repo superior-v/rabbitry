@@ -243,45 +243,54 @@ class LittersScreenState extends State<LittersScreen> {
 
     final weanedDisplay = '$weanedKitsCount';
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildMetricCard(
-              count: '$activeLitters',
-              label: 'Litters',
-            ),
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFE6BEFE),
+      padding: const EdgeInsets.only(
+        top: 6,
+        bottom: 12,
+        left: 20,
+        right: 20,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.42,
+            children: [
+              _buildMetricCard(
+                count: '$activeLitters',
+                label: 'Litters',
+              ),
+              _buildMetricCard(
+                count: '$nursingKits',
+                label: 'Nursing',
+              ),
+              _buildMetricCard(
+                count: weanedDisplay,
+                label: 'Weaned',
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildMetricCard(
-              count: '$nursingKits',
-              label: 'Nursing',
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildMetricCard(
-              count: weanedDisplay,
-              label: 'Weaned',
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildMetricCard({required String count, required String label}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0284C7).withOpacity(0.08),
@@ -290,35 +299,38 @@ class LittersScreenState extends State<LittersScreen> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              count,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
-                height: 1.1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                count,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4F4F56),
+                  height: 1.1,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E6E73),
-              height: 1.1,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6E6E73),
+                height: 1.1,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -949,8 +961,8 @@ class LittersScreenState extends State<LittersScreen> {
         final rabbit = snapshot.data;
         if (rabbit != null && rabbit.photos != null && rabbit.photos!.isNotEmpty) {
           return Container(
-            width: 50,
-            height: 50,
+            width: 58,
+            height: 58,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               image: DecorationImage(
@@ -964,8 +976,8 @@ class LittersScreenState extends State<LittersScreen> {
           );
         }
         return Container(
-          width: 50,
-          height: 50,
+          width: 58,
+          height: 58,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -1424,8 +1436,8 @@ class LittersScreenState extends State<LittersScreen> {
         borderRadius: BorderRadius.circular(10),
         child: Image.file(
           File(kit.imagePath!),
-          width: 50,
-          height: 50,
+          width: 58,
+          height: 58,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _defaultKitPlaceholder(),
         ),
@@ -1436,8 +1448,8 @@ class LittersScreenState extends State<LittersScreen> {
 
   Widget _defaultKitPlaceholder() {
     return Container(
-      width: 50,
-      height: 50,
+      width: 58,
+      height: 58,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),

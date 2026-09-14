@@ -102,6 +102,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   void _onNavTap(int index) {
+    if (_selectedNavIndex == 4 && index != 4) {
+      _financeTabKey.currentState?.resetView();
+    }
     setState(() => _selectedNavIndex = index);
     if (index == 0) {
       _homeTabKey.currentState?._loadData(showLoading: false);
@@ -116,6 +119,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _taskTabKey.currentState?.refresh();
       _taskTabKey.currentState?.scrollToTop();
     } else if (index == 4) {
+      _financeTabKey.currentState?.resetView();
       _financeTabKey.currentState?.refresh();
       _financeTabKey.currentState?.scrollToTop();
     }
@@ -125,11 +129,38 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _onNavTap(index);
   }
 
+  double _horizontalDragDistance = 0.0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragStart: (_) {
+          _horizontalDragDistance = 0.0;
+        },
+        onHorizontalDragUpdate: (DragUpdateDetails details) {
+          _horizontalDragDistance += details.primaryDelta ?? 0.0;
+        },
+        onHorizontalDragEnd: (DragEndDetails details) {
+          final velocity = details.primaryVelocity ?? 0.0;
+          // Swipe left -> Next tab (Home -> Herd -> Nursery -> Tasks -> Finance)
+          if (velocity < -200 || _horizontalDragDistance < -60) {
+            if (_selectedNavIndex < 4) {
+              _onNavTap(_selectedNavIndex + 1);
+            }
+          }
+          // Swipe right -> Previous tab (Finance -> Tasks -> Nursery -> Herd -> Home)
+          else if (velocity > 200 || _horizontalDragDistance > 60) {
+            if (_selectedNavIndex > 0) {
+              _onNavTap(_selectedNavIndex - 1);
+            }
+          }
+          _horizontalDragDistance = 0.0;
+        },
+        child: IndexedStack(index: _selectedNavIndex, children: _navScreens),
+      ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -505,13 +536,17 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
   Widget _buildMetricCard(String label, String value) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+        ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color(0xFF0284C7).withOpacity(0.08),
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -527,7 +562,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Color(0xFF4F4F56),
                   height: 1.1,
                 ),
               ),

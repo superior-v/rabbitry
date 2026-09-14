@@ -50,7 +50,16 @@ class FinanceScreenState extends State<FinanceScreen> {
     }
   }
 
+  void resetView() {
+    setState(() {
+      _expandedGroups.clear();
+      _searchQuery = '';
+    });
+    scrollToTop();
+  }
+
   Future<void> refresh() async {
+    resetView();
     await _loadData();
   }
 
@@ -341,108 +350,107 @@ class FinanceScreenState extends State<FinanceScreen> {
     final net = _filteredNet;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF4EBFE),
-        border: Border(bottom: BorderSide(color: kNeutral200)),
+      width: double.infinity,
+      color: const Color(0xFFE6BEFE),
+      padding: const EdgeInsets.only(
+        top: 6,
+        bottom: 12,
+        left: 20,
+        right: 20,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildSummaryCard(
-              'Income',
-              income,
-              kNeutral800,
-              kNeutral100,
-              kNeutral300,
-              kNeutral700,
-              true,
-            ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.42,
+            children: [
+              _buildSummaryCard(
+                'Income',
+                income,
+                true,
+              ),
+              _buildSummaryCard(
+                'Expense',
+                expense,
+                false,
+              ),
+              _buildSummaryCard(
+                'Net',
+                net.abs(),
+                true,
+                isNet: true,
+                netVal: net,
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildSummaryCard(
-              'Expense',
-              expense,
-              kNeutral800,
-              kNeutral100,
-              kNeutral300,
-              kNeutral700,
-              false,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildSummaryCard(
-              'Net',
-              net.abs(),
-              kNeutral800,
-              kNeutral100,
-              kNeutral300,
-              kNeutral700,
-              true,
-              isNet: true,
-              netVal: net,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(String label, double amount, Color deep, Color wash, Color light, Color text, bool isIncome, {bool isNet = false, double? netVal}) {
+  Widget _buildSummaryCard(String label, double amount, bool isIncome, {bool isNet = false, double? netVal}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+        ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color(0xFF0284C7).withOpacity(0.08),
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              isNet ? '${(netVal ?? 0.0) >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}' : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
-                height: 1.1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                isNet ? '${(netVal ?? 0.0) >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}' : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4F4F56),
+                  height: 1.1,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E6E73),
-              height: 1.1,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6E6E73),
+                height: 1.1,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchAndGrouping() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
       decoration: const BoxDecoration(
-        color: Color(0xFFF4EBFE),
-        border: Border(bottom: BorderSide(color: kNeutral200)),
+        color: Color(0xFFE6BEFE),
       ),
       child: Row(
         children: [
@@ -451,35 +459,41 @@ class FinanceScreenState extends State<FinanceScreen> {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: kNeutral100,
-                borderRadius: BorderRadius.circular(6),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: kNeutral300),
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(width: 12),
                   Icon(
-                    PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.bold),
-                    color: kNeutral500,
-                    size: 16,
+                    PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular),
+                    color: kNeutral400,
+                    size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       focusNode: _searchFocusNode,
                       onChanged: (value) => setState(() => _searchQuery = value),
-                      style: const TextStyle(fontSize: 14, color: kNeutral800),
+                      style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search entries...',
-                        hintStyle: const TextStyle(color: kNeutral500, fontSize: 14),
+                        hintStyle: TextStyle(color: kNeutral400, fontSize: 13),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  if (_searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _searchQuery = '');
+                      },
+                      child: Icon(Icons.clear, size: 18, color: kNeutral500),
+                    ),
                 ],
               ),
             ),
@@ -490,62 +504,47 @@ class FinanceScreenState extends State<FinanceScreen> {
             onTap: _showGroupingMenu,
             child: Container(
               height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: kNeutral200,
-                borderRadius: BorderRadius.circular(6),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: kNeutral300),
               ),
               child: Row(
                 children: [
-                  Icon(PhosphorIcons.rows(PhosphorIconsStyle.bold), color: kNeutral700, size: 16),
+                  Icon(PhosphorIcons.rows(PhosphorIconsStyle.bold), color: kNeutral500, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     _getGroupingLabel(),
                     style: const TextStyle(
                       color: kNeutral700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           // Filter button
           GestureDetector(
             onTap: _showFilterDialog,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kNeutral400 : kNeutral300),
-                  ),
-                  child: Center(
-                    child: Icon(PhosphorIcons.funnel(PhosphorIconsStyle.bold), color: kNeutral700, size: 18),
-                  ),
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: _typeFilter != TransactionTypeFilter.all ? kLilacWash : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kLilacLight : kNeutral300),
+              ),
+              child: Center(
+                child: Icon(
+                  PhosphorIcons.funnel(PhosphorIconsStyle.bold),
+                  color: _typeFilter != TransactionTypeFilter.all ? kLilacDeep : kNeutral500,
+                  size: 18,
                 ),
-                if (_typeFilter != TransactionTypeFilter.all)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: kNeutral700,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         ],
