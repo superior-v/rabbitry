@@ -342,12 +342,44 @@ class FinanceScreenState extends State<FinanceScreen> {
     return sum;
   }
 
-  double get _filteredNet => _filteredIncome - _filteredExpense;
+  double get _summaryIncome {
+    if (_dateFilter == DateFilter.allTime) {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      double sum = 0;
+      for (var t in _transactions) {
+        if (t.type == TransactionType.income && !t.date.isBefore(startOfMonth) && !t.date.isAfter(endOfMonth)) {
+          sum += t.amount;
+        }
+      }
+      return sum;
+    }
+    return _filteredIncome;
+  }
+
+  double get _summaryExpense {
+    if (_dateFilter == DateFilter.allTime) {
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      double sum = 0;
+      for (var t in _transactions) {
+        if (t.type == TransactionType.expense && !t.date.isBefore(startOfMonth) && !t.date.isAfter(endOfMonth)) {
+          sum += t.amount;
+        }
+      }
+      return sum;
+    }
+    return _filteredExpense;
+  }
+
+  double get _summaryNet => _summaryIncome - _summaryExpense;
 
   Widget _buildSummaryCards() {
-    final income = _filteredIncome;
-    final expense = _filteredExpense;
-    final net = _filteredNet;
+    final income = _summaryIncome;
+    final expense = _summaryExpense;
+    final net = _summaryNet;
 
     return Container(
       width: double.infinity,
@@ -1140,7 +1172,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     final themeLight = kNeutral300;
 
     final isOdd = index % 2 == 1;
-    final backgroundColor = isOdd ? const Color(0xFFF2F2F7) : Colors.white;
+    final backgroundColor = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
 
     return GestureDetector(
       onTap: () => _editTransaction(t),
@@ -1320,7 +1352,6 @@ class FinanceScreenState extends State<FinanceScreen> {
         iconData = PhosphorIcons.megaphone(PhosphorIconsStyle.duotone);
         break;
       case TransactionCategory.otherExpense:
-      default:
         iconData = PhosphorIcons.receipt(PhosphorIconsStyle.duotone);
         break;
     }

@@ -95,92 +95,88 @@ class Transaction {
   // Get category display name
   String get categoryName {
     switch (category) {
-      case TransactionCategory.rabbitSale:
-        return 'Rabbit sale';
+      // Income
       case TransactionCategory.litterSale:
       case TransactionCategory.soldKit:
-        return 'Litter sale';
-      case TransactionCategory.studFee:
-        return 'Breeding stud fee';
-      case TransactionCategory.manureSales:
-        return 'Manure / compost sale';
+        return 'Kit Sale';
+      case TransactionCategory.rabbitSale:
+        return 'Rabbit Sale';
       case TransactionCategory.meatHarvest:
-        return 'Fur / meat sale';
+        return 'Meat / Fur Sale';
       case TransactionCategory.showWinnings:
-        return 'Show winnings';
-      case TransactionCategory.refund:
-        return 'Refund';
+        return 'Show Winnings';
+      case TransactionCategory.manureSales:
+        return 'Manure Sale';
       case TransactionCategory.otherIncome:
-        return 'Other income';
+      case TransactionCategory.studFee:
+      case TransactionCategory.refund:
+        return 'Other';
+
+      // Expense
       case TransactionCategory.feedHay:
       case TransactionCategory.feed:
-        return 'Feed / hay';
-      case TransactionCategory.bedding:
-        return 'Bedding';
-      case TransactionCategory.veterinary:
-      case TransactionCategory.vetVisit:
-        return 'Veterinary';
-      case TransactionCategory.medicationsSupplements:
-      case TransactionCategory.medical:
-        return 'Medications / supplements';
+        return 'Feed';
       case TransactionCategory.cagesEquipment:
       case TransactionCategory.equipment:
-        return 'Cages & equipment';
       case TransactionCategory.supplies:
-        return 'Supplies';
+        return 'Cage / Supplies';
+      case TransactionCategory.medicationsSupplements:
+      case TransactionCategory.medical:
+        return 'Medication';
+      case TransactionCategory.veterinary:
+      case TransactionCategory.vetVisit:
+        return 'Vet Fee';
       case TransactionCategory.showEntryFees:
       case TransactionCategory.showFee:
-        return 'Show entry fees';
+        return 'Show Entry Fee';
+      case TransactionCategory.registrationPedigreeFees:
+        return 'Registration Fee';
+      case TransactionCategory.marketingListings:
+        return 'Advertisement';
       case TransactionCategory.travel:
         return 'Travel';
-      case TransactionCategory.registrationPedigreeFees:
-        return 'Registration / pedigree fees';
-      case TransactionCategory.marketingListings:
-        return 'Marketing / listings';
+      case TransactionCategory.bedding:
       case TransactionCategory.otherExpense:
-        return 'Other expense';
+        return 'Other';
     }
   }
 
   // Check if category is typically income
   static bool isIncomeCategory(TransactionCategory category) {
     return [
-      TransactionCategory.rabbitSale,
       TransactionCategory.litterSale,
       TransactionCategory.soldKit,
-      TransactionCategory.studFee,
-      TransactionCategory.manureSales,
+      TransactionCategory.rabbitSale,
       TransactionCategory.meatHarvest,
       TransactionCategory.showWinnings,
-      TransactionCategory.refund,
+      TransactionCategory.manureSales,
       TransactionCategory.otherIncome,
+      TransactionCategory.studFee,
+      TransactionCategory.refund,
     ].contains(category);
   }
 
-  // Get all income categories
+  // Get all income categories (Kit Sale, Rabbit Sale, Meat / Fur Sale, Show Winnings, Manure Sale, Other)
   static List<TransactionCategory> get incomeCategories => [
-        TransactionCategory.rabbitSale,
         TransactionCategory.litterSale,
-        TransactionCategory.studFee,
-        TransactionCategory.manureSales,
+        TransactionCategory.rabbitSale,
         TransactionCategory.meatHarvest,
         TransactionCategory.showWinnings,
-        TransactionCategory.refund,
+        TransactionCategory.manureSales,
         TransactionCategory.otherIncome,
       ];
 
-  // Get all expense categories (10 items from FinanceExpense Category JPG)
+  // Get all expense categories (Feed, Cage / Supplies, Medication, Vet Fee, Show Entry Fee, Registration Fee, Advertisement, Travel, Other)
   static List<TransactionCategory> get expenseCategories => [
         TransactionCategory.feedHay,
-        TransactionCategory.bedding,
-        TransactionCategory.veterinary,
-        TransactionCategory.medicationsSupplements,
         TransactionCategory.cagesEquipment,
-        TransactionCategory.supplies,
+        TransactionCategory.medicationsSupplements,
+        TransactionCategory.veterinary,
         TransactionCategory.showEntryFees,
-        TransactionCategory.travel,
         TransactionCategory.registrationPedigreeFees,
         TransactionCategory.marketingListings,
+        TransactionCategory.travel,
+        TransactionCategory.otherExpense,
       ];
 
   Map<String, dynamic> toMap() {

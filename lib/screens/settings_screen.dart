@@ -159,7 +159,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _loadSettings();
     _loadContacts(); // ✅ ADD THIS
   }
@@ -538,7 +539,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFEEDAFE),
         appBar: _buildHeader(),
         body: const Center(
           child: CircularProgressIndicator(
@@ -548,7 +549,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       );
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFEEDAFE),
       appBar: _buildHeader(),
       body: Column(
         children: [
@@ -558,13 +559,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               controller: _tabController,
               children: [
                 _buildGeneralTab(),
-                _buildModulesTab(),
                 _buildPipelineTab(),
                 _buildOperationsTab(),
-                _buildAutomationTab(), // Replaces task definitions
+                _buildAutomationTab(),
                 _buildDataTab(),
-                _buildContactsTab(),
-                _buildSystemTab(),
+                _buildContactUsTab(),
               ],
             ),
           ),
@@ -578,16 +577,18 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       backgroundColor: const Color(0xFFE6BEFE),
       elevation: 0,
       scrolledUnderElevation: 0,
+      centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: kNeutral900),
+        icon: const Icon(Icons.arrow_back, color: Color(0xFF4F4F56)),
         onPressed: () => Navigator.pop(context),
       ),
       title: const Text(
         'Settings',
         style: TextStyle(
-          color: kNeutral900,
+          color: Color(0xFF4F4F56),
           fontWeight: FontWeight.w700,
           fontSize: 20,
+          letterSpacing: -0.3,
         ),
       ),
       actions: [
@@ -621,44 +622,58 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Widget _buildNavContainer() {
-    final sections = ['General', 'Modules', 'Pipeline', 'Operations', 'Automation', 'Data', 'Contacts', 'System'];
+    final sections = ['My Farm', 'Timeline', 'Operations', 'Automation', 'Data', 'Contact Us'];
     return Container(
-      height: 60,
-      decoration: const BoxDecoration(
-        color: kLilacWash,
-      ),
-      child: ListView.builder(
+      color: const Color(0xFFE6BEFE),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: sections.length,
-        itemBuilder: (context, index) {
-          return AnimatedBuilder(
-            animation: _tabController.animation!,
-            builder: (context, child) {
-              final selected = _tabController.index == index;
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4E4E9),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(sections.length, (index) {
+              final isSelected = _tabController.index == index;
               return GestureDetector(
-                onTap: () => _tabController.animateTo(index),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                onTap: () {
+                  setState(() {
+                    _tabController.animateTo(index);
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                   decoration: BoxDecoration(
-                    color: selected ? kLilacDeep : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: selected ? kLilacDeep : kNeutral300),
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Text(
                     sections[index],
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                      color: selected ? Colors.white : kNeutral600,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
                     ),
                   ),
                 ),
               );
-            },
-          );
-        },
+            }),
+          ),
+        ),
       ),
     );
   }
@@ -816,6 +831,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ],
         ),
+        _buildCard(
+          'App Features',
+          PhosphorIconsDuotone.squaresFour,
+          [
+            _buildSwitchRow(
+              'Meat Production',
+              'Enables harvest logs, butcher dates, and yield reports.',
+              meatProduction,
+              (val) => setState(() => meatProduction = val),
+            ),
+            _buildSwitchRow(
+              'Show Rabbitry',
+              'Enables GC legs, show wins, and registration numbers.',
+              showRabbitry,
+              (val) => setState(() => showRabbitry = val),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -858,35 +891,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-    );
-  }
-
-  // ============================================
-  // MODULES TAB
-  // ============================================
-  Widget _buildModulesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _buildCard(
-          'App Features',
-          PhosphorIconsDuotone.squaresFour,
-          [
-            _buildSwitchRow(
-              'Meat Production',
-              'Enables harvest logs, butcher dates, and yield reports.',
-              meatProduction,
-              (val) => setState(() => meatProduction = val),
-            ),
-            _buildSwitchRow(
-              'Show Rabbitry',
-              'Enables GC legs, show wins, and registration numbers.',
-              showRabbitry,
-              (val) => setState(() => showRabbitry = val),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -1099,57 +1103,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   // ============================================
-  // SYSTEM TAB
+  // CONTACT US TAB
   // ============================================
-  Widget _buildSystemTab() {
+  Widget _buildContactUsTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildCard(
-          'Notifications',
-          PhosphorIconsDuotone.bell,
-          [
-            _buildSwitchRow(
-              'Push Notifications',
-              'Allow app to send important reminders.',
-              pushNotifications,
-              (val) async {
-                if (val) {
-                  final status = await Permission.notification.request();
-                  if (status.isGranted) {
-                    setState(() => pushNotifications = true);
-                  } else {
-                    setState(() => pushNotifications = false);
-                    if (mounted) {
-                      ToastUtils.showError(context, 'Notification permission was denied');
-                    }
-                  }
-                } else {
-                  setState(() => pushNotifications = false);
-                }
-              },
-            ),
-            _buildSettingRow(
-              'Daily Digest Time',
-              GestureDetector(
-                onTap: () async {
-                  final parts = digestTime.split(':');
-                  final initialTime = TimeOfDay(hour: int.tryParse(parts[0]) ?? 7, minute: int.tryParse(parts[1]) ?? 0);
-                  final picked = await showTimePicker(context: context, initialTime: initialTime);
-                  if (picked != null) {
-                    setState(() => digestTime = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: kNeutral100, border: Border.all(color: kNeutral200), borderRadius: BorderRadius.circular(12)),
-                  child: Text(digestTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
-                ),
-              ),
-              description: 'When to send task summary.',
-            ),
-          ],
-        ),
         _buildCard(
           'About Rabbitry Manager',
           PhosphorIconsDuotone.info,
@@ -1168,6 +1127,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             _buildSettingRow(
               'Privacy Policy',
               Icon(PhosphorIconsBold.caretRight, size: 16, color: kNeutral400),
+            ),
+          ],
+        ),
+        _buildCard(
+          'Contact & Support',
+          PhosphorIconsDuotone.envelope,
+          [
+            _buildSettingRow(
+              'Support Email',
+              const Text(
+                'support@rabbitry.app',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kLilacDeep),
+              ),
+              description: 'Reach out to our team for questions or support.',
+            ),
+            _buildSettingRow(
+              'Help Center',
+              Icon(PhosphorIconsBold.arrowSquareOut, size: 18, color: kLilacDeep),
+              description: 'Guides, tutorials, and frequently asked questions.',
+            ),
+            _buildSettingRow(
+              'Send Feedback',
+              Icon(PhosphorIconsBold.chatText, size: 18, color: kLilacDeep),
+              description: 'Let us know how we can improve the app.',
             ),
           ],
         ),
@@ -1511,18 +1494,48 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       padding: const EdgeInsets.all(20),
       children: [
         _buildCard(
-          'Auto-Tasks',
-          PhosphorIconsDuotone.sparkle,
+          'Notifications',
+          PhosphorIconsDuotone.bell,
           [
-            _buildSubsectionHeader('OPERATIONS'),
-            ...husbandryTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
-            _buildAddListItem(() => _showAddTaskDirectoryDialog('Operations')),
-            _buildSubsectionHeader('HEALTH'),
-            ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
-            _buildAddListItem(() => _showAddTaskDirectoryDialog('Health')),
-            _buildSubsectionHeader('MAINTENANCE'),
-            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
-            _buildAddListItem(() => _showAddTaskDirectoryDialog('Maintenance')),
+            _buildSwitchRow(
+              'Push Notifications',
+              'Allow app to send important reminders.',
+              pushNotifications,
+              (val) async {
+                if (val) {
+                  final status = await Permission.notification.request();
+                  if (status.isGranted) {
+                    setState(() => pushNotifications = true);
+                  } else {
+                    setState(() => pushNotifications = false);
+                    if (mounted) {
+                      ToastUtils.showError(context, 'Notification permission was denied');
+                    }
+                  }
+                } else {
+                  setState(() => pushNotifications = false);
+                }
+              },
+            ),
+            _buildSettingRow(
+              'Daily Digest Time',
+              GestureDetector(
+                onTap: () async {
+                  final parts = digestTime.split(':');
+                  final initialTime = TimeOfDay(hour: int.tryParse(parts[0]) ?? 7, minute: int.tryParse(parts[1]) ?? 0);
+                  final picked = await showTimePicker(context: context, initialTime: initialTime);
+                  if (picked != null) {
+                    setState(() => digestTime = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(color: kNeutral100, border: Border.all(color: kNeutral200), borderRadius: BorderRadius.circular(12)),
+                  child: Text(digestTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
+                ),
+              ),
+              description: 'When to send task summary.',
+            ),
           ],
         ),
         _buildCard(
@@ -1535,6 +1548,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               snowballEffect,
               (val) => setState(() => snowballEffect = val),
             ),
+          ],
+        ),
+        _buildCard(
+          'Auto-Tasks',
+          PhosphorIconsDuotone.sparkle,
+          [
+            _buildSubsectionHeader('OPERATIONS'),
+            ...husbandryTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            _buildAddListItem(() => _showAddTaskDirectoryDialog('Operations')),
+            _buildSubsectionHeader('HEALTH'),
+            ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            _buildAddListItem(() => _showAddTaskDirectoryDialog('Health')),
+            _buildSubsectionHeader('MAINTENANCE'),
+            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            _buildAddListItem(() => _showAddTaskDirectoryDialog('Maintenance')),
           ],
         ),
       ],
