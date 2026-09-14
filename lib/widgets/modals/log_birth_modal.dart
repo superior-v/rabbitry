@@ -164,7 +164,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             decoration: const BoxDecoration(
               color: Color(0xFFEADBEE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -188,28 +188,43 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 ),
                 const SizedBox(height: 4),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${widget.doe.name} (${widget.doe.id})',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _buckName != null
-                              ? '$_buckName (${widget.doe.lastBreedBuckId ?? ''})'
-                              : (widget.doe.lastBreedBuckId != null ? widget.doe.lastBreedBuckId! : 'Unknown Sire'),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${widget.doe.name} (${widget.doe.id})',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _buckName != null
+                                ? '$_buckName (${widget.doe.lastBreedBuckId ?? ''})'
+                                : (widget.doe.lastBreedBuckId != null ? widget.doe.lastBreedBuckId! : 'Unknown Sire'),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(
-                      DateFormat('MM-dd-yyyy').format(_kindleDate),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 26),
+                        child: Text(
+                          _bredDate != null
+                              ? DateFormat('MM/dd/yyyy').format(_bredDate!)
+                              : (widget.doe.lastBreedDate != null
+                                  ? DateFormat('MM/dd/yyyy').format(widget.doe.lastBreedDate!)
+                                  : (widget.doe.kindleDate != null
+                                      ? DateFormat('MM/dd/yyyy').format(widget.doe.kindleDate!.subtract(const Duration(days: 31)))
+                                      : DateFormat('MM/dd/yyyy').format(_kindleDate))),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                        ),
+                      ),
                     ),
                   ],
                 ),

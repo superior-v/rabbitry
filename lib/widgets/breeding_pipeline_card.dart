@@ -882,13 +882,12 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(top: 4, bottom: 8),
                 decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: Color(0xFF7B6BA0)),
-                title: const Text('Edit Breeding', style: TextStyle(fontWeight: FontWeight.w500)),
+                title: const Text('Edit Breeding', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF2C2C2E))),
                 onTap: () {
                   Navigator.pop(context);
                   showModalBottomSheet(
@@ -902,10 +901,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   );
                 },
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: Color(0xFFE5E5EA)),
               ListTile(
-                leading: const Icon(Icons.cancel, color: Color(0xFFC47070)),
-                title: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w500)),
+                title: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFC47070), fontSize: 16, fontWeight: FontWeight.w500)),
                 onTap: () {
                   Navigator.pop(context);
                   _showMarkOpenDialog(context);

@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'herd_screen.dart';
 import 'litters_screen.dart';
 import 'finance_screen.dart';
 import 'settings_screen.dart';
 import 'task_screen.dart';
-import 'import_screen.dart';
 import 'reports_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
-import '../models/litter.dart';
 import '../models/transaction.dart' as finance;
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
@@ -460,24 +456,15 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       backgroundColor: kAppBgPurple,
       elevation: 0,
       centerTitle: true,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(PhosphorIcons.house(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
-              style: const TextStyle(
-                color: Color(0xFF4F4F56),
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+      title: Text(
+        SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
+        style: const TextStyle(
+          color: Color(0xFF4F4F56),
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+        overflow: TextOverflow.ellipsis,
       ),
       actions: [
         IconButton(
@@ -523,9 +510,6 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               _buildMetricCard('Task Due', '$_tasksDue'),
               _buildMetricCard('Breeders', '$_breederCount'),
               _buildMetricCard('Sales', _monthlySales > 0 ? FormatUtils.formatCurrency(_monthlySales, decimals: 0) : '\$0'),
-              _buildMetricCard('Litters', '$_activeLitters'),
-              _buildMetricCard('Nursing Kits', '$_nursingKits'),
-              _buildMetricCard('Weaned Kits', '$_kitsWeanedCount'),
             ],
           ),
         ),
@@ -708,15 +692,20 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
     final int daysUntil = entry['daysUntil'];
 
     String daysText;
-    bool isOverdue = false;
+    Color daysColor;
 
     if (daysUntil < 0) {
-      daysText = '${daysUntil.abs()} Days';
-      isOverdue = true;
+      daysText = '-${daysUntil.abs()} Days';
+      daysColor = kError;
     } else if (daysUntil == 0) {
       daysText = 'Today';
+      daysColor = const Color(0xFF2E7D32);
+    } else if (daysUntil == 1) {
+      daysText = '1 Day';
+      daysColor = const Color(0xFF2E7D32);
     } else {
       daysText = '$daysUntil Days';
+      daysColor = kNeutral500;
     }
 
     final DateTime kDate = entry['kindleDate'];
@@ -788,11 +777,11 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  isOverdue ? '-$daysText' : daysText,
+                  daysText,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isOverdue ? kError : kNeutral500,
+                    fontWeight: FontWeight.w600,
+                    color: daysColor,
                   ),
                   textAlign: TextAlign.right,
                 ),
@@ -804,81 +793,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
     );
   }
 
-  Widget _buildThreeDotMenu(Rabbit doe) {
-    return PopupMenuButton<String>(
-      padding: EdgeInsets.zero,
-      icon: const Icon(Icons.more_vert, color: kNeutral400, size: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (_) => [
-        PopupMenuItem(
-            value: 'edit',
-            child: Row(children: [
-              Icon(PhosphorIcons.pencilSimple(), size: 20, color: kNeutral600),
-              const SizedBox(width: 12),
-              const Text('Edit Breeding')
-            ])),
-        PopupMenuItem(
-            value: 'delete',
-            child: Row(children: [
-              Icon(PhosphorIcons.trash(), size: 20, color: kError),
-              const SizedBox(width: 12),
-              const Text('Delete Breeding', style: TextStyle(color: kError))
-            ]))
-      ],
-      onSelected: (val) async {
-        if (val == 'edit') {
-          final pickedDate = await showDatePicker(
-            context: context,
-            initialDate: doe.kindleDate ?? DateTime.now().add(const Duration(days: 31)),
-            firstDate: DateTime.now().subtract(const Duration(days: 31)),
-            lastDate: DateTime.now().add(const Duration(days: 45)),
-            builder: (context, child) {
-              return Theme(
-                data: Theme.of(context).copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: kPinkDeep,
-                    onPrimary: Colors.white,
-                    onSurface: kNeutral900,
-                  ),
-                ),
-                child: child!,
-              );
-            },
-          );
 
-          if (pickedDate != null) {
-            final updatedDoe = doe.copyWith(
-              kindleDate: pickedDate,
-              dueDate: pickedDate,
-            );
-            await _db.updateRabbit(updatedDoe);
-            _loadData();
-          }
-        } else if (val == 'delete') {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Delete Breeding?', style: TextStyle(fontWeight: FontWeight.w600)),
-              content: const Text('This will clear the breeding schedule for this doe. This action cannot be undone.'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: kNeutral600))),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete', style: TextStyle(color: kError, fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-          );
-
-          if (confirm == true) {
-            await _db.markOpenForBreeding(doe.id);
-            _loadData();
-          }
-        }
-      },
-    );
-  }
 
   void _showKindleLongPressMenu(Rabbit doe) {
     showModalBottomSheet(
@@ -894,26 +809,46 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 8),
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: kNeutral300,
+                  color: const Color(0xFFE0E0E0),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Breeding Options for ${doe.name}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kNeutral800),
+              ListTile(
+                title: const Text(
+                  'Edit Breeding',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF2C2C2E),
+                  ),
                 ),
+                onTap: () {
+                  Navigator.pop(context);
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => LogBreedingModal(
+                      doe: doe,
+                      onComplete: _loadData,
+                    ),
+                  );
+                },
               ),
-              const Divider(height: 1),
               if (SettingsService.instance.palpationEnabled)
                 ListTile(
-                  leading: Icon(PhosphorIcons.hand(PhosphorIconsStyle.duotone), color: kLilacDeep),
-                  title: const Text('Log Palpation', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: const Text(
+                    'Log Palpation',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     showModalBottomSheet(
@@ -928,38 +863,29 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                     );
                   },
                 ),
+              const Divider(height: 1, color: Color(0xFFE5E5EA)),
               ListTile(
-                leading: Icon(PhosphorIcons.pencilSimple(PhosphorIconsStyle.duotone), color: kNeutral700),
-                title: const Text('Edit Breeding', style: TextStyle(fontWeight: FontWeight.w600)),
-                onTap: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => LogBreedingModal(
-                      doe: doe,
-                      onComplete: _loadData,
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(PhosphorIcons.trash(PhosphorIconsStyle.duotone), color: kError),
-                title: const Text('Delete Breeding', style: TextStyle(color: kError, fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Cancel Breeding',
+                  style: TextStyle(
+                    color: Color(0xFFC47070),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 onTap: () async {
                   Navigator.pop(context);
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      title: const Text('Delete Breeding?', style: TextStyle(fontWeight: FontWeight.w600)),
+                      title: const Text('Cancel Breeding?', style: TextStyle(fontWeight: FontWeight.w600)),
                       content: const Text('This will clear the breeding schedule for this doe. This action cannot be undone.'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: kNeutral600))),
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep', style: TextStyle(color: kNeutral600))),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Delete', style: TextStyle(color: kError, fontWeight: FontWeight.w600)),
+                          child: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
