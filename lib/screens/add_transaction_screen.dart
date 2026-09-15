@@ -283,7 +283,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -308,7 +308,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     amount: 0,
                     date: DateTime.now(),
                   ).categoryName,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                 ),
               );
             }).toList(),
@@ -337,7 +337,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
@@ -384,7 +384,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
+                color: isSelected ? const Color(0xFF4F4F56) : const Color(0xFF787880),
               ),
             ),
           ),
@@ -406,7 +406,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -423,7 +423,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             items: _rabbits.map((rabbit) {
               return DropdownMenuItem(
                 value: rabbit.id,
-                child: Text('${rabbit.name} (${rabbit.id})', style: const TextStyle(fontSize: 14, color: Color(0xFF2C2C2E))),
+                child: Text('${rabbit.name} (${rabbit.id})', style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56))),
               );
             }).toList(),
             onChanged: (value) => setState(() => _selectedRabbitId = value),
@@ -447,7 +447,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -466,7 +466,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 value: item['key'] as String,
                 child: Text(
                   item['label'] as String,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF2C2C2E)),
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56)),
                   overflow: TextOverflow.ellipsis,
                 ),
               );
@@ -500,7 +500,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextFormField(
           controller: _amountController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -564,7 +564,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         GestureDetector(
           onTap: _selectDate,
           child: Container(
@@ -584,7 +584,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2E),
+                      color: Color(0xFF4F4F56),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -624,7 +624,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextFormField(
           controller: _descriptionController,
           decoration: InputDecoration(
@@ -643,7 +643,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               borderSide: const BorderSide(color: kLilacLight, width: 2),
             ),
           ),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
         ),
       ],
     );
@@ -654,7 +654,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'NOTES (optional)',
+          'NOTES',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
@@ -662,7 +662,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextFormField(
           controller: _notesController,
           maxLines: 2,
@@ -682,7 +682,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               borderSide: const BorderSide(color: kLilacLight, width: 2),
             ),
           ),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
         ),
       ],
     );

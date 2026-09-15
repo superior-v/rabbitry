@@ -4092,358 +4092,16 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
-  void _showEditKitDetails(Litter litter, Kit kit, {int initialTab = 0}) {
-    String selectedSex = kit.sex;
-    String? localImagePath = kit.imagePath;
-    final String rawColor = kit.color.trim();
-    final String initialColor = (rawColor.toLowerCase() == 'brown tort' ||
-            rawColor.toLowerCase() == 'unknown' ||
-            rawColor.toLowerCase() == 'black' ||
-            rawColor.toLowerCase() == 'brown')
-        ? ''
-        : rawColor;
-    final colorController = TextEditingController(text: initialColor);
-    final notesController = TextEditingController(text: kit.details ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1ECF7), // Purple background matching Add New Rabbit
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top Title Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Edit Kit Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2E2D32),
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Kit ${litter.id}-${_getKitDisplayTag(litter, kit)}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF787774),
-                            ),
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close, size: 20, color: Color(0xFF787774)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 5. Circular Photo Upload Box (Round like Add New Rabbit page)
-                  Center(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final picker = ImagePicker();
-                        final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                        if (image != null) {
-                          setDialogState(() => localImagePath = image.path);
-                        }
-                      },
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
-                              image: localImagePath != null && localImagePath!.isNotEmpty
-                                  ? DecorationImage(
-                                      image: FileImage(File(localImagePath!)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: localImagePath == null || localImagePath!.isEmpty
-                                ? Icon(
-                                    selectedSex == 'F'
-                                        ? Icons.female
-                                        : (selectedSex == 'M' ? Icons.male : Icons.pets),
-                                    size: 42,
-                                    color: selectedSex == 'F'
-                                        ? kFemaleColor
-                                        : (selectedSex == 'M' ? kMaleColor : const Color(0xFFBBB9B2)),
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: selectedSex == 'F'
-                                    ? const Color(0xFFEC4899)
-                                    : (selectedSex == 'M' ? const Color(0xFF2E7BB5) : const Color(0xFF7B6BA0)),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // 4. Gender Buttons (styled exactly like Add New Rabbit page, without symbol prefixes)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildKitSexOption(
-                          'M',
-                          'Buck',
-                          Icons.male,
-                          const Color(0xFF2E7BB5),
-                          kMaleColor,
-                          selectedSex,
-                          (val) => setDialogState(() => selectedSex = val),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildKitSexOption(
-                          'F',
-                          'Doe',
-                          Icons.female,
-                          const Color(0xFFEC4899),
-                          kFemaleColor,
-                          selectedSex,
-                          (val) => setDialogState(() => selectedSex = val),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildKitSexOption(
-                          'U',
-                          'Unsexed',
-                          Icons.help_outline,
-                          const Color(0xFF7B6BA0),
-                          const Color(0xFF7B6BA0),
-                          selectedSex,
-                          (val) => setDialogState(() => selectedSex = val),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 3. Color Autocomplete Field (Box with floating text in top left corner)
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      final colors = SettingsService.instance.colors;
-                      if (textEditingValue.text.isEmpty) return colors;
-                      return colors.where((c) => c.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                    },
-                    initialValue: TextEditingValue(text: colorController.text),
-                    fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                      controller.addListener(() {
-                        colorController.text = controller.text;
-                      });
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        textCapitalization: TextCapitalization.words,
-                        style: const TextStyle(fontSize: 16, color: Color(0xFF2E2D32)),
-                        decoration: InputDecoration(
-                          labelText: 'Color',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          filled: true,
-                          fillColor: Colors.white,
-                          labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                          floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                          ),
-                        ),
-                      );
-                    },
-                    onSelected: (String color) {
-                      colorController.text = color;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 3. Notes Field (Box with floating text in top left corner)
-                  TextField(
-                    controller: notesController,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: const TextStyle(fontSize: 16, color: Color(0xFF2E2D32)),
-                    decoration: InputDecoration(
-                      labelText: 'Notes',
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                      hintText: 'Add any notes...',
-                      hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCBC8)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                      floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Actions Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF787774),
-                        ),
-                        child: const Text('Cancel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-                          if (litterIndex != -1) {
-                            final updatedKits = litters[litterIndex].kits.map((k) {
-                              if (k.id == kit.id) {
-                                return k.copyWith(
-                                  sex: selectedSex,
-                                  color: colorController.text.trim(),
-                                  details: notesController.text.trim(),
-                                  imagePath: localImagePath,
-                                );
-                              }
-                              return k;
-                            }).toList();
-
-                            final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
-                            await _db.updateLitter(updatedLitter);
-                            await _refreshLitters();
-
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Kit details updated'),
-                                  backgroundColor: Color(0xFF7B6BA0),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5E4B8B),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+  void _showEditKitDetails(Litter litter, Kit kit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditKitDetailsScreen(
+          litter: litter,
+          kit: kit,
+          onSaved: () => _refreshLitters(),
         ),
-      ),
-    );
-  }
-
-  Widget _buildKitSexOption(String value, String label, IconData icon, Color activeColor, Color unselectedColor, String currentSex, Function(String) onSelect) {
-    final isSelected = currentSex == value;
-    return InkWell(
-      onTap: () => onSelect(value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
-          border: Border.all(color: isSelected ? activeColor : const Color(0xFFC7C7CC)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : unselectedColor,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : unselectedColor,
-              ),
-            ),
-          ],
-        ),
+        fullscreenDialog: true,
       ),
     );
   }
@@ -8191,4 +7849,449 @@ class _StatusConfig {
   final Color textColor;
   _StatusConfig({required this.bgColor, required this.textColor});
 }
+
+class EditKitDetailsScreen extends StatefulWidget {
+  final Litter litter;
+  final Kit kit;
+  final VoidCallback onSaved;
+
+  const EditKitDetailsScreen({
+    Key? key,
+    required this.litter,
+    required this.kit,
+    required this.onSaved,
+  }) : super(key: key);
+
+  @override
+  State<EditKitDetailsScreen> createState() => _EditKitDetailsScreenState();
+}
+
+class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
+  late String _selectedSex;
+  String? _localImagePath;
+  late TextEditingController _colorController;
+  late TextEditingController _weightController;
+  late TextEditingController _notesController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSex = widget.kit.sex;
+    _localImagePath = widget.kit.imagePath;
+
+    final String rawColor = widget.kit.color.trim();
+    // 1. Color field shows Broken...REMOVE it. It should be blank.
+    final String initialColor = (rawColor.toLowerCase() == 'broken' ||
+            rawColor.toLowerCase() == 'unknown' ||
+            rawColor.toLowerCase() == 'brown tort' ||
+            rawColor.isEmpty)
+        ? ''
+        : rawColor;
+
+    _colorController = TextEditingController(text: initialColor);
+    _weightController = TextEditingController(
+      text: widget.kit.weight > 0 ? widget.kit.weight.toString() : '',
+    );
+    _notesController = TextEditingController(text: widget.kit.details ?? '');
+  }
+
+  @override
+  void dispose() {
+    _colorController.dispose();
+    _weightController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image != null) {
+      setState(() => _localImagePath = image.path);
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Add Profile Picture',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF2E2D32)),
+            ),
+            const SizedBox(height: 12),
+            _buildPhotoOption(
+              icon: Icons.camera_alt,
+              label: 'Take Photo',
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickImage(ImageSource.camera);
+              },
+            ),
+            _buildPhotoOption(
+              icon: Icons.photo_library,
+              label: 'Choose from Gallery',
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_localImagePath != null && _localImagePath!.isNotEmpty)
+              _buildPhotoOption(
+                icon: Icons.delete_outline,
+                label: 'Remove Photo',
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _localImagePath = null);
+                },
+                isDestructive: true,
+              ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774),
+              size: 22,
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF2E2D32),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      filled: true,
+      fillColor: Colors.white,
+      labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+      floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+      ),
+    );
+  }
+
+  Future<void> _saveKit() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    try {
+      final db = DatabaseService();
+      final litters = await db.getLitters();
+      final litterIndex = litters.indexWhere((l) => l.id == widget.litter.id);
+      if (litterIndex != -1) {
+        final updatedKits = litters[litterIndex].kits.map<Kit>((k) {
+          if (k.id == widget.kit.id) {
+            return k.copyWith(
+              sex: _selectedSex,
+              color: _colorController.text.trim(),
+              weight: double.tryParse(_weightController.text) ?? k.weight,
+              details: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+              imagePath: _localImagePath,
+            );
+          }
+          return k;
+        }).toList();
+
+        final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+        await db.updateLitter(updatedLitter);
+        widget.onSaved();
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kit details updated'),
+            backgroundColor: Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildSexOption(String value, String label, IconData? icon, Color activeColor) {
+    final bool isSelected = _selectedSex == value;
+    return InkWell(
+      onTap: () => setState(() => _selectedSex = value),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor : Colors.white,
+          border: Border.all(color: isSelected ? activeColor : const Color(0xFFC7C7CC)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : const Color(0xFF4F4F56),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF4F4F56),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color saveColor = _selectedSex == 'F'
+        ? const Color(0xFFEC4899)
+        : (_selectedSex == 'M' ? const Color(0xFF2E7BB5) : const Color(0xFF7B6BA0));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1ECF7), // Purple page background matching Add New Rabbit
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFE6BEFE), // Top bar purple matching Add New Rabbit
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Color(0xFF4F4F56)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Edit Kit Details',
+          style: TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 18),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : _saveKit,
+            child: Text(
+              'SAVE',
+              style: TextStyle(
+                color: _isSaving ? Colors.grey : saveColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Gender Selection (Buck / Doe / Unsexed) - Unsexed without logo to prevent overflow
+            Row(
+              children: [
+                Expanded(child: _buildSexOption('M', 'Buck', Icons.male, const Color(0xFF2E7BB5))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSexOption('F', 'Doe', Icons.female, const Color(0xFFEC4899))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSexOption('U', 'Unsexed', null, const Color(0xFF7B6BA0))),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 2. Profile picture circular section with camera badge like Add New Rabbit page
+            Center(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _showImagePickerOptions,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFF7F7F5),
+                            border: Border.all(
+                              color: saveColor,
+                              width: 3,
+                            ),
+                            image: _localImagePath != null && _localImagePath!.isNotEmpty
+                                ? DecorationImage(
+                                    image: FileImage(File(_localImagePath!)),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: _localImagePath == null || _localImagePath!.isEmpty
+                              ? Icon(
+                                  _selectedSex == 'F'
+                                      ? Icons.female
+                                      : (_selectedSex == 'M' ? Icons.male : Icons.pets),
+                                  size: 50,
+                                  color: saveColor,
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: saveColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_localImagePath != null && _localImagePath!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _showImagePickerOptions,
+                      child: Text(
+                        'Change Photo',
+                        style: TextStyle(
+                          color: saveColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 3. Color Autocomplete (Box with text in top left corner)
+            Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                final colors = SettingsService.instance.colors;
+                if (textEditingValue.text.isEmpty) return colors;
+                return colors.where((c) => c.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+              },
+              initialValue: TextEditingValue(text: _colorController.text),
+              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                controller.addListener(() {
+                  _colorController.text = controller.text;
+                });
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  textCapitalization: TextCapitalization.words,
+                  style: const TextStyle(fontSize: 17),
+                  decoration: _buildInputDecoration('Color'),
+                );
+              },
+              onSelected: (String color) {
+                _colorController.text = color;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // 4. Weight field (Box with text in top left corner)
+            TextField(
+              controller: _weightController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 17),
+              decoration: _buildInputDecoration(FormatUtils.weightLabel()).copyWith(
+                suffixText: FormatUtils.weightUnit,
+                hintText: '0.0',
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 5. Notes field (Box with text in top left corner)
+            TextField(
+              controller: _notesController,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(fontSize: 17),
+              decoration: _buildInputDecoration('Notes').copyWith(
+                hintText: 'Add any notes...',
+                hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCBC8)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 

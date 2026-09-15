@@ -341,9 +341,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 SizedBox(width: 12),
                 Text(
                   FormatUtils.formatDateLong(selectedDate),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF37352F),
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
               ],
@@ -477,7 +477,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'NOTES (OPTIONAL)',
+          'NOTES',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,

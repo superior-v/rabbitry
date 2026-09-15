@@ -622,58 +622,50 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Widget _buildNavContainer() {
-    final sections = ['My Farm', 'Timeline', 'Operations', 'Automation', 'Data', 'Contact Us'];
+    final sections = ['MY FARM', 'TIMELINE', 'OPERATIONS', 'AUTOMATION', 'DATA', 'CONTACT US'];
     return Container(
-      color: const Color(0xFFE6BEFE),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-      alignment: Alignment.centerLeft,
-      child: SingleChildScrollView(
+      height: 46,
+      decoration: const BoxDecoration(
+        color: Color(0xFF8F8A90),
+        border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
+      ),
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        child: Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE4E4E9),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(sections.length, (index) {
-              final isSelected = _tabController.index == index;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _tabController.animateTo(index);
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                  decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+        itemCount: sections.length,
+        itemBuilder: (context, index) {
+          final isSelected = _tabController.index == index;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _tabController.animateTo(index);
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
                     color: isSelected ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Text(
-                    sections[index],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? const Color(0xFF2C2C2E) : const Color(0xFF787880),
-                    ),
+                    width: 2.2,
                   ),
                 ),
-              );
-            }),
-          ),
-        ),
+              ),
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  sections[index],
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.65),
+                    letterSpacing: 0.45,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -683,7 +675,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // ============================================
   Widget _buildGeneralTab() {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       children: [
         _buildCard(
           'Farm Profile',
@@ -711,12 +703,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   GestureDetector(
                     onTap: _showLogoUploadOptions,
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: kNeutral100,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: kNeutral200),
+                        color: const Color(0xFFF1ECF7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD6CEE2)),
                         image: _logoPath != null && File(_logoPath!).existsSync()
                             ? DecorationImage(
                                 image: FileImage(File(_logoPath!)),
@@ -725,25 +717,25 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             : null,
                       ),
                       child: _logoPath == null || !File(_logoPath!).existsSync()
-                          ? Icon(PhosphorIconsBold.image, size: 32, color: kNeutral400)
+                          ? const Icon(PhosphorIconsBold.image, size: 26, color: Color(0xFF6E6E73))
                           : null,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _showLogoUploadOptions,
                       icon: Icon(
                         _logoPath == null ? PhosphorIconsBold.upload : PhosphorIconsBold.pencilSimple,
-                        size: 18,
+                        size: 16,
                       ),
                       label: Text(_logoPath == null ? 'Upload Logo' : 'Change Logo'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         foregroundColor: kLilacDeep,
                         side: const BorderSide(color: kLilacDeep),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                     ),
                   ),
@@ -762,8 +754,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               _buildStandardDropdown<String>(
                 value: weightUnit,
                 items: [
-                  const DropdownMenuItem(value: 'lbs', child: Text('Pounds (lbs)')),
-                  const DropdownMenuItem(value: 'kg', child: Text('Kilograms (kg)')),
+                  const DropdownMenuItem(value: 'lbs', child: Text('Pounds (lbs)', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  const DropdownMenuItem(value: 'kg', child: Text('Kilograms (kg)', style: TextStyle(color: Color(0xFF4F4F56)))),
                 ],
                 onChanged: (value) async {
                   if (value != null && value != weightUnit) {
@@ -788,13 +780,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               _buildStandardDropdown<String>(
                 value: currency,
                 items: const [
-                  DropdownMenuItem(value: 'usd', child: Text('\$ - USD')),
-                  DropdownMenuItem(value: 'cad', child: Text('C\$ - CAD')),
-                  DropdownMenuItem(value: 'eur', child: Text('€ - EUR')),
-                  DropdownMenuItem(value: 'gbp', child: Text('£ - GBP')),
-                  DropdownMenuItem(value: 'inr', child: Text('₹ - INR')),
-                  DropdownMenuItem(value: 'aud', child: Text('A\$ - AUD')),
-                  DropdownMenuItem(value: 'cny', child: Text('¥ - CNY')),
+                  DropdownMenuItem(value: 'usd', child: Text('\$ - USD', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'cad', child: Text('C\$ - CAD', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'eur', child: Text('€ - EUR', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'gbp', child: Text('£ - GBP', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'inr', child: Text('₹ - INR', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'aud', child: Text('A\$ - AUD', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'cny', child: Text('¥ - CNY', style: TextStyle(color: Color(0xFF4F4F56)))),
                 ],
                 onChanged: (value) async {
                   if (value != null && value != currency) {
@@ -819,9 +811,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               _buildStandardDropdown<String>(
                 value: dateFormat,
                 items: const [
-                  DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/DD/YYYY')),
-                  DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('DD/MM/YYYY')),
-                  DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('YYYY-MM-DD')),
+                  DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/DD/YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('DD/MM/YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('YYYY-MM-DD', style: TextStyle(color: Color(0xFF4F4F56)))),
                 ],
                 onChanged: (value) {
                   setState(() => dateFormat = value!);
@@ -858,37 +850,39 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral900),
+      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w500),
+        hintStyle: const TextStyle(color: Color(0xFF9E9EA7), fontWeight: FontWeight.w500),
         filled: true,
-        fillColor: kNeutral50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacDeep, width: 2)),
+        fillColor: const Color(0xFFF1ECF7),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD6CEE2))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD6CEE2))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacDeep, width: 1.5)),
       ),
     );
   }
 
   Widget _buildStandardDropdown<T>({required T value, required List<DropdownMenuItem<T>> items, required ValueChanged<T?> onChanged}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: kNeutral50,
+        color: const Color(0xFFF1ECF7),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kNeutral200),
+        border: Border.all(color: const Color(0xFFD6CEE2)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           items: items,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900),
-          icon: const Icon(PhosphorIconsBold.caretDown, size: 14, color: kNeutral500),
+          isDense: true,
+          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          icon: const Icon(PhosphorIconsBold.caretDown, size: 14, color: Color(0xFF6E6E73)),
           dropdownColor: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
@@ -1015,7 +1009,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // ============================================
   Widget _buildOperationsTab() {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       children: [
         _buildCard(
           'Barn & Cage Manager',
@@ -2084,16 +2078,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildCard(String title, IconData icon, List<Widget> children) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: kLilacLight),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: kLilacDeep.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: kLilacDeep.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -2101,23 +2095,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: const BoxDecoration(
               color: kNeutral50,
               border: Border(bottom: BorderSide(color: kNeutral200)),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               children: [
-                Icon(icon, color: kLilacDeep, size: 20),
-                const SizedBox(width: 10),
+                Icon(icon, color: kLilacDeep, size: 18),
+                const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: kNeutral900,
-                    letterSpacing: -0.5,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: -0.3,
                   ),
                 ),
               ],
@@ -2131,7 +2125,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildSettingRow(String label, Widget trailing, {String? description}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
@@ -2146,9 +2140,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 Text(
                   label,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: kNeutral900,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
                 if (description != null) ...[
@@ -2156,8 +2150,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   Text(
                     description,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: kNeutral600,
+                      fontSize: 11.5,
+                      color: Color(0xFF6E6E73),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2165,7 +2159,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           trailing,
         ],
       ),
@@ -2174,7 +2168,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildSwitchRow(String label, String? description, bool value, Function(bool) onChanged) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
@@ -2187,9 +2181,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 Text(
                   label,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: kNeutral900,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
                 if (description != null) ...[
@@ -2197,8 +2191,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   Text(
                     description,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: kNeutral600,
+                      fontSize: 11.5,
+                      color: Color(0xFF6E6E73),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2219,7 +2213,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildVerticalSetting(String label, Widget child, {String? description}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
@@ -2229,20 +2223,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           Text(
             label,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: kNeutral900,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF4F4F56),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           child,
           if (description != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               description,
               style: const TextStyle(
-                fontSize: 12,
-                color: kNeutral600,
+                fontSize: 11.5,
+                color: Color(0xFF6E6E73),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -2513,7 +2507,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildSubsectionHeader(String title) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: const BoxDecoration(
         color: kNeutral50,
       ),
@@ -2521,9 +2515,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         title,
         style: const TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: kNeutral500,
-          letterSpacing: 1.0,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF6E6E73),
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -2533,19 +2527,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: const BoxDecoration(
           color: Colors.white,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(PhosphorIconsBold.plusCircle, size: 18, color: kLilacDeep),
-            SizedBox(width: 8),
+            Icon(PhosphorIconsBold.plusCircle, size: 16, color: kLilacDeep),
+            SizedBox(width: 6),
             Text(
               'Add New',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: kLilacDeep,
               ),
@@ -2560,7 +2554,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
           color: Colors.white,
@@ -2571,13 +2565,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: kNeutral900,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4F4F56),
               ),
             ),
             IconButton(
-              icon: Icon(PhosphorIconsBold.trash, size: 18, color: kNeutral400),
+              icon: const Icon(PhosphorIconsBold.trash, size: 16, color: Color(0xFF8E8E93)),
               onPressed: onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2651,30 +2645,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: () => _showScheduleDetails(schedule),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
         ),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(color: colors['bg']!.withOpacity(0.2), shape: BoxShape.circle),
-              child: Icon(badgeIcon, size: 16, color: colors['text']),
+              child: Icon(badgeIcon, size: 15, color: colors['text']),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(schedule['task'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kNeutral900)),
-                  const SizedBox(height: 2),
-                  Text(schedule['frequency'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral500)),
+                  Text(schedule['task'], style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56))),
+                  const SizedBox(height: 1),
+                  Text(schedule['frequency'], style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
                 ],
               ),
             ),
-            Icon(PhosphorIconsBold.caretRight, size: 14, color: kNeutral300),
+            const Icon(PhosphorIconsBold.caretRight, size: 14, color: Color(0xFF8E8E93)),
           ],
         ),
       ),
@@ -2686,7 +2680,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     String entityName = task['rabbitName'] ?? task['litterName'] ?? '';
     String category = task['category'] ?? 'Pipeline';
     String dueDateDisplay = '';
-    Color dueDateColor = kNeutral500;
+    Color dueDateColor = const Color(0xFF6E6E73);
     IconData taskIcon = PhosphorIconsDuotone.gitBranch;
 
     if (task['dueDate'] != null) {
@@ -2705,7 +2699,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           dueDateColor = Colors.red;
         } else {
           dueDateDisplay = 'In $diff day${diff == 1 ? '' : 's'}';
-          dueDateColor = kNeutral500;
+          dueDateColor = const Color(0xFF6E6E73);
         }
       } catch (_) {
         dueDateDisplay = task['dueDate'];
@@ -2735,19 +2729,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 30,
+            height: 30,
             decoration: const BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
-            child: Icon(taskIcon, size: 16, color: kLilacDeep),
+            child: Icon(taskIcon, size: 15, color: kLilacDeep),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2758,31 +2752,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       child: Text(
                         taskName,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kNeutral900),
+                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(4)),
                       child: const Text('PIPELINE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kLilacDeep)),
                     ),
                   ],
                 ),
                 if (entityName.isNotEmpty || dueDateDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       if (entityName.isNotEmpty) ...[
-                        Icon(PhosphorIconsRegular.rabbit, size: 12, color: kNeutral400),
+                        const Icon(PhosphorIconsRegular.rabbit, size: 12, color: Color(0xFF8E8E93)),
                         const SizedBox(width: 4),
-                        Text(entityName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral600)),
+                        Text(entityName, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
                         const SizedBox(width: 8),
                       ],
                       if (dueDateDisplay.isNotEmpty) ...[
                         Icon(PhosphorIconsBold.calendar, size: 12, color: dueDateColor),
                         const SizedBox(width: 4),
-                        Text(dueDateDisplay, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dueDateColor)),
+                        Text(dueDateDisplay, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: dueDateColor)),
                       ],
                     ],
                   ),
@@ -2791,9 +2785,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(4)),
-            child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral600)),
+            child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
           ),
         ],
       ),
@@ -3043,8 +3037,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildHealthIssueItemWithInput(String name, String treatment) {
     return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Column(
@@ -3056,17 +3050,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               Expanded(
                 child: Text(
                   name,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: const TextStyle(
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
               ),
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   PhosphorIconsRegular.trash,
-                  size: 20,
+                  size: 16,
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () {
@@ -3101,22 +3095,22 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   );
                 },
                 padding: EdgeInsets.zero,
-                constraints: BoxConstraints(),
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
           if (treatment.isNotEmpty) ...[
-            SizedBox(height: 8),
+            const SizedBox(height: 4),
             Row(
               children: [
-                Icon(PhosphorIconsRegular.firstAid, size: 14, color: Color(0xFF94A3B8)),
-                SizedBox(width: 6),
+                const Icon(PhosphorIconsRegular.firstAid, size: 13, color: Color(0xFF94A3B8)),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     treatment,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6E6E73),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -3132,8 +3126,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildBreedItemWithInput(Breed breed) {
     final genotypeController = TextEditingController(text: breed.genetics.join(', '));
     return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Column(
@@ -3144,29 +3138,29 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             children: [
               Text(
                 breed.name,
-                style: TextStyle(
-                  fontSize: 15,
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
+                  color: Color(0xFF4F4F56),
                 ),
               ),
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   PhosphorIconsRegular.trash,
-                  size: 20,
+                  size: 16,
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: Text('Delete Breed'),
+                      title: const Text('Delete Breed'),
                       content: Text('Remove "${breed.name}" from breed library?'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel')),
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: Text('Delete', style: TextStyle(color: Colors.red)),
+                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
@@ -3180,7 +3174,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('${breed.name} removed'),
-                          backgroundColor: Color(0xFF7B6BA0),
+                          backgroundColor: const Color(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -3188,41 +3182,41 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   }
                 },
                 padding: EdgeInsets.zero,
-                constraints: BoxConstraints(),
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 6),
           Row(
             children: [
-              Text(
+              const Text(
                 'Genotype Template:',
                 style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  color: Color(0xFF6E6E73),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: Container(
-                  height: 36,
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  height: 32,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Color(0xFFE2E8F0)),
+                    color: const Color(0xFFF1ECF7),
+                    border: Border.all(color: const Color(0xFFD6CEE2)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: TextField(
                     controller: genotypeController,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4F4F56),
                       fontFamily: 'monospace',
                     ),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(vertical: 6),
                       hintText: 'e.g. aa B- C- D- E-',
                     ),
                     onSubmitted: (value) async {
@@ -3232,9 +3226,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         genetics: value.split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList(),
                       );
                       await _db.updateBreed(updatedBreed);
-                      // Also update genetics on all rabbits with this breed
                       await _db.updateGeneticsForBreed(breed.name, value.trim());
-                      // Sync to SettingsService
                       await _syncBreedsToSettings();
                       final refreshed = await _db.getAllBreeds();
                       setState(() => breeds = refreshed);
@@ -3242,7 +3234,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Genotype updated for ${breed.name}'),
-                            backgroundColor: Color(0xFF7B6BA0),
+                            backgroundColor: const Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -4244,37 +4236,37 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildColorItem(String color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 24,
+            height: 24,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F5),
+              color: const Color(0xFFF1ECF7),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE9E9E7)),
+              border: Border.all(color: const Color(0xFFD6CEE2)),
             ),
-            child: const Icon(Icons.circle, size: 14, color: Color(0xFF7B6BA0)),
+            child: const Icon(Icons.circle, size: 12, color: Color(0xFF7B6BA0)),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               color,
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 13.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
+                color: Color(0xFF4F4F56),
               ),
             ),
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               PhosphorIconsRegular.trash,
-              size: 20,
+              size: 16,
               color: Color(0xFF94A3B8),
             ),
             onPressed: () => _removeColorItem(color),
