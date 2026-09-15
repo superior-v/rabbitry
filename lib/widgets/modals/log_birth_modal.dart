@@ -808,12 +808,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final firstAllowed = _bredDate ?? DateTime.now().subtract(const Duration(days: 90));
+    final now = DateTime.now();
+    final initial = _kindleDate.isAfter(now) ? now : _kindleDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _kindleDate,
-      firstDate: firstAllowed.isBefore(DateTime.now()) ? firstAllowed : DateTime.now().subtract(const Duration(days: 90)),
-      lastDate: DateTime.now(),
+      initialDate: initial,
+      firstDate: DateTime(1900),
+      lastDate: now,
     );
     if (picked != null) {
       setState(() => _kindleDate = picked);

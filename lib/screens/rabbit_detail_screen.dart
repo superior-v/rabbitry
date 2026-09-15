@@ -1105,77 +1105,95 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     }
   }
 
-  // âœ… Action Methods
+  // ✅ Action Methods
   void _openActionSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_currentRabbit.name} (${_currentRabbit.id})',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                        ),
-                        const Text('Actions', style: TextStyle(fontSize: 14, color: kNeutral500)),
-                      ],
-                    ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE5FA),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                ],
+                ),
               ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
                   children: [
-                    _buildMenuItem(Icons.edit, 'Edit Profile', _showEditRabbitScreen),
-                    if (_currentRabbit.status != RabbitStatus.quarantine)
-                      _buildMenuItem(Icons.shield_outlined, 'Quarantine', () {
-                        Navigator.pop(context);
-                        _showQuarantineModal();
-                      })
-                    else
-                      _buildMenuItem(Icons.check_circle_outline, 'Stop Quarantine', () {
-                        Navigator.pop(context);
-                        _showStopQuarantineModal();
-                      }),
-                    _buildMenuItem(Icons.shopping_cart_outlined, 'Sell', () {
-                      Navigator.pop(context);
-                      _showArchiveModalWithReason(ArchiveReason.sold);
-                    }),
-                    _buildMenuItem(Icons.gavel_outlined, 'Cull', () {
-                      Navigator.pop(context);
-                      _showArchiveModalWithReason(ArchiveReason.cull);
-                    }),
-                    _buildMenuItem(Icons.sentiment_very_dissatisfied_outlined, 'Died', () {
-                      Navigator.pop(context);
-                      _showArchiveModalWithReason(ArchiveReason.dead);
-                    }),
-                    _buildMenuItem(Icons.delete_forever, 'Delete', () {
-                      Navigator.pop(context);
-                      _confirmDeleteRabbit();
-                    }, isDestructive: true),
+                    Expanded(
+                      child: Text(
+                        '${_currentRabbit.name} (${_currentRabbit.id})',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E), letterSpacing: -0.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
               ),
-            ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-          ],
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F0FA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      _buildMenuItem('Edit Profile', _showEditRabbitScreen),
+                      if (_currentRabbit.status != RabbitStatus.quarantine)
+                        _buildMenuItem('Quarantine', () {
+                          Navigator.pop(ctx);
+                          _showQuarantineModal();
+                        })
+                      else
+                        _buildMenuItem('Stop Quarantine', () {
+                          Navigator.pop(ctx);
+                          _showStopQuarantineModal();
+                        }),
+                      _buildMenuItem('Sell', () {
+                        Navigator.pop(ctx);
+                        _showArchiveModalWithReason(ArchiveReason.sold);
+                      }),
+                      _buildMenuItem('Cull', () {
+                        Navigator.pop(ctx);
+                        _showArchiveModalWithReason(ArchiveReason.cull);
+                      }),
+                      _buildMenuItem('Died', () {
+                        Navigator.pop(ctx);
+                        _showArchiveModalWithReason(ArchiveReason.dead);
+                      }),
+                      _buildMenuItem('Delete', () {
+                        Navigator.pop(ctx);
+                        _confirmDeleteRabbit();
+                      }, isDestructive: true),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+            ],
+          ),
         ),
       ),
     );
@@ -1330,20 +1348,34 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String label, VoidCallback onTap, {bool isDestructive = false}) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: isDestructive ? _primaryColor : kNeutral500, size: 24),
-            const SizedBox(width: 14),
-            Text(label, style: TextStyle(fontSize: 15, color: isDestructive ? _primaryColor : kNeutral700)),
-          ],
+  Widget _buildMenuItem(String label, VoidCallback onTap, {bool isDangerous = false, bool isDestructive = false}) {
+    final bool isDanger = isDangerous || isDestructive;
+    final Color textColor = isDanger ? const Color(0xFFD94452) : const Color(0xFF463466);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      width: double.infinity,
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(context);
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E0F2), width: 0.8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
         ),
       ),
     );

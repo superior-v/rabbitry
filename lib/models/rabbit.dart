@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/format_utils.dart';
 
 enum RabbitType {
   doe,
@@ -234,24 +235,9 @@ class Rabbit {
     return days > 0 ? days : 0;
   }
 
-  // Calculate age string
+  // Calculate age string (up to 3 units e.g. 2y 3m 2w, 3y 2w 5d, 9m 4w 5d)
   String get age {
-    if (dateOfBirth == null) return 'Unknown';
-    final now = DateTime.now();
-    final difference = now.difference(dateOfBirth!);
-    final years = (difference.inDays / 365).floor();
-    final months = ((difference.inDays % 365) / 30).floor();
-    final weeks = ((difference.inDays % 30) / 7).floor();
-
-    if (years > 0) {
-      return '${years} yr ${months} mo';
-    } else if (months > 0) {
-      return '${months} mo ${weeks} w';
-    } else if (weeks > 0) {
-      return '${weeks} w';
-    } else {
-      return '${difference.inDays} d';
-    }
+    return FormatUtils.formatAge(dateOfBirth);
   }
 
   // Get status display text

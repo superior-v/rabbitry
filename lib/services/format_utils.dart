@@ -13,6 +13,41 @@ class FormatUtils {
     return DateFormat(_settings.dateFormat).format(date);
   }
 
+  /// Age formatted in at most 3 units (e.g., "2y 3m 2w", "3y 2w 5d", "9m 4w 5d", "3w 2d", "5d")
+  static String formatAge(DateTime? dob, {DateTime? targetDate}) {
+    if (dob == null) return 'Unknown';
+    final now = targetDate ?? DateTime.now();
+    if (dob.isAfter(now)) return '0d';
+
+    int years = now.year - dob.year;
+    int months = now.month - dob.month;
+    int days = now.day - dob.day;
+
+    if (days < 0) {
+      months--;
+      final prevMonthDays = DateTime(now.year, now.month, 0).day;
+      days += prevMonthDays;
+    }
+
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    int weeks = days ~/ 7;
+    int remDays = days % 7;
+
+    List<String> parts = [];
+    if (years > 0) parts.add('${years}y');
+    if (months > 0) parts.add('${months}m');
+    if (weeks > 0) parts.add('${weeks}w');
+    if (remDays > 0) parts.add('${remDays}d');
+
+    if (parts.isEmpty) return '0d';
+
+    return parts.take(3).join(' ');
+  }
+
   /// Short date for compact displays (e.g., "Feb 14" or "14 Feb")
   static String formatDateShort(DateTime date) {
     final fmt = _settings.dateFormat;

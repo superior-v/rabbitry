@@ -183,8 +183,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isDam = widget.rabbit.id == litter.doeId;
     final partner = isDam ? litter.buckName : litter.doeName;
     final partnerId = isDam ? litter.buckId : litter.doeId;
-    final bornDateStr = DateFormat('MMM d \'yy').format(litter.kindleDate ?? litter.breedDate);
-    final bredDateStr = DateFormat('MMM d \'yy').format(litter.breedDate);
+    final bornDateStr = DateFormat('MM/dd/yy').format(litter.kindleDate ?? litter.breedDate);
+    final bredDateStr = DateFormat('MM/dd/yy').format(litter.breedDate);
     final isExpanded = _expandedLitters.contains(litter.id);
 
     String fullAgeStr = '';
@@ -192,30 +192,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       fullAgeStr = '';
     } else if (litter.status == 'Weaned') {
       if (litter.kindleDate != null) {
-        final ageDays = DateTime.now().difference(litter.kindleDate!).inDays;
-        final weeks = (ageDays / 7).floor();
-        final remDays = ageDays % 7;
-        if (remDays == 0) {
-          fullAgeStr = 'Weaned • $weeks ${weeks == 1 ? 'week' : 'weeks'} old';
-        } else {
-          fullAgeStr = 'Weaned • $weeks ${weeks == 1 ? 'week' : 'weeks'}, $remDays ${remDays == 1 ? 'day' : 'days'} old';
-        }
+        fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate)}';
       } else {
         fullAgeStr = 'Weaned';
       }
     } else if (litter.kindleDate != null) {
-      final ageDays = DateTime.now().difference(litter.kindleDate!).inDays;
-      if (ageDays < 7) {
-        fullAgeStr = 'Age: $ageDays ${ageDays == 1 ? 'day' : 'days'} old';
-      } else {
-        final weeks = (ageDays / 7).floor();
-        final remDays = ageDays % 7;
-        if (remDays == 0) {
-          fullAgeStr = 'Age: $weeks ${weeks == 1 ? 'week' : 'weeks'} old';
-        } else {
-          fullAgeStr = 'Age: $weeks ${weeks == 1 ? 'week' : 'weeks'}, $remDays ${remDays == 1 ? 'day' : 'days'} old';
-        }
-      }
+      fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate)}';
     }
 
     return Theme(
@@ -235,7 +217,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ),
         child: ExpansionTile(
           visualDensity: VisualDensity.compact,
-          tilePadding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+          tilePadding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
           childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
           iconColor: const Color(0xFF7D7D86),
           collapsedIconColor: const Color(0xFF7D7D86),
@@ -254,24 +236,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               Text(
                 litter.status == 'Not Taken' ? 'MISSED LITTER' : litter.id,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF333333),
+                  color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Icon(
                 isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                size: 20,
-                color: const Color(0xFF616161),
+                size: 18,
+                color: const Color(0xFF787880),
               ),
               const Spacer(),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showLitterActionsMenu(context, litter),
                 child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF9E9E9E)),
+                  padding: EdgeInsets.only(left: 8.0, right: 4.0, top: 2.0, bottom: 2.0),
+                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787880)),
                 ),
               ),
             ],
@@ -280,69 +262,75 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 2),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      litter.status == 'Not Taken'
-                          ? 'Not Pregnant — archived'
-                          : 'with $partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
-                      style: TextStyle(
+              Padding(
+                padding: const EdgeInsets.only(right: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        litter.status == 'Not Taken'
+                            ? 'Not Pregnant — archived'
+                            : 'with $partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Bred $bredDateStr',
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF555555),
+                        color: Color(0xFF4F4F56),
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Bred $bredDateStr',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF757575),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 3),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      litter.status == 'Not Taken'
-                          ? 'Not Taken'
-                          : '${litter.totalKits} born • ${litter.aliveKits} alive',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF424242),
+              Padding(
+                padding: const EdgeInsets.only(right: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        litter.status == 'Not Taken'
+                            ? 'Not Taken'
+                            : '${litter.totalKits} born • ${litter.aliveKits} alive',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Born $bornDateStr',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF757575),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Born $bornDateStr',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4F4F56),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (fullAgeStr.isNotEmpty) ...[
                 const SizedBox(height: 3),
                 Text(
                   fullAgeStr,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF76668F),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
               ],

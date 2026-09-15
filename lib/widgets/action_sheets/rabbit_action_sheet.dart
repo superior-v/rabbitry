@@ -32,481 +32,137 @@ class RabbitActionSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          _buildHeader(context),
-          const Divider(height: 1),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: _buildActionItems(context),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE5FA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final themeColor = rabbit.type == RabbitType.doe ? const Color(0xFFFCE7F3) : const Color(0xFFE0F2FE);
-    final iconColor = rabbit.type == RabbitType.doe ? const Color(0xFFDB2777) : const Color(0xFF0284C7);
-    final textColor = rabbit.type == RabbitType.doe ? const Color(0xFF9D174D) : const Color(0xFF075985);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: themeColor, width: 2),
-              image: rabbit.photos != null && rabbit.photos!.isNotEmpty
-                  ? DecorationImage(
-                      image: FileImage(File(rabbit.photos!.first)),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
-              ],
-            ),
-            child: rabbit.photos == null || rabbit.photos!.isEmpty
-                ? Icon(
-                    rabbit.type == RabbitType.doe ? Icons.female : Icons.male,
-                    color: iconColor,
-                    size: 32,
-                  )
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${(rabbit.earNumber ?? (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id)).toUpperCase()} • ${rabbit.name}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Color(rabbit.statusColor).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Color(rabbit.statusColor).withOpacity(0.2)),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${rabbit.name} (${rabbit.id})',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1C1C1E),
+                        letterSpacing: -0.5,
                       ),
-                      child: Text(
-                        rabbit.statusText.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Color(rabbit.statusColor),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      rabbit.breed,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: textColor.withOpacity(0.6),
-                      ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F0FA),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    _buildOption(
+                      'Log Palpation',
+                      () => _showConfirmPregnancyModal(context),
+                    ),
+                    _buildOption(
+                      'Log Birth',
+                      () => _showLogBirthModal(context),
+                    ),
+                    _buildOption(
+                      'View Profile',
+                      () => _viewProfile(context),
+                    ),
+                    _buildOption(
+                      'Log Weight',
+                      () => _showLogWeightModal(context),
+                    ),
+                    _buildOption(
+                      'Record Health',
+                      () => _showHealthRecordModal(context),
+                    ),
+                    _buildOption(
+                      'Move Cage',
+                      () => _showMoveCageModal(context),
+                    ),
+                    _buildOption(
+                      rabbit.status == RabbitStatus.quarantine ? 'Stop Quarantine' : 'Quarantine',
+                      () => rabbit.status == RabbitStatus.quarantine
+                          ? _showStopQuarantineModal(context)
+                          : _showQuarantineModal(context),
+                    ),
+                    _buildOption(
+                      'Archive (Died / Cull)',
+                      () => _showArchiveModal(context),
+                    ),
+                    _buildOption(
+                      'Cancel Breeding',
+                      () => _showCancelPregnancyDialog(context),
+                      isDangerous: true,
+                    ),
+                    _buildOption(
+                      'Delete Rabbit',
+                      () => _confirmDeleteRabbit(context),
+                      isDangerous: true,
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.close, color: textColor.withOpacity(0.4)),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildActionItems(BuildContext context) {
-    List<Widget> items = [];
-
-    // DOE-SPECIFIC ACTIONS - Primary action based on status
-    if (rabbit.type == RabbitType.doe) {
-      final primaryAction = _getPrimaryAction(context);
-      if (primaryAction != null) {
-        items.add(primaryAction);
-      }
-    }
-
-    // BUCK-SPECIFIC ACTIONS
-    if (rabbit.type == RabbitType.buck) {
-      // Active Buck: Primary action is Record Breeding
-      if (rabbit.status == RabbitStatus.active) {
-        items.add(_buildPrimaryActionItem(
-          context,
-          icon: Icons.favorite,
-          label: 'Record Breeding',
-          subtitle: 'Select a doe and log breeding',
-          onTap: () => _showLogBreedingFromBuckModal(context),
-        ));
-        // Toggle to inactive
-        items.add(_buildActionItem(
-          context,
-          icon: Icons.pause_circle_outline,
-          iconColor: const Color(0xFF8B5CF6),
-          label: 'Mark as Inactive',
-          subtitle: 'Temporarily unavailable for breeding',
-          onTap: () => _toggleBuckStatus(context),
-        ));
-      } else if (rabbit.status == RabbitStatus.inactive) {
-        // Inactive Buck: Primary action is Mark as Active, secondary is Record Breeding
-        items.add(_buildPrimaryActionItem(
-          context,
-          icon: Icons.play_circle_outline,
-          label: 'Mark as Active',
-          subtitle: 'Available for breeding',
-          onTap: () => _toggleBuckStatus(context),
-        ));
-        items.add(_buildActionItem(
-          context,
-          icon: Icons.favorite_outline,
-          iconColor: const Color(0xFF2E7BB5),
-          label: 'Record Breeding',
-          subtitle: 'Select a doe and log breeding',
-          onTap: () => _showLogBreedingFromBuckModal(context),
-        ));
-      }
-    }
-
-    // VIEW PROFILE
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.person_outline,
-      iconColor: const Color(0xFF7B6BA0),
-      label: 'View Profile',
-      subtitle: 'See full details and history',
-      onTap: () => _viewProfile(context),
-      showArrow: true,
-    ));
-
-    // Log Weight
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.monitor_weight_outlined,
-      iconColor: const Color(0xFF6B6B6B),
-      label: 'Log Weight',
-      subtitle: 'Record current weight',
-      onTap: () => _showLogWeightModal(context),
-    ));
-
-    // Health Record
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.medical_services_outlined,
-      iconColor: const Color(0xFF6B6B6B),
-      label: 'Health Record',
-      subtitle: 'Add health note or treatment',
-      onTap: () => _showHealthRecordModal(context),
-    ));
-
-    // Move Cage
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.swap_horiz,
-      iconColor: const Color(0xFF6B6B6B),
-      label: 'Move Cage',
-      subtitle: 'Change location',
-      onTap: () => _showMoveCageModal(context),
-    ));
-
-    // Quarantine (if not already in quarantine)
-    if (rabbit.status != RabbitStatus.quarantine) {
-      items.add(_buildActionItem(
-        context,
-        icon: Icons.shield_outlined,
-        iconColor: const Color(0xFF8B5CF6),
-        label: 'Add to Quarantine',
-        subtitle: 'Isolate for health/observation',
-        onTap: () => _showQuarantineModal(context),
-      ));
-    }
-
-    // Stop Quarantine (if in quarantine)
-    if (rabbit.status == RabbitStatus.quarantine) {
-      items.add(_buildPrimaryActionItem(
-        context,
-        icon: Icons.check_circle_outline,
-        label: 'Stop Quarantine',
-        subtitle: rabbit.daysInQuarantineRemaining != null ? '${rabbit.daysInQuarantineRemaining} days remaining' : 'Release from quarantine',
-        onTap: () => _showStopQuarantineModal(context),
-      ));
-    }
-
-    // Secondary actions based on status
-    if (rabbit.status == RabbitStatus.resting && rabbit.type == RabbitType.doe) {
-      items.add(_buildActionItem(
-        context,
-        icon: Icons.favorite_outline,
-        iconColor: const Color(0xFF2E7BB5),
-        label: 'Open to Breeding',
-        subtitle: 'Mark as available for breeding',
-        onTap: () => _openToBreeding(context),
-      ));
-    }
-
-    // Log Palpation for pregnant does
-    if (rabbit.type == RabbitType.doe && rabbit.status == RabbitStatus.pregnant) {
-      items.add(_buildActionItem(
-        context,
-        icon: Icons.check_circle_outline,
-        iconColor: const Color(0xFF7B6BA0),
-        label: 'Log Palpation',
-        subtitle: 'Record or update palpation result',
-        onTap: () => _showConfirmPregnancyModal(context),
-      ));
-    }
-
-    // Cancel Pregnancy for palpateDue or pregnant does
-    if (rabbit.type == RabbitType.doe && (rabbit.status == RabbitStatus.palpateDue || rabbit.status == RabbitStatus.pregnant)) {
-      items.add(_buildActionItem(
-        context,
-        icon: Icons.cancel_outlined,
-        iconColor: const Color(0xFFD44C47),
-        label: 'Cancel Bred Status',
-        subtitle: 'Remove bred record and related tasks',
-        onTap: () => _showCancelPregnancyDialog(context),
-      ));
-    }
-
-    // Growout promotion - Show days remaining AND age
-    if (rabbit.status == RabbitStatus.growout) {
-      String subtitle = 'Mark as breeding age';
-      if (rabbit.daysUntilMature != null && rabbit.daysUntilMature! > 0) {
-        subtitle = '${rabbit.daysUntilMature} days remaining • Age: ${rabbit.age}';
-      } else {
-        subtitle = 'Ready to promote • Age: ${rabbit.age}';
-      }
-      items.add(_buildActionItem(
-        context,
-        icon: Icons.arrow_upward,
-        iconColor: const Color(0xFF7B6BA0),
-        label: 'Promote to Breeder',
-        subtitle: subtitle,
-        onTap: () => _promoteToBreeder(context),
-      ));
-    }
-
-    // Archive
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.archive_outlined,
-      iconColor: const Color(0xFFD44C47),
-      label: 'Archive Rabbit',
-      subtitle: 'Sold, deceased, or culled',
-      onTap: () => _showArchiveModal(context),
-    ));
-
-    // Delete
-    items.add(_buildActionItem(
-      context,
-      icon: Icons.delete_forever_outlined,
-      iconColor: const Color(0xFFD44C47),
-      label: 'Delete Rabbit',
-      subtitle: 'Permanently remove from database',
-      onTap: () => _confirmDeleteRabbit(context),
-    ));
-
-    return items;
-  }
-
-  Widget? _getPrimaryAction(BuildContext context) {
-    switch (rabbit.status) {
-      case RabbitStatus.open:
-        return _buildPrimaryActionItem(
-          context,
-          icon: Icons.favorite,
-          label: 'Log Breeding',
-          subtitle: 'Record a breeding event',
-          onTap: () => _showLogBreedingModal(context),
-        );
-
-      case RabbitStatus.palpateDue:
-        return _buildPrimaryActionItem(
-          context,
-          icon: Icons.pregnant_woman,
-          label: 'Log Palpation',
-          subtitle: 'Record palpation result',
-          onTap: () => _showConfirmPregnancyModal(context),
-        );
-
-      case RabbitStatus.pregnant:
-        return _buildPrimaryActionItem(
-          context,
-          icon: Icons.child_friendly,
-          label: 'Log Birth',
-          subtitle: 'Record kindle date and kit count',
-          onTap: () => _showLogBirthModal(context),
-        );
-
-      case RabbitStatus.nursing:
-        return _buildPrimaryActionItem(
-          context,
-          icon: Icons.child_care,
-          label: 'Wean Litter',
-          subtitle: 'Complete nursing and wean kits',
-          onTap: () => _showWeanLitterModal(context),
-        );
-
-      default:
-        return null;
-    }
-  }
-
-  Widget _buildPrimaryActionItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    final primaryColor = rabbit.type == RabbitType.doe ? const Color(0xFFDB2777) : const Color(0xFF0284C7);
-    final bgColor = rabbit.type == RabbitType.doe ? const Color(0xFFFFF1F2) : const Color(0xFFEFF6FF);
-
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: bgColor,
-          border: Border(
-            left: BorderSide(color: primaryColor, width: 4),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: primaryColor, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: primaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: primaryColor.withOpacity(0.6),
-                    ),
-                  ),
-                ],
               ),
             ),
-            Icon(Icons.chevron_right, color: primaryColor.withOpacity(0.4)),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionItem(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool showArrow = false,
-  }) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
+  Widget _buildOption(String label, VoidCallback onTap, {bool isDangerous = false}) {
+    final Color textColor = isDangerous ? const Color(0xFFD94452) : const Color(0xFF463466);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      width: double.infinity,
+      child: InkWell(
+        onTap: () {
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E0F2), width: 0.8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (showArrow) const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB), size: 18),
-          ],
+          ),
         ),
       ),
     );

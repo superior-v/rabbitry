@@ -73,8 +73,6 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
                 ].join(' • ')
               : 'N/A',
-          actionLabel: 'Move',
-          onAction: () => _showCageSelector(context),
           rowIndex: 1),
       _buildInfoRow(context, 'Ear No.:',
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
@@ -145,8 +143,8 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                     value,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: kNeutral900,
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF4F4F56),
+                      fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.end,
                     overflow: TextOverflow.ellipsis,

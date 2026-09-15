@@ -71,10 +71,17 @@ class _ParentageCardState extends State<ParentageCard> {
     required String? fallbackId,
     required bool isMale,
   }) {
-    // Pastel colors: #D8EEFB for Sire, #FFBCE7 for Dam
-    final Color cardBg = isMale
-        ? const Color(0xFFD8EEFB)
-        : const Color(0xFFFFBCE7);
+    final Gradient cardGradient = isMale
+        ? const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+          )
+        : const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFBCE7), Color(0xFFFFF0F9)],
+          );
 
     final bool hasDetails = rabbit != null || (fallbackId != null && fallbackId.isNotEmpty);
 
@@ -90,8 +97,9 @@ class _ParentageCardState extends State<ParentageCard> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: cardBg,
+          gradient: cardGradient,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE), width: 0.8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
