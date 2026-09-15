@@ -744,7 +744,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         final existingNote = k.details ?? '';
         final fosterNote = 'Fostered from $sourceDamName';
         final newDetails = existingNote.contains(fosterNote) ? existingNote : (existingNote.isEmpty ? fosterNote : '$existingNote • $fosterNote');
-        return k.copyWith(status: 'Nursing', details: newDetails);
+        return k.copyWith(id: 'foster_${source.id}_${k.id}', status: 'Nursing', details: newDetails);
       }).toList();
 
       // Mark source kits as Fostered
