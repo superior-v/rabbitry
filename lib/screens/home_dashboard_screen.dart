@@ -125,38 +125,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _onNavTap(index);
   }
 
-  double _horizontalDragDistance = 0.0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragStart: (_) {
-          _horizontalDragDistance = 0.0;
-        },
-        onHorizontalDragUpdate: (DragUpdateDetails details) {
-          _horizontalDragDistance += details.primaryDelta ?? 0.0;
-        },
-        onHorizontalDragEnd: (DragEndDetails details) {
-          final velocity = details.primaryVelocity ?? 0.0;
-          // Swipe left -> Next tab (Home -> Herd -> Nursery -> Tasks -> Finance)
-          if (velocity < -200 || _horizontalDragDistance < -60) {
-            if (_selectedNavIndex < 4) {
-              _onNavTap(_selectedNavIndex + 1);
-            }
-          }
-          // Swipe right -> Previous tab (Finance -> Tasks -> Nursery -> Herd -> Home)
-          else if (velocity > 200 || _horizontalDragDistance > 60) {
-            if (_selectedNavIndex > 0) {
-              _onNavTap(_selectedNavIndex - 1);
-            }
-          }
-          _horizontalDragDistance = 0.0;
-        },
-        child: IndexedStack(index: _selectedNavIndex, children: _navScreens),
-      ),
+      body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -427,25 +400,29 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'home_log_breeding_fab',
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => LogBreedingModal(
-              onComplete: _loadData,
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFFE6BEFE),
-        shape: const CircleBorder(),
-        elevation: 6,
-        child: Icon(
-          PhosphorIcons.plus(PhosphorIconsStyle.bold),
-          color: Colors.white,
-          size: 28,
+      floatingActionButton: SizedBox(
+        width: 46,
+        height: 46,
+        child: FloatingActionButton(
+          heroTag: 'home_log_breeding_fab',
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => LogBreedingModal(
+                onComplete: _loadData,
+              ),
+            );
+          },
+          backgroundColor: const Color(0xFFE6BEFE),
+          shape: const CircleBorder(),
+          elevation: 4,
+          child: Icon(
+            PhosphorIcons.plus(PhosphorIconsStyle.bold),
+            color: Colors.white,
+            size: 20,
+          ),
         ),
       ),
     );

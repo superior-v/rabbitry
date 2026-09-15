@@ -238,16 +238,20 @@ class FinanceScreenState extends State<FinanceScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'finance_fab',
-        onPressed: _addTransaction,
-        backgroundColor: const Color(0xFFE6BEFE),
-        shape: const CircleBorder(),
-        elevation: 6,
-        child: Icon(
-          PhosphorIcons.plus(PhosphorIconsStyle.bold),
-          size: 28,
-          color: Colors.white,
+      floatingActionButton: SizedBox(
+        width: 46,
+        height: 46,
+        child: FloatingActionButton(
+          heroTag: 'finance_fab',
+          onPressed: _addTransaction,
+          backgroundColor: const Color(0xFFE6BEFE),
+          shape: const CircleBorder(),
+          elevation: 4,
+          child: Icon(
+            PhosphorIcons.plus(PhosphorIconsStyle.bold),
+            size: 20,
+            color: Colors.white,
+          ),
         ),
       ),
     );

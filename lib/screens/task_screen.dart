@@ -678,7 +678,20 @@ class TaskScreenState extends State<TaskScreen> {
           : Column(
               children: [
                 _buildTabs(),
-                Expanded(child: _buildTaskList()),
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragEnd: (DragEndDetails details) {
+                      final velocity = details.primaryVelocity ?? 0.0;
+                      if (velocity < -150) {
+                        _onSwipeGreyBar(true);
+                      } else if (velocity > 150) {
+                        _onSwipeGreyBar(false);
+                      }
+                    },
+                    child: _buildTaskList(),
+                  ),
+                ),
               ],
             ),
       floatingActionButton: _buildFAB(),
@@ -799,22 +812,49 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
+  void _onSwipeGreyBar(bool isLeftSwipe) {
+    const categories = [
+      'All',
+      'Breeding',
+      'Health',
+      'Operations',
+      'Breeding Plan',
+      'Contacts'
+    ];
+    int currentIndex = categories.indexOf(_selectedCategory);
+    if (currentIndex == -1) currentIndex = 0;
+
+    if (isLeftSwipe) {
+      if (currentIndex < categories.length - 1) {
+        setState(() => _selectedCategory = categories[currentIndex + 1]);
+      }
+    } else {
+      if (currentIndex > 0) {
+        setState(() => _selectedCategory = categories[currentIndex - 1]);
+      }
+    }
+  }
+
   Widget _buildFAB() {
-    return FloatingActionButton(
-      heroTag: null,
-      onPressed: () {
-        if (_selectedCategory == 'Breeding Plan') {
-          _showAddBreedingPlanDialog();
-        } else if (_selectedCategory == 'Contacts') {
-          _showAddContactDialog();
-        } else {
-          _showNewScheduleDialog(context);
-        }
-      },
-      backgroundColor: const Color(0xFFE6BEFE),
-      elevation: 6,
-      shape: const CircleBorder(),
-      child: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), color: Colors.white, size: 28),
+    return SizedBox(
+      width: 46,
+      height: 46,
+      child: FloatingActionButton(
+        heroTag: null,
+        onPressed: () {
+          if (_selectedCategory == 'Breeding Plan') {
+            _showAddBreedingPlanDialog();
+          } else if (_selectedCategory == 'Contacts') {
+            _showAddContactDialog();
+          } else {
+            _showNewScheduleDialog(context);
+          }
+        },
+        backgroundColor: const Color(0xFFE6BEFE),
+        elevation: 4,
+        shape: const CircleBorder(),
+        child: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), color: Colors.white, size: 20),
+      ),
     );
   }
 

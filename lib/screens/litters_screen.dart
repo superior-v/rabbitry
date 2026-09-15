@@ -158,26 +158,41 @@ class LittersScreenState extends State<LittersScreen> {
             ),
             _buildStageChips(),
             Expanded(
-              child: _buildLittersList(),
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragEnd: (DragEndDetails details) {
+                  final velocity = details.primaryVelocity ?? 0.0;
+                  if (velocity < -150) {
+                    _onSwipeGreyBar(true);
+                  } else if (velocity > 150) {
+                    _onSwipeGreyBar(false);
+                  }
+                },
+                child: _buildLittersList(),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'litter_fab',
-        onPressed: () async {
-          _searchFocusNode.canRequestFocus = false;
-          FocusScope.of(context).unfocus();
-          await _showAddLitterDialog();
-          _searchFocusNode.canRequestFocus = true;
-        },
-        backgroundColor: const Color(0xFFE6BEFE),
-        shape: const CircleBorder(),
-        elevation: 6,
-        child: Icon(
-          PhosphorIcons.plus(PhosphorIconsStyle.bold),
-          size: 28,
-          color: Colors.white,
+      floatingActionButton: SizedBox(
+        width: 46,
+        height: 46,
+        child: FloatingActionButton(
+          heroTag: 'litter_fab',
+          onPressed: () async {
+            _searchFocusNode.canRequestFocus = false;
+            FocusScope.of(context).unfocus();
+            await _showAddLitterDialog();
+            _searchFocusNode.canRequestFocus = true;
+          },
+          backgroundColor: const Color(0xFFE6BEFE),
+          shape: const CircleBorder(),
+          elevation: 4,
+          child: Icon(
+            PhosphorIcons.plus(PhosphorIconsStyle.bold),
+            size: 20,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -558,6 +573,31 @@ class LittersScreenState extends State<LittersScreen> {
         ],
       ),
     );
+  }
+
+  void _onSwipeGreyBar(bool isLeftSwipe) {
+    const stages = [
+      'All',
+      'Nursing',
+      'Weaned',
+      'GrowOut',
+      'Quarantine',
+      'Archive'
+    ];
+    int currentIndex = stages.indexOf(_currentStage);
+    if (currentIndex == -1) currentIndex = 0;
+
+    if (isLeftSwipe) {
+      if (currentIndex < stages.length - 1) {
+        FocusScope.of(context).unfocus();
+        setState(() => _currentStage = stages[currentIndex + 1]);
+      }
+    } else {
+      if (currentIndex > 0) {
+        FocusScope.of(context).unfocus();
+        setState(() => _currentStage = stages[currentIndex - 1]);
+      }
+    }
   }
 
   Widget _buildStageChips() {

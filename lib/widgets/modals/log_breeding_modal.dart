@@ -439,10 +439,14 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        hintText: hint,
+        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -463,7 +467,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -472,11 +477,11 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               DateFormat('MM-dd-yyyy').format(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
             ),
           ],
         ),
@@ -495,19 +500,20 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       value: value,
       items: items,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        prefixIcon: Icon(prefixIcon, color: const Color(0xFF7B6BA0), size: 20),
+        prefixIcon: Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 20),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
         filled: true,
         fillColor: Colors.white,
       ),
-      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7B6BA0)),
+      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
     );
   }
 

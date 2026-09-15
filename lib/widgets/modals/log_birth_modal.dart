@@ -177,7 +177,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'LOG BIRTH',
+                      'Log Birth',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF4A3E6D), letterSpacing: 0.3),
                     ),
                     GestureDetector(
@@ -213,7 +213,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 26),
+                        padding: const EdgeInsets.only(left: 42),
                         child: Text(
                           _bredDate != null
                               ? DateFormat('MM/dd/yyyy').format(_bredDate!)
@@ -263,7 +263,6 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 label: 'Litter ID',
                 controller: _litterIdController,
                 prefixIcon: Icons.tag,
-                textColor: kNeutral500,
               ),
             ),
             const SizedBox(width: 12),
@@ -272,7 +271,6 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 label: 'Birth Date',
                 value: _kindleDate,
                 onTap: () => _selectDate(context),
-                textColor: kNeutral500,
               ),
             ),
           ],
@@ -433,7 +431,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
     TextInputType? keyboardType,
     int maxLines = 1,
     Function(String)? onChanged,
-    Color textColor = kNeutral900,
+    Color textColor = const Color(0xFF3A3A3C),
   }) {
     return TextField(
       controller: controller,
@@ -443,10 +441,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         hintText: hint,
         hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF7B6BA0), size: 18) : null,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -461,14 +460,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
     required String label,
     required DateTime value,
     required VoidCallback onTap,
-    Color textColor = kNeutral900,
+    Color textColor = const Color(0xFF3A3A3C),
   }) {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 16),
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -477,7 +477,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               DateFormat('MM/dd/yyyy').format(value),
