@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
 import '../../constants/app_colors.dart';
 
 class LogBreedingModal extends StatefulWidget {
@@ -176,7 +177,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       if (widget.doe != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '${widget.doe!.name} • ${widget.doe!.id}',
+                          widget.doe!.fullName,
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kLilacText),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -228,7 +229,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         items: _does.map((doe) {
                           return DropdownMenuItem(
                             value: doe,
-                            child: Text('${doe.name} (${doe.id})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            child: Text(doe.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                           );
                         }).toList(),
                         onChanged: (doe) {
@@ -264,7 +265,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       items: _bucks.map((buck) {
                         return DropdownMenuItem(
                           value: buck,
-                          child: Text('${buck.name} (${buck.id})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          child: Text(buck.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                         );
                       }).toList(),
                       onChanged: (buck) {
@@ -404,7 +405,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
             style: const TextStyle(fontSize: 15, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500),
           ),
           Text(
-            DateFormat('MM-dd-yyyy').format(date),
+            FormatUtils.formatDate(date),
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -480,7 +481,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
             const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
-              DateFormat('MM-dd-yyyy').format(value),
+              FormatUtils.formatDate(value),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
             ),
           ],

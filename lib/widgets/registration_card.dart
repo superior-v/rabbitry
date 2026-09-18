@@ -58,10 +58,10 @@ class RegistrationCard extends StatelessWidget {
     final Color rowBg = isEven ? Colors.white : const Color(0xFFF5F3F8);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.0),
       decoration: BoxDecoration(
         color: rowBg,
-        border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral100)),
+        border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFEBE8F0), width: 0.8)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -69,17 +69,17 @@ class RegistrationCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 13,
-              color: kNeutral600,
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: Color(0xFF4F4F56),
+              fontWeight: FontWeight.w600,
             ),
           ),
           Text(
             value,
             style: const TextStyle(
               fontSize: 14,
-              color: kNeutral900,
-              fontWeight: FontWeight.w700,
+              color: Color(0xFF4F4F56),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

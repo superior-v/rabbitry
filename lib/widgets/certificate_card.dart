@@ -77,24 +77,14 @@ class _CertificateCardState extends State<CertificateCard> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                Icon(
-                  PhosphorIcons.certificate(PhosphorIconsStyle.duotone),
-                  size: 20,
-                  color: _primaryColor,
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'BIRTH CERTIFICATE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2937),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ],
+            child: const Text(
+              'BIRTH CERTIFICATE',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4F4F56),
+                letterSpacing: 0.8,
+              ),
             ),
           ),
           Padding(
@@ -106,8 +96,8 @@ class _CertificateCardState extends State<CertificateCard> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 13,
-                      color: kNeutral500,
-                      fontWeight: FontWeight.w500),
+                      color: Color(0xFF4F4F56),
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -116,11 +106,19 @@ class _CertificateCardState extends State<CertificateCard> {
                     onPressed: () => _showPreviewModal(context),
                     icon: Icon(
                         PhosphorIcons.fileText(PhosphorIconsStyle.duotone),
-                        size: 18),
-                    label: const Text('Preview Certificate'),
+                        size: 18,
+                        color: const Color(0xFF4F4F56)),
+                    label: const Text(
+                      'Preview Certificate',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF4EBFE),
-                      foregroundColor: const Color(0xFF7B6BA0),
+                      foregroundColor: const Color(0xFF4F4F56),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

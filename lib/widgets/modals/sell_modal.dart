@@ -99,7 +99,7 @@ class _SellModalState extends State<SellModal> {
                     children: [
                       Icon(Icons.calendar_today, color: Color(0xFF787774)),
                       SizedBox(width: 12),
-                      Text('${_saleDate.day}/${_saleDate.month}/${_saleDate.year}'),
+                      Text(FormatUtils.formatDate(_saleDate)),
                     ],
                   ),
                 ),

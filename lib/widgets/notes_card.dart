@@ -38,9 +38,6 @@ class _NotesCardState extends State<NotesCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Count non-empty paragraphs as entries
-    final entriesCount = _notesController.text.split('\n').where((s) => s.trim().isNotEmpty).length;
-
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard on tap outside
       child: Container(
@@ -54,57 +51,18 @@ class _NotesCardState extends State<NotesCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(PhosphorIconsFill.notePencil, size: 18, color: kNeutral500),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'NOTES',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: kNeutral500,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ],
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Text(
+                'NOTES',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF4F4F56),
+                  letterSpacing: 0.8,
+                ),
               ),
             ),
-
-            // Count
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$entriesCount',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1F2937),
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      'entries',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: kNeutral500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
 
             // Note Box
             Padding(

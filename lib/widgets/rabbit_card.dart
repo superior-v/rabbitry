@@ -142,7 +142,7 @@ class RabbitCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         child: const Padding(
                           padding: EdgeInsets.all(4.0),
-                          child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 20),
+                          child: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
                         ),
                       ),
                     ],

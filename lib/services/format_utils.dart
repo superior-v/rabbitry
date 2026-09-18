@@ -8,9 +8,13 @@ class FormatUtils {
 
   // ==================== DATE FORMATTING ====================
 
-  /// Full date format from settings (e.g., "02/14/2026" or "14/02/2026")
+  /// Full date format from settings (e.g., "Jan 24, 2026", "02-14-2026" or "14-02-2026")
   static String formatDate(DateTime date) {
-    return DateFormat(_settings.dateFormat).format(date);
+    try {
+      return DateFormat(_settings.dateFormat).format(date);
+    } catch (_) {
+      return DateFormat('MMM d, yyyy').format(date);
+    }
   }
 
   /// Age formatted in at most 3 units (e.g., "2y 3m 2w", "3y 2w 5d", "9m 4w 5d", "3w 2d", "5d")
@@ -48,13 +52,11 @@ class FormatUtils {
     return parts.take(3).join(' ');
   }
 
-  /// Short date for compact displays (e.g., "Feb 14" or "14 Feb")
+  /// Short date for compact displays (e.g., "Jan 24" or "24 Jan")
   static String formatDateShort(DateTime date) {
-    final fmt = _settings.dateFormat;
+    final fmt = _settings.dateFormat.toLowerCase();
     if (fmt.startsWith('dd')) {
       return DateFormat('d MMM').format(date);
-    } else if (fmt.startsWith('yyyy')) {
-      return DateFormat('MMM d').format(date);
     }
     return DateFormat('MMM d').format(date);
   }
@@ -64,9 +66,9 @@ class FormatUtils {
     return DateFormat('MMM yyyy').format(date);
   }
 
-  /// Long date (e.g., "February 14, 2026" or "14 February, 2026")
+  /// Long date (e.g., "January 24, 2026" or "24 January, 2026")
   static String formatDateLong(DateTime date) {
-    final fmt = _settings.dateFormat;
+    final fmt = _settings.dateFormat.toLowerCase();
     if (fmt.startsWith('dd')) {
       return DateFormat('d MMMM, yyyy').format(date);
     } else if (fmt.startsWith('yyyy')) {

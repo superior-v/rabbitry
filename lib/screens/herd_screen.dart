@@ -69,6 +69,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   List<Rabbit> _archivedList = [];
   List<Barn> _barns = [];
   List<Map<String, dynamic>> _growOutKits = []; // Kits in grow-out phase
+  List<Litter> _litters = [];
   bool _isLoading = true;
   int _dataVersion = 0;
 
@@ -159,6 +160,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           _archivedList = archivedRabbits;
           _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
           _growOutKits = growOutKits;
+          _litters = litters;
           _isLoading = false;
         });
       }
@@ -262,12 +264,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
       final barnsData = await _db.getAllBarns();
+      final litters = await _db.getLitters();
 
       if (mounted) {
         setState(() {
           _allRabbits = rabbits;
           _archivedList = archivedRabbits;
           _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+          _litters = litters;
           _dataVersion++;
         });
       }
@@ -315,11 +319,13 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     final rabbits = await _db.getAllRabbits();
     final archivedRabbits = await _db.getArchivedRabbits();
     final barnsData = await _db.getAllBarns();
+    final litters = await _db.getLitters();
     if (mounted) {
       setState(() {
         _allRabbits = rabbits;
         _archivedList = archivedRabbits;
         _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+        _litters = litters;
         _dataVersion++;
       });
     }
@@ -857,17 +863,13 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Open',
         'Bred',
         'Nursing',
-        'Resting',
-        'Grow Out',
-        'Quarantine'
+        'Inactive',
       ];
     } else if (_tabController.index == 1) {
       return [
         'All',
         'Active',
         'Inactive',
-        'Grow Out',
-        'Quarantine'
       ];
     } else {
       return [
@@ -875,7 +877,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Sold',
         'Butchered',
         'Dead',
-        'Cull'
+        'Cull',
       ];
     }
   }
@@ -916,19 +918,19 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         color: Color(0xFF8F8A90),
         border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
       ),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
-        itemCount: statuses.length,
-        itemBuilder: (context, index) {
-          final status = statuses[index];
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: statuses.map((status) {
           final mappedStatus = status == 'Bred' ? 'Pregnant' : (status == 'Grow Out' ? 'GrowOut' : status);
           final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
 
           return GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () => setState(() => _currentFilter = mappedStatus),
             child: Container(
-              margin: const EdgeInsets.only(right: 20),
+              height: 46,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
@@ -937,21 +939,19 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   ),
                 ),
               ),
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  status.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                    color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-                    letterSpacing: 0.45,
-                  ),
+              child: Text(
+                status.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                  color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                  letterSpacing: 0.45,
                 ),
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -1557,7 +1557,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildCountHeader(int count) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -1575,6 +1575,47 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
+  String _getRabbitNameById(String? id) {
+    if (id == null || id.trim().isEmpty) return '';
+    final trimmed = id.trim();
+    for (final r in _allRabbits) {
+      if (r.id == trimmed) {
+        if (r.breederPrefix != null && r.breederPrefix!.isNotEmpty) {
+          return '${r.breederPrefix} ${r.name}';
+        }
+        return r.name;
+      }
+    }
+    for (final r in _archivedList) {
+      if (r.id == trimmed) {
+        if (r.breederPrefix != null && r.breederPrefix!.isNotEmpty) {
+          return '${r.breederPrefix} ${r.name}';
+        }
+        return r.name;
+      }
+    }
+    return trimmed;
+  }
+
+  int _getRabbitLittersCount(Rabbit rabbit) {
+    return _litters.where((l) => l.doeId == rabbit.id || l.buckId == rabbit.id).length;
+  }
+
+  int _getRabbitKitsCount(Rabbit rabbit) {
+    final rabbitLitters = _litters.where((l) => l.doeId == rabbit.id || l.buckId == rabbit.id);
+    int total = 0;
+    for (var l in rabbitLitters) {
+      if (l.totalKits != null && l.totalKits! > 0) {
+        total += l.totalKits!;
+      } else if (l.kits.isNotEmpty) {
+        total += l.kits.length;
+      } else {
+        total += (l.aliveKits ?? 0) + (l.deadKits ?? 0);
+      }
+    }
+    return total;
+  }
+
   Widget _buildRedesignedRabbitCard(Rabbit rabbit) {
     final bool isDoe = rabbit.type == RabbitType.doe;
     final bool isArchive = rabbit.status == RabbitStatus.archived;
@@ -1582,6 +1623,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
     final photoPath = hasPhoto ? rabbit.photos!.first : null;
     final isPhotoValid = photoPath != null && File(photoPath).existsSync();
+
+    final sireName = _getRabbitNameById(rabbit.sireId);
+    final damName = _getRabbitNameById(rabbit.damId);
+    final littersCount = _getRabbitLittersCount(rabbit);
+    final kitsCount = _getRabbitKitsCount(rabbit);
 
     return GestureDetector(
       // Tapping anywhere on the card (except photo & 3-dots) → Breeding tab
@@ -1708,7 +1754,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         child: const Padding(
                           // Larger tap area for 3-dots menu
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          child: Icon(Icons.more_vert, color: Color(0xFF787774), size: 22),
+                          child: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
                         ),
                       ),
                     ],
@@ -1729,33 +1775,38 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Column(
                 children: [
                   _buildStatsRow(
-                    'Ear No.:',
+                    'EAR NO.:',
                     rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
-                    'Cage No.:',
+                    'CAGE NO.:',
                     rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
-                  _buildStatsRow(
-                    'Sire:',
-                    rabbit.sireId?.isNotEmpty == true ? rabbit.sireId! : '',
-                    'Litters:',
-                    rabbit.type == RabbitType.doe ? (rabbit.currentLitterSize?.toString() ?? '0') : '',
+                  _buildSingleStatRow(
+                    'SIRE:',
+                    sireName,
                     isDoe: isDoe,
                     isTinted: false,
                   ),
-                  _buildStatsRow(
-                    'Dam:',
-                    rabbit.damId?.isNotEmpty == true ? rabbit.damId! : '',
-                    'Kits:',
-                    '',
+                  _buildSingleStatRow(
+                    'DAM:',
+                    damName,
                     isDoe: isDoe,
                     isTinted: true,
                   ),
-                  _buildNotesRow(
-                    'Notes:',
-                    rabbit.notes?.isNotEmpty == true ? rabbit.notes! : '',
+                  _buildStatsRow(
+                    'LITTERS:',
+                    littersCount > 0 ? littersCount.toString().padLeft(2, '0') : '0',
+                    'KITS:',
+                    kitsCount > 0 ? kitsCount.toString().padLeft(2, '0') : '0',
+                    isDoe: isDoe,
                     isTinted: false,
+                  ),
+                  _buildNotesRow(
+                    'NOTES:',
+                    rabbit.notes?.isNotEmpty == true ? rabbit.notes! : (rabbit.statusDetails?.isNotEmpty == true ? rabbit.statusDetails! : ''),
+                    isDoe: isDoe,
+                    isTinted: true,
                   ),
                 ],
               ),
@@ -1812,10 +1863,44 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
+  Widget _buildSingleStatRow(String label, String val, {required bool isDoe, required bool isTinted}) {
+    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+      color: isTinted ? tintBg : Colors.white,
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF4F4F56),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              val,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4F4F56),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatsRow(String label1, String val1, String label2, String val2, {required bool isDoe, required bool isTinted}) {
     final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
       color: isTinted ? tintBg : Colors.white,
       child: Row(
         children: [
@@ -1825,17 +1910,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 Text(
                   label1,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF4F4F56),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     val1,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF4F4F56),
                     ),
@@ -1852,17 +1937,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 Text(
                   label2,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF4F4F56),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     val2,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF4F4F56),
                     ),
@@ -1877,27 +1962,28 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
-  Widget _buildNotesRow(String label, String val, {required bool isTinted}) {
+  Widget _buildNotesRow(String label, String val, {required bool isDoe, required bool isTinted}) {
+    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-      color: isTinted ? const Color(0xFFFDF2F5) : Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+      color: isTinted ? tintBg : Colors.white,
       child: Row(
         children: [
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF4F4F56),
             ),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               val,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF4F4F56),
               ),

@@ -12,6 +12,8 @@ import '../models/rabbit.dart';
 import '../models/breed.dart';
 import 'rabbit_detail_screen.dart';
 import 'kit_detail_screen.dart';
+import 'pedigree_screen.dart';
+import '../widgets/certificate_card.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -53,6 +55,7 @@ class LittersScreenState extends State<LittersScreen> {
     'weight': 'all',
   };
   Map<String, bool> _expandedLitters = {};
+  Map<String, Rabbit> _rabbitMap = {};
 
   List<Litter> litters = [];
   List<Barn> _barns = [];
@@ -82,9 +85,12 @@ class LittersScreenState extends State<LittersScreen> {
     try {
       final existingLitters = await _db.getLitters();
       final barnsData = await _db.getAllBarns();
+      final List<Rabbit> rabbitsData = await _db.getAllRabbits();
+      final Map<String, Rabbit> rMap = {for (final Rabbit r in rabbitsData) r.id: r};
       setState(() {
         litters = existingLitters;
         _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+        _rabbitMap = rMap;
         _isLoading = false;
       });
       print(' Loaded ${litters.length} litters from database');
@@ -102,14 +108,28 @@ class LittersScreenState extends State<LittersScreen> {
     try {
       final loadedLitters = await _db.getLitters();
       final barnsData = await _db.getAllBarns();
+      final List<Rabbit> rabbitsData = await _db.getAllRabbits();
+      final Map<String, Rabbit> rMap = {for (final Rabbit r in rabbitsData) r.id: r};
       setState(() {
         litters = loadedLitters;
         _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
+        _rabbitMap = rMap;
       });
       print('Refreshed: ${litters.length} litters');
     } catch (e) {
       print('Error refreshing litters: $e');
     }
+  }
+
+  String _getRabbitFullName(String? rabbitId, String fallbackName) {
+    if (rabbitId != null && _rabbitMap.containsKey(rabbitId)) {
+      final r = _rabbitMap[rabbitId]!;
+      if ((r.breederPrefix ?? '').isNotEmpty) {
+        return '${r.breederPrefix} ${r.name}'.trim();
+      }
+      return r.name;
+    }
+    return fallbackName;
   }
 
   @override
@@ -251,12 +271,13 @@ class LittersScreenState extends State<LittersScreen> {
     int nursingKits = 0;
     int weanedKitsCount = 0;
     final today = DateTime.now();
+    final int weanDays = SettingsService.instance.weanAge * 7;
 
     for (final litter in litters) {
       final lStatus = litter.status.toLowerCase().trim();
       if (lStatus == 'died' || lStatus == 'dead' || lStatus == 'archived' || lStatus == 'not taken') continue;
 
-      final isLitterWeaned = lStatus == 'weaned' || litter.weanDate != null;
+      final isLitterWeaned = lStatus == 'weaned' || litter.weanDate != null || litter.ageDays >= weanDays;
       for (final kit in litter.kits) {
         final st = kit.status.toLowerCase().trim();
         if (st == 'died' || st == 'dead' || st == 'archived' || st == 'sold' || st == 'cull' || st == 'butchered') continue;
@@ -706,7 +727,8 @@ class LittersScreenState extends State<LittersScreen> {
         if (_filters['age'] == 'mid' && (litter.ageDays < 28 || litter.ageDays > 56)) return false;
         if (_filters['age'] == 'old' && litter.ageDays <= 56) return false;
 
-        final bool isLitterWeaned = lStatus == 'weaned' || litter.weanDate != null;
+        final int weanDays = SettingsService.instance.weanAge * 7;
+        final bool isLitterWeaned = lStatus == 'weaned' || litter.weanDate != null || litter.ageDays >= weanDays;
         final cStage = _currentStage.toLowerCase();
 
         // Filter kits by stage - use the same logic as kit view
@@ -851,73 +873,56 @@ class LittersScreenState extends State<LittersScreen> {
 
   DateTime _getEffectiveWeanDate(Litter litter) {
     if (litter.weanDate != null) return litter.weanDate!;
+    final int weanWeeks = SettingsService.instance.weanAge;
     final birth = litter.dob ?? litter.kindleDate;
     if (birth != null) {
-      return birth.add(const Duration(days: 49)); // 7 weeks from date of birth
+      return birth.add(Duration(days: weanWeeks * 7));
     }
-    return litter.breedDate.add(const Duration(days: 80));
+    return litter.breedDate.add(Duration(days: 31 + weanWeeks * 7));
+  }
+
+  String _formatNurseryDate(DateTime? date) {
+    if (date == null) return '-';
+    return DateFormat("MMM d ''yy").format(date);
+  }
+
+  String _formatNurseryAge(Litter litter) {
+    final dob = litter.dob ?? litter.kindleDate;
+    int days = litter.ageDays;
+    if (dob != null) {
+      final now = DateTime.now();
+      if (dob.isAfter(now)) return '0d';
+      days = now.difference(dob).inDays;
+    }
+    if (days <= 0) return '0d';
+    final int weeks = days ~/ 7;
+    final int remDays = days % 7;
+    if (weeks == 0) return '${remDays}d';
+    if (remDays == 0) return '${weeks}w';
+    return '${weeks}w ${remDays}d';
   }
 
   String _ageString(int days, {DateTime? dob}) {
     if (dob != null) {
       final now = DateTime.now();
-      if (dob.isAfter(now)) return '0 d';
+      if (dob.isAfter(now)) return '0d';
       days = now.difference(dob).inDays;
     }
-    if (days <= 0) return '0 d';
-
-    if (days <= 84) {
-      // Up to 12 weeks: format in weeks and days (e.g. 2 wks 1 d or 5 d)
-      final int weeks = days ~/ 7;
-      final int remDays = days % 7;
-      if (weeks == 0) return '$remDays d';
-      if (remDays == 0) return '$weeks wk${weeks > 1 ? 's' : ''}';
-      return '$weeks wk${weeks > 1 ? 's' : ''} $remDays d';
-    }
-
-    // After 12 weeks: format as "3 mos 2 wks 1 d" or "8 mos 2 wks 1 d"
-    if (dob != null) {
-      final now = DateTime.now();
-      int years = now.year - dob.year;
-      int months = now.month - dob.month;
-      int d = now.day - dob.day;
-
-      if (d < 0) {
-        months--;
-        final prevMonthDays = DateTime(now.year, now.month, 0).day;
-        d += prevMonthDays;
-      }
-
-      if (months < 0) {
-        years--;
-        months += 12;
-      }
-
-      int totalMonths = (years * 12) + months;
-      int weeks = d ~/ 7;
-      int remDays = d % 7;
-
-      List<String> parts = [];
-      if (totalMonths > 0) parts.add('$totalMonths mos');
-      if (weeks > 0) parts.add('$weeks wk${weeks > 1 ? 's' : ''}');
-      if (remDays > 0) parts.add('$remDays d');
-      return parts.isNotEmpty ? parts.join(' ') : '0 d';
-    } else {
-      final int months = days ~/ 30;
-      final int remDaysAfterMonths = days % 30;
-      final int weeks = remDaysAfterMonths ~/ 7;
-      final int d = remDaysAfterMonths % 7;
-
-      List<String> parts = [];
-      if (months > 0) parts.add('$months mos');
-      if (weeks > 0) parts.add('$weeks wk${weeks > 1 ? 's' : ''}');
-      if (d > 0) parts.add('$d d');
-      return parts.isNotEmpty ? parts.join(' ') : '0 d';
-    }
+    if (days <= 0) return '0d';
+    final int weeks = days ~/ 7;
+    final int remDays = days % 7;
+    if (weeks == 0) return '${remDays}d';
+    if (remDays == 0) return '${weeks}w';
+    return '${weeks}w ${remDays}d';
   }
 
   Widget _buildLitterCard(Litter litter) {
     final isExpanded = _expandedLitters[litter.id] ?? false;
+    final doeFullName = _getRabbitFullName(litter.doeId, litter.dam);
+    final buckFullName = _getRabbitFullName(litter.buckId, litter.sire);
+    final weanDate = _getEffectiveWeanDate(litter);
+    final int weanDays = SettingsService.instance.weanAge * 7;
+    final bool isWeanPassed = litter.ageDays >= weanDays || litter.status.toLowerCase() == 'weaned';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
@@ -927,43 +932,65 @@ class LittersScreenState extends State<LittersScreen> {
         border: Border.all(color: const Color(0xFFE5E5EA)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       padding: const EdgeInsets.all(4),
       child: Column(
         children: [
-          // 1. Header Section (Dam × Sire, ID, Age, Wean)
+          // 1. Top Section (Doe avatar, center info, Buck avatar)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF3F3F3)),
             ),
             child: Row(
               children: [
-                // Doe (Mother) Avatar - Left
+                // Doe (Mother) Avatar - Left (Larger photo size)
                 _buildCircularAvatar(litter.doeId),
+                const SizedBox(width: 8),
+                // Center Info: Doe name, Buck name, Age, Wean date
                 Expanded(
                   child: Column(
                     children: [
                       Text(
-                        '${litter.dam}  ×  ${litter.sire}',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF555555), letterSpacing: -0.3),
+                        doeFullName,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2C2C2E),
+                          letterSpacing: -0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        litter.id,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFB388FF)), // Purple ID
+                        buckFullName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF3A3A3C),
+                          letterSpacing: -0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 2),
                       Text(
-                        'Age:  ${_ageString(litter.ageDays, dob: litter.dob ?? litter.kindleDate)}',
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                        'Age: ${_formatNurseryAge(litter)}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF555555),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 1),
                       Row(
@@ -971,16 +998,20 @@ class LittersScreenState extends State<LittersScreen> {
                         children: [
                           const Text(
                             'Wean: ',
-                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF555555)),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           Text(
-                            _formatTileDate(_getEffectiveWeanDate(litter)),
+                            _formatNurseryDate(weanDate),
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w700,
-                              color: (litter.ageDays < 56 || litter.status.toLowerCase() == 'nursing')
-                                  ? const Color(0xFFE53935) // Red means less than 8 weeks / Nursing
-                                  : const Color(0xFF2E7B32), // Green means kits are older than 8 weeks / Weaned & others
+                              color: !isWeanPassed
+                                  ? const Color(0xFFE53935) // Red before wean date
+                                  : const Color(0xFF2E7B32), // Green after wean date
                             ),
                           ),
                         ],
@@ -988,7 +1019,8 @@ class LittersScreenState extends State<LittersScreen> {
                     ],
                   ),
                 ),
-                // Buck (Father) Avatar - Right
+                const SizedBox(width: 8),
+                // Buck (Father) Avatar - Right (Larger photo size)
                 _buildCircularAvatar(litter.buckId),
               ],
             ),
@@ -996,7 +1028,7 @@ class LittersScreenState extends State<LittersScreen> {
 
           const SizedBox(height: 3),
 
-          // 2. Info Section (Born/Alive, DOB, Bred, Cage, 3 dots, View kits)
+          // 2. Info Section (Born/Alive, DOB, Bred, Cage, 3 dots, Litter ID expander)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -1016,28 +1048,44 @@ class LittersScreenState extends State<LittersScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Born: ${litter.totalKits ?? 0}  Alive: ${litter.totalKitsCount}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                            'Born: ${litter.totalKits ?? 0}  Alive: ${litter.aliveKits ?? litter.totalKitsCount}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            'DOB: ${_formatTileDate(litter.dob)}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                            'DOB: ${_formatNurseryDate(litter.dob ?? litter.kindleDate)}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            'Bred ${_formatTileDate(litter.breedDate)}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                            'Bred: ${_formatNurseryDate(litter.breedDate)}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF555555),
+                            ),
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            'Cage: ${litter.cage.isNotEmpty ? litter.cage : 'N/A'}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                            'Cage: ${litter.cage.isNotEmpty ? litter.cage : '-'}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF555555),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    // Right Column: 3 dots at top, View kits at bottom
+                    // Right Column: 3 dots at top, Litter ID pill at bottom
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -1050,11 +1098,44 @@ class LittersScreenState extends State<LittersScreen> {
                           },
                           child: const Padding(
                             padding: EdgeInsets.only(top: 2, right: 4),
-                            child: Icon(Icons.more_horiz, size: 20, color: Color(0xFFAAAAAA)),
+                            child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                           ),
                         ),
-                        const SizedBox(height: 28),
-                        _buildViewKitsButton(litter, isExpanded),
+                        const SizedBox(height: 20),
+                        // Place litter ID here with v/arrow toggle
+                        GestureDetector(
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            setState(() => _expandedLitters[litter.id] = !isExpanded);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: const Color(0xFFE5E5EA)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  litter.id,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF7B6BA0),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  size: 15,
+                                  color: const Color(0xFF7B6BA0),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1078,30 +1159,31 @@ class LittersScreenState extends State<LittersScreen> {
         final rabbit = snapshot.data;
         if (rabbit != null && rabbit.photos != null && rabbit.photos!.isNotEmpty) {
           return Container(
-            width: 58,
-            height: 58,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
               image: DecorationImage(
                 image: FileImage(File(rabbit.photos!.first)),
                 fit: BoxFit.cover,
               ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 1)),
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 3, offset: const Offset(0, 1)),
               ],
             ),
           );
         }
         return Container(
-          width: 58,
-          height: 58,
+          width: 72,
+          height: 72,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8DFFA), width: 1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             child: Image.asset(
               'assets/images/profilelogo.png',
               fit: BoxFit.contain,
@@ -1445,7 +1527,7 @@ class LittersScreenState extends State<LittersScreen> {
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _showKitActions(litter, kit),
-                            child: const Icon(Icons.more_horiz, size: 20, color: Color(0xFFAAAAAA)),
+                            child: const Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                           ),
                         ],
                       ),
@@ -1723,8 +1805,9 @@ class LittersScreenState extends State<LittersScreen> {
     if (isArchiveStatus) return false;
     if (stage == 'growout') return status == 'growout' || status == 'grow out';
 
+    final int weanDays = SettingsService.instance.weanAge * 7;
     final bool isLitterWeaned = litter != null &&
-        (litter.status.toLowerCase() == 'weaned' || litter.weanDate != null);
+        (litter.status.toLowerCase() == 'weaned' || litter.weanDate != null || litter.ageDays >= weanDays);
 
     if (stage == 'weaned') {
       return status == 'weaned' || (isLitterWeaned && status == 'nursing');
@@ -1780,9 +1863,251 @@ class LittersScreenState extends State<LittersScreen> {
   Future<void> _showLitterActions(Litter litter) async {
     _searchFocusNode.canRequestFocus = false;
     FocusScope.of(context).unfocus();
-    final bool isWeanedStage = _currentStage.toLowerCase() == 'weaned' ||
-        litter.status.toLowerCase() == 'weaned' ||
-        litter.weanDate != null;
+
+    final int weanDays = SettingsService.instance.weanAge * 7;
+    final lStatus = litter.status.toLowerCase().trim();
+    final bool isWeanedByTime = litter.ageDays >= weanDays;
+    final bool isWeaned = lStatus == 'weaned' || litter.weanDate != null || isWeanedByTime;
+
+    String effectiveStage = _currentStage.toLowerCase();
+    if (effectiveStage == 'all') {
+      if (lStatus == 'archived' || lStatus == 'cull' || lStatus == 'died' || lStatus == 'sold') {
+        effectiveStage = 'archive';
+      } else if (lStatus == 'quarantine') {
+        effectiveStage = 'quarantine';
+      } else if (lStatus == 'growout' || lStatus == 'grow out') {
+        effectiveStage = 'growout';
+      } else if (isWeaned) {
+        effectiveStage = 'weaned';
+      } else {
+        effectiveStage = 'nursing';
+      }
+    }
+
+    List<Widget> actionPills = [];
+
+    if (effectiveStage == 'nursing') {
+      // Nursing: 1. Edit Birth Info, 2. Foster Litter, 3. Move, 4. Litter Died / Cull (Red)
+      actionPills = [
+        _buildLitterActionPill(
+          label: 'Edit Birth Info',
+          onTap: () async {
+            Navigator.pop(context);
+            final doe = await _db.getRabbit(litter.doeId);
+            if (doe != null && mounted) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                enableDrag: false,
+                backgroundColor: Colors.transparent,
+                builder: (context) => LogBirthModal(
+                  doe: doe,
+                  existingLitter: litter,
+                  onComplete: () => _refreshLitters(),
+                ),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Foster Litter',
+          onTap: () {
+            Navigator.pop(context);
+            _showFosterKitsModal(context, litter);
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move',
+          onTap: () {
+            Navigator.pop(context);
+            _showMoveLitterModal(litter);
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Litter Died / Cull',
+          isDestructive: true,
+          onTap: () {
+            Navigator.pop(context);
+            _markLitterAsDied(litter);
+          },
+        ),
+      ];
+    } else if (effectiveStage == 'weaned') {
+      // Weaned: Move to Nursing, Move to Growout, Quarantine, Archive, Cage No.
+      actionPills = [
+        _buildLitterActionPill(
+          label: 'Move to Nursing',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Nursing');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Growout',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'GrowOut');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Quarantine',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Quarantine');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Archive',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Archived');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Cage No.',
+          onTap: () {
+            Navigator.pop(context);
+            _showMoveCageDialog(litter);
+          },
+        ),
+      ];
+    } else if (effectiveStage == 'growout') {
+      // Grow out: Move to Weaned, Nursing, Quarantine, Archive, Cage No.
+      actionPills = [
+        _buildLitterActionPill(
+          label: 'Move to Weaned',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Weaned');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Nursing',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Nursing');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Quarantine',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Quarantine');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Archive',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Archived');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Cage No.',
+          onTap: () {
+            Navigator.pop(context);
+            _showMoveCageDialog(litter);
+          },
+        ),
+      ];
+    } else if (effectiveStage == 'quarantine') {
+      // Quarantine: Move to Weaned, Nursing, Growout, Archive, Cage No.
+      actionPills = [
+        _buildLitterActionPill(
+          label: 'Move to Weaned',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Weaned');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Nursing',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Nursing');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Growout',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'GrowOut');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Archive',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Archived');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Cage No.',
+          onTap: () {
+            Navigator.pop(context);
+            _showMoveCageDialog(litter);
+          },
+        ),
+      ];
+    } else {
+      // Archive / Default: Move to Nursing, Move to Weaned, Move to Growout, Move to Quarantine, Cage No.
+      actionPills = [
+        _buildLitterActionPill(
+          label: 'Move to Nursing',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Nursing');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Weaned',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Weaned');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Growout',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'GrowOut');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Move to Quarantine',
+          onTap: () async {
+            Navigator.pop(context);
+            await _moveLitterToStage(litter, 'Quarantine');
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildLitterActionPill(
+          label: 'Cage No.',
+          onTap: () {
+            Navigator.pop(context);
+            _showMoveCageDialog(litter);
+          },
+        ),
+      ];
+    }
 
     await showModalBottomSheet(
       context: context,
@@ -1816,140 +2141,57 @@ class LittersScreenState extends State<LittersScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                  // Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Litter ${litter.id}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF2C2C2E),
-                              ),
+                // Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Litter ${litter.id}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2C2C2E),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              litter.status.isNotEmpty
-                                  ? (litter.status[0].toUpperCase() + litter.status.substring(1))
-                                  : 'Nursing',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF8E8E93),
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            litter.status.isNotEmpty
+                                ? (litter.status[0].toUpperCase() + litter.status.substring(1))
+                                : 'Nursing',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8E8E93),
                             ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Soft Purple/Lilac Container holding white pill buttons
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEDE6F6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildLitterActionPill(
-                          label: 'Edit Birth Info',
-                          onTap: () async {
-                            Navigator.pop(context);
-                            final doe = await _db.getRabbit(litter.doeId);
-                            if (doe != null && mounted) {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                enableDrag: false,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => LogBirthModal(
-                                  doe: doe,
-                                  existingLitter: litter,
-                                  onComplete: () => _refreshLitters(),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        if (isWeanedStage) ...[
-                          _buildLitterActionPill(
-                            label: 'Sell Litter',
-                            onTap: () {
-                              Navigator.pop(context);
-                              _showSellLitterDialog(litter);
-                            },
-                          ),
-                        ] else ...[
-                          _buildLitterActionPill(
-                            label: 'Foster Litter',
-                            onTap: () {
-                              Navigator.pop(context);
-                              _showFosterKitsModal(context, litter);
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          _buildLitterActionPill(
-                            label: 'Wean Litter',
-                            onTap: () async {
-                              Navigator.pop(context);
-                              final doe = await _db.getRabbit(litter.doeId);
-                              if (doe != null && mounted) {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  enableDrag: false,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => WeanLitterModal(
-                                    doe: doe,
-                                    onComplete: () => _refreshLitters(),
-                                  ),
-                                );
-                              }
-                            },
                           ),
                         ],
-                        const SizedBox(height: 10),
-                        _buildLitterActionPill(
-                          label: 'Move',
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showMoveLitterModal(litter);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        _buildLitterActionPill(
-                          label: 'Litter Died',
-                          onTap: () {
-                            Navigator.pop(context);
-                            _markLitterAsDied(litter);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        _buildLitterActionPill(
-                          label: 'Delete Litter',
-                          onTap: () {
-                            Navigator.pop(context);
-                            _showDeleteConfirmation(litter);
-                          },
-                        ),
-                      ],
+                      ),
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Soft Purple/Lilac Container holding white pill buttons
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE6F6),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  child: Column(
+                    children: actionPills,
+                  ),
+                ),
               ],
             ),
           ),
@@ -2139,7 +2381,11 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
-  Widget _buildLitterActionPill({required String label, required VoidCallback onTap}) {
+  Widget _buildLitterActionPill({
+    required String label,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -2149,6 +2395,7 @@ class LittersScreenState extends State<LittersScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          border: isDestructive ? Border.all(color: const Color(0xFFFFCDD2), width: 1) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
@@ -2159,10 +2406,11 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          textAlign: TextAlign.center,
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2C2C2E),
+            color: isDestructive ? const Color(0xFFE53935) : const Color(0xFF2C2C2E),
           ),
         ),
       ),
@@ -2256,24 +2504,26 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   void _showKitActions(Litter litter, Kit kit) {
-    final ageInDays = litter.dob != null
-        ? DateTime.now().difference(litter.dob).inDays
-        : (litter.kindleDate != null ? DateTime.now().difference(litter.kindleDate!).inDays : litter.ageDays);
+    final DateTime? kitDob = litter.dob ?? litter.kindleDate;
+    final int kitAgeDays = kitDob != null
+        ? DateTime.now().difference(kitDob).inDays
+        : litter.ageDays;
+    final int weanDays = SettingsService.instance.weanAge * 7;
+    final bool isWeanAgeReached = kitAgeDays >= weanDays;
 
-    final bool isKitNursing = kit.status.toLowerCase() == 'nursing';
+    final String kStatus = kit.status.toLowerCase().trim();
+    final String lStatus = litter.status.toLowerCase().trim();
 
-    // Eligible for sale once weaned / growout / mature (regardless of age, as long as not nursing/sold/dead)
-    final isEligibleForSale = !isKitNursing &&
-        (kit.status.toLowerCase() == 'weaned' ||
-            kit.status.toLowerCase() == 'growout' ||
-            kit.status.toLowerCase() == 'mature' ||
-            litter.status.toLowerCase() == 'weaned' ||
-            litter.weanDate != null) &&
-        kit.status.toLowerCase() != 'sold' &&
-        kit.status.toLowerCase() != 'dead' &&
-        kit.status.toLowerCase() != 'died' &&
-        kit.status.toLowerCase() != 'cull' &&
-        kit.status.toLowerCase() != 'butchered';
+    String kitStage = 'nursing';
+    if (kStatus == 'quarantine' || (kStatus.isEmpty && lStatus == 'quarantine')) {
+      kitStage = 'quarantine';
+    } else if (kStatus == 'growout' || kStatus == 'grow out' || kStatus == 'grow-out' || (kStatus.isEmpty && (lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out'))) {
+      kitStage = 'growout';
+    } else if (kStatus == 'weaned' || (kStatus.isEmpty && (lStatus == 'weaned' || litter.weanDate != null || isWeanAgeReached))) {
+      kitStage = 'weaned';
+    } else {
+      kitStage = 'nursing';
+    }
 
     final bool isFosteredIn = kit.id.startsWith('F-') ||
         kit.id.startsWith('foster_') ||
@@ -2283,131 +2533,457 @@ class LittersScreenState extends State<LittersScreen> {
     final bool isFostered = isFosteredIn || isFosteredOut;
 
     final String kitTag = _getKitDisplayTag(litter, kit);
-
     final List<Widget> actions = [];
 
-    actions.add(_buildCompactActionTile(
-      label: 'Edit Details',
-      color: kLilacDeep,
-      onTap: () {
-        Navigator.pop(context);
-        _showEditKitDetails(litter, kit);
-      },
-    ));
-
-    if (kit.status == 'Nursing') {
+    if (kitStage == 'nursing') {
+      // 1. Nursing
+      // - Edit Kit info
       actions.add(_buildCompactActionTile(
-        label: 'Wean Kit',
+        label: 'Edit Kit info',
         color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
-          _weanIndividualKit(litter, kit);
+          _showEditKitDetails(litter, kit);
         },
       ));
-    } else if (kit.status == 'Weaned') {
-      actions.add(_buildCompactActionTile(
-        label: 'Move to Grow Out',
-        color: const Color(0xFF2E7B32),
-        onTap: () {
-          Navigator.pop(context);
-          _moveKitToGrowOut(litter, kit);
-        },
-      ));
-    } else if (kit.status == 'GrowOut') {
-      actions.add(_buildCompactActionTile(
-        label: 'Promote to Mature',
-        color: const Color(0xFF2E7B32),
-        onTap: () {
-          Navigator.pop(context);
-          _promoteKitToMature(litter, kit);
-        },
-      ));
-    }
 
-    if (isEligibleForSale) {
-      actions.add(_buildCompactActionTile(
-        label: 'Sell Kit',
-        color: const Color(0xFF2E7B32),
-        onTap: () {
-          Navigator.pop(context);
-          _showSellKitDialog(litter, kit);
-        },
-      ));
-    }
+      // - Foster Kit
+      if (isFostered) {
+        actions.add(_buildCompactActionTile(
+          label: 'Cancel Foster',
+          color: const Color(0xFF7B6BA0),
+          onTap: () {
+            Navigator.pop(context);
+            _cancelFosterKit(litter, kit);
+          },
+        ));
+      } else {
+        actions.add(_buildCompactActionTile(
+          label: 'Foster Kit',
+          color: kNeutral700,
+          onTap: () {
+            Navigator.pop(context);
+            _showFosterKitDialog(litter, kit);
+          },
+        ));
+      }
 
-    if (kit.status.toLowerCase() == 'sold') {
+      // - Move to Weaned
       actions.add(_buildCompactActionTile(
-        label: 'Cancel Sale',
-        color: const Color(0xFF7B6BA0),
-        onTap: () {
-          Navigator.pop(context);
-          _cancelKitSale(litter, kit);
-        },
-      ));
-    }
-
-    actions.add(_buildCompactActionTile(
-      label: 'Health Record',
-      color: kNeutral700,
-      onTap: () {
-        Navigator.pop(context);
-        _showKitHealthRecord(litter, kit);
-      },
-    ));
-
-    if (SettingsService.instance.meatProductionEnabled) {
-      actions.add(_buildCompactActionTile(
-        label: 'Harvest / Butcher',
+        label: 'Move to Weaned',
         color: kNeutral700,
         onTap: () {
           Navigator.pop(context);
-          _showButcherKitDialog(litter, kit);
+          _moveKitToStage(litter, kit, 'Weaned');
         },
       ));
-    }
 
-    actions.add(_buildCompactActionTile(
-      label: 'Quarantine',
-      color: kNeutral700,
-      onTap: () {
-        Navigator.pop(context);
-        _quarantineKit(litter, kit);
-      },
-    ));
-
-    if (isFostered) {
+      // - Move to Grow out
       actions.add(_buildCompactActionTile(
-        label: 'Cancel Foster',
-        color: const Color(0xFF7B6BA0),
-        onTap: () {
-          Navigator.pop(context);
-          _cancelFosterKit(litter, kit);
-        },
-      ));
-    } else {
-      actions.add(_buildCompactActionTile(
-        label: 'Foster Kit',
+        label: 'Move to Grow out',
         color: kNeutral700,
         onTap: () {
           Navigator.pop(context);
-          _showFosterKitDialog(litter, kit);
+          _moveKitToStage(litter, kit, 'GrowOut');
         },
       ));
-    }
 
-    actions.add(_buildCompactActionTile(
-      label: 'Log Weight',
-      color: kNeutral700,
-      onTap: () {
-        Navigator.pop(context);
-        _logKitWeight(litter, kit);
-      },
-    ));
-
-    if (kit.status != 'Dead' && kit.status != 'Died') {
+      // - Record Health
       actions.add(_buildCompactActionTile(
-        label: 'Mark as Died',
-        color: kPinkDeep,
+        label: 'Record Health',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitHealthRecord(litter, kit);
+        },
+      ));
+
+      // - Log Weight
+      actions.add(_buildCompactActionTile(
+        label: 'Log Weight',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _logKitWeight(litter, kit);
+        },
+      ));
+
+      // - Quarantine
+      actions.add(_buildCompactActionTile(
+        label: 'Quarantine',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Quarantine');
+        },
+      ));
+
+      // - Kit Died in RED
+      actions.add(_buildCompactActionTile(
+        label: 'Kit Died',
+        color: const Color(0xFFD44C47),
+        textColor: const Color(0xFFD44C47),
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, kit);
+        },
+      ));
+    } else if (kitStage == 'weaned') {
+      // 2. Weaned
+      // - Edit Kit info
+      actions.add(_buildCompactActionTile(
+        label: 'Edit Kit info',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, kit);
+        },
+      ));
+
+      // - Sell Kit
+      if (kit.status.toLowerCase() == 'sold') {
+        actions.add(_buildCompactActionTile(
+          label: 'Cancel Sale',
+          color: const Color(0xFF7B6BA0),
+          onTap: () {
+            Navigator.pop(context);
+            _cancelKitSale(litter, kit);
+          },
+        ));
+      } else {
+        actions.add(_buildCompactActionTile(
+          label: 'Sell Kit',
+          color: kNeutral700,
+          onTap: () {
+            Navigator.pop(context);
+            _showSellKitDialog(litter, kit);
+          },
+        ));
+      }
+
+      // - Move to Nursing
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Nursing',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Nursing');
+        },
+      ));
+
+      // - Move to Grow out
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Grow out',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'GrowOut');
+        },
+      ));
+
+      // - Record Health
+      actions.add(_buildCompactActionTile(
+        label: 'Record Health',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitHealthRecord(litter, kit);
+        },
+      ));
+
+      // - Log Weight
+      actions.add(_buildCompactActionTile(
+        label: 'Log Weight',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _logKitWeight(litter, kit);
+        },
+      ));
+
+      // - Quarantine
+      actions.add(_buildCompactActionTile(
+        label: 'Quarantine',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Quarantine');
+        },
+      ));
+
+      // - Birth Certificate
+      actions.add(_buildCompactActionTile(
+        label: 'Birth Certificate',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, kit);
+        },
+      ));
+
+      // - Pedigree
+      actions.add(_buildCompactActionTile(
+        label: 'Pedigree',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, kit);
+        },
+      ));
+
+      // - Kit Died in RED
+      actions.add(_buildCompactActionTile(
+        label: 'Kit Died',
+        color: const Color(0xFFD44C47),
+        textColor: const Color(0xFFD44C47),
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, kit);
+        },
+      ));
+    } else if (kitStage == 'growout') {
+      // 3. Grow-Out
+      // - Edit Kit info
+      actions.add(_buildCompactActionTile(
+        label: 'Edit Kit info',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, kit);
+        },
+      ));
+
+      // - Sell Kit
+      if (kit.status.toLowerCase() == 'sold') {
+        actions.add(_buildCompactActionTile(
+          label: 'Cancel Sale',
+          color: const Color(0xFF7B6BA0),
+          onTap: () {
+            Navigator.pop(context);
+            _cancelKitSale(litter, kit);
+          },
+        ));
+      } else {
+        actions.add(_buildCompactActionTile(
+          label: 'Sell Kit',
+          color: kNeutral700,
+          onTap: () {
+            Navigator.pop(context);
+            _showSellKitDialog(litter, kit);
+          },
+        ));
+      }
+
+      // - Move to Nursing
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Nursing',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Nursing');
+        },
+      ));
+
+      // - Move to Weaned
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Weaned',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Weaned');
+        },
+      ));
+
+      // - Move to Herd (Under 6 months status Inactive or growout in Herd)
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Herd',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          final bool isUnder6Months = kitAgeDays < 180;
+          _promoteKitToMature(litter, kit, isGrowOut: isUnder6Months);
+        },
+      ));
+
+      // - Record Health
+      actions.add(_buildCompactActionTile(
+        label: 'Record Health',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitHealthRecord(litter, kit);
+        },
+      ));
+
+      // - Log Weight
+      actions.add(_buildCompactActionTile(
+        label: 'Log Weight',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _logKitWeight(litter, kit);
+        },
+      ));
+
+      // - Quarantine
+      actions.add(_buildCompactActionTile(
+        label: 'Quarantine',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Quarantine');
+        },
+      ));
+
+      // - Birth Certificate
+      actions.add(_buildCompactActionTile(
+        label: 'Birth Certificate',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, kit);
+        },
+      ));
+
+      // - Pedigree
+      actions.add(_buildCompactActionTile(
+        label: 'Pedigree',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, kit);
+        },
+      ));
+
+      // - Kit Died in RED
+      actions.add(_buildCompactActionTile(
+        label: 'Kit Died',
+        color: const Color(0xFFD44C47),
+        textColor: const Color(0xFFD44C47),
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, kit);
+        },
+      ));
+    } else if (kitStage == 'quarantine') {
+      // 4. Quarantine
+      // - Edit Kit info
+      actions.add(_buildCompactActionTile(
+        label: 'Edit Kit info',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, kit);
+        },
+      ));
+
+      // - Sell Kit
+      if (kit.status.toLowerCase() == 'sold') {
+        actions.add(_buildCompactActionTile(
+          label: 'Cancel Sale',
+          color: const Color(0xFF7B6BA0),
+          onTap: () {
+            Navigator.pop(context);
+            _cancelKitSale(litter, kit);
+          },
+        ));
+      } else {
+        actions.add(_buildCompactActionTile(
+          label: 'Sell Kit',
+          color: kNeutral700,
+          onTap: () {
+            Navigator.pop(context);
+            _showSellKitDialog(litter, kit);
+          },
+        ));
+      }
+
+      // - Move to Nursing
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Nursing',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Nursing');
+        },
+      ));
+
+      // - Move to Weaned
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Weaned',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'Weaned');
+        },
+      ));
+
+      // - Move to Grow-out
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Grow-out',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'GrowOut');
+        },
+      ));
+
+      // - Move to Herd
+      actions.add(_buildCompactActionTile(
+        label: 'Move to Herd',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          final bool isUnder6Months = kitAgeDays < 180;
+          _promoteKitToMature(litter, kit, isGrowOut: isUnder6Months);
+        },
+      ));
+
+      // - Record Health
+      actions.add(_buildCompactActionTile(
+        label: 'Record Health',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitHealthRecord(litter, kit);
+        },
+      ));
+
+      // - Log Weight
+      actions.add(_buildCompactActionTile(
+        label: 'Log Weight',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _logKitWeight(litter, kit);
+        },
+      ));
+
+      // - Birth Certificate
+      actions.add(_buildCompactActionTile(
+        label: 'Birth Certificate',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, kit);
+        },
+      ));
+
+      // - Pedigree
+      actions.add(_buildCompactActionTile(
+        label: 'Pedigree',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, kit);
+        },
+      ));
+
+      // - Kit Died in RED
+      actions.add(_buildCompactActionTile(
+        label: 'Kit Died',
+        color: const Color(0xFFD44C47),
+        textColor: const Color(0xFFD44C47),
         onTap: () {
           Navigator.pop(context);
           _markKitAsDied(litter, kit);
@@ -2415,9 +2991,14 @@ class LittersScreenState extends State<LittersScreen> {
       ));
     }
 
-    final String capStatus = kit.status.isNotEmpty
-        ? (kit.status[0].toUpperCase() + kit.status.substring(1))
-        : 'Nursing';
+    String displayStageName;
+    if (kitStage == 'growout') {
+      displayStageName = 'Grow Out';
+    } else {
+      displayStageName = kitStage.isNotEmpty
+          ? (kitStage[0].toUpperCase() + kitStage.substring(1))
+          : 'Nursing';
+    }
 
     showModalBottomSheet(
       context: context,
@@ -2466,7 +3047,7 @@ class LittersScreenState extends State<LittersScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            capStatus,
+                            displayStageName,
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -2509,11 +3090,140 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  Future<void> _moveKitToStage(Litter litter, Kit kit, String targetStage) async {
+    try {
+      final index = litters.indexWhere((l) => l.id == litter.id);
+      if (index == -1) return;
+
+      final updatedKits = litters[index].kits.map((k) {
+        if (k.id == kit.id) {
+          return k.copyWith(status: targetStage);
+        }
+        return k;
+      }).toList();
+
+      Litter updatedLitter = litters[index].copyWith(kits: updatedKits);
+
+      if (targetStage == 'Nursing' && litter.doeId.isNotEmpty) {
+        final aliveNursing = updatedKits.where((k) => !k.isArchived && k.status != 'Dead' && k.status != 'Died').length;
+        await _db.restoreDoeNursingStatus(litter.doeId, updatedLitter.copyWith(aliveKits: aliveNursing));
+      }
+
+      await _db.updateLitter(updatedLitter);
+      await _refreshLitters();
+
+      if (mounted) {
+        final displayStage = targetStage == 'GrowOut' ? 'Grow out' : targetStage;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kit ${_getKitDisplayTag(litter, kit)} moved to $displayStage'),
+            backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error moving kit: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showKitBirthCertificate(Litter litter, Kit kit) {
+    final kitRabbit = Rabbit(
+      id: kit.id,
+      name: kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id,
+      breed: litter.breed,
+      type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
+      color: kit.color,
+      dateOfBirth: litter.dob ?? litter.kindleDate,
+      weight: kit.weight > 0 ? kit.weight : null,
+      sireId: litter.buckId,
+      damId: litter.doeId,
+      status: RabbitStatus.open,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Birth Certificate Preview',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 22),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: CertificateCard(rabbit: kitRabbit),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showKitPedigree(Litter litter, Kit kit) {
+    final kitRabbit = Rabbit(
+      id: kit.id,
+      name: kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id,
+      breed: litter.breed,
+      type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
+      color: kit.color,
+      dateOfBirth: litter.dob ?? litter.kindleDate,
+      weight: kit.weight > 0 ? kit.weight : null,
+      sireId: litter.buckId,
+      damId: litter.doeId,
+      status: RabbitStatus.open,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PedigreeScreen(
+          rabbitId: kitRabbit.id,
+          initialRabbit: kitRabbit,
+        ),
+      ),
+    );
+  }
+
   Widget _buildCompactActionTile({
     required String label,
     required Color color,
     required VoidCallback onTap,
+    Color? textColor,
   }) {
+    final effectiveTextColor = textColor ?? const Color(0xFF2C2C2E);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -2534,7 +3244,7 @@ class LittersScreenState extends State<LittersScreen> {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E)),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: effectiveTextColor),
           overflow: TextOverflow.ellipsis,
         ),
       ),
@@ -3215,7 +3925,7 @@ class LittersScreenState extends State<LittersScreen> {
                                   Icon(Icons.cake, color: Color(0xFF787774)),
                                   SizedBox(width: 12),
                                   Text(
-                                    dateOfBirth != null ? '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}' : 'Not set',
+                                    dateOfBirth != null ? FormatUtils.formatDate(dateOfBirth!) : 'Not set',
                                     style: TextStyle(fontSize: 15, color: Colors.black87),
                                   ),
                                   Spacer(),
@@ -7249,7 +7959,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         items: _does.map((doe) {
                           return DropdownMenuItem(
                             value: doe.id,
-                            child: Text('${doe.name} (${doe.id})'),
+                            child: Text(doe.fullName),
                           );
                         }).toList(),
                         onChanged: (value) => setState(() => _selectedDoeId = value),
@@ -7281,7 +7991,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         items: _bucks.map((buck) {
                           return DropdownMenuItem(
                             value: buck.id,
-                            child: Text('${buck.name} (${buck.id})'),
+                            child: Text(buck.fullName),
                           );
                         }).toList(),
                         onChanged: (value) => setState(() => _selectedBuckId = value),

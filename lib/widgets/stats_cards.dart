@@ -133,19 +133,13 @@ class _StatsCardsState extends State<StatsCards> {
           died++;
         }
       }
+      if (l.kits.isEmpty && l.deadKits != null) {
+        died += l.deadKits!;
+      }
     }
 
-    // Default sample fallback if no kit stats recorded yet
-    if (total == 0) {
-      sold = 28;
-      breeder = 8;
-      cull = 4;
-      died = 2;
-      total = 42;
-    }
-
-    final int alive = total - died;
-    final int survivalRate = total > 0 ? ((alive / total) * 100).round() : 100;
+    final int alive = (total - died).clamp(0, total);
+    final int survivalRate = total > 0 ? ((alive / total) * 100).round() : 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -157,7 +151,7 @@ class _StatsCardsState extends State<StatsCards> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardHeader('KIT OUTCOMES', PhosphorIconsFill.target),
+          _buildCardHeader('KIT OUTCOMES'),
           const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -210,6 +204,7 @@ class _StatsCardsState extends State<StatsCards> {
                   if (breeder > 0) Expanded(flex: breeder, child: Container(color: _kColorBreeder)),
                   if (cull > 0) Expanded(flex: cull, child: Container(color: _kColorCull)),
                   if (died > 0) Expanded(flex: died, child: Container(color: _kColorDied)),
+                  if (total == 0) Expanded(child: Container(color: const Color(0xFFE2E8F0))),
                 ],
               ),
             ),
@@ -254,11 +249,13 @@ class _StatsCardsState extends State<StatsCards> {
       }
     }
 
-    String avgGest = '31';
+    String avgGest = '-';
     final littersWithKindle = _litters.where((l) => l.kindleDate != null).toList();
     if (littersWithKindle.isNotEmpty) {
       final totalDays = littersWithKindle.fold<int>(0, (sum, l) => sum + l.kindleDate!.difference(l.breedDate).inDays);
-      avgGest = '${(totalDays / littersWithKindle.length).round()}';
+      avgGest = '${(totalDays / littersWithKindle.length).round()}d';
+    } else if (_litters.isNotEmpty) {
+      avgGest = '31d';
     }
 
     double totalSales = 0;
@@ -268,7 +265,7 @@ class _StatsCardsState extends State<StatsCards> {
       }
     }
 
-    String avgLitter = '3.2';
+    String avgLitter = '0.0';
     if (_litters.isNotEmpty) {
       final littersWithKits = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
       if (littersWithKits.isNotEmpty) {
@@ -277,10 +274,10 @@ class _StatsCardsState extends State<StatsCards> {
       }
     }
 
-    final int littersCount = _litters.isNotEmpty ? _litters.length : 5;
-    final int soldKits = soldKitsCount > 0 ? soldKitsCount : 2;
-    final int missedLitters = 2;
-    final String salesDisplay = totalSales > 0 ? '\$${totalSales.toInt()}' : '\$3200';
+    final int littersCount = _litters.length;
+    final int soldKits = soldKitsCount;
+    final int missedLitters = _litters.where((l) => l.status == 'Not Taken' || (l.notes != null && l.notes!.toLowerCase().contains('missed'))).length;
+    final String salesDisplay = '\$${totalSales.toInt()}';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -375,12 +372,12 @@ class _StatsCardsState extends State<StatsCards> {
     final validLitters = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
     List<double> litterData = validLitters.map((l) => (l.totalKits ?? 0).toDouble()).toList();
     if (litterData.isEmpty) {
-      litterData = [6, 8, 7, 9, 7.5];
+      litterData = [0];
     }
 
-    final double avg = litterData.reduce((a, b) => a + b) / litterData.length;
-    final double smallest = litterData.reduce((a, b) => a < b ? a : b);
-    final double largest = litterData.reduce((a, b) => a > b ? a : b);
+    final double avg = validLitters.isNotEmpty ? litterData.reduce((a, b) => a + b) / litterData.length : 0.0;
+    final double smallest = validLitters.isNotEmpty ? litterData.reduce((a, b) => a < b ? a : b) : 0.0;
+    final double largest = validLitters.isNotEmpty ? litterData.reduce((a, b) => a > b ? a : b) : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -395,7 +392,7 @@ class _StatsCardsState extends State<StatsCards> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCardHeader('LITTER SIZES', PhosphorIconsFill.chartBar),
+              _buildCardHeader('LITTER SIZES'),
               Row(
                 children: ['All', '6M'].map((t) => _buildToggle(
                   t,
@@ -541,17 +538,19 @@ class _StatsCardsState extends State<StatsCards> {
   // ==========================================
   Widget _buildWeightTrendCard() {
     final filtered = _getFilteredWeights();
-    double current = 9.2, diff = 0.3;
+    double current = 0.0, diff = 0.0;
     if (filtered.isNotEmpty) {
       current = (filtered.last['weight'] as num).toDouble();
       if (filtered.length > 1) {
         diff = current - (filtered[filtered.length - 2]['weight'] as num).toDouble();
       }
+    } else if (widget.rabbit.weight != null) {
+      current = widget.rabbit.weight!;
     }
 
-    final double minW = filtered.isNotEmpty ? _getMinWeight(filtered) : 6.1;
-    final double avgW = filtered.isNotEmpty ? _getAvgWeight(filtered) : 7.8;
-    final double maxW = filtered.isNotEmpty ? _getMaxWeight(filtered) : 9.2;
+    final double minW = filtered.isNotEmpty ? _getMinWeight(filtered) : current;
+    final double avgW = filtered.isNotEmpty ? _getAvgWeight(filtered) : current;
+    final double maxW = filtered.isNotEmpty ? _getMaxWeight(filtered) : current;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -566,7 +565,7 @@ class _StatsCardsState extends State<StatsCards> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCardHeader('WEIGHT TREND', PhosphorIconsFill.trendUp),
+              _buildCardHeader('WEIGHT TREND'),
               Row(
                 children: ['W', 'M', 'Y'].map((t) => _buildToggle(
                   t,
@@ -649,14 +648,9 @@ class _StatsCardsState extends State<StatsCards> {
       labels = data.map((d) => DateFormat('MMM').format(DateTime.parse(d['date']))).toList();
     } else {
       spots = const [
-        FlSpot(0, 6.1),
-        FlSpot(1, 6.8),
-        FlSpot(2, 7.4),
-        FlSpot(3, 8.2),
-        FlSpot(4, 8.9),
-        FlSpot(5, 9.2),
+        FlSpot(0, 0),
       ];
-      labels = const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      labels = const ['-'];
     }
 
     return LineChartData(
@@ -735,11 +729,6 @@ class _StatsCardsState extends State<StatsCards> {
       }
     }
 
-    // Default sample values if no transactions
-    if (income == 0 && expenses == 0) {
-      income = 450;
-      expenses = 125;
-    }
     final double net = income - expenses;
 
     return Container(
@@ -755,24 +744,18 @@ class _StatsCardsState extends State<StatsCards> {
           // Header Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: _kHeaderBannerBg,
+            color: const Color(0xFFF6EEFC),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
-                    Icon(PhosphorIconsFill.currencyDollar, size: 16, color: Color(0xFF0369A1)),
-                    SizedBox(width: 8),
-                    Text(
-                      'FINANCIALS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0369A1),
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'FINANCIALS',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 GestureDetector(
                   onTap: widget.onAddTransaction,
@@ -822,7 +805,7 @@ class _StatsCardsState extends State<StatsCards> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildFinanceBox(
-                        '+\$${net.toInt()}',
+                        '${net >= 0 ? '+' : '-'}\$${net.abs().toInt()}',
                         'NET',
                         const Color(0xFFF0F9FF),
                         const Color(0xFFE0F2FE),
@@ -831,13 +814,19 @@ class _StatsCardsState extends State<StatsCards> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Recent transactions or sample transactions
+                // Recent transactions
                 if (_transactions.isNotEmpty)
                   ..._transactions.take(2).map((t) => _buildTransactionItem(t))
-                else ...[
-                  _buildSampleTransactionItem('Feed Allocation', 'Oct 12', -12.50),
-                  _buildSampleTransactionItem('Kit Sale (3x)', 'Oct 08', 135.00),
-                ],
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(
+                        'No transactions recorded',
+                        style: TextStyle(fontSize: 13, color: _kTextMuted),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 Center(
                   child: GestureDetector(
@@ -999,21 +988,15 @@ class _StatsCardsState extends State<StatsCards> {
   // ==========================================
   // SHARED WIDGET HELPERS
   // ==========================================
-  Widget _buildCardHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: _kTextMuted),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            color: _kTextMuted,
-            letterSpacing: 0.6,
-          ),
-        ),
-      ],
+  Widget _buildCardHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF4F4F56),
+        letterSpacing: 0.5,
+      ),
     );
   }
 

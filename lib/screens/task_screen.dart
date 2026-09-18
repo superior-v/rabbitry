@@ -141,7 +141,10 @@ class TaskScreenState extends State<TaskScreen> {
       }
       _rabbitBreedMap = breedMap;
       _rabbitNameMap = {
-        for (final r in allRabbits) r.id: r.name
+        for (final r in allRabbits)
+          r.id: (r.breederPrefix != null && r.breederPrefix!.trim().isNotEmpty)
+              ? '${r.breederPrefix!.trim()} ${r.name.trim()}'
+              : r.name.trim()
       };
       _availableBreeds = breedSet.toList()..sort();
 
@@ -578,27 +581,39 @@ class TaskScreenState extends State<TaskScreen> {
     switch (_selectedCategory) {
       case 'Breeding':
         return [
+          'breeding',
           'mating',
           'kindling',
           'weaning',
           'pregnancy',
-          'reproduction'
+          'reproduction',
+          'birth',
+          'palpation',
+          'nestbox',
+          'open_breeding'
         ].contains(cat);
       case 'Health':
         return [
           'medical',
           'health',
-          'weight'
+          'weight',
+          'quarantine',
+          'quarantine_end',
+          'nail trim'
         ].contains(cat);
       case 'Operations':
         return [
           'housing',
           'operations',
           'butchering',
-          'butcher'
+          'butcher',
+          'custom',
+          'general',
+          'maintenance',
+          'other'
         ].contains(cat);
       default:
-        return taskCategory == _selectedCategory;
+        return taskCategory?.toLowerCase() == _selectedCategory.toLowerCase();
     }
   }
 
@@ -768,11 +783,11 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             _buildTabPill('All'),
             const SizedBox(width: 20),
+            _buildTabPill('Operations'),
+            const SizedBox(width: 20),
             _buildTabPill('Breeding'),
             const SizedBox(width: 20),
             _buildTabPill('Health'),
-            const SizedBox(width: 20),
-            _buildTabPill('Operations'),
             const SizedBox(width: 20),
             _buildTabPill('Breeding Plan'),
             const SizedBox(width: 20),
@@ -815,9 +830,9 @@ class TaskScreenState extends State<TaskScreen> {
   void _onSwipeGreyBar(bool isLeftSwipe) {
     const categories = [
       'All',
+      'Operations',
       'Breeding',
       'Health',
-      'Operations',
       'Breeding Plan',
       'Contacts'
     ];
@@ -858,6 +873,40 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
+  Widget _buildSectionCard({
+    required Widget header,
+    required List<Widget> tasks,
+    required bool isEmpty,
+    required String emptyText,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F7),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E5EA)),
+      ),
+      padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: header,
+          ),
+          const SizedBox(height: 6),
+          if (isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
+            )
+          else
+            ...tasks,
+        ],
+      ),
+    );
+  }
+
   Widget _buildTaskList() {
     if (_selectedCategory == 'Breeding Plan') {
       return _buildBreedingPlanView();
@@ -866,67 +915,106 @@ class TaskScreenState extends State<TaskScreen> {
       return _buildContactsView();
     }
 
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      children: [
-        // DUE SECTION
-        _buildSectionTitle('DUE', _getFilteredTodayTasksCount()),
-        const SizedBox(height: 12),
-        ..._getFilteredTodayTasks(),
-        if (_getFilteredTodayTasks().isEmpty && !_isLoading) _buildEmptyState(_isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently'),
+    final todayTasks = _getFilteredTodayTasks();
+    final upcomingTasks = _getFilteredUpcomingTasks();
+    final archivedTasks = _getFilteredArchivedTasks();
 
-        const SizedBox(height: 24),
+    return Container(
+      color: const Color(0xFFEEDAFE),
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+        children: [
+          // DUE SECTION IN LIGHT GREY CARD
+          _buildSectionCard(
+            header: _buildSectionTitle('TODAY & OVERDUE', _getFilteredTodayTasksCount()),
+            tasks: todayTasks,
+            isEmpty: todayTasks.isEmpty && !_isLoading,
+            emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently',
+          ),
 
-        // UPCOMING SECTION
-        _buildUpcomingSectionHeader(),
-        if (_showUpcoming) ...[
-          const SizedBox(height: 12),
-          ..._getFilteredUpcomingTasks(),
-          if (_getFilteredUpcomingTasks().isEmpty && !_isLoading) _buildEmptyState(_isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks'),
+          const SizedBox(height: 6),
+
+          // UPCOMING SECTION IN LIGHT GREY CARD
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F7),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E5EA)),
+            ),
+            padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: _buildUpcomingSectionHeader(),
+                ),
+                if (_showUpcoming) ...[
+                  const SizedBox(height: 6),
+                  if (upcomingTasks.isEmpty && !_isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Text(
+                        _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
+                        style: TextStyle(fontSize: 13, color: kNeutral500),
+                      ),
+                    )
+                  else
+                    ...upcomingTasks,
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // ARCHIVE SECTION IN LIGHT GREY CARD
+          _buildSectionCard(
+            header: _buildSectionTitle('ARCHIVE', _getFilteredArchivedTasksCount()),
+            tasks: archivedTasks,
+            isEmpty: archivedTasks.isEmpty && !_isLoading,
+            emptyText: _isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks',
+          ),
+
+          const SizedBox(height: 100),
         ],
-
-        const SizedBox(height: 24),
-        _buildSectionTitle('ARCHIVE', _getFilteredArchivedTasksCount()),
-        const SizedBox(height: 12),
-        ..._getFilteredArchivedTasks(),
-        if (_getFilteredArchivedTasks().isEmpty && !_isLoading) _buildEmptyState(_isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks'),
-
-        const SizedBox(height: 100),
-      ],
+      ),
     );
   }
 
   Widget _buildSectionTitle(String title, int count) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: kNeutral500,
-              letterSpacing: 0.6,
-            ),
-          ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: kNeutral100,
+              color: const Color(0xFFF3E8FF),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '$count',
+              title,
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: kNeutral700,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4B5563),
+                letterSpacing: 0.6,
               ),
             ),
           ),
+          if (count > 0)
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF333333),
+              ),
+            ),
         ],
       ),
     );
@@ -942,13 +1030,20 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             Row(
               children: [
-                const Text(
-                  'UPCOMING',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: kNeutral500,
-                    letterSpacing: 0.6,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'UPCOMING',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF4B5563),
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1044,42 +1139,232 @@ class TaskScreenState extends State<TaskScreen> {
     return _buildGroupedTaskWidgets(filtered, isToday: false);
   }
 
+  String _getTaskBunnyName(Map<String, dynamic> task) {
+    final rabbitId = task['rabbitId']?.toString();
+    if (rabbitId != null && _rabbitNameMap.containsKey(rabbitId)) {
+      return _rabbitNameMap[rabbitId]!;
+    }
+    final entities = task['linkedEntities'];
+    if (entities is List && entities.isNotEmpty) {
+      final names = entities
+          .map((e) {
+            if (e is Map) {
+              final id = e['id']?.toString();
+              if (id != null && _rabbitNameMap.containsKey(id)) {
+                return _rabbitNameMap[id]!;
+              }
+              return e['name']?.toString();
+            }
+            return e?.toString();
+          })
+          .where((n) => n != null && n.isNotEmpty && n != 'Unlinked')
+          .toList();
+      if (names.isNotEmpty) return names.join(', ');
+    }
+    return '';
+  }
+
   List<Widget> _buildGroupedTaskWidgets(List<Map<String, dynamic>> tasks, {required bool isToday}) {
-    List<Widget> widgets = [];
+    // Group tasks by normalized task name + due date
     final Map<String, List<Map<String, dynamic>>> groups = {};
     for (var task in tasks) {
-      final name = task['name'] ?? task['task'] ?? 'Task';
-      groups.putIfAbsent(name, () => []);
-      groups[name]!.add(task);
+      final name = (task['name'] ?? task['task'] ?? 'Task').toString().trim().toLowerCase();
+      final dueDateStr = (task['dueDate'] ?? '').toString().split('T')[0];
+      final key = '${name}___${dueDateStr.isNotEmpty ? dueDateStr : (isToday ? 'today' : 'upcoming')}';
+      groups.putIfAbsent(key, () => []).add(task);
     }
+
+    List<Widget> widgets = [];
     int rowIndex = 0;
+
     for (var entry in groups.entries) {
-      final groupName = entry.key;
       final groupTasks = entry.value;
+      final rowBgColor = rowIndex.isEven ? const Color(0xFFF2F2F7) : Colors.white;
       final firstTask = groupTasks.first;
+      final name = firstTask['name'] ?? firstTask['task'] ?? 'Task';
       final taskCategory = firstTask['category'] ?? 'Operations';
-      final rowBgColor = rowIndex.isEven ? Colors.white : kNeutral50;
-      if (groupTasks.length == 1) {
-        final entities = firstTask['linkedEntities'];
-        final entityCount = (entities is List) ? entities.length : 0;
-        if (entityCount > 1) {
-          widgets.add(_buildGroupTaskFromEntities(task: firstTask, isToday: isToday, backgroundColor: rowBgColor));
-        } else {
-          final taskLocation = _getTaskLocation(firstTask);
-          final dueDate = DateTime.tryParse(firstTask['dueDate'] ?? '');
-          final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
-          widgets.add(_buildSingleTask(title: groupName, category: taskCategory, categoryColor: _getCategoryColor(taskCategory), categoryTextColor: _getCategoryTextColor(taskCategory), icon: _getCategoryIcon(taskCategory), breed: null, location: taskLocation, date: dateStr, isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false, taskType: firstTask['taskType']?.toString() ?? 'scheduled', rabbitId: firstTask['rabbitId']?.toString(), task: firstTask, backgroundColor: rowBgColor));
-        }
+      final dueDate = DateTime.tryParse(firstTask['dueDate'] ?? '');
+      final isOverdue = dueDate != null && dueDate.isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+      final isDueToday = dueDate != null && dueDate.year == DateTime.now().year && dueDate.month == DateTime.now().month && dueDate.day == DateTime.now().day;
+
+      String dateStr;
+      if (isOverdue) {
+        final diff = DateTime.now().difference(dueDate!).inDays;
+        dateStr = '$diff day${diff > 1 ? 's' : ''} overdue';
+      } else if (isDueToday || isToday) {
+        dateStr = 'Today';
+      } else if (dueDate != null) {
+        final diff = dueDate.difference(DateTime.now()).inDays;
+        dateStr = '${DateFormat('MMM d').format(dueDate)} ($diff d)';
       } else {
-        final dueDate = DateTime.tryParse(firstTask['dueDate'] ?? '');
-        final dateStr = isToday ? 'Today' : (dueDate != null ? _formatDueDate(dueDate) : 'Upcoming');
-        widgets.add(_buildGroupTaskFromMultiple(title: groupName, category: taskCategory, date: dateStr, isOverdue: isToday ? _isTaskOverdue(firstTask['dueDate']) : false, tasks: groupTasks, backgroundColor: rowBgColor));
+        dateStr = isToday ? 'Today' : 'Upcoming';
       }
-      widgets.add(const SizedBox(height: 0)); // Spacing handled by card margin
+
+      if (groupTasks.length == 1) {
+        final task = groupTasks.first;
+        final bunnyName = _getTaskBunnyName(task);
+        widgets.add(_buildSingleTask(
+          title: name,
+          category: taskCategory,
+          categoryColor: _getCategoryColor(taskCategory),
+          categoryTextColor: _getCategoryTextColor(taskCategory),
+          icon: _getCategoryIcon(taskCategory),
+          bunnyName: bunnyName,
+          date: dateStr,
+          isOverdue: isOverdue,
+          taskType: task['taskType']?.toString() ?? 'scheduled',
+          rabbitId: task['rabbitId']?.toString(),
+          task: task,
+          backgroundColor: rowBgColor,
+        ));
+      } else {
+        widgets.add(_buildGroupedTaskCard(
+          title: name,
+          date: dateStr,
+          isOverdue: isOverdue,
+          isToday: isDueToday || isToday,
+          groupTasks: groupTasks,
+          backgroundColor: rowBgColor,
+        ));
+      }
       rowIndex++;
     }
-    if (widgets.isNotEmpty && widgets.last is SizedBox) widgets.removeLast();
+
     return widgets;
+  }
+
+  Widget _buildGroupedTaskCard({
+    required String title,
+    required String date,
+    required bool isOverdue,
+    required bool isToday,
+    required List<Map<String, dynamic>> groupTasks,
+    Color backgroundColor = Colors.white,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header: Task Name + Date
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1F2937),
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  date,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isOverdue
+                        ? const Color(0xFFEF4444)
+                        : isToday
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF6B7280),
+                    fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Indented list of bunnies
+            ...groupTasks.map((task) {
+              final isCompleted = task['completedAt'] != null;
+              final rawId = task['id'];
+              final trackId = rawId is int ? rawId : rawId?.hashCode;
+              final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
+              final bunnyName = _getTaskBunnyName(task);
+              final displayName = bunnyName.isNotEmpty ? bunnyName : 'Unlinked';
+
+              return Padding(
+                padding: const EdgeInsets.only(left: 10, top: 4, bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Small circle Checkbox matching single task style
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: isIgnored
+                          ? null
+                          : () {
+                              if (isCompleted) {
+                                _handleTaskUncomplete(task);
+                              } else {
+                                _handleTaskComplete(task);
+                              }
+                            },
+                      child: Container(
+                        width: 15,
+                        height: 15,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                          border: Border.all(
+                            color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: isCompleted
+                            ? const Center(
+                                child: Icon(Icons.check, size: 10, color: Colors.white),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Indented dash and Bunny name in purple
+                    Expanded(
+                      child: Text(
+                        '- $displayName',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF8B5CF6),
+                          decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
+                          letterSpacing: 0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // 3 dots
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showTaskOptionsSheet(task),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                        child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSingleTask({
@@ -1088,8 +1373,7 @@ class TaskScreenState extends State<TaskScreen> {
     required Color categoryColor,
     required Color categoryTextColor,
     required IconData icon,
-    required String? breed,
-    required String location,
+    required String bunnyName,
     required String date,
     required bool isOverdue,
     String? taskType,
@@ -1101,118 +1385,126 @@ class TaskScreenState extends State<TaskScreen> {
     final rawId = task?['id'];
     final trackId = rawId is int ? rawId : rawId?.hashCode;
     final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
+    final isToday = date == 'Today';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10), // Matches task-card margin-bottom in html
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: kNeutral200),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Column 1: Checkbox (matches 32px column in html)
-          SizedBox(
-            width: 32,
-            child: GestureDetector(
-              onTap: isIgnored
-                  ? null
-                  : () {
-                      if (task != null) {
-                        if (isCompleted)
-                          _handleTaskUncomplete(task);
-                        else
-                          _handleTaskComplete(task);
-                      }
-                    },
-              child: Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.only(top: 2), // Matches checkbox-wrap padding-top in html
-                decoration: BoxDecoration(
-                  color: isCompleted ? kLilacDeep : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCompleted ? kLilacDeep : kNeutral400,
-                    width: 2,
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isIgnored ? null : () => _showTaskOptionsSheet(task),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Column 1: Small circle checkbox matching text height
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: isIgnored
+                        ? null
+                        : () {
+                            if (task != null) {
+                              if (isCompleted) {
+                                _handleTaskUncomplete(task);
+                              } else {
+                                _handleTaskComplete(task);
+                              }
+                            }
+                          },
+                    child: Container(
+                      width: 15,
+                      height: 15,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                        border: Border.all(
+                          color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: isCompleted
+                          ? const Center(
+                              child: Icon(Icons.check, size: 10, color: Colors.white),
+                            )
+                          : null,
+                    ),
                   ),
                 ),
-                child: isCompleted
-                    ? const Center(
-                        child: Icon(Icons.check, size: 12, color: Colors.white),
-                      )
-                    : null,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8), // Gap: 10px (including margin) - matches html
-          // Column 2: Content (1fr)
-          Expanded(
-            child: GestureDetector(
-              onTap: isIgnored ? null : () => _handleTaskTap(taskType, rabbitId ?? task?['rabbitId']?.toString(), title),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                const SizedBox(width: 10),
+                // Column 2: Content (Task name NOT bold + Bunny name in purple)
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: (isCompleted || isIgnored) ? kNeutral500 : kNeutral900,
-                            decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
-                            height: 1.35, // Matches line-height in html
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        date,
+                        title,
                         style: TextStyle(
-                          fontSize: 13,
-                          color: isOverdue ? kError : kNeutral600,
-                          fontWeight: isOverdue ? FontWeight.w600 : FontWeight.w400,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500, // NOT BOLD
+                          color: (isCompleted || isIgnored) ? kNeutral400 : const Color(0xFF1F2937),
+                          decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
+                          height: 1.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _buildTag(category, categoryColor, categoryTextColor, icon: icon),
-                      if (breed != null) _buildTag(breed, kNeutral200, kNeutral700),
-                      if (location.isNotEmpty)
+                      if (bunnyName.isNotEmpty) ...[
+                        const SizedBox(height: 3),
                         Text(
-                          '• $location',
-                          style: const TextStyle(fontSize: 13, color: kNeutral500),
+                          bunnyName,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF8B5CF6),
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ],
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                // Column 3: Due date status
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isOverdue
+                          ? const Color(0xFFEF4444)
+                          : isToday
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF6B7280),
+                      fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Column 4: Options Menu (3 dots)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showTaskOptionsSheet(task),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                  ),
+                ),
+              ],
             ),
           ),
-          // Column 3: Options Menu (matches 36px column in html)
-          SizedBox(
-            width: 36,
-            child: IconButton(
-              onPressed: () => _showTaskOptionsSheet(task),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(PhosphorIcons.dotsThreeVertical(), color: kNeutral400, size: 24),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1246,27 +1538,20 @@ class TaskScreenState extends State<TaskScreen> {
 
   void _showTaskOptionsSheet(Map<String, dynamic>? task) {
     if (task == null) return;
-    final isCompleted = task['completedAt'] != null;
-    final rawId = task['id'];
-    final trackId = rawId is int ? rawId : rawId?.hashCode;
-    final isIgnored = trackId != null && _ignoredTasks.contains(trackId);
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.only(top: 8, bottom: 28),
+      builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildActionRow(
-              'Edit Task',
-              PhosphorIcons.pencilSimple(PhosphorIconsStyle.duotone),
-              kNeutral700,
-              () {
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () {
                 Navigator.pop(context);
                 final isPipeline = task['isPipelineTask'] == true;
                 if (!isPipeline) {
@@ -1277,23 +1562,22 @@ class TaskScreenState extends State<TaskScreen> {
                   );
                 }
               },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: const Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
             ),
-            _buildActionRow(
-              isCompleted ? 'Done' : 'Done',
-              PhosphorIcons.checkCircle(PhosphorIconsStyle.duotone),
-              kNeutral700,
-              () {
-                Navigator.pop(context);
-                if (!isCompleted) {
-                  _handleTaskComplete(task);
-                }
-              },
-            ),
-            _buildActionRow(
-              'Delete Task',
-              PhosphorIcons.trash(PhosphorIconsStyle.duotone),
-              kError,
-              () async {
+            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            InkWell(
+              onTap: () async {
                 Navigator.pop(context);
                 final isPipeline = task['isPipelineTask'] == true;
                 if (isPipeline) {
@@ -1305,31 +1589,20 @@ class TaskScreenState extends State<TaskScreen> {
                 await _loadScheduledTasks();
                 await _loadStats();
               },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionRow(String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: color,
-                fontWeight: FontWeight.w500,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
               ),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -2068,11 +2341,11 @@ class TaskScreenState extends State<TaskScreen> {
   void _showNewScheduleDialog(BuildContext context) async {
     String selectedCategory = 'Operations';
     String? selectedTask;
-    String selectedFrequency = 'Weekly';
+    String selectedFrequency = 'Select date';
     String selectedLinkType = 'unlinked';
     bool isCustomTask = false;
-    DateTime? selectedCustomDate;
-    Map<String, String>? selectedRabbitForLink;
+    DateTime? selectedCustomDate = DateTime.now();
+    Rabbit? selectedRabbitForLink;
     final customTaskController = TextEditingController();
     final _db2 = DatabaseService();
     List<Map<String, dynamic>> taskDirectoryItems = [];
@@ -2080,21 +2353,10 @@ class TaskScreenState extends State<TaskScreen> {
       taskDirectoryItems = await _db2.getAllTaskDirectoryItems();
     } catch (e) {}
 
-    List<Map<String, String>> linkedEntities = [];
-    final entityData = <String, List<Map<String, String>>>{
-      'rabbit': [],
-      'litter': [],
-      'kit': []
-    };
+    List<Rabbit> allRabbitsList = [];
     try {
-      final allRabbits = await _db2.getAllRabbits();
-      entityData['rabbit'] = allRabbits
-          .map((r) => {
-                'id': r.id,
-                'name': r.name,
-                'code': r.cage ?? r.location ?? 'No cage'
-              })
-          .toList();
+      final fetchedRabbits = await _db2.getAllRabbits();
+      allRabbitsList = fetchedRabbits.where((r) => r.status != RabbitStatus.archived).toList();
     } catch (e) {}
 
     showDialog(
@@ -2102,45 +2364,127 @@ class TaskScreenState extends State<TaskScreen> {
         barrierDismissible: true,
         builder: (BuildContext dialogContext) {
           return StatefulBuilder(builder: (context, setDialogState) {
-            List<String> directoryTasks = taskDirectoryItems.where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase()).map((t) => t['name'] as String).toList();
+            Widget buildCategoryRadio(String label, String value) {
+              final bool isSelected = (value == 'Custom' && isCustomTask) ||
+                  (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
+              return GestureDetector(
+                onTap: () {
+                  setDialogState(() {
+                    if (value == 'Custom') {
+                      selectedCategory = 'Custom';
+                      isCustomTask = true;
+                      selectedTask = null;
+                    } else {
+                      selectedCategory = value;
+                      isCustomTask = false;
+                      selectedTask = null;
+                      if (selectedCategory == 'Breeding') {
+                        // If current selected rabbit is not a doe, clear selection
+                        if (selectedRabbitForLink != null && selectedRabbitForLink!.type != RabbitType.doe) {
+                          selectedRabbitForLink = null;
+                          selectedLinkType = 'unlinked';
+                        }
+                      }
+                    }
+                  });
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          width: isSelected ? 5.5 : 1.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Task options per category
             List<String> currentTaskOptions;
-            if (directoryTasks.isNotEmpty) {
-              currentTaskOptions = directoryTasks;
+            if (selectedCategory == 'Health') {
+              currentTaskOptions = [
+                'Nail Trim',
+                'Deworm',
+                'Coccidiosis Med',
+                'Teeth Check',
+                'Weight Check',
+                '+ Custom...',
+              ];
+            } else if (selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy') {
+              currentTaskOptions = [
+                'Palpation',
+                'Add Nest Box',
+                'Check for Kindle',
+                '+ Custom...',
+              ];
+            } else if (selectedCategory == 'Operations') {
+              currentTaskOptions = [
+                'Clean Trays',
+                'Top Off Feed',
+                'Check Water',
+                'Deep Clean',
+                'Cage Maintenance',
+                '+ Custom...',
+              ];
             } else {
-              if (selectedCategory == 'Operations')
-                currentTaskOptions = [
-                  'Clean Trays',
-                  'Top Off Feed',
-                  'Check Water',
-                  'Deep Clean'
-                ];
-              else if (selectedCategory == 'Health')
-                currentTaskOptions = [
-                  'Nail Trim',
-                  'Health Check',
-                  'Weighing',
-                  'Ear Check'
-                ];
-              else if (selectedCategory == 'Butchering')
-                currentTaskOptions = [
-                  'Schedule Butcher',
-                  'Prep Equipment',
-                  'Process'
-                ];
-              else if (selectedCategory == 'Pregnancy')
-                currentTaskOptions = [
-                  'Palpation',
-                  'Add Nest Box',
-                  'Check for Kindle'
-                ];
-              else
-                currentTaskOptions = [
-                  'Inventory Check',
-                  'General Maintenance'
-                ];
+              currentTaskOptions = [
+                'Clean Trays',
+                'Nail Trim',
+                'Health Check',
+                '+ Custom...',
+              ];
+            }
+
+            // Filter rabbits based on category: Breeding only shows DOES
+            final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
+            final availableRabbits = isBreeding
+                ? allRabbitsList.where((r) => r.type == RabbitType.doe).toList()
+                : allRabbitsList;
+
+            String formatRabbitLabel(Rabbit r) {
+              final prefix = (r.breederPrefix != null && r.breederPrefix!.trim().isNotEmpty)
+                  ? '${r.breederPrefix!.trim()} '
+                  : '';
+              final ear = (r.earNumber != null && r.earNumber!.trim().isNotEmpty)
+                  ? ' (${r.earNumber!.trim()})'
+                  : '';
+              return '$prefix${r.name}$ear';
             }
 
             BoxDecoration inputDec() => BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(12));
+
+            Future<void> pickDate() async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedCustomDate ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
+                lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+              );
+              if (picked != null) {
+                setDialogState(() {
+                  selectedCustomDate = picked;
+                });
+              }
+            }
 
             return Dialog(
               backgroundColor: Colors.white,
@@ -2154,126 +2498,141 @@ class TaskScreenState extends State<TaskScreen> {
                   child: SingleChildScrollView(
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('New Schedule', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+                      const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
                       GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)))),
                     ]),
                     const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                                value: selectedCategory,
-                                isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                items: [
-                                  'Operations',
-                                  'Health',
-                                  if (SettingsService.instance.meatProductionEnabled) 'Butchering',
-                                  'Pregnancy',
-                                  'Other'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-                                onChanged: (val) => setDialogState(() {
-                                      selectedCategory = val!;
-                                      selectedTask = null;
-                                      isCustomTask = false;
-                                    })))),
-                    const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                                value: isCustomTask ? 'custom' : selectedTask,
-                                hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
-                                isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                items: [
-                                  ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))),
-                                  const DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: kPrimary)))
-                                ],
-                                onChanged: (val) => setDialogState(() {
-                                      if (val == 'custom') {
+                    const Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)))),
+                    Row(
+                      children: [
+                        Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                        Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: buildCategoryRadio('Health', 'Health')),
+                        Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (!isCustomTask) ...[
+                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                      Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: inputDec(),
+                          child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                  value: (selectedTask == '+ Custom...') ? null : selectedTask,
+                                  hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                  items: currentTaskOptions.map((e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(
+                                      e,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
+                                        color: e == '+ Custom...' ? kPrimary : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  )).toList(),
+                                  onChanged: (val) {
+                                    if (val == '+ Custom...') {
+                                      setDialogState(() {
                                         isCustomTask = true;
                                         selectedTask = null;
-                                      } else {
-                                        isCustomTask = false;
+                                      });
+                                    } else {
+                                      setDialogState(() {
                                         selectedTask = val;
-                                      }
-                                    })))),
-                    if (isCustomTask) ...[
-                      const SizedBox(height: 8),
-                      TextField(controller: customTaskController, decoration: InputDecoration(hintText: 'Enter custom task name...', hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary))))
+                                      });
+                                    }
+                                  }))),
+                    ] else ...[
+                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Custom Task Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                      TextField(controller: customTaskController, decoration: InputDecoration(hintText: 'Enter custom task name...', hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary)))),
                     ],
                     const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Associate with Bunny (Optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        isBreeding ? 'Link to Doe (Female Only)' : 'Link to Bunny (Optional)',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
+                      ),
+                    ),
                     Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: inputDec(),
                         child: DropdownButtonHideUnderline(
-                            child: DropdownButton<Map<String, String>?>(
+                            child: DropdownButton<Rabbit?>(
                                 value: selectedRabbitForLink,
-                                hint: const Text('None (Unlinked)', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+                                hint: Text(isBreeding ? 'Select a Doe...' : 'None (Unlinked)', style: const TextStyle(fontSize: 14, color: Color(0xFF64748B))),
                                 isExpanded: true,
                                 icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
                                 items: [
-                                  const DropdownMenuItem<Map<String, String>?>(
-                                    value: null,
-                                    child: Text('None (Unlinked)', style: TextStyle(fontSize: 14)),
-                                  ),
-                                  ...entityData['rabbit']!.map((r) => DropdownMenuItem<Map<String, String>?>(
+                                  if (!isBreeding)
+                                    const DropdownMenuItem<Rabbit?>(
+                                      value: null,
+                                      child: Text('None (Unlinked)', style: TextStyle(fontSize: 14)),
+                                    ),
+                                  ...availableRabbits.map((r) => DropdownMenuItem<Rabbit?>(
                                     value: r,
-                                    child: Text('${r['name']} (${r['id']})', style: const TextStyle(fontSize: 14)),
+                                    child: Text(formatRabbitLabel(r), style: const TextStyle(fontSize: 14)),
                                   )).toList()
                                 ],
                                 onChanged: (val) => setDialogState(() {
                                   selectedRabbitForLink = val;
                                   if (val != null) {
                                     selectedLinkType = 'rabbit';
-                                    linkedEntities = [val];
                                   } else {
                                     selectedLinkType = 'unlinked';
-                                    linkedEntities = [];
                                   }
                                 })))),
                     const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                                value: selectedFrequency,
-                                isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                items: [
-                                  'Daily',
-                                  'Weekly',
-                                  'Bi-Weekly',
-                                  'Monthly',
-                                  'Once',
-                                  'Select Custom Date...'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-                                onChanged: (val) => setDialogState(() => selectedFrequency = val!)))),
-                    if (selectedFrequency == 'Select Custom Date...') ...[
-                      const SizedBox(height: 16),
-                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Custom Due Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    // Frequency is hidden for Breeding category!
+                    if (!isBreeding) ...[
+                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                      Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: inputDec(),
+                          child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                  value: selectedFrequency,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                  items: [
+                                    'Select date',
+                                    'Daily',
+                                    'Weekly Starting',
+                                    'Fortnightly Starting',
+                                    'Monthly Starting',
+                                    'Semi Annually starting',
+                                    'Annually'
+                                  ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      selectedFrequency = val!;
+                                    });
+                                    if (val != 'Daily') {
+                                      pickDate();
+                                    }
+                                  }))),
+                      const SizedBox(height: 14),
+                    ],
+                    // Date selector: always shown for Breeding or when Frequency is not Daily
+                    if (isBreeding || selectedFrequency != 'Daily') ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          isBreeding ? 'Select a Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date'),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
+                        ),
+                      ),
                       InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedCustomDate ?? DateTime.now(),
-                            firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)), // Enable past dates up to 10 years
-                            lastDate: DateTime.now().add(const Duration(days: 365 * 10)),   // Enable future dates up to 10 years
-                          );
-                          if (picked != null) {
-                            setDialogState(() {
-                              selectedCustomDate = picked;
-                            });
-                          }
-                        },
+                        onTap: pickDate,
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -2284,7 +2643,7 @@ class TaskScreenState extends State<TaskScreen> {
                               Text(
                                 selectedCustomDate == null
                                     ? 'Choose date...'
-                                    : DateFormat('MMM d, yyyy').format(selectedCustomDate!),
+                                    : FormatUtils.formatDate(selectedCustomDate!),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: selectedCustomDate == null ? const Color(0xFF94A3B8) : const Color(0xFF1F2937),
@@ -2295,41 +2654,54 @@ class TaskScreenState extends State<TaskScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                    ] else ...[
+                      const SizedBox(height: 8),
                     ],
-                    const SizedBox(height: 20),
                     SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            final finalTaskName = isCustomTask ? customTaskController.text : (selectedTask ?? 'Unknown Task');
+                            final finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
                             if (finalTaskName.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)));
                               return;
                             }
-                            final isCustomDate = selectedFrequency == 'Select Custom Date...';
-                            if (isCustomDate && selectedCustomDate == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a custom due date'), backgroundColor: Color(0xFFD44C47)));
+                            if (isBreeding && selectedRabbitForLink == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)));
                               return;
                             }
+                            final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                            final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
+                            final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
+
+                            List<Map<String, String>> entitiesToSave = [];
+                            if (selectedRabbitForLink != null) {
+                              entitiesToSave = [{
+                                'id': selectedRabbitForLink!.id,
+                                'name': selectedRabbitForLink!.name,
+                                'code': selectedRabbitForLink!.cage ?? selectedRabbitForLink!.location ?? 'No cage'
+                              }];
+                            }
+
                             try {
                               await DatabaseService().insertScheduledTask({
                                 'name': finalTaskName,
                                 'category': selectedCategory,
-                                'frequency': isCustomDate ? 'Once' : selectedFrequency,
-                                'linkType': selectedLinkType,
-                                'linkedEntities': linkedEntities,
-                                if (isCustomDate && selectedCustomDate != null)
-                                  'dueDate': selectedCustomDate!.toIso8601String(),
+                                'frequency': freqToSave,
+                                'linkType': selectedRabbitForLink != null ? 'rabbit' : 'unlinked',
+                                'linkedEntities': entitiesToSave,
+                                'dueDate': dueDate.toIso8601String(),
                               });
                               Navigator.pop(dialogContext);
                               await _loadScheduledTasks();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule Saved'), backgroundColor: kPrimary));
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary));
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)));
                             }
                           },
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          child: const Text('Save Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                         )),
                     const SizedBox(height: 8),
                     SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),
@@ -2464,7 +2836,7 @@ class TaskScreenState extends State<TaskScreen> {
                   value: selectedDoeId,
                   hint: const Text('Choose Doe...', style: TextStyle(fontSize: 14)),
                   isExpanded: true,
-                  items: does.map((d) => DropdownMenuItem(value: d.id, child: Text(d.name))).toList(),
+                  items: does.map((d) => DropdownMenuItem(value: d.id, child: Text(d.fullName))).toList(),
                   onChanged: (val) => setDialogState(() => selectedDoeId = val),
                   underline: Container(height: 1, color: kNeutral300),
                 ),
@@ -2474,7 +2846,7 @@ class TaskScreenState extends State<TaskScreen> {
                   value: selectedBuckId,
                   hint: const Text('Choose Buck...', style: TextStyle(fontSize: 14)),
                   isExpanded: true,
-                  items: bucks.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))).toList(),
+                  items: bucks.map((b) => DropdownMenuItem(value: b.id, child: Text(b.fullName))).toList(),
                   onChanged: (val) => setDialogState(() => selectedBuckId = val),
                   underline: Container(height: 1, color: kNeutral300),
                 ),

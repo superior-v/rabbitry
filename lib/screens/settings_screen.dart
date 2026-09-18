@@ -47,6 +47,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool nestBoxEnabled = true;
   bool weaningEnabled = true;
   bool growOutEnabled = true;
+  bool palpationAutoTask = true;
+  bool nestBoxAutoTask = true;
+  bool kindleAutoTask = true;
+  bool weaningAutoTask = true;
   bool pushNotifications = true;
   bool snowballEffect = true;
   bool kitPromotion = true;
@@ -55,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   String weightUnit = 'lbs';
   String currency = 'usd';
-  String dateFormat = 'MM/dd/yyyy';
+  String dateFormat = 'MMM d, yyyy';
   String digestTime = '07:00';
   String? _logoPath;
   // Pipeline settings
@@ -98,11 +102,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     setState(() {
       entityData = {
         'rabbit': rabbits
-            .map((r) => {
-                  'id': r.id,
-                  'name': r.name ?? r.id,
-                  'code': r.cage ?? '',
-                })
+            .map((r) {
+              final prefix = (r.breederPrefix != null && r.breederPrefix!.trim().isNotEmpty)
+                  ? '${r.breederPrefix!.trim()} '
+                  : '';
+              final ear = (r.earNumber != null && r.earNumber!.trim().isNotEmpty)
+                  ? ' (${r.earNumber!.trim()})'
+                  : '';
+              return {
+                'id': r.id,
+                'name': '$prefix${r.name}$ear',
+                'type': r.type.name,
+                'code': r.cage ?? '',
+              };
+            })
             .toList(),
         'litter': litters
             .map((l) => {
@@ -252,6 +265,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         nestBoxEnabled = _settings.nestBoxEnabled;
         weaningEnabled = _settings.weaningEnabled;
         growOutEnabled = _settings.growOutEnabled;
+        palpationAutoTask = _settings.palpationAutoTask;
+        nestBoxAutoTask = _settings.nestBoxAutoTask;
+        kindleAutoTask = _settings.kindleAutoTask;
+        weaningAutoTask = _settings.weaningAutoTask;
 
         // Module Toggles
         meatProduction = _settings.meatProductionEnabled;
@@ -359,6 +376,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _settings.setNestBoxEnabled(nestBoxEnabled);
       await _settings.setWeaningEnabled(weaningEnabled);
       await _settings.setGrowOutEnabled(growOutEnabled);
+      await _settings.setPalpationAutoTask(palpationAutoTask);
+      await _settings.setNestBoxAutoTask(nestBoxAutoTask);
+      await _settings.setKindleAutoTask(kindleAutoTask);
+      await _settings.setWeaningAutoTask(weaningAutoTask);
 
       // Module Toggles
       await _settings.setMeatProductionEnabled(meatProduction);
@@ -809,15 +830,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             _buildSettingRow(
               'Date Format',
               _buildStandardDropdown<String>(
-                value: dateFormat,
+                value: ['MMM d, yyyy', 'MM-dd-yyyy', 'dd-MM-yyyy'].contains(dateFormat)
+                    ? dateFormat
+                    : (dateFormat == 'MM/dd/yyyy'
+                        ? 'MM-dd-yyyy'
+                        : (dateFormat == 'dd/MM/yyyy' ? 'dd-MM-yyyy' : 'MMM d, yyyy')),
                 items: const [
-                  DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/DD/YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('DD/MM/YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('YYYY-MM-DD', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'MMM d, yyyy', child: Text('Jan 24, 2026 (Default)', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'MM-dd-yyyy', child: Text('MM-DD-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'dd-MM-yyyy', child: Text('DD-MM-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
                 ],
                 onChanged: (value) {
-                  setState(() => dateFormat = value!);
-                  _settings.setDateFormat(value!);
+                  if (value != null) {
+                    setState(() => dateFormat = value);
+                    _settings.setDateFormat(value);
+                  }
                 },
               ),
             ),
@@ -891,25 +918,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // ============================================
   // PIPELINE TAB
   // ============================================
-  // Find this section in _buildPipelineTab() and REPLACE IT:
+  // ============================================
+  // PIPELINE TAB (TIMELINE)
+  // ============================================
 
   Widget _buildPipelineTab() {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
               Text(
                 'Breeding Timeline',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.5),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.4),
               ),
-              SizedBox(height: 6),
+              SizedBox(height: 3),
               Text(
                 'Configure your standard reproductive cycle and actions.',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral600),
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: kNeutral600),
               ),
             ],
           ),
@@ -918,9 +947,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: kLilacLight),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
-              BoxShadow(color: kLilacDeep.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+              BoxShadow(color: kLilacDeep.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
             ],
           ),
           child: Column(
@@ -930,10 +959,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Palpation Check',
                 hasToggle: true,
                 toggleValue: palpationEnabled,
-                onToggle: (val) => setState(() => palpationEnabled = val),
+                onToggle: (val) {
+                  setState(() => palpationEnabled = val);
+                  _settings.setPalpationEnabled(val);
+                },
                 dayValue: palpationDays,
-                onDayChanged: (val) => setState(() => palpationDays = val),
+                onDayChanged: (val) {
+                  setState(() => palpationDays = val);
+                  _settings.setPalpationDays(val);
+                },
                 autoTask: true,
+                autoTaskValue: palpationAutoTask,
+                onAutoTaskChanged: (val) {
+                  setState(() => palpationAutoTask = val);
+                  _settings.setPalpationAutoTask(val);
+                },
                 actions: const [
                   {'tag': 'Positive', 'desc': 'Move to Pregnant'},
                   {'tag': 'Negative', 'desc': 'Move to Open'},
@@ -943,10 +983,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Nest Box',
                 hasToggle: true,
                 toggleValue: nestBoxEnabled,
-                onToggle: (val) => setState(() => nestBoxEnabled = val),
+                onToggle: (val) {
+                  setState(() => nestBoxEnabled = val);
+                  _settings.setNestBoxEnabled(val);
+                },
                 dayValue: nestBoxDays,
-                onDayChanged: (val) => setState(() => nestBoxDays = val),
+                onDayChanged: (val) {
+                  setState(() => nestBoxDays = val);
+                  _settings.setNestBoxDays(val);
+                },
                 autoTask: true,
+                autoTaskValue: nestBoxAutoTask,
+                onAutoTaskChanged: (val) {
+                  setState(() => nestBoxAutoTask = val);
+                  _settings.setNestBoxAutoTask(val);
+                },
                 actions: [
                   {'tag': 'Action', 'desc': 'Create Check Kits (Day $gestationDays)'},
                 ],
@@ -955,8 +1006,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Kindle (Birth)',
                 dayLabel: 'DAY $gestationDays',
                 dayValue: gestationDays,
-                onDayChanged: (val) => setState(() => gestationDays = val),
+                onDayChanged: (val) {
+                  setState(() => gestationDays = val);
+                  _settings.setGestationDays(val);
+                },
                 showScheduleDay: true,
+                autoTask: true,
+                autoTaskValue: kindleAutoTask,
+                onAutoTaskChanged: (val) {
+                  setState(() => kindleAutoTask = val);
+                  _settings.setKindleAutoTask(val);
+                },
                 actions: const [
                   {'tag': 'Action', 'desc': 'Log Litter Count'},
                 ],
@@ -965,11 +1025,22 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 'Weaning',
                 hasToggle: true,
                 toggleValue: weaningEnabled,
-                onToggle: (val) => setState(() => weaningEnabled = val),
+                onToggle: (val) {
+                  setState(() => weaningEnabled = val);
+                  _settings.setWeaningEnabled(val);
+                },
                 dayValue: weanAge,
-                onDayChanged: (val) => setState(() => weanAge = val),
+                onDayChanged: (val) {
+                  setState(() => weanAge = val);
+                  _settings.setWeanAge(val);
+                },
                 dayUnit: 'weeks',
                 autoTask: true,
+                autoTaskValue: weaningAutoTask,
+                onAutoTaskChanged: (val) {
+                  setState(() => weaningAutoTask = val);
+                  _settings.setWeaningAutoTask(val);
+                },
                 actions: const [
                   {'tag': 'Action', 'desc': 'Separate Kits & Doe'},
                   {'tag': 'Action', 'desc': 'Promote to Grow-out'},
@@ -986,7 +1057,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ],
               ),
               _buildPipelineStep(
-                'Sexual Maturity',
+                'Active in Rabbitry',
                 dayLabel: '$matureAge WK',
                 dayValue: matureAge,
                 onDayChanged: (val) => setState(() => matureAge = val),
@@ -1009,7 +1080,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // ============================================
   Widget _buildOperationsTab() {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       children: [
         _buildCard(
           'Barn & Cage Manager',
@@ -1017,7 +1088,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           [
             _buildSubsectionHeader('BARNS & LOCATIONS'),
             if (barns.isEmpty)
-              const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No locations defined.')))
+              const Padding(padding: EdgeInsets.all(16), child: Center(child: Text('No locations defined.')))
             else
               ...barns.map((b) => _buildSimpleTaskItem(
                     b['name'] as String,
@@ -1054,13 +1125,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           [
             _buildSubsectionHeader('SCHEDULED TASKS'),
             if (scheduledTasks.isEmpty)
-              const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No schedules defined")))
+              const Padding(padding: EdgeInsets.all(16), child: Center(child: Text("No schedules defined")))
             else
               ...scheduledTasks.map((s) => _buildScheduledTaskItem(s)),
             _buildAddListItem(_openScheduleModal),
             _buildSubsectionHeader('ACTIVE PIPELINE'),
             if (pipelineTasks.isEmpty)
-              const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No pipeline tasks")))
+              const Padding(padding: EdgeInsets.all(16), child: Center(child: Text("No pipeline tasks")))
             else
               ...pipelineTasks.map((t) => _buildPipelineTaskItem(t)),
           ],
@@ -2078,15 +2149,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildCard(String title, IconData icon, List<Widget> children) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: kLilacLight),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: kLilacDeep.withOpacity(0.04),
-            blurRadius: 8,
+            color: kLilacDeep.withOpacity(0.03),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -2095,20 +2166,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
             decoration: const BoxDecoration(
               color: kNeutral50,
               border: Border(bottom: BorderSide(color: kNeutral200)),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               children: [
-                Icon(icon, color: kLilacDeep, size: 18),
-                const SizedBox(width: 8),
+                Icon(icon, color: kLilacDeep, size: 16),
+                const SizedBox(width: 7),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF4F4F56),
                     letterSpacing: -0.3,
@@ -2125,7 +2196,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildSettingRow(String label, Widget trailing, {String? description}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
@@ -2140,17 +2211,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 Text(
                   label,
                   style: const TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF4F4F56),
                   ),
                 ),
                 if (description != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     description,
                     style: const TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       color: Color(0xFF6E6E73),
                       fontWeight: FontWeight.w500,
                     ),
@@ -2159,7 +2230,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           trailing,
         ],
       ),
@@ -2256,13 +2327,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     Function(int)? onDayChanged,
     String dayUnit = 'days',
     bool autoTask = false,
+    bool? autoTaskValue,
+    Function(bool)? onAutoTaskChanged,
     bool showScheduleDay = false,
     List<Map<String, String>>? actions,
     Map<String, dynamic>? extraToggle,
     bool isLast = false,
   }) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         border: isLast ? null : Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
@@ -2270,15 +2343,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 12,
-            height: 12,
-            margin: EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 3),
+            decoration: const BoxDecoration(
               color: kLilacDeep,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2288,24 +2361,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF1E293B),
                       ),
                     ),
                     if (dayLabel != null && !hasToggle)
                       Text(
                         dayLabel,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: const TextStyle(
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF64748B),
                         ),
                       )
                     else if (hasToggle && toggleValue != null && onToggle != null)
                       Transform.scale(
-                        scale: 0.85,
+                        scale: 0.75,
                         child: Switch(
                           value: toggleValue,
                           onChanged: onToggle,
@@ -2316,23 +2389,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   ],
                 ),
                 if (title == 'Breeding')
-                  Padding(
-                    padding: EdgeInsets.only(top: 4),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1),
                     child: Text(
                       'The start of the cycle. Always enabled.',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 11.5,
                         color: Color(0xFF64748B),
                       ),
                     ),
                   ),
                 if (dayValue != null || autoTask || extraToggle != null) ...[
-                  SizedBox(height: 12),
+                  const SizedBox(height: 5),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: kNeutral100,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
                       children: [
@@ -2343,7 +2416,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               const Text(
                                 'Schedule Day',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: kNeutral900,
                                 ),
@@ -2358,8 +2431,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     )
                                   else
                                     Container(
-                                      width: 70,
-                                      height: 36,
+                                      width: 58,
+                                      height: 28,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: Colors.white,
@@ -2369,18 +2442,18 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       child: Text(
                                         dayValue?.toString() ?? '0',
                                         style: const TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: kNeutral900,
                                         ),
                                       ),
                                     ),
                                   if (dayUnit != 'days') ...[
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Text(
                                       dayUnit,
                                       style: const TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 12,
                                         color: kNeutral600,
                                       ),
                                     ),
@@ -2390,23 +2463,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             ],
                           ),
                         if (autoTask) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
                                 'Auto-create Task',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: kNeutral900,
                                 ),
                               ),
                               Transform.scale(
-                                scale: 0.85,
+                                scale: 0.75,
                                 child: Switch(
-                                  value: true,
-                                  onChanged: (val) {},
+                                  value: autoTaskValue ?? true,
+                                  onChanged: onAutoTaskChanged,
                                   activeColor: kLilacDeep,
                                   activeTrackColor: kLilacWash,
                                 ),
@@ -2415,20 +2488,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           ),
                         ],
                         if (extraToggle != null) ...[
-                          if (autoTask) const SizedBox(height: 12) else const SizedBox.shrink(),
+                          if (autoTask) const SizedBox(height: 4) else const SizedBox.shrink(),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 extraToggle['label'],
                                 style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: kNeutral900,
                                 ),
                               ),
                               Transform.scale(
-                                scale: 0.85,
+                                scale: 0.75,
                                 child: Switch(
                                   value: extraToggle['value'],
                                   onChanged: (val) {},
@@ -2444,26 +2517,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   ),
                 ],
                 if (actions != null && actions.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 5),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'ON COMPLETION',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           color: kNeutral500,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       ...actions.map((action) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.only(bottom: 3),
                             child: Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     border: Border.all(color: kNeutral200),
@@ -2472,20 +2545,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   child: Text(
                                     action['tag']!,
                                     style: const TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: kNeutral900,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward, size: 14, color: kNeutral400),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.arrow_forward, size: 12, color: kNeutral400),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     action['desc']!,
                                     style: const TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 11.5,
                                       color: kNeutral600,
                                     ),
                                   ),
@@ -2507,14 +2580,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildSubsectionHeader(String title) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: const BoxDecoration(
         color: kNeutral50,
       ),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w700,
           color: Color(0xFF6E6E73),
           letterSpacing: 0.8,
@@ -2527,19 +2600,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: const BoxDecoration(
           color: Colors.white,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(PhosphorIconsBold.plusCircle, size: 16, color: kLilacDeep),
+            Icon(PhosphorIconsBold.plusCircle, size: 15, color: kLilacDeep),
             SizedBox(width: 6),
             Text(
               'Add New',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 color: kLilacDeep,
               ),
@@ -2554,7 +2627,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
           color: Colors.white,
@@ -2565,13 +2638,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Text(
               title,
               style: const TextStyle(
-                fontSize: 13.5,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF4F4F56),
               ),
             ),
             IconButton(
-              icon: const Icon(PhosphorIconsBold.trash, size: 16, color: Color(0xFF8E8E93)),
+              icon: const Icon(PhosphorIconsBold.trash, size: 15, color: Color(0xFF8E8E93)),
               onPressed: onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -2645,30 +2718,29 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return InkWell(
       onTap: () => _showScheduleDetails(schedule),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
         ),
         child: Row(
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: 26,
+              height: 26,
               decoration: BoxDecoration(color: colors['bg']!.withOpacity(0.2), shape: BoxShape.circle),
-              child: Icon(badgeIcon, size: 15, color: colors['text']),
+              child: Icon(badgeIcon, size: 13, color: colors['text']),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(schedule['task'], style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56))),
-                  const SizedBox(height: 1),
-                  Text(schedule['frequency'], style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                  Text(schedule['task'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56))),
+                  Text(schedule['frequency'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
                 ],
               ),
             ),
-            const Icon(PhosphorIconsBold.caretRight, size: 14, color: Color(0xFF8E8E93)),
+            const Icon(PhosphorIconsBold.caretRight, size: 13, color: Color(0xFF8E8E93)),
           ],
         ),
       ),
@@ -2706,7 +2778,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       }
     }
 
-    // Task type icon refinement
     switch (task['taskType']) {
       case 'palpation':
         taskIcon = PhosphorIconsDuotone.handPalm;
@@ -2729,19 +2800,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 26,
+            height: 26,
             decoration: const BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
-            child: Icon(taskIcon, size: 15, color: kLilacDeep),
+            child: Icon(taskIcon, size: 13, color: kLilacDeep),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2752,31 +2823,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       child: Text(
                         taskName,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('PIPELINE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kLilacDeep)),
+                      child: const Text('PIPELINE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: kLilacDeep)),
                     ),
                   ],
                 ),
                 if (entityName.isNotEmpty || dueDateDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Row(
                     children: [
                       if (entityName.isNotEmpty) ...[
-                        const Icon(PhosphorIconsRegular.rabbit, size: 12, color: Color(0xFF8E8E93)),
-                        const SizedBox(width: 4),
-                        Text(entityName, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
-                        const SizedBox(width: 8),
+                        const Icon(PhosphorIconsRegular.rabbit, size: 11, color: Color(0xFF8E8E93)),
+                        const SizedBox(width: 3),
+                        Text(entityName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                        const SizedBox(width: 6),
                       ],
                       if (dueDateDisplay.isNotEmpty) ...[
-                        Icon(PhosphorIconsBold.calendar, size: 12, color: dueDateColor),
-                        const SizedBox(width: 4),
-                        Text(dueDateDisplay, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: dueDateColor)),
+                        Icon(PhosphorIconsBold.calendar, size: 11, color: dueDateColor),
+                        const SizedBox(width: 3),
+                        Text(dueDateDisplay, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: dueDateColor)),
                       ],
                     ],
                   ),
@@ -2785,9 +2856,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(4)),
-            child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
+            child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
           ),
         ],
       ),
@@ -3037,7 +3108,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildHealthIssueItemWithInput(String name, String treatment) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
@@ -3051,7 +3122,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 child: Text(
                   name,
                   style: const TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF4F4F56),
                   ),
@@ -3060,7 +3131,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               IconButton(
                 icon: const Icon(
                   PhosphorIconsRegular.trash,
-                  size: 16,
+                  size: 15,
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () {
@@ -3100,16 +3171,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ],
           ),
           if (treatment.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Row(
               children: [
-                const Icon(PhosphorIconsRegular.firstAid, size: 13, color: Color(0xFF94A3B8)),
-                const SizedBox(width: 6),
+                const Icon(PhosphorIconsRegular.firstAid, size: 12, color: Color(0xFF94A3B8)),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     treatment,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       color: Color(0xFF6E6E73),
                       fontStyle: FontStyle.italic,
                     ),
@@ -3126,7 +3197,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildBreedItemWithInput(Breed breed) {
     final genotypeController = TextEditingController(text: breed.genetics.join(', '));
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
@@ -3139,7 +3210,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               Text(
                 breed.name,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF4F4F56),
                 ),
@@ -3147,7 +3218,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               IconButton(
                 icon: const Icon(
                   PhosphorIconsRegular.trash,
-                  size: 16,
+                  size: 15,
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () async {
@@ -3186,21 +3257,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Row(
             children: [
               const Text(
                 'Genotype Template:',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11.5,
                   color: Color(0xFF6E6E73),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Container(
-                  height: 32,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  height: 28,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1ECF7),
                     border: Border.all(color: const Color(0xFFD6CEE2)),
@@ -3209,14 +3280,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   child: TextField(
                     controller: genotypeController,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       color: Color(0xFF4F4F56),
                       fontFamily: 'monospace',
                     ),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 6),
+                      contentPadding: EdgeInsets.symmetric(vertical: 4),
                       hintText: 'e.g. aa B- C- D- E-',
                     ),
                     onSubmitted: (value) async {
@@ -3516,16 +3587,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     await _loadTaskDirectory(); // Ensure latest task directory is loaded
     String selectedCategory = 'Operations';
     String? selectedTask;
-    String selectedFrequency = 'Weekly';
+    String selectedFrequency = 'Select date';
     String selectedLinkType = 'unlinked'; // unlinked, rabbit, litter, kit
     bool isCustomTask = false;
+    DateTime? selectedCustomDate = DateTime.now();
     TextEditingController customTaskController = TextEditingController();
     List<Map<String, String>> linkedEntities = [];
 
     BoxDecoration inputDeco() {
       return BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(12),
       );
     }
@@ -3536,44 +3608,55 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // Task Options Logic: use task directory items, fallback to defaults
-            List<String> directoryTasks = taskDirectoryItems.where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase()).map((t) => t['name'] as String).toList();
+            final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
 
             List<String> currentTaskOptions;
-            if (directoryTasks.isNotEmpty) {
-              currentTaskOptions = directoryTasks;
+            if (selectedCategory == 'Health') {
+              currentTaskOptions = [
+                'Nail Trim',
+                'Deworm',
+                'Coccidiosis Med',
+                'Teeth Check',
+                'Weight Check',
+                '+ Custom...',
+              ];
+            } else if (isBreeding) {
+              currentTaskOptions = [
+                'Palpation',
+                'Add Nest Box',
+                'Check for Kindle',
+                '+ Custom...',
+              ];
+            } else if (selectedCategory == 'Operations') {
+              currentTaskOptions = [
+                'Clean Trays',
+                'Top Off Feed',
+                'Check Water',
+                'Deep Clean',
+                'Cage Maintenance',
+                '+ Custom...',
+              ];
             } else {
-              if (selectedCategory == 'Operations')
-                currentTaskOptions = [
-                  'Clean Trays',
-                  'Top Off Feed',
-                  'Check Water',
-                  'Deep Clean'
-                ];
-              else if (selectedCategory == 'Health')
-                currentTaskOptions = [
-                  'Nail Trim',
-                  'Health Check',
-                  'Weighing',
-                  'Ear Check'
-                ];
-              else if (selectedCategory == 'Butchering')
-                currentTaskOptions = [
-                  'Schedule Butcher',
-                  'Prep Equipment',
-                  'Process'
-                ];
-              else if (selectedCategory == 'Pregnancy')
-                currentTaskOptions = [
-                  'Palpation',
-                  'Add Nest Box',
-                  'Check for Kindle'
-                ];
-              else
-                currentTaskOptions = [
-                  'Inventory Check',
-                  'General Maintenance'
-                ];
+              currentTaskOptions = [
+                'Clean Trays',
+                'Nail Trim',
+                'Health Check',
+                '+ Custom...',
+              ];
+            }
+
+            Future<void> pickDate() async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedCustomDate ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
+                lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+              );
+              if (picked != null) {
+                setDialogState(() {
+                  selectedCustomDate = picked;
+                });
+              }
             }
 
             // Helper to build a Radio Chip
@@ -3587,10 +3670,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   });
                 },
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? Color(0xFFF0ECFE) : Colors.white,
-                    border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0)),
+                    color: isSelected ? const Color(0xFFF0ECFE) : Colors.white,
+                    border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE2E8F0)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -3601,12 +3684,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0), width: 1.5),
+                          border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE2E8F0), width: 1.5),
                         ),
-                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Color(0xFF7B6BA0), shape: BoxShape.circle))) : null,
+                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF7B6BA0), shape: BoxShape.circle))) : null,
                       ),
-                      SizedBox(width: 8),
-                      Text(label, style: TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 8),
+                      Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
@@ -3617,11 +3700,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              insetPadding: EdgeInsets.all(16),
+              insetPadding: const EdgeInsets.all(16),
               child: Container(
                 width: double.infinity,
                 constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -3631,141 +3714,233 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             'New Schedule',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
                           ),
                           GestureDetector(
                             onTap: () => Navigator.pop(dialogContext),
                             child: Container(
-                              padding: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
                                 color: Color(0xFFF5F7FA),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                              child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
                       // --- Category ---
                       _buildModalLabel('Category'),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDeco(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedCategory,
-                            isExpanded: true,
-                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                            items: [
-                              'Operations',
-                              'Health',
-                              if (SettingsService.instance.meatProductionEnabled) 'Butchering',
-                              'Pregnancy',
-                              'Other'
-                            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))).toList(),
-                            onChanged: (val) {
+                      Builder(builder: (context) {
+                        Widget buildCatRadio(String label, String value) {
+                          final bool isSelected = (value == 'Custom' && isCustomTask) ||
+                              (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
+                          return GestureDetector(
+                            onTap: () {
                               setDialogState(() {
-                                selectedCategory = val!;
-                                selectedTask = null;
-                                isCustomTask = false;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-
-                      // --- Task ---
-                      _buildModalLabel('Task'),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDeco(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: isCustomTask ? 'custom' : selectedTask,
-                            hint: Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
-                            isExpanded: true,
-                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                            items: [
-                              ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))),
-                              DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF7B6BA0)))),
-                            ],
-                            onChanged: (val) {
-                              setDialogState(() {
-                                if (val == 'custom') {
+                                if (value == 'Custom') {
+                                  selectedCategory = 'Custom';
                                   isCustomTask = true;
                                   selectedTask = null;
                                 } else {
+                                  selectedCategory = value;
                                   isCustomTask = false;
-                                  selectedTask = val;
+                                  selectedTask = null;
+                                  if (selectedCategory == 'Breeding' && selectedLinkType == 'rabbit') {
+                                    linkedEntities.removeWhere((item) => item['type'] != 'doe');
+                                  }
                                 }
                               });
                             },
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF94A3B8),
+                                      width: isSelected ? 5.5 : 1.5,
+                                    ),
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                    color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: buildCatRadio('Operations', 'Operations')),
+                                Expanded(child: buildCatRadio('Breeding', 'Breeding')),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(child: buildCatRadio('Health', 'Health')),
+                                Expanded(child: buildCatRadio('Custom', 'Custom')),
+                              ],
+                            ),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 16),
+
+                      // --- Task ---
+                      if (!isCustomTask) ...[
+                        _buildModalLabel('Task'),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: inputDeco(),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: (selectedTask == '+ Custom...') ? null : selectedTask,
+                              hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                              items: currentTaskOptions.map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
+                                    color: e == '+ Custom...' ? const Color(0xFF7B6BA0) : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                              )).toList(),
+                              onChanged: (val) {
+                                if (val == '+ Custom...') {
+                                  setDialogState(() {
+                                    isCustomTask = true;
+                                    selectedTask = null;
+                                  });
+                                } else {
+                                  setDialogState(() {
+                                    selectedTask = val;
+                                  });
+                                }
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      // Custom Task Input
-                      if (isCustomTask) ...[
-                        SizedBox(height: 8),
+                      ] else ...[
+                        _buildModalLabel('Custom Task Name'),
                         TextField(
                           controller: customTaskController,
                           decoration: InputDecoration(
                             hintText: 'Enter custom task name...',
-                            hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0))),
+                            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0))),
                           ),
                         ),
                       ],
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                      // --- Frequency ---
-                      _buildModalLabel('Frequency'),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDeco(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedFrequency,
-                            isExpanded: true,
-                            icon: Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                            items: [
-                              'Daily',
-                              'Weekly',
-                              'Bi-Weekly',
-                              'Monthly',
-                              'Once'
-                            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14)))).toList(),
-                            onChanged: (val) => setDialogState(() => selectedFrequency = val!),
+                      // --- Frequency (Hidden for Breeding) ---
+                      if (!isBreeding) ...[
+                        _buildModalLabel('Frequency'),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: inputDeco(),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedFrequency,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                              items: [
+                                'Select date',
+                                'Daily',
+                                'Weekly Starting',
+                                'Fortnightly Starting',
+                                'Monthly Starting',
+                                'Semi Annually starting',
+                                'Annually'
+                              ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                              onChanged: (val) {
+                                setDialogState(() => selectedFrequency = val!);
+                                if (val != 'Daily') {
+                                  pickDate();
+                                }
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: 16),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Date selector: always shown for Breeding or when Frequency is not Daily
+                      if (isBreeding || selectedFrequency != 'Daily') ...[
+                        _buildModalLabel(isBreeding ? 'Select a Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date')),
+                        InkWell(
+                          onTap: pickDate,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: inputDeco(),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  selectedCustomDate == null
+                                      ? 'Choose date...'
+                                      : FormatUtils.formatDate(selectedCustomDate!),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: selectedCustomDate == null ? const Color(0xFF94A3B8) : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF64748B)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // --- Link To (Radio Chips) ---
-                      _buildModalLabel('Link To'),
-                      Text('Choose what this task applies to', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      SizedBox(height: 12),
+                      _buildModalLabel(isBreeding ? 'Link to Doe (Female Only)' : 'Link To'),
+                      Text(isBreeding ? 'Select female rabbit(s) for this breeding task' : 'Choose what this task applies to', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           buildRadioChip('Unlinked', 'unlinked'),
-                          buildRadioChip('Rabbit', 'rabbit'),
-                          buildRadioChip('Litter', 'litter'),
-                          buildRadioChip('Kits (Mixed)', 'kit'),
+                          buildRadioChip(isBreeding ? 'Doe' : 'Rabbit', 'rabbit'),
+                          if (!isBreeding) ...[
+                            buildRadioChip('Litter', 'litter'),
+                            buildRadioChip('Kits (Mixed)', 'kit'),
+                          ],
                         ],
                       ),
 
                       // --- Dynamic Multi-Select for Linked Entities ---
                       if (selectedLinkType != 'unlinked') ...[
-                        SizedBox(height: 16),
-                        _buildModalLabel('Select ${selectedLinkType == 'rabbit' ? 'Rabbits' : selectedLinkType == 'litter' ? 'Litters' : 'Kits'}'),
+                        const SizedBox(height: 16),
+                        _buildModalLabel('Select ${selectedLinkType == 'rabbit' ? (isBreeding ? 'Does' : 'Rabbits') : selectedLinkType == 'litter' ? 'Litters' : 'Kits'}'),
                         Container(
                           width: double.infinity,
                           decoration: inputDeco(),
@@ -3774,35 +3949,35 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             children: [
                               // Selected Chips Area
                               Padding(
-                                padding: EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(8),
                                 child: Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
                                   children: [
                                     if (linkedEntities.isEmpty)
-                                      Padding(
+                                      const Padding(
                                         padding: EdgeInsets.only(top: 4, left: 4, bottom: 4),
                                         child: Text('Select...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
                                       ),
                                     ...linkedEntities.map((e) => Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Color(0xFFF5F7FA),
-                                            border: Border.all(color: Color(0xFFE2E8F0)),
+                                            color: const Color(0xFFF5F7FA),
+                                            border: Border.all(color: const Color(0xFFE2E8F0)),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(e['name']!, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                                              SizedBox(width: 4),
+                                              Text(e['name']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                              const SizedBox(width: 4),
                                               GestureDetector(
                                                 onTap: () {
                                                   setDialogState(() {
                                                     linkedEntities.removeWhere((item) => item['id'] == e['id']);
                                                   });
                                                 },
-                                                child: Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
+                                                child: const Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
                                               )
                                             ],
                                           ),
@@ -3810,83 +3985,97 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   ],
                                 ),
                               ),
-                              Divider(height: 1, color: Color(0xFFE2E8F0)),
-                              // Scrollable list of options
+                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              // Scrollable list of options (filtered for does if Breeding)
                               Container(
                                 height: 150,
-                                child: ListView(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  children: (entityData[selectedLinkType] ?? []).map((entity) {
-                                    final isSelected = linkedEntities.any((e) => e['id'] == entity['id']);
-                                    return InkWell(
-                                      onTap: () {
-                                        setDialogState(() {
-                                          if (isSelected) {
-                                            linkedEntities.removeWhere((e) => e['id'] == entity['id']);
-                                          } else {
-                                            linkedEntities.add(entity);
-                                          }
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                        color: isSelected ? Color(0xFFF5F7FA) : Colors.transparent,
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 18,
-                                              height: 18,
-                                              decoration: BoxDecoration(
-                                                color: isSelected ? Color(0xFF7B6BA0) : Colors.transparent,
-                                                border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFF64748B), width: 1.5),
-                                                borderRadius: BorderRadius.circular(4),
+                                child: Builder(builder: (context) {
+                                  var items = entityData[selectedLinkType] ?? [];
+                                  if (isBreeding && selectedLinkType == 'rabbit') {
+                                    items = items.where((e) => e['type'] == 'doe').toList();
+                                  }
+                                  return ListView(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    children: items.map((entity) {
+                                      final isSelected = linkedEntities.any((e) => e['id'] == entity['id']);
+                                      return InkWell(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            if (isSelected) {
+                                              linkedEntities.removeWhere((e) => e['id'] == entity['id']);
+                                            } else {
+                                              linkedEntities.add(entity);
+                                            }
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          color: isSelected ? const Color(0xFFF5F7FA) : Colors.transparent,
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  color: isSelected ? const Color(0xFF7B6BA0) : Colors.transparent,
+                                                  border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF64748B), width: 1.5),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
                                               ),
-                                              child: isSelected ? Icon(Icons.check, size: 14, color: Colors.white) : null,
-                                            ),
-                                            SizedBox(width: 10),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(entity['name']!, style: TextStyle(fontSize: 14, color: Color(0xFF1E293B))),
-                                                if (entity.containsKey('code')) Text(entity['code']!, style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                                              ],
-                                            )
-                                          ],
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(entity['name']!, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))),
+                                                    if (entity.containsKey('code') && (entity['code']?.isNotEmpty ?? false))
+                                                      Text(entity['code']!, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                                  ],
+                                                ),
+                                              )
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
+                                      );
+                                    }).toList(),
+                                  );
+                                }),
                               )
                             ],
                           ),
                         ),
                       ],
 
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
                       // --- Save Button ---
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            String finalTaskName = isCustomTask ? customTaskController.text : (selectedTask ?? 'Unknown');
+                            String finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? 'Unknown');
 
                             if (finalTaskName.isEmpty || finalTaskName == 'Unknown') {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
                               );
                               return;
                             }
+
+                            final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                            final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
+                            final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
 
                             try {
                               await _db.insertScheduledTask({
                                 'name': finalTaskName,
                                 'category': selectedCategory,
-                                'frequency': selectedFrequency,
+                                'frequency': freqToSave,
                                 'linkType': selectedLinkType,
                                 'linkedEntities': List.from(linkedEntities),
+                                'dueDate': dueDate.toIso8601String(),
                               });
 
                               final updatedTasks = await _db.getAllScheduledTasks();
@@ -3896,26 +4085,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                               Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF7B6BA0)),
+                                const SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF7B6BA0)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error saving schedule: $e'), backgroundColor: Color(0xFFD44C47)),
+                                SnackBar(content: Text('Error saving schedule: $e'), backgroundColor: const Color(0xFFD44C47)),
                               );
                             }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE6BEFE),
-                            padding: EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
+                          child: const Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
                         ),
                       ),
 
                       // --- Cancel Button ---
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       SizedBox(
                         width: double.infinity,
                         child: TextButton(
@@ -4236,28 +4425,28 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildColorItem(String color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
               color: const Color(0xFFF1ECF7),
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFD6CEE2)),
             ),
-            child: const Icon(Icons.circle, size: 12, color: Color(0xFF7B6BA0)),
+            child: const Icon(Icons.circle, size: 10, color: Color(0xFF7B6BA0)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               color,
               style: const TextStyle(
-                fontSize: 13.5,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF4F4F56),
               ),
@@ -4266,7 +4455,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           IconButton(
             icon: const Icon(
               PhosphorIconsRegular.trash,
-              size: 16,
+              size: 15,
               color: Color(0xFF94A3B8),
             ),
             onPressed: () => _removeColorItem(color),
@@ -4683,8 +4872,8 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 70,
-      height: 36,
+      width: 58,
+      height: 28,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -4702,11 +4891,11 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
         ],
         decoration: const InputDecoration(
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 8),
+          contentPadding: EdgeInsets.symmetric(vertical: 4),
           isDense: true,
         ),
         style: const TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _SettingsScreenState.kNeutral900,
         ),

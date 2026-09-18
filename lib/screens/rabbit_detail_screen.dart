@@ -33,6 +33,7 @@ import '../widgets/modals/quarantine_modal.dart';
 import '../widgets/weight_history_card.dart';
 import '../widgets/modals/stop_quarantine_modal.dart';
 import 'add_rabbit_screen.dart';
+import 'pedigree_screen.dart';
 import 'finance_screen.dart';
 import 'home_dashboard_screen.dart' show HomeDashboardScreen;
 import '../constants/app_colors.dart';
@@ -411,7 +412,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, color: Color(0xFF787880), size: 26),
+          icon: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
           onPressed: _openActionSheet,
         ),
         const SizedBox(width: 8),
@@ -1161,30 +1162,33 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   child: Column(
                     children: [
                       _buildMenuItem('Edit Profile', _showEditRabbitScreen),
-                      if (_currentRabbit.status != RabbitStatus.quarantine)
-                        _buildMenuItem('Quarantine', () {
-                          Navigator.pop(ctx);
-                          _showQuarantineModal();
-                        })
-                      else
-                        _buildMenuItem('Stop Quarantine', () {
-                          Navigator.pop(ctx);
-                          _showStopQuarantineModal();
-                        }),
+                      _buildMenuItem('Move Cage', () {
+                        _showMoveCageModal();
+                      }),
+                      _buildMenuItem('Cage Card', () {
+                        _showCageCardDialog();
+                      }),
+                      _buildMenuItem('Pedigree', () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PedigreeScreen(
+                              rabbitId: _currentRabbit.id,
+                              initialRabbit: _currentRabbit,
+                            ),
+                          ),
+                        );
+                      }),
+                      _buildMenuItem('Tag for Sale', () {
+                        _showTagForSaleDialog();
+                      }),
                       _buildMenuItem('Sell', () {
-                        Navigator.pop(ctx);
                         _showArchiveModalWithReason(ArchiveReason.sold);
                       }),
-                      _buildMenuItem('Cull', () {
-                        Navigator.pop(ctx);
-                        _showArchiveModalWithReason(ArchiveReason.cull);
-                      }),
-                      _buildMenuItem('Died', () {
-                        Navigator.pop(ctx);
-                        _showArchiveModalWithReason(ArchiveReason.dead);
+                      _buildMenuItem('Cull / Died', () {
+                        _showArchiveModal();
                       }),
                       _buildMenuItem('Delete', () {
-                        Navigator.pop(ctx);
                         _confirmDeleteRabbit();
                       }, isDestructive: true),
                     ],
@@ -1195,6 +1199,149 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showCageCardDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.badge_outlined, color: Color(0xFF7B6BA0)),
+            const SizedBox(width: 8),
+            const Text('Cage Card', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F6FC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E0F2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _currentRabbit.fullName.isNotEmpty ? _currentRabbit.fullName : _currentRabbit.name,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('Ear #: ${_currentRabbit.earNumber ?? _currentRabbit.id}   |   Cage #: ${_currentRabbit.cage ?? "—"}'),
+                  const SizedBox(height: 4),
+                  Text('Breed: ${_currentRabbit.breed}   |   Color: ${_currentRabbit.color ?? "—"}'),
+                  const SizedBox(height: 4),
+                  Text('DOB: ${_currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : "—"}'),
+                  const SizedBox(height: 4),
+                  Text('Sire: ${_currentRabbit.sireId ?? "—"}   |   Dam: ${_currentRabbit.damId ?? "—"}'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🖨️ Printing Cage Card...'),
+                  backgroundColor: Color(0xFF7B6BA0),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            icon: const Icon(Icons.print, size: 18),
+            label: const Text('Print'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7B6BA0),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTagForSaleDialog() {
+    final priceController = TextEditingController(text: _currentRabbit.salePrice != null ? _currentRabbit.salePrice.toString() : '');
+    final notesController = TextEditingController(text: _currentRabbit.notes ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Tag for Sale'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tag ${_currentRabbit.name} for sale:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Price (\$)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.attach_money),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Sale Notes',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final price = double.tryParse(priceController.text.trim());
+              final updated = _currentRabbit.copyWith(
+                salePrice: price,
+                notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : _currentRabbit.notes,
+              );
+              await _db.updateRabbit(updated);
+              await _refreshRabbitData();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${_currentRabbit.name} tagged for sale${price != null ? " (\$${price.toStringAsFixed(2)})" : ""}'),
+                    backgroundColor: const Color(0xFF7B6BA0),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7B6BA0),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

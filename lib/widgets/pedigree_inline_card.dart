@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../models/pedigree.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import '../screens/add_rabbit_screen.dart';
 
@@ -36,23 +37,22 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       if (!mounted) return;
       setState(() => _isLoading = true);
       
-      final tree = await _db.buildPedigreeTree(widget.rabbit.id, maxGenerations: selectedGenerations - 1);
+      final tree = await _db.buildPedigreeTree(widget.rabbit.id, maxGenerations: selectedGenerations);
       
-      // We still map these for easier access in build()
       Rabbit? sire, dam, ss, sd, ds, dd;
       Rabbit? sss, ssd, sds, sdd, dss, dsd, dds, ddd;
 
       if (tree.sire != null) sire = await _db.getRabbit(tree.sire!.id);
       if (tree.dam != null) dam = await _db.getRabbit(tree.dam!.id);
       
-      if (selectedGenerations >= 3) {
-        if (tree.sire?.sire != null) ss = await _db.getRabbit(tree.sire!.sire!.id);
-        if (tree.sire?.dam != null) sd = await _db.getRabbit(tree.sire!.dam!.id);
-        if (tree.dam?.sire != null) ds = await _db.getRabbit(tree.dam!.sire!.id);
-        if (tree.dam?.dam != null) dd = await _db.getRabbit(tree.dam!.dam!.id);
-      }
+      // 2 generations always loads grandparents (ss, sd, ds, dd)
+      if (tree.sire?.sire != null) ss = await _db.getRabbit(tree.sire!.sire!.id);
+      if (tree.sire?.dam != null) sd = await _db.getRabbit(tree.sire!.dam!.id);
+      if (tree.dam?.sire != null) ds = await _db.getRabbit(tree.dam!.sire!.id);
+      if (tree.dam?.dam != null) dd = await _db.getRabbit(tree.dam!.dam!.id);
 
-      if (selectedGenerations >= 4) {
+      // 3 generations also loads great grandparents
+      if (selectedGenerations >= 3) {
         if (tree.sire?.sire?.sire != null) sss = await _db.getRabbit(tree.sire!.sire!.sire!.id);
         if (tree.sire?.sire?.dam != null) ssd = await _db.getRabbit(tree.sire!.sire!.dam!.id);
         if (tree.sire?.dam?.sire != null) sds = await _db.getRabbit(tree.sire!.dam!.sire!.id);
@@ -98,9 +98,19 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
+                const Text(
+                  'PEDIGREE',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
                 PopupMenuButton<int>(
                   offset: const Offset(0, 32),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -110,7 +120,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       _loadPedigree();
                     });
                   },
-                  itemBuilder: (context) => [2, 3, 4].map((g) => PopupMenuItem(
+                  itemBuilder: (context) => [2, 3].map((g) => PopupMenuItem(
                     value: g,
                     child: Text('$g Generations', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   )).toList(),
@@ -129,7 +139,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
@@ -152,109 +162,92 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 const SizedBox(height: 16),
-                 _buildLabel('SUBJECT'),
-                 _buildBaseCard(
-                   name: widget.rabbit.name,
-                   id: widget.rabbit.id,
-                   breed: widget.rabbit.breed ?? '--',
-                   color: _washColor,
-                   borderColor: _primaryColor.withOpacity(0.5),
-                   isFullBorder: true,
-                   onTap: () {}, // Subject is not editable here
-                   showEditIcon: false,
+                 _buildSubjectCard(),
+
+                 const SizedBox(height: 20),
+                 _buildLabel('PARENTS'),
+                 Row(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Expanded(
+                       child: _buildParentCard(
+                         label: 'SIRE',
+                         rabbit: _sire,
+                         isMale: true,
+                         onTap: () => _updateParent(RabbitType.buck, true),
+                       ),
+                     ),
+                     const SizedBox(width: 12),
+                     Expanded(
+                       child: _buildParentCard(
+                         label: 'DAM',
+                         rabbit: _dam,
+                         isMale: false,
+                         onTap: () => _updateParent(RabbitType.doe, true),
+                       ),
+                     ),
+                   ],
                  ),
 
-                 if (selectedGenerations >= 2) ...[
-                   const SizedBox(height: 24),
-                   _buildLabel('PARENTS'),
-                   Row(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       Expanded(
-                         child: _buildBaseCard(
-                           name: _sire?.name ?? 'Sire',
-                           id: _sire?.id ?? 'Add Buck',
-                           breed: _sire?.breed ?? '--',
-                           borderColor: kBlueDeep,
-                           onTap: () => _updateParent(RabbitType.buck, true),
-                         ),
+                 const SizedBox(height: 20),
+                 _buildLabel('GRANDPARENTS'),
+                 Row(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     // Sire's Parents
+                     Expanded(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
+                           _buildBaseCard(
+                             name: _ss?.name ?? 'Sire\'s Sire',
+                             id: _ss?.id ?? '--',
+                             borderColor: kBlueDeep,
+                             isSmall: true,
+                             onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
+                           ),
+                           const SizedBox(height: 8),
+                           _buildBaseCard(
+                             name: _sd?.name ?? 'Sire\'s Dam',
+                             id: _sd?.id ?? '--',
+                             borderColor: kPinkDeep,
+                             isSmall: true,
+                             onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
+                           ),
+                         ],
                        ),
-                       const SizedBox(width: 12),
-                       Expanded(
-                         child: _buildBaseCard(
-                           name: _dam?.name ?? 'Dam',
-                           id: _dam?.id ?? 'Add Doe',
-                           breed: _dam?.breed ?? '--',
-                           borderColor: kPinkDeep,
-                           onTap: () => _updateParent(RabbitType.doe, true),
-                         ),
+                     ),
+                     const SizedBox(width: 12),
+                     // Dam's Parents
+                     Expanded(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
+                           _buildBaseCard(
+                             name: _ds?.name ?? 'Dam\'s Sire',
+                             id: _ds?.id ?? '--',
+                             borderColor: kBlueDeep,
+                             isSmall: true,
+                             onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
+                           ),
+                           const SizedBox(height: 8),
+                           _buildBaseCard(
+                             name: _dd?.name ?? 'Dam\'s Dam',
+                             id: _dd?.id ?? '--',
+                             borderColor: kPinkDeep,
+                             isSmall: true,
+                             onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
+                           ),
+                         ],
                        ),
-                     ],
-                   ),
-                 ],
+                     ),
+                   ],
+                 ),
 
                  if (selectedGenerations >= 3) ...[
-                   const SizedBox(height: 24),
-                   _buildLabel('GRANDPARENTS'),
-                   Row(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       // Sire's Parents
-                       Expanded(
-                         child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
-                             _buildBaseCard(
-                               name: _ss?.name ?? 'Sire\'s Sire',
-                               id: _ss?.id ?? '--',
-                               borderColor: kBlueDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
-                             ),
-                             const SizedBox(height: 8),
-                             _buildBaseCard(
-                               name: _sd?.name ?? 'Sire\'s Dam',
-                               id: _sd?.id ?? '--',
-                               borderColor: kPinkDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
-                             ),
-                           ],
-                         ),
-                       ),
-                       const SizedBox(width: 12),
-                       // Dam's Parents
-                       Expanded(
-                         child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
-                             _buildBaseCard(
-                               name: _ds?.name ?? 'Dam\'s Sire',
-                               id: _ds?.id ?? '--',
-                               borderColor: kBlueDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
-                             ),
-                             const SizedBox(height: 8),
-                             _buildBaseCard(
-                               name: _dd?.name ?? 'Dam\'s Dam',
-                               id: _dd?.id ?? '--',
-                               borderColor: kPinkDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
-                             ),
-                           ],
-                         ),
-                       ),
-                     ],
-                   ),
-                 ],
-
-                 if (selectedGenerations >= 4) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     _buildLabel('GREAT-GRANDPARENTS'),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,6 +272,230 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
            ),
          ],
        ),
+    );
+  }
+
+  Widget _buildSubjectCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kHeaderPink,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF7B4DE), width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'SUBJECT',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF55555C),
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 6),
+          RichText(
+            text: TextSpan(
+              children: [
+                if ((widget.rabbit.breederPrefix ?? '').isNotEmpty)
+                  TextSpan(
+                    text: '${widget.rabbit.breederPrefix} ',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                  ),
+                TextSpan(
+                  text: widget.rabbit.name,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF2C2C2E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (widget.rabbit.breed.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              widget.rabbit.breed,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF55555C),
+              ),
+            ),
+          ],
+          if ((widget.rabbit.earNumber ?? '').isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Ear #: ${widget.rabbit.earNumber}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+          ] else if (widget.rabbit.id.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              'ID: ${widget.rabbit.id}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParentCard({
+    required String label,
+    required Rabbit? rabbit,
+    required bool isMale,
+    required VoidCallback onTap,
+  }) {
+    final Gradient cardGradient = isMale
+        ? const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+          )
+        : const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFBCE7), Color(0xFFFFF0F9)],
+          );
+
+    final bool hasDetails = rabbit != null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: cardGradient,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
+            width: 0.8,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF55555C),
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                Icon(
+                  hasDetails ? Icons.edit : Icons.add_circle_outline,
+                  size: 14,
+                  color: const Color(0xFF55555C).withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (!hasDetails) ...[
+              Text(
+                isMale ? 'Add Sire' : 'Add Dam',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF55555C),
+                ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'Tap to select',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF8E8E93),
+                ),
+              ),
+            ] else ...[
+              RichText(
+                text: TextSpan(
+                  children: [
+                    if ((rabbit.breederPrefix ?? '').isNotEmpty)
+                      TextSpan(
+                        text: '${rabbit.breederPrefix} ',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                    TextSpan(
+                      text: rabbit.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2C2C2E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (rabbit.breed.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  rabbit.breed,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF55555C),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if ((rabbit.earNumber ?? '').isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Ear #: ${rabbit.earNumber}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF8E8E93),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ] else if (rabbit.id.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'ID: ${rabbit.id}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF8E8E93),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -311,7 +528,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kNeutral400, letterSpacing: 0.8),
+        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4F4F56), letterSpacing: 0.8),
       ),
     );
   }
@@ -321,7 +538,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
         text,
-        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: kNeutral400, letterSpacing: 0.3),
+        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF55555C), letterSpacing: 0.3),
       ),
     );
   }
@@ -422,13 +639,13 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   style: TextStyle(
                     fontSize: isSmall ? 12 : 14,
                     fontWeight: FontWeight.w800,
-                    color: isPlaceholder ? kNeutral400 : const Color(0xFF1F2937),
+                    color: isPlaceholder ? const Color(0xFF787880) : const Color(0xFF2C2C2E),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: kNeutral400.withOpacity(0.5)),
+              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: const Color(0xFF787880).withOpacity(0.6)),
             ],
           ),
           Text(
@@ -436,7 +653,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             style: TextStyle(
               fontSize: isSmall ? 10 : 11,
               fontWeight: FontWeight.w600,
-              color: isPlaceholder ? kNeutral300 : kNeutral400,
+              color: isPlaceholder ? const Color(0xFFAEAEB2) : const Color(0xFF55555C),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -445,7 +662,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             const SizedBox(height: 2),
             Text(
               breed,
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: kNeutral400),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFF55555C)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -509,30 +726,54 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF9F7FA),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2))),
-          
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Purple Top Banner matching Log Birth Modal
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE6BEFE),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
               children: [
-                Text(
-                  'Set ${widget.label}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                ),
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: kNeutral100, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, size: 18, color: kNeutral600),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Set ${widget.label}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4A3E6D),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -540,9 +781,9 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
 
           TabBar(
             controller: _tabController,
-            indicatorColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
-            labelColor: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep,
-            unselectedLabelColor: kNeutral500,
+            indicatorColor: const Color(0xFF6B2D6D),
+            labelColor: const Color(0xFF6B2D6D),
+            unselectedLabelColor: const Color(0xFF787880),
             labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             tabs: const [
               Tab(text: 'SELECT FROM HERD'),
@@ -570,13 +811,13 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
          child: Column(
            mainAxisAlignment: MainAxisAlignment.center,
            children: [
-             Icon(PhosphorIcons.users(), size: 48, color: kNeutral200),
+             Icon(PhosphorIcons.users(), size: 48, color: kNeutral400),
              const SizedBox(height: 16),
              Text('No active herd members', style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w600)),
              const SizedBox(height: 16),
              TextButton(
                onPressed: () => _tabController.animateTo(1),
-               child: Text('Add Manually Instead', style: TextStyle(color: widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep, fontWeight: FontWeight.w700)),
+               child: const Text('Add Manually Instead', style: TextStyle(color: Color(0xFF6B2D6D), fontWeight: FontWeight.w700)),
              ),
            ],
          ),
@@ -584,15 +825,29 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
      }
 
      return ListView.separated(
-       padding: const EdgeInsets.all(20),
+       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
        itemCount: widget.options.length,
-       separatorBuilder: (context, index) => const Divider(height: 1),
+       separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFE5DEEC)),
        itemBuilder: (context, index) {
          final rabbit = widget.options[index];
+         final breedStr = (rabbit.breed != null && rabbit.breed!.isNotEmpty) ? rabbit.breed! : 'Dwarf Hotot';
+         final earStr = (rabbit.earNumber != null && rabbit.earNumber!.isNotEmpty) ? rabbit.earNumber! : '-';
+         final idStr = rabbit.id.length > 8 ? rabbit.id.substring(0, 8).toUpperCase() : rabbit.id.toUpperCase();
+
          return ListTile(
-            title: Text(rabbit.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('${rabbit.breed} • ${rabbit.id}'),
-            trailing: const Icon(Icons.chevron_right, size: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            title: Text(
+              rabbit.fullName,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF334155)),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Text(
+                'Breed: $breedStr • Ear: $earStr • ID: $idStr',
+                style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
             onTap: () {
               Navigator.pop(context);
               widget.onSelect(rabbit);
@@ -603,57 +858,74 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   }
 
   Widget _buildManualTab() {
-    final accentColor = widget.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
-          // NAME
-          _buildTextField('NAME', _nameController),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5DEEC)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // NAME
+                _buildOutlinedField('NAME', _nameController, hint: 'e.g. Bella'),
+                const SizedBox(height: 14),
 
-          // Color | Weight
-          Row(
-            children: [
-              Expanded(child: _buildTextField('Color', _colorController)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildTextField('Weight', _weightController, isNumber: true)),
-            ],
-          ),
-          const SizedBox(height: 16),
+                // BREED
+                _buildOutlinedField('BREED', _breedController, hint: 'e.g. Dwarf Hotot'),
+                const SizedBox(height: 14),
 
-          // EAR # | BORN
-          Row(
-            children: [
-              Expanded(child: _buildTextField('EAR #', _idController)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
-            ],
-          ),
-          const SizedBox(height: 16),
+                // Color | Weight
+                Row(
+                  children: [
+                    Expanded(child: _buildOutlinedField('Color', _colorController, hint: 'e.g. Black')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildOutlinedField('Weight', _weightController, hint: 'e.g. 3.5', isNumber: true)),
+                  ],
+                ),
+                const SizedBox(height: 14),
 
-          // LEGS | REG # | GC #
-          Row(
-            children: [
-              Expanded(flex: 1, child: _buildTextField('LEGS', _legsController, isNumber: true)),
-              const SizedBox(width: 12),
-              Expanded(flex: 2, child: _buildTextField('REG #', _regController)),
-              const SizedBox(width: 12),
-              Expanded(flex: 2, child: _buildTextField('GC #', _gcController)),
-            ],
+                // EAR # | BORN
+                Row(
+                  children: [
+                    Expanded(child: _buildOutlinedField('EAR #', _idController, hint: 'e.g. L01')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // LEGS | REG # | GC #
+                Row(
+                  children: [
+                    Expanded(flex: 1, child: _buildOutlinedField('LEGS', _legsController, isNumber: true)),
+                    const SizedBox(width: 10),
+                    Expanded(flex: 2, child: _buildOutlinedField('REG #', _regController)),
+                    const SizedBox(width: 10),
+                    Expanded(flex: 2, child: _buildOutlinedField('GC #', _gcController)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
 
           ElevatedButton(
             onPressed: _saveManual,
             style: ElevatedButton.styleFrom(
-              backgroundColor: accentColor,
-              minimumSize: const Size(double.infinity, 54),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: const Color(0xFF6B2D6D),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               elevation: 0,
             ),
-            child: const Text('Save Ancestor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+            child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
           const SizedBox(height: 20),
         ],
@@ -677,7 +949,7 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
       name: _nameController.text,
       type: _gender,
       status: RabbitStatus.inactive,
-      breed: _breedController.text.isNotEmpty ? _breedController.text : 'Unknown',
+      breed: _breedController.text.isNotEmpty ? _breedController.text : 'Dwarf Hotot',
       color: _colorController.text.isNotEmpty ? _colorController.text : null,
       weight: weight,
       dateOfBirth: _dateOfBirth,
@@ -696,91 +968,63 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     widget.onSelect(newRabbit);
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {String? hint, bool isNumber = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.5)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.normal),
-            filled: true,
-            fillColor: kNeutral50,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDatePicker(String label, DateTime? value, Function(DateTime) onSelect) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500)),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: value ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime.now(),
-            );
-            if (picked != null) onSelect(picked);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: kNeutral50, borderRadius: BorderRadius.circular(12)),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, size: 14, color: kNeutral400),
-                const SizedBox(width: 8),
-                Text(
-                  value != null ? "${value.day}/${value.month}/${value.year}" : 'Select Date',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: value != null ? kNeutral800 : kNeutral400),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSexToggle() {
-    return Container(
-      decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSexBtn('Buck', RabbitType.buck),
-          _buildSexBtn('Doe', RabbitType.doe),
-        ],
+  Widget _buildOutlinedField(String label, TextEditingController controller, {String? hint, bool isNumber = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        hintText: hint,
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w400, fontSize: 13),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
       ),
     );
   }
 
-  Widget _buildSexBtn(String label, RabbitType type) {
-    final active = _gender == type;
-    final activeColor = type == RabbitType.buck ? kBlueDeep : kPinkDeep;
-    return GestureDetector(
-      onTap: () => setState(() => _gender = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(100),
+  Widget _buildDatePicker(String label, DateTime? value, Function(DateTime) onSelect) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (picked != null) onSelect(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: active ? Colors.white : kNeutral500),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF4F4F56)),
+            const SizedBox(width: 8),
+            Text(
+              value != null ? FormatUtils.formatDate(value) : 'Select Date',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: value != null ? const Color(0xFF4F4F56) : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
         ),
       ),
     );

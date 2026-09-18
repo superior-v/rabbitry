@@ -44,7 +44,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   String _formatDate(DateTime date) {
-    return FormatUtils.formatDateShort(date);
+    return DateFormat('MMM d').format(date);
   }
 
   int get _daysSinceBred {
@@ -117,7 +117,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 ),
                 GestureDetector(
                   onTap: () => _showCurrentBreedingMenu(context),
-                  child: const Icon(Icons.more_vert, color: Color(0xFFB4B4BC), size: 18),
+                  child: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
                 ),
               ],
             ),
@@ -129,17 +129,16 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF7A7A82)),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56)),
                     children: [
-                      const TextSpan(text: 'with '),
                       TextSpan(
                         text: _buckName ?? widget.rabbit.lastBreedBuckId ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF42424A)),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
                       ),
                       const TextSpan(text: ' • '),
                       TextSpan(
                         text: 'Day $_daysSinceBred of ${_settings.gestationDays}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF303038)),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
                       ),
                     ],
                   ),
@@ -194,16 +193,16 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       widget.rabbit.lastBreedDate != null ? 'Bred ${_formatDate(widget.rabbit.lastBreedDate!)}' : 'Bred -',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6E6E76),
-                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4F4F56),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       widget.rabbit.dueDate != null ? 'Due ${_formatDate(widget.rabbit.dueDate!)}' : 'Due -',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6E6E76),
-                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF4F4F56),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -467,7 +466,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         Icon(
           icon,
           size: 14,
-          color: isActive ? const Color(0xFF686870) : const Color(0xFFB7B7BE),
+          color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF8E8E93),
         ),
         const SizedBox(height: 4),
         Text(
@@ -475,16 +474,16 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: isActive ? const Color(0xFF5D5D65) : const Color(0xFFA7A7AF),
+            color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
           ),
         ),
         const SizedBox(height: 2),
         Text(
           date,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF9B9BA4),
+            fontWeight: FontWeight.w600,
+            color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
           ),
         ),
       ],
@@ -903,7 +902,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               ),
               const Divider(height: 1, color: Color(0xFFE5E5EA)),
               ListTile(
-                title: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFC47070), fontSize: 16, fontWeight: FontWeight.w500)),
+                title: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFD94452), fontSize: 16, fontWeight: FontWeight.w500)),
                 onTap: () {
                   Navigator.pop(context);
                   _showMarkOpenDialog(context);
@@ -937,7 +936,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               await _handleMarkOpen();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFC47070),
+              backgroundColor: const Color(0xFFD94452),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text('Delete Breeding', style: TextStyle(color: Colors.white)),

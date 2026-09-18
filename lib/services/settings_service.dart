@@ -34,6 +34,10 @@ class SettingsService {
   bool get weaningEnabled => _prefs?.getBool('weaningEnabled') ?? true;
   bool get growOutEnabled => _prefs?.getBool('growOutEnabled') ?? true;
   bool get trackWeightsEnabled => _prefs?.getBool('trackWeightsEnabled') ?? true;
+  bool get palpationAutoTask => _prefs?.getBool('palpationAutoTask') ?? true;
+  bool get nestBoxAutoTask => _prefs?.getBool('nestBoxAutoTask') ?? true;
+  bool get kindleAutoTask => _prefs?.getBool('kindleAutoTask') ?? true;
+  bool get weaningAutoTask => _prefs?.getBool('weaningAutoTask') ?? true;
   int get growOutDuration => _prefs?.getInt('growOutDuration') ?? 12; // weeks
   int get sexualMaturityAge => _prefs?.getInt('sexualMaturityAge') ?? 6; // months
 
@@ -45,7 +49,7 @@ class SettingsService {
   // App settings
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
   String get currency => _prefs?.getString('currency') ?? 'usd';
-  String get dateFormat => _prefs?.getString('dateFormat') ?? 'MM/dd/yyyy';
+  String get dateFormat => _prefs?.getString('dateFormat') ?? 'MMM d, yyyy';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
   String get digestTime => _prefs?.getString('digestTime') ?? '07:00';
@@ -338,6 +342,22 @@ class SettingsService {
 
   Future<void> setTrackWeightsEnabled(bool enabled) async {
     await _prefs?.setBool('trackWeightsEnabled', enabled);
+  }
+
+  Future<void> setPalpationAutoTask(bool enabled) async {
+    await _prefs?.setBool('palpationAutoTask', enabled);
+  }
+
+  Future<void> setNestBoxAutoTask(bool enabled) async {
+    await _prefs?.setBool('nestBoxAutoTask', enabled);
+  }
+
+  Future<void> setKindleAutoTask(bool enabled) async {
+    await _prefs?.setBool('kindleAutoTask', enabled);
+  }
+
+  Future<void> setWeaningAutoTask(bool enabled) async {
+    await _prefs?.setBool('weaningAutoTask', enabled);
   }
 
   Future<void> setGrowOutDuration(int weeks) async {

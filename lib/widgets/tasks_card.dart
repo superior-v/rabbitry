@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
-import '../services/settings_service.dart';
 import '../constants/app_colors.dart';
 import '../services/format_utils.dart';
 import 'package:intl/intl.dart';
-import '../screens/task_screen.dart';
 
 // ================================================================
 //  TASKS CARD — shows Today/Overdue & Upcoming tasks for a rabbit
@@ -122,7 +120,7 @@ class _TasksCardState extends State<TasksCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF2F2F7),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kNeutral200),
       ),
@@ -132,15 +130,15 @@ class _TasksCardState extends State<TasksCard> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
             child: Row(
               children: [
                 const Text(
                   'TASKS',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF374151),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -154,7 +152,7 @@ class _TasksCardState extends State<TasksCard> {
                     });
                   },
                   itemBuilder: (BuildContext context) {
-                    final categories = ['ALL', 'BREEDING', 'HEALTH', 'MAINTENANCE', 'GENERAL', 'OPERATIONS'];
+                    final categories = ['ALL', 'BREEDING', 'HEALTH', 'OPERATIONS'];
                     return categories.map((cat) {
                       final isSelected = (_selectedFilterCategory == null && cat == 'ALL') ||
                           (_selectedFilterCategory == cat);
@@ -250,7 +248,7 @@ class _TasksCardState extends State<TasksCard> {
 
   Widget _buildTaskHeader(String title, int count, {bool isOverdue = false}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -304,18 +302,9 @@ class _TasksCardState extends State<TasksCard> {
       timeLabel = '';
     }
 
-    String category = (task['category'] ?? 'General').toString().toUpperCase();
-    
-    final TextStyle categoryStyle = const TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w800,
-      color: Color(0xFF8B5CF6),
-      letterSpacing: 0.5,
-    );
-
     final TextStyle timeLabelStyle = TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
+      fontSize: 12,
+      fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
       color: isOverdue 
           ? const Color(0xFFEF4444) 
           : isToday 
@@ -324,9 +313,10 @@ class _TasksCardState extends State<TasksCard> {
     );
 
     final rowBg = index.isEven ? const Color(0xFFF2F2F7) : Colors.white;
+    final bunnyName = widget.rabbit.name.isNotEmpty ? widget.rabbit.name.toUpperCase() : '';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       decoration: BoxDecoration(
         color: rowBg,
         borderRadius: BorderRadius.circular(8),
@@ -337,92 +327,92 @@ class _TasksCardState extends State<TasksCard> {
         child: InkWell(
           onTap: () => _showTaskOptions(task),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Checkbox
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () async {
-                    if (isCompleted) {
-                      await _uncompleteTask(task);
-                    } else {
-                      await _showTaskCostDialog(task);
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: isCompleted
-                        ? Container(
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              color: const Color(0xFFD6C3F9),
-                            ),
-                            child: const Icon(Icons.check, size: 14, color: Colors.white),
-                          )
-                        : (dueDate != null && !isToday && !isOverdue)
-                            ? CustomPaint(
-                                painter: DashedRectPainter(
-                                  color: const Color(0xFFD1D5DB),
-                                  strokeWidth: 2,
-                                  gap: 2.5,
-                                  radius: 6,
-                                ),
-                                child: const SizedBox(width: 22, height: 22),
-                              )
-                            : Container(
-                                width: 22,
-                                height: 22,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: const Color(0xFFD1D5DB),
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
+                // Front small circle checkbox
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () async {
+                      if (isCompleted) {
+                        await _uncompleteTask(task);
+                      } else {
+                        await _showTaskCostDialog(task);
+                      }
+                    },
+                    child: Container(
+                      width: 15,
+                      height: 15,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                        border: Border.all(
+                          color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: isCompleted
+                          ? const Center(
+                              child: Icon(Icons.check, size: 10, color: Colors.white),
+                            )
+                          : null,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Title & Info
+                const SizedBox(width: 10),
+                // Title & Bunny Name (NOT BOLD)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         task['name'] ?? task['task'] ?? 'Task',
                         style: TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500, // NOT BOLD
                           color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF1F2937),
                           decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          height: 1.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(category, style: categoryStyle),
-                          if (timeLabel.isNotEmpty) ...[
-                            const SizedBox(width: 8),
-                            Text(timeLabel, style: timeLabelStyle),
-                          ],
-                        ],
-                      ),
+                      if (bunnyName.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          bunnyName,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF8B5CF6),
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
+                // Time label
+                if (timeLabel.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(timeLabel, style: timeLabelStyle),
+                  ),
+                const SizedBox(width: 4),
                 // More options button (three dots)
-                const SizedBox(width: 12),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _showTaskOptions(task),
                   child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.more_horiz, size: 18, color: Color(0xFFD1D5DB)),
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                   ),
                 ),
               ],
@@ -438,8 +428,9 @@ class _TasksCardState extends State<TasksCard> {
   Future<void> _uncompleteTask(Map<String, dynamic> task) async {
     final isPipeline = task['isPipelineTask'] == true;
     final taskId = task['id'];
-    if (taskId != null) {
-      if (isPipeline) {
+
+    if (isPipeline) {
+      if (taskId != null) {
         final db = await _db.database;
         await db.update(
           'tasks',
@@ -447,116 +438,135 @@ class _TasksCardState extends State<TasksCard> {
           where: 'id = ?',
           whereArgs: [taskId.toString()],
         );
-      } else {
+      }
+    } else {
+      if (taskId is int) {
         await _db.unmarkScheduledTaskCompleted(taskId);
       }
-      _loadTasks();
     }
+    _loadTasks();
   }
 
   Future<void> _showTaskCostDialog(Map<String, dynamic> task) async {
-    final costController = TextEditingController();
     final taskTitle = task['title']?.toString() ?? task['name']?.toString() ?? 'Task';
-    final taskCategory = task['category']?.toString();
-    final rabbitId = task['rabbitId']?.toString() ?? widget.rabbit.id;
+    final taskCategory = task['category']?.toString() ?? 'Operations';
+    final rabbitId = widget.rabbit.id;
+
+    final costController = TextEditingController();
+    bool shouldAddCost = false;
 
     final result = await showDialog<double?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kPinkDeep.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.check_circle_outline, color: kPinkDeep, size: 20),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Text(
-                'Task Complete',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              taskTitle,
-              style: TextStyle(fontSize: 14, color: kNeutral500),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Any cost spent on this task?',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: costController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: '0.00',
-                prefixText: FormatUtils.currencySymbol,
-                prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kPinkDeep, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                child: const Icon(Icons.check_circle_outline, color: Color(0xFF8B5CF6), size: 20),
               ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Task Complete',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                taskTitle,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                value: shouldAddCost,
+                onChanged: (val) {
+                  setDialogState(() {
+                    shouldAddCost = val ?? false;
+                  });
+                },
+                title: const Text('Add expense for this task?', style: TextStyle(fontSize: 14)),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              if (shouldAddCost) ...[
+                const SizedBox(height: 8),
+                TextField(
+                  controller: costController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Cost (\$)',
+                    hintText: '0.00',
+                    prefixText: '\$ ',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (shouldAddCost) {
+                  final cost = double.tryParse(costController.text) ?? 0.0;
+                  Navigator.pop(ctx, cost);
+                } else {
+                  Navigator.pop(ctx, 0.0);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Done'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 0.0),
-            child: Text('No Cost', style: TextStyle(color: kNeutral500)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final cost = double.tryParse(costController.text) ?? 0.0;
-              Navigator.pop(ctx, cost);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPinkDeep,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
 
-    if (result == null) return;
+    if (result != null) {
+      await _completeTaskWithOptionalCost(task, result > 0 ? result : null);
+    }
+  }
 
-    final cost = result > 0 ? result : null;
+  Future<void> _completeTaskWithOptionalCost(Map<String, dynamic> task, double? cost) async {
     final isPipeline = task['isPipelineTask'] == true;
+    final taskId = task['id'];
+    final taskTitle = task['name'] ?? task['task'] ?? 'Task';
+    final taskCategory = task['category'] ?? 'Operations';
+    final rabbitId = widget.rabbit.id;
 
     if (isPipeline) {
-      final taskId = task['id']?.toString();
-      if (taskId != null) {
-        if (cost != null) {
-          await _db.completeTaskWithCost(taskId, cost, rabbitId, taskTitle: taskTitle, taskCategory: taskCategory);
-        } else {
-          await _db.completeTask(taskId);
-        }
+      final String idStr = taskId.toString();
+      if (cost != null && cost > 0) {
+        await _db.completeTaskWithCost(idStr, cost, rabbitId, taskTitle: taskTitle, taskCategory: taskCategory);
+      } else {
+        await _db.completeTask(idStr);
       }
     } else {
-      final taskId = task['id'] as int?;
-      if (taskId == null) return;
-      if (cost != null) {
-        await _db.markScheduledTaskCompletedWithCost(taskId, cost, taskTitle: taskTitle, taskCategory: taskCategory, rabbitId: rabbitId);
-      } else {
-        await _db.markScheduledTaskCompleted(taskId);
+      if (taskId is int) {
+        if (cost != null && cost > 0) {
+          await _db.markScheduledTaskCompletedWithCost(taskId, cost, taskTitle: taskTitle, taskCategory: taskCategory, rabbitId: rabbitId);
+        } else {
+          await _db.markScheduledTaskCompleted(taskId);
+        }
       }
     }
 
@@ -566,17 +576,10 @@ class _TasksCardState extends State<TasksCard> {
   void _showNewScheduleDialog() async {
     String selectedCategory = 'Operations';
     String? selectedTask;
-    String selectedFrequency = 'Weekly';
+    String selectedFrequency = 'Select date';
     bool isCustomTask = false;
-    DateTime? selectedCustomDate;
+    DateTime? selectedCustomDate = DateTime.now();
     final TextEditingController customTaskController = TextEditingController();
-
-    List<Map<String, dynamic>> taskDirectoryItems = [];
-    try {
-      taskDirectoryItems = await _db.getAllTaskDirectoryItems();
-    } catch (e) {
-      print('Error loading task directory: $e');
-    }
 
     showDialog(
       context: context,
@@ -584,25 +587,101 @@ class _TasksCardState extends State<TasksCard> {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final directoryTasks = taskDirectoryItems
-                .where((t) => (t['category'] as String).toLowerCase() == selectedCategory.toLowerCase())
-                .map((t) => t['name'] as String)
-                .toList();
+            Widget buildCategoryRadio(String label, String value) {
+              final bool isSelected = (value == 'Custom' && isCustomTask) ||
+                  (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
+              return GestureDetector(
+                onTap: () {
+                  setDialogState(() {
+                    if (value == 'Custom') {
+                      selectedCategory = 'Custom';
+                      isCustomTask = true;
+                      selectedTask = null;
+                    } else {
+                      selectedCategory = value;
+                      isCustomTask = false;
+                      selectedTask = null;
+                    }
+                  });
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          width: isSelected ? 5.5 : 1.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
 
             List<String> currentTaskOptions;
-            if (directoryTasks.isNotEmpty) {
-              currentTaskOptions = directoryTasks;
+            if (selectedCategory == 'Health') {
+              currentTaskOptions = [
+                'Nail Trim',
+                'Deworm',
+                'Coccidiosis Med',
+                'Teeth Check',
+                'Weight Check',
+                '+ Custom...',
+              ];
+            } else if (isBreeding) {
+              currentTaskOptions = [
+                'Palpation',
+                'Add Nest Box',
+                'Check for Kindle',
+                '+ Custom...',
+              ];
+            } else if (selectedCategory == 'Operations') {
+              currentTaskOptions = [
+                'Clean Trays',
+                'Top Off Feed',
+                'Check Water',
+                'Deep Clean',
+                'Cage Maintenance',
+                '+ Custom...',
+              ];
             } else {
-              if (selectedCategory == 'Operations') {
-                currentTaskOptions = ['Clean Trays', 'Top Off Feed', 'Check Water', 'Deep Clean'];
-              } else if (selectedCategory == 'Health') {
-                currentTaskOptions = ['Nail Trim', 'Health Check', 'Weighing', 'Ear Check'];
-              } else if (selectedCategory == 'Butchering') {
-                currentTaskOptions = ['Schedule Butcher', 'Prep Equipment', 'Process'];
-              } else if (selectedCategory == 'Pregnancy') {
-                currentTaskOptions = ['Palpation', 'Add Nest Box', 'Check for Kindle'];
-              } else {
-                currentTaskOptions = ['Inventory Check', 'General Maintenance'];
+              currentTaskOptions = [
+                'Clean Trays',
+                'Nail Trim',
+                'Health Check',
+                '+ Custom...',
+              ];
+            }
+
+            Future<void> pickDate() async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedCustomDate ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
+                lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+              );
+              if (picked != null) {
+                setDialogState(() {
+                  selectedCustomDate = picked;
+                });
               }
             }
 
@@ -613,7 +692,7 @@ class _TasksCardState extends State<TasksCard> {
               insetPadding: const EdgeInsets.all(16),
               child: Container(
                 width: double.infinity,
-                constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.85),
+                constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
                 padding: const EdgeInsets.all(24),
                 child: SingleChildScrollView(
                   child: Column(
@@ -636,58 +715,59 @@ class _TasksCardState extends State<TasksCard> {
                       ),
                       const SizedBox(height: 20),
                       _buildDialogLabel('Category'),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: _inputBoxDecoration(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedCategory,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
-                            items: ['Operations', 'Health', 'Butchering', 'Pregnancy', 'Other']
-                                .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
-                                .toList(),
-                            onChanged: (val) {
-                              setDialogState(() {
-                                selectedCategory = val!;
-                                selectedTask = null;
-                                isCustomTask = false;
-                              });
-                            },
-                          ),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                          Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: buildCategoryRadio('Health', 'Health')),
+                          Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                        ],
                       ),
                       const SizedBox(height: 16),
-                      _buildDialogLabel('Task'),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: _inputBoxDecoration(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: isCustomTask ? 'custom' : selectedTask,
-                            hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: kNeutral400)),
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
-                            items: [
-                              ...currentTaskOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))),
-                              const DropdownMenuItem(value: 'custom', child: Text('+ Custom...', style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF8B5CF6)))),
-                            ],
-                            onChanged: (val) {
-                              setDialogState(() {
-                                if (val == 'custom') {
-                                  isCustomTask = true;
-                                  selectedTask = null;
+                      if (!isCustomTask) ...[
+                        _buildDialogLabel('Task'),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: _inputBoxDecoration(),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: (selectedTask == '+ Custom...') ? null : selectedTask,
+                              hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: kNeutral400)),
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
+                              items: currentTaskOptions.map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
+                                    color: e == '+ Custom...' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                              )).toList(),
+                              onChanged: (val) {
+                                if (val == '+ Custom...') {
+                                  setDialogState(() {
+                                    isCustomTask = true;
+                                    selectedTask = null;
+                                  });
                                 } else {
-                                  isCustomTask = false;
-                                  selectedTask = val;
+                                  setDialogState(() {
+                                    selectedTask = val;
+                                  });
                                 }
-                              });
-                            },
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      if (isCustomTask) ...[
-                        const SizedBox(height: 12),
+                      ] else ...[
+                        _buildDialogLabel('Custom Task Name'),
                         TextField(
                           controller: customTaskController,
                           decoration: InputDecoration(
@@ -700,39 +780,42 @@ class _TasksCardState extends State<TasksCard> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      _buildDialogLabel('Frequency'),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: _inputBoxDecoration(),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedFrequency,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
-                            items: ['Daily', 'Weekly', 'Bi-Weekly', 'Monthly', 'Once', 'Select Custom Date...']
-                                .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14))))
-                                .toList(),
-                            onChanged: (val) => setDialogState(() => selectedFrequency = val!),
+                      // Frequency option is NOT shown for Breeding category!
+                      if (!isBreeding) ...[
+                        _buildDialogLabel('Frequency'),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: _inputBoxDecoration(),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedFrequency,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
+                              items: [
+                                'Select date',
+                                'Daily',
+                                'Weekly Starting',
+                                'Fortnightly Starting',
+                                'Monthly Starting',
+                                'Semi Annually starting',
+                                'Annually'
+                              ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                              onChanged: (val) {
+                                setDialogState(() => selectedFrequency = val!);
+                                if (val != 'Daily') {
+                                  pickDate();
+                                }
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      if (selectedFrequency == 'Select Custom Date...') ...[
                         const SizedBox(height: 16),
-                        _buildDialogLabel('Custom Due Date'),
+                      ],
+                      // Date selector: always shown for Breeding or when Frequency is not Daily
+                      if (isBreeding || selectedFrequency != 'Daily') ...[
+                        _buildDialogLabel(isBreeding ? 'Select a Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date')),
                         InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedCustomDate ?? DateTime.now(),
-                              firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)), // Enable past dates up to 10 years
-                              lastDate: DateTime.now().add(const Duration(days: 365 * 10)),   // Enable future dates up to 10 years
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedCustomDate = picked;
-                              });
-                            }
-                          },
+                          onTap: pickDate,
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -743,7 +826,7 @@ class _TasksCardState extends State<TasksCard> {
                                 Text(
                                   selectedCustomDate == null
                                       ? 'Choose date...'
-                                      : DateFormat('MMM d, yyyy').format(selectedCustomDate!),
+                                      : FormatUtils.formatDate(selectedCustomDate!),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: selectedCustomDate == null ? kNeutral400 : const Color(0xFF1F2937),
@@ -754,28 +837,39 @@ class _TasksCardState extends State<TasksCard> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 20),
+                      ] else ...[
+                        const SizedBox(height: 8),
                       ],
-                      const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            String finalTaskName = isCustomTask ? customTaskController.text : (selectedTask ?? '');
-                            if (finalTaskName.isEmpty) return;
-                            final isCustomDate = selectedFrequency == 'Select Custom Date...';
-                            if (isCustomDate && selectedCustomDate == null) return;
+                            String finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
+                            if (finalTaskName.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                              );
+                              return;
+                            }
+                            final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                            final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
+                            final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
+
                             try {
                               await _db.insertScheduledTask({
                                 'name': finalTaskName,
                                 'category': selectedCategory,
-                                'frequency': isCustomDate ? 'Once' : selectedFrequency,
+                                'frequency': freqToSave,
                                 'linkType': 'rabbit',
                                 'linkedEntities': [{'id': widget.rabbit.id, 'name': widget.rabbit.name, 'code': widget.rabbit.cage ?? 'No cage'}],
-                                if (isCustomDate && selectedCustomDate != null)
-                                  'dueDate': selectedCustomDate!.toIso8601String(),
+                                'dueDate': dueDate.toIso8601String(),
                               });
                               Navigator.pop(dialogContext);
                               _loadTasks();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Task Saved'), backgroundColor: Color(0xFF8B5CF6)),
+                              );
                             } catch (e) {
                               print(e);
                             }
@@ -803,38 +897,202 @@ class _TasksCardState extends State<TasksCard> {
   void _showTaskOptions(Map<String, dynamic> task) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: 4, width: 40,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(color: kNeutral200, borderRadius: BorderRadius.circular(2)),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                final isPipeline = task['isPipelineTask'] == true;
+                if (!isPipeline) {
+                  _showEditTaskDialog(task);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('System tasks cannot be edited directly.'), backgroundColor: Color(0xFF8B5CF6)),
+                  );
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: const Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+              ),
             ),
-            ListTile(
-              leading: Icon(Icons.delete, color: const Color(0xFFEF4444)),
-              title: const Text('Delete Task', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            InkWell(
               onTap: () async {
+                Navigator.pop(context);
                 final isPipeline = task['isPipelineTask'] == true;
                 if (isPipeline) {
                   await _db.deleteTask(task['id'].toString());
                 } else {
-                  await _db.deleteScheduledTask(task['id']);
+                  final taskId = task['id'] as int?;
+                  if (taskId != null) await _db.deleteScheduledTask(taskId);
                 }
-                Navigator.pop(context);
                 _loadTasks();
               },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
           ],
         ),
       ),
+    );
+  }
+
+  void _showEditTaskDialog(Map<String, dynamic> task) async {
+    final taskId = task['id'] as int?;
+    if (taskId == null) return;
+
+    String selectedCategory = task['category']?.toString() ?? 'Operations';
+    String finalTaskName = task['name']?.toString() ?? task['task']?.toString() ?? '';
+    String selectedFrequency = task['frequency']?.toString() ?? 'Weekly';
+    final taskNameController = TextEditingController(text: finalTaskName);
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          BoxDecoration inputDec() => BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                borderRadius: BorderRadius.circular(12),
+              );
+
+          return Dialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding: const EdgeInsets.all(16),
+            child: Container(
+              width: double.infinity,
+              constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Edit Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+                        GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)))),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task Title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    TextField(
+                      controller: taskNameController,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF8B5CF6))),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: inputDec(),
+                        child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                                value: selectedCategory,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                items: [
+                                  'Operations',
+                                  'Health',
+                                  'Pregnancy',
+                                  'Breeding',
+                                  'Other'
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                                onChanged: (val) => setDialogState(() => selectedCategory = val!)))),
+                    const SizedBox(height: 14),
+                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: inputDec(),
+                        child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                                value: selectedFrequency,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                items: [
+                                  'Daily',
+                                  'Weekly',
+                                  'Bi-Weekly',
+                                  'Monthly',
+                                  'Once'
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                                onChanged: (val) => setDialogState(() => selectedFrequency = val!)))),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (taskNameController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a task name'), backgroundColor: Color(0xFFD44C47)));
+                              return;
+                            }
+                            try {
+                              final db = await _db.database;
+                              await db.update(
+                                'scheduled_tasks',
+                                {
+                                  'name': taskNameController.text.trim(),
+                                  'category': selectedCategory,
+                                  'frequency': selectedFrequency
+                                },
+                                where: 'id = ?',
+                                whereArgs: [
+                                  taskId
+                                ],
+                              );
+                              Navigator.pop(dialogContext);
+                              _loadTasks();
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Updated'), backgroundColor: Color(0xFF8B5CF6)));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                        )),
+                    const SizedBox(height: 8),
+                    SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+      },
     );
   }
 

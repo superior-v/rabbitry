@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import 'modals/log_weight_modal.dart';
 
@@ -45,7 +45,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
     if (dateStr == null) return '';
     final dt = DateTime.tryParse(dateStr);
     if (dt == null) return '';
-    return DateFormat('MMM d, yyyy').format(dt);
+    return FormatUtils.formatDate(dt);
   }
 
   String _formatWeight(dynamic w) {
@@ -196,7 +196,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
                       ),
                       GestureDetector(
                         onTap: () => _showDeleteConfirm(log),
-                        child: const Icon(Icons.more_vert, size: 18, color: kNeutral300),
+                        child: const Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                       ),
                     ],
                   ),

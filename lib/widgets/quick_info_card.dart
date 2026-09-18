@@ -72,7 +72,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
                   if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
                 ].join(' • ')
-              : 'N/A',
+              : '-',
           rowIndex: 1),
       _buildInfoRow(context, 'Ear No.:',
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
@@ -117,7 +117,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
     final bool isEven = rowIndex.isEven;
     final Color rowBg = isEven ? Colors.white : const Color(0xFFF7F5FA);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.0),
       decoration: BoxDecoration(
         color: rowBg,
         border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFEBE8F0), width: 0.8)),

@@ -109,7 +109,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Buck: ${widget.buck.name} (${widget.buck.id})',
+                        'Buck: ${widget.buck.fullName}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -172,7 +172,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                           value: doe,
                           child: Row(
                             children: [
-                              Text('${doe.name} (${doe.id})', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                              Text(doe.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -534,7 +534,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   }
 
   String _formatDate(DateTime date) {
-    return DateFormat('MM-dd-yyyy').format(date);
+    return FormatUtils.formatDate(date);
   }
 
   Widget _buildOutlinedField({
@@ -587,7 +587,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
             const SizedBox(width: 8),
             Text(
-              DateFormat('MM-dd-yyyy').format(value),
+              FormatUtils.formatDate(value),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
             ),
           ],

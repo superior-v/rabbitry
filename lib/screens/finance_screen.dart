@@ -682,22 +682,22 @@ class FinanceScreenState extends State<FinanceScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: const Color(0xFF4F4F56)),
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: kNeutral600),
                     const SizedBox(width: 12),
                     Text(
                       monthKey,
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${monthTransactions.length} entries',
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6E6E73),
+                        fontSize: 12,
+                        color: kNeutral500,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -705,16 +705,16 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       '${monthTotal >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: kNeutral600,
                     ),
                   ],
                 ),
@@ -814,16 +814,16 @@ class FinanceScreenState extends State<FinanceScreen> {
                           Text(
                             isGeneral ? 'General Herd' : _getRabbitName(key),
                             style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: kNeutral600,
                             ),
                           ),
                           Text(
                             '${rabbitTransactions.length} entries',
                             style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF6E6E73),
+                              fontSize: 12,
+                              color: kNeutral500,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -833,16 +833,16 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: kNeutral600,
                     ),
                   ],
                 ),
@@ -914,23 +914,23 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Icon(
                       PhosphorIcons.gitBranch(PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: isNoLitter ? const Color(0xFF4F4F56) : kLilacDeep,
+                      color: isNoLitter ? kNeutral600 : kLilacDeep,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       isNoLitter ? 'No Litter' : key,
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${litterTransactions.length} entries',
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF6E6E73),
+                        fontSize: 12,
+                        color: kNeutral500,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -938,16 +938,16 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: kNeutral600,
                     ),
                   ],
                 ),
@@ -1019,17 +1019,17 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       categoryTransactions.first.categoryName,
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${categoryTransactions.length} entries',
                       style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF6E6E73),
+                        fontSize: 12,
+                        color: kNeutral500,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1037,16 +1037,16 @@ class FinanceScreenState extends State<FinanceScreen> {
                     Text(
                       FormatUtils.formatCurrencySigned(total),
                       style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4F4F56),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kNeutral600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: kNeutral600,
                     ),
                   ],
                 ),

@@ -183,8 +183,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isDam = widget.rabbit.id == litter.doeId;
     final partner = isDam ? litter.buckName : litter.doeName;
     final partnerId = isDam ? litter.buckId : litter.doeId;
-    final bornDateStr = DateFormat('MM/dd/yy').format(litter.kindleDate ?? litter.breedDate);
-    final bredDateStr = DateFormat('MM/dd/yy').format(litter.breedDate);
+    final bornDateStr = FormatUtils.formatDate(litter.kindleDate ?? litter.breedDate);
+    final bredDateStr = FormatUtils.formatDate(litter.breedDate);
     final isExpanded = _expandedLitters.contains(litter.id);
 
     String fullAgeStr = '';
@@ -200,78 +200,88 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate)}';
     }
 
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isExpanded ? const Color(0xFFF7F3FB) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isExpanded ? const Color(0xFFE2D6EE) : const Color(0xFFE4E4EA)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ExpansionTile(
-          visualDensity: VisualDensity.compact,
-          tilePadding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
-          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-          iconColor: const Color(0xFF7D7D86),
-          collapsedIconColor: const Color(0xFF7D7D86),
-          onExpansionChanged: (expanded) {
-            setState(() {
-              if (expanded) {
-                _expandedLitters.add(litter.id);
-              } else {
-                _expandedLitters.remove(litter.id);
-              }
-            });
-          },
-          trailing: const SizedBox.shrink(),
-          title: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: isExpanded ? const Color(0xFFF7F3FB) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isExpanded ? const Color(0xFFE2D6EE) : const Color(0xFFE4E4EA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row: Chevron expands/collapses, 3-dots opens menu
+          Row(
             children: [
-              Text(
-                litter.status == 'Not Taken' ? 'MISSED LITTER' : litter.id,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    if (isExpanded) {
+                      _expandedLitters.remove(litter.id);
+                    } else {
+                      _expandedLitters.add(litter.id);
+                    }
+                  });
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      litter.status == 'Not Taken' ? 'MISSED LITTER' : litter.id,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(
+                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        size: 18,
+                        color: const Color(0xFF787880),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                size: 18,
-                color: const Color(0xFF787880),
               ),
               const Spacer(),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showLitterActionsMenu(context, litter),
                 child: const Padding(
-                  padding: EdgeInsets.only(left: 8.0, right: 4.0, top: 2.0, bottom: 2.0),
-                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787880)),
+                  padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                 ),
               ),
             ],
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 2),
-              Padding(
-                padding: const EdgeInsets.only(right: 4.0),
-                child: Row(
+
+          // Subtitle / Dates Area: Tapping anywhere here opens 3-dots menu
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showLitterActionsMenu(context, litter),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         litter.status == 'Not Taken'
                             ? 'Not Pregnant — archived'
-                            : 'with $partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
+                            : '$partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -291,11 +301,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 3),
-              Padding(
-                padding: const EdgeInsets.only(right: 4.0),
-                child: Row(
+                const SizedBox(height: 3),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
@@ -322,22 +329,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                   ],
                 ),
-              ),
-              if (fullAgeStr.isNotEmpty) ...[
-                const SizedBox(height: 3),
-                Text(
-                  fullAgeStr,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4F4F56),
+                if (fullAgeStr.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    fullAgeStr,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF4F4F56),
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
-          children: [
-            const SizedBox(height: 8),
+
+          // Expandable children notes
+          if (isExpanded) ...[
+            const SizedBox(height: 10),
             _buildFigmaField(litter, 'Patterns', 'patternsProduced', litter.patternsProduced),
             const SizedBox(height: 10),
             Row(
@@ -353,7 +362,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             _buildFigmaField(litter, 'Notes', 'notes', litter.notes),
             const SizedBox(height: 4),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -450,13 +459,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Litter ${litter.id}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E), letterSpacing: -0.5)),
-                        Text(litter.status, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF8E8E93))),
-                      ],
-                    ),
+                    Text('Litter ${litter.id}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF4F4F56), letterSpacing: -0.5)),
                     const Spacer(),
                     IconButton(
                       icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), size: 20),
@@ -844,7 +847,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.more_vert, size: 14, color: Color(0xFFB5B5BD)),
+            const Icon(Icons.more_horiz, size: 14, color: Color(0xFFB5B5BD)),
           ],
         ),
       ),
@@ -941,7 +944,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2E2E35),
+            color: Color(0xFF4F4F56),
           ),
           decoration: InputDecoration(
             labelText: label,

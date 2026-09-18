@@ -940,8 +940,8 @@ class _GenToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _buildBtn(2),
           _buildBtn(3),
-          _buildBtn(4),
         ],
       ),
     );

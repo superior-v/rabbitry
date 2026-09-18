@@ -266,6 +266,15 @@ class Rabbit {
     }
   }
 
+  String get fullName {
+    final prefix = breederPrefix?.trim();
+    if (prefix != null && prefix.isNotEmpty) {
+      return '$prefix $name';
+    }
+    return name;
+  }
+
+  // Get status details
   String? get statusDetails {
     switch (status) {
       case RabbitStatus.palpateDue:
@@ -273,7 +282,7 @@ class Rabbit {
 
       case RabbitStatus.pregnant:
         if (daysUntilDue != null && dueDate != null) {
-          return 'Due: ${dueDate!.day}/${dueDate!.month} • $daysUntilDue days left';
+          return 'Due: ${FormatUtils.formatDateShort(dueDate!)} • $daysUntilDue days left';
         }
         return null;
 
@@ -339,8 +348,8 @@ class Rabbit {
       case RabbitStatus.palpateDue:
         return 'Day 14 Check';
       case RabbitStatus.pregnant:
-        if (daysUntilDue != null) {
-          return 'Due: ${dueDate?.day}/${dueDate?.month} • $daysUntilDue Days left';
+        if (daysUntilDue != null && dueDate != null) {
+          return 'Due: ${FormatUtils.formatDateShort(dueDate!)} • $daysUntilDue Days left';
         }
         return 'Bred';
       case RabbitStatus.nursing:

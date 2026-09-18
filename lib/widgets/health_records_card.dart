@@ -31,10 +31,10 @@ class HealthRecordsCard extends StatelessWidget {
                 const Text(
                   'HEALTH RECORDS',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: kNeutral500,
-                    letterSpacing: 0.6,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: 0.8,
                   ),
                 ),
                 GestureDetector(
@@ -156,7 +156,7 @@ class HealthRecordsCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.more_horiz, color: Color(0xFF94A3B8), size: 20),
+            icon: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
             onPressed: () => _showRecordOptions(context, title),
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(),
@@ -214,7 +214,7 @@ class HealthRecordsCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.more_horiz, color: Color(0xFF94A3B8), size: 20),
+            icon: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
             onPressed: () => _showRecordOptions(context, title),
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(),
@@ -399,7 +399,7 @@ class HealthRecordsCard extends StatelessWidget {
                     },
                   );
                   if (picked != null) {
-                    dateController.text = "${picked.month}/${picked.day}/${picked.year}";
+                    dateController.text = FormatUtils.formatDate(picked);
                   }
                 },
               ),

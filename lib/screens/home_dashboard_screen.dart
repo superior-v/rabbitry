@@ -845,7 +845,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 title: const Text(
                   'Cancel Breeding',
                   style: TextStyle(
-                    color: Color(0xFFC47070),
+                    color: Color(0xFFD94452),
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -862,7 +862,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep', style: TextStyle(color: kNeutral600))),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w600)),
+                          child: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFD94452), fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),

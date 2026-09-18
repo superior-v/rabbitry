@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
 
 class LogWeightModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -213,7 +214,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                         Icon(Icons.calendar_today, size: 20, color: Color(0xFF787774)),
                         SizedBox(width: 12),
                         Text(
-                          '${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}',
+                          FormatUtils.formatDate(_selectedDate),
                           style: TextStyle(fontSize: 16),
                         ),
                         Spacer(),

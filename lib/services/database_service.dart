@@ -1171,8 +1171,8 @@ class DatabaseService {
     );
 
     // Create tasks based on pipeline settings
-    if (settings.palpationEnabled) {
-      // Palpation is enabled - create palpation task
+    if (settings.palpationEnabled && settings.palpationAutoTask) {
+      // Palpation is enabled and auto-create is ON
       await insertTask({
         'id': 'task_palp_${DateTime.now().millisecondsSinceEpoch}',
         'rabbitId': doeId,
@@ -1183,7 +1183,7 @@ class DatabaseService {
         'completed': 0,
         'createdAt': DateTime.now().toIso8601String(),
       });
-    } else if (settings.nestBoxEnabled) {
+    } else if (settings.nestBoxEnabled && settings.nestBoxAutoTask) {
       // Skip palpation, go directly to nest box
       await insertTask({
         'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
@@ -1195,7 +1195,7 @@ class DatabaseService {
         'completed': 0,
         'createdAt': DateTime.now().toIso8601String(),
       });
-    } else {
+    } else if (settings.kindleAutoTask) {
       // Skip both palpation and nest box, go directly to kindle
       await insertTask({
         'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch}',
@@ -1234,7 +1234,7 @@ class DatabaseService {
       );
 
       // Create tasks based on pipeline settings
-      if (settings.nestBoxEnabled) {
+      if (settings.nestBoxEnabled && settings.nestBoxAutoTask) {
         await insertTask({
           'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
           'rabbitId': doeId,
@@ -1247,16 +1247,18 @@ class DatabaseService {
         });
       }
 
-      await insertTask({
-        'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch + 1}',
-        'rabbitId': doeId,
-        'title': 'Expected Kindle',
-        'description': 'Due date for birth',
-        'taskType': 'kindle',
-        'dueDate': rabbit.dueDate!.toIso8601String(),
-        'completed': 0,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
+      if (settings.kindleAutoTask) {
+        await insertTask({
+          'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch + 1}',
+          'rabbitId': doeId,
+          'title': 'Expected Kindle',
+          'description': 'Due date for birth',
+          'taskType': 'kindle',
+          'dueDate': rabbit.dueDate!.toIso8601String(),
+          'completed': 0,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      }
     } else {
       // Archive breeding as "Not Taken" litter before resetting
       if (rabbit.lastBreedDate != null) {
@@ -1269,27 +1271,21 @@ class DatabaseService {
         await insertLitter({
           'id': notTakenId,
           'doeId': doeId,
+          'buckId': rabbit.lastBreedBuckId,
           'doeName': rabbit.name,
-          'buckId': rabbit.lastBreedBuckId ?? '',
           'buckName': buckName,
           'breedDate': rabbit.lastBreedDate!.toIso8601String(),
-          'kindleDate': DateTime.now().toIso8601String(),
-          'dob': DateTime.now().toIso8601String(),
+          'status': 'Not Taken',
           'totalBorn': 0,
           'aliveBorn': 0,
           'deadBorn': 0,
-          'currentAlive': 0,
-          'weanDate': DateTime.now().toIso8601String(),
-          'status': 'Not Taken',
-          'missedLitter': 1,
-          'sire': buckName,
-          'dam': rabbit.name,
           'kits': '[]',
           'createdAt': DateTime.now().toIso8601String(),
           'updatedAt': DateTime.now().toIso8601String(),
         });
       }
 
+      // Reset status to open
       await db.update(
         'rabbits',
         {
@@ -1337,6 +1333,7 @@ class DatabaseService {
     int? peanutsProduced,
   }) async {
     final db = await database;
+    final settings = SettingsService.instance;
     final rabbit = await getRabbit(doeId);
     if (rabbit == null) return;
 
@@ -1412,7 +1409,7 @@ class DatabaseService {
       'updatedAt': DateTime.now().toIso8601String(),
     });
 
-    if (!isMissed) {
+    if (!isMissed && settings.weaningAutoTask) {
       await insertTask({
         'id': 'task_wean_${DateTime.now().millisecondsSinceEpoch}',
         'rabbitId': doeId,
@@ -3645,21 +3642,29 @@ class DatabaseService {
   DateTime _calculateNextRecurringDate(String frequency, DateTime from) {
     switch (frequency) {
       case 'Daily':
-        return from.add(Duration(days: 1));
+        return from.add(const Duration(days: 1));
       case 'Weekly':
-        return from.add(Duration(days: 7));
+      case 'Weekly Starting':
+        return from.add(const Duration(days: 7));
       case 'Bi-Weekly':
-        return from.add(Duration(days: 14));
+      case 'Fortnightly':
+      case 'Fortnightly Starting':
+        return from.add(const Duration(days: 14));
       case 'Monthly':
+      case 'Monthly Starting':
         return DateTime(from.year, from.month + 1, from.day);
       case 'Quarterly':
         return DateTime(from.year, from.month + 3, from.day);
       case 'Semi-Annually':
+      case 'Semi Annually starting':
+      case 'Semi-Annual':
         return DateTime(from.year, from.month + 6, from.day);
       case 'Annually':
+      case 'Annual':
+      case 'Yearly':
         return DateTime(from.year + 1, from.month, from.day);
       default:
-        return from.add(Duration(days: 7));
+        return from.add(const Duration(days: 7));
     }
   }
 

@@ -285,7 +285,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                         Icon(Icons.calendar_today, size: 20, color: Color(0xFF787774)),
                         SizedBox(width: 12),
                         Text(
-                          '${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}',
+                          FormatUtils.formatDate(_selectedDate),
                           style: TextStyle(fontSize: 16),
                         ),
                         Spacer(),

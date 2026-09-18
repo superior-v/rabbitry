@@ -4,6 +4,7 @@ import '../../models/rabbit.dart';
 import '../../models/litter.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
 import '../../services/app_event_service.dart';
 import '../../constants/app_colors.dart';
 
@@ -63,7 +64,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
       _db.getRabbit(widget.doe.lastBreedBuckId!).then((buck) {
         if (buck != null && mounted) {
           setState(() {
-            _buckName = buck.name;
+            _buckName = buck.fullName;
           });
         }
       });
@@ -71,7 +72,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
     if (widget.existingLitter != null) {
       final l = widget.existingLitter!;
       _litterIdController.text = l.id;
-      _kindleDate = l.dob ?? DateTime.now();
+      _kindleDate = l.dob;
+      _bredDate = l.breedDate;
+      if (l.buckName.isNotEmpty) {
+        _buckName = l.buckName;
+      }
       // Use stored aliveKits / totalKits fields (fallback to computed counts)
       final aliveCount = l.aliveKits ?? l.totalKitsCount;
       final totalCount = l.totalKits ?? (aliveCount + (l.deadKits ?? 0));
@@ -195,15 +200,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${widget.doe.name} (${widget.doe.id})',
+                            widget.doe.fullName,
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _buckName != null
-                                ? '$_buckName (${widget.doe.lastBreedBuckId ?? ''})'
-                                : (widget.doe.lastBreedBuckId != null ? widget.doe.lastBreedBuckId! : 'Unknown Sire'),
+                            _buckName ?? (widget.doe.lastBreedBuckId != null ? widget.doe.lastBreedBuckId! : 'Unknown Sire'),
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -216,12 +219,12 @@ class _LogBirthModalState extends State<LogBirthModal> {
                         padding: const EdgeInsets.only(left: 42),
                         child: Text(
                           _bredDate != null
-                              ? DateFormat('MM/dd/yyyy').format(_bredDate!)
+                              ? FormatUtils.formatDate(_bredDate!)
                               : (widget.doe.lastBreedDate != null
-                                  ? DateFormat('MM/dd/yyyy').format(widget.doe.lastBreedDate!)
+                                  ? FormatUtils.formatDate(widget.doe.lastBreedDate!)
                                   : (widget.doe.kindleDate != null
-                                      ? DateFormat('MM/dd/yyyy').format(widget.doe.kindleDate!.subtract(const Duration(days: 31)))
-                                      : DateFormat('MM/dd/yyyy').format(_kindleDate))),
+                                      ? FormatUtils.formatDate(widget.doe.kindleDate!.subtract(const Duration(days: 31)))
+                                      : FormatUtils.formatDate(_kindleDate))),
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
                         ),
                       ),
@@ -382,36 +385,63 @@ class _LogBirthModalState extends State<LogBirthModal> {
 
         // Missed Litter Toggle
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: kLilacWash,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kLilacLight),
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Missed Litter', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kLilacText)),
-                  ],
-                ),
+              const Text(
+                'Missed Litter',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kLilacText),
               ),
-              Transform.scale(
-                scale: 0.8,
-                child: Switch(
-                  value: _isMissedLitter,
-                  activeColor: const Color(0xFF7B6BA0),
-                  onChanged: (val) {
-                    setState(() {
-                      _isMissedLitter = val;
-                      if (val) {
-                        _totalBornController.text = '0';
-                        _aliveBornController.text = '0';
-                      }
-                    });
-                  },
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isMissedLitter = !_isMissedLitter;
+                    if (_isMissedLitter) {
+                      _totalBornController.text = '0';
+                      _aliveBornController.text = '0';
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _isMissedLitter ? const Color(0xFF7B6BA0) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isMissedLitter ? const Color(0xFF7B6BA0) : const Color(0xFFC7C7CC),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      AnimatedAlign(
+                        duration: const Duration(milliseconds: 200),
+                        alignment: _isMissedLitter ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -480,7 +510,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
-              DateFormat('MM/dd/yyyy').format(value),
+              FormatUtils.formatDate(value),
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
             ),
           ],

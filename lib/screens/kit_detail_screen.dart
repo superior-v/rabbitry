@@ -1119,6 +1119,6 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}/${date.year}';
+    return FormatUtils.formatDate(date);
   }
 }

@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/rabbit.dart';
 import '../models/rabbit_document.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import '../utils/toast_utils.dart';
 
@@ -22,9 +23,9 @@ class _FolderDef {
 }
 
 const _kDefaultFolders = [
-  _FolderDef(name: 'Registration', bg: Color(0xFFFEF2F2), icon: Color(0xFFEF4444)),
-  _FolderDef(name: 'Health',       bg: Color(0xFFFDF2F8), icon: Color(0xFFD4679A)),
-  _FolderDef(name: 'Photos',       bg: Color(0xFFEFF6FF), icon: Color(0xFF3B82F6)),
+  _FolderDef(name: 'Registration', bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
+  _FolderDef(name: 'Health',       bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
+  _FolderDef(name: 'Photos',       bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
   _FolderDef(name: 'Other',        bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
 ];
 
@@ -82,7 +83,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
   _FolderDef _defForName(String name) {
     return _kDefaultFolders.firstWhere(
       (f) => f.name == name,
-      orElse: () => _FolderDef(name: name, bg: const Color(0xFFF0F4FF), icon: kLilacDeep),
+      orElse: () => _FolderDef(name: name, bg: const Color(0xFFF5F5F5), icon: const Color(0xFF9CA3AF)),
     );
   }
 
@@ -245,13 +246,19 @@ class _DocumentsCardState extends State<DocumentsCard> {
         children: [
           // ── Header ──────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                Icon(PhosphorIconsFill.folderSimple, size: 18, color: kNeutral500),
-                const SizedBox(width: 8),
                 const Expanded(
-                  child: Text('DOCUMENTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.6)),
+                  child: Text(
+                    'DOCUMENTS',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF4F4F56),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
                 ),
                 GestureDetector(
                   onTap: _showCreateFolderDialog,
@@ -271,32 +278,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
             ),
           ),
 
-          // ── Count row ────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('${_documents.length}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), height: 1)),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('files', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral500)),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFFFDF2F8), borderRadius: BorderRadius.circular(100)),
-                    child: Text('${allFolders.length} folders', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kPinkDeep)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
 
           // ── Folder Grid – 4-column horizontal rows ────────────
           Padding(
@@ -397,7 +379,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(doc.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('${doc.folder} • ${doc.formattedSize} • ${DateFormat('MMM d, yyyy').format(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
+                Text('${doc.folder} • ${doc.formattedSize} • ${FormatUtils.formatDate(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
               ],
             ),
           ),
@@ -712,12 +694,12 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
               children: [
                 Text(doc.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text('${doc.formattedSize} • ${DateFormat('MMM d, yyyy').format(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
+                Text('${doc.formattedSize} • ${FormatUtils.formatDate(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.more_horiz, color: kNeutral300),
+            icon: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
             onPressed: () => _showDocOptions(doc),
           ),
         ],
