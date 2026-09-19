@@ -444,10 +444,30 @@ class Rabbit {
         (e) => e.toString() == map['type'],
         orElse: () => map['type'] == 'RabbitType.pedigree' ? RabbitType.pedigree : RabbitType.doe,
       ),
-      status: RabbitStatus.values.firstWhere(
-        (e) => e.toString() == map['status'],
-        orElse: () => RabbitStatus.open,
-      ),
+      status: () {
+        RabbitStatus s = RabbitStatus.values.firstWhere(
+          (e) => e.toString() == map['status'],
+          orElse: () {
+            final st = (map['status'] as String? ?? '').toLowerCase();
+            if (st.contains('pregnant') || st == 'bred') return RabbitStatus.pregnant;
+            if (st.contains('palpate')) return RabbitStatus.palpateDue;
+            if (st.contains('nursing')) return RabbitStatus.nursing;
+            if (st.contains('resting')) return RabbitStatus.resting;
+            if (st.contains('active')) return RabbitStatus.active;
+            if (st.contains('inactive')) return RabbitStatus.inactive;
+            if (st.contains('growout') || st.contains('grow out')) return RabbitStatus.growout;
+            if (st.contains('quarantine')) return RabbitStatus.quarantine;
+            if (st.contains('archived')) return RabbitStatus.archived;
+            return RabbitStatus.open;
+          },
+        );
+        final lastBreed = map['lastBreedDate'] != null ? DateTime.tryParse(map['lastBreedDate']) : null;
+        final kindle = map['kindleDate'] != null ? DateTime.tryParse(map['kindleDate']) : null;
+        if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed)) && (s == RabbitStatus.open || s == RabbitStatus.active)) {
+          s = RabbitStatus.pregnant;
+        }
+        return s;
+      }(),
       breed: map['breed'] ?? '',
       location: map['location'],
       cage: map['cage'],

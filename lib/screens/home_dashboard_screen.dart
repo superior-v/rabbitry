@@ -16,6 +16,7 @@ import '../widgets/modals/log_birth_modal.dart';
 import '../widgets/modals/confirm_pregnancy_modal.dart';
 import '../widgets/modals/log_breeding_modal.dart';
 import '../services/app_event_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // === EXACT HTML PALETTE ===
 const kLilac = Color(0xFFC3B1E1);
@@ -142,10 +143,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: kLilacDeep,
-        unselectedItemColor: kNeutral500,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
+        selectedItemColor: const Color(0xFF4A3477),
+        unselectedItemColor: const Color(0xFF4F4F56),
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        selectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
         currentIndex: _selectedNavIndex,
         onTap: _onNavTap,
         elevation: 0,
@@ -433,10 +436,11 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       backgroundColor: kAppBgPurple,
       elevation: 0,
       centerTitle: true,
+      toolbarHeight: 48,
       title: Text(
         SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
         style: const TextStyle(
-          color: Color(0xFF4F4F56),
+          color: Color(0xFF2C2C2E),
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -449,14 +453,14 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
             _loadData();
           },
-          icon: Icon(PhosphorIcons.chartBar(), color: kNeutral500, size: 24),
+          icon: const Icon(PhosphorIconsRegular.chartBar, color: Color(0xFF3A3A3C), size: 24),
         ),
         IconButton(
           onPressed: () async {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             _loadData();
           },
-          icon: Icon(PhosphorIcons.gearSix(), color: kNeutral500, size: 24),
+          icon: const Icon(PhosphorIconsRegular.gearSix, color: Color(0xFF3A3A3C), size: 24),
           padding: const EdgeInsets.only(right: 8),
         ),
       ],
@@ -468,8 +472,8 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       width: double.infinity,
       color: kAppBgPurple,
       padding: const EdgeInsets.only(
-        top: 6,
-        bottom: 12,
+        top: 0,
+        bottom: 8,
         left: 20,
         right: 20,
       ),
@@ -676,13 +680,13 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       daysColor = kError;
     } else if (daysUntil == 0) {
       daysText = 'Today';
-      daysColor = const Color(0xFF2E7D32);
+      daysColor = const Color(0xFF1B5E20);
     } else if (daysUntil == 1) {
       daysText = '1 Day';
-      daysColor = const Color(0xFF2E7D32);
+      daysColor = const Color(0xFF1B5E20);
     } else {
       daysText = '$daysUntil Days';
-      daysColor = kNeutral500;
+      daysColor = const Color(0xFF4F4F56);
     }
 
     final DateTime kDate = entry['kindleDate'];
@@ -737,7 +741,11 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 flex: 7,
                 child: Text(
                   '${entry['doeName']} × ${entry['buckName']}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral800),
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1E293B),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -745,9 +753,14 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 flex: 2,
                 child: Text(
                   formattedDate,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral600, fontFeatures: [
-                    ui.FontFeature.tabularFigures()
-                  ]),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF334155),
+                    fontFeatures: [
+                      ui.FontFeature.tabularFigures()
+                    ],
+                  ),
                   textAlign: TextAlign.left,
                 ),
               ),
@@ -755,9 +768,9 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 flex: 2,
                 child: Text(
                   daysText,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                     color: daysColor,
                   ),
                   textAlign: TextAlign.right,

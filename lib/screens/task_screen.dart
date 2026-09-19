@@ -718,19 +718,20 @@ class TaskScreenState extends State<TaskScreen> {
       backgroundColor: const Color(0xFFE6BEFE),
       elevation: 0,
       centerTitle: true,
+      toolbarHeight: 48,
       leadingWidth: 0,
       automaticallyImplyLeading: false,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
           const SizedBox(width: 8),
           const Text(
             'Tasks',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Color(0xFF4F4F56),
+              color: Color(0xFF2C2C2E),
               letterSpacing: -0.3,
             ),
           ),
@@ -741,7 +742,7 @@ class TaskScreenState extends State<TaskScreen> {
           onPressed: () => _showFilterModal(),
           icon: Stack(
             children: [
-              Icon(PhosphorIcons.funnel(PhosphorIconsStyle.duotone), color: const Color(0xFF787880)),
+              Icon(PhosphorIcons.funnel(PhosphorIconsStyle.duotone), color: const Color(0xFF3A3A3C)),
               if (_breedFilter != 'All')
                 Positioned(
                   top: 0,
@@ -761,7 +762,7 @@ class TaskScreenState extends State<TaskScreen> {
         ),
         IconButton(
           onPressed: () => _showSearchModal(),
-          icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: const Color(0xFF787880)),
+          icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: const Color(0xFF3A3A3C)),
         ),
         const SizedBox(width: 8),
       ],

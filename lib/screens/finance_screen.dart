@@ -263,15 +263,16 @@ class FinanceScreenState extends State<FinanceScreen> {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
+      toolbarHeight: 48,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
           const SizedBox(width: 8),
           const Text(
             'Finance',
             style: TextStyle(
-              color: Color(0xFF4F4F56),
+              color: Color(0xFF2C2C2E),
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -389,8 +390,8 @@ class FinanceScreenState extends State<FinanceScreen> {
       width: double.infinity,
       color: const Color(0xFFE6BEFE),
       padding: const EdgeInsets.only(
-        top: 6,
-        bottom: 12,
+        top: 0,
+        bottom: 8,
         left: 20,
         right: 20,
       ),

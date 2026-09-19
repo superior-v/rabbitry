@@ -838,44 +838,24 @@ class DatabaseService {
 
     final candidateRabbitsMap = await db.query(
       'rabbits',
-      where: 'status = ? OR status = ? OR status = ? OR status = ?',
+      where: 'status = ? OR status = ? OR status = ?',
       whereArgs: [
         RabbitStatus.resting.toString(),
         'resting',
         'Resting',
-        'nursing'
       ],
     );
 
     for (final map in candidateRabbitsMap) {
       final doeId = map['id'] as String;
-      final statusStr = (map['status'] as String? ?? '').toLowerCase();
-      
-      // Don't auto-open active nursing does with litters under weaning age unless in resting
-      if (statusStr.contains('nursing')) {
-        final activeLitters = await db.query(
-          'litters',
-          where: 'doeId = ? AND (status = ? OR status = ?)',
-          whereArgs: [doeId, 'nursing', 'Nursing'],
-        );
-        if (activeLitters.isNotEmpty) {
-          // If doe still has an active nursing litter, check if rebreed target date from kindle DOB has passed
-          final firstLitter = activeLitters.first;
-          final dobStr = firstLitter['dob'] as String?;
-          final dob = dobStr != null ? DateTime.tryParse(dobStr) : null;
-          if (dob != null) {
-            final targetRebreedDate = dob.add(Duration(days: rebreedDaysSetting));
-            if (!today.isBefore(DateTime(targetRebreedDate.year, targetRebreedDate.month, targetRebreedDate.day))) {
-              await db.update(
-                'rabbits',
-                {'status': RabbitStatus.open.toString(), 'updatedAt': now.toIso8601String()},
-                where: 'id = ?',
-                whereArgs: [doeId],
-              );
-            }
-          }
-          continue;
-        }
+      final lastBreedStr = map['lastBreedDate'] as String?;
+      final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+      final kindleStr = map['kindleDate'] as String?;
+      final kindle = kindleStr != null ? DateTime.tryParse(kindleStr) : null;
+
+      // If doe is currently bred (has active breeding date), NEVER reset her to open!
+      if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed))) {
+        continue;
       }
 
       final updatedAtStr = map['updatedAt'] as String?;
@@ -1494,6 +1474,25 @@ class DatabaseService {
       'createdAt': DateTime.now().toIso8601String(),
     });
 
+    // Update active nursing litters for this doe to Weaned
+    final allLitters = await getLitters();
+    final activeLitters = allLitters.where((l) => l.doeId == doeId && l.status.toLowerCase() == 'nursing').toList();
+    for (final litter in activeLitters) {
+      final updatedKits = litter.kits.map((k) {
+        if (!k.isArchived && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
+          return k.copyWith(status: 'Weaned');
+        }
+        return k;
+      }).toList();
+
+      final updatedLitter = litter.copyWith(
+        status: 'Weaned',
+        kits: updatedKits,
+        weanDate: DateTime.now(),
+      );
+      await updateLitter(updatedLitter);
+    }
+
     // Mark all pending weaning tasks for this rabbit as complete
     await db.update(
       'tasks',
@@ -1905,8 +1904,8 @@ class DatabaseService {
         try {
           final litter = Litter.fromMap(map);
           final ageDays = DateTime.now().difference(litter.dob).inDays;
-          // If the litter is < 49 days old (e.g. 3 weeks old) and has kits mistakenly marked 'Weaned', heal them to 'Nursing'
           Litter cleanedLitter = litter;
+          // If the litter is < 49 days old (e.g. 3 weeks old) and has kits mistakenly marked 'Weaned', heal them to 'Nursing'
           if (ageDays < 49 && litter.kits.any((k) => k.status.toLowerCase() == 'weaned')) {
             final healedKits = litter.kits.map((k) {
               if (k.status.toLowerCase() == 'weaned') {
@@ -1917,6 +1916,23 @@ class DatabaseService {
             cleanedLitter = litter.copyWith(kits: healedKits);
             db.update('litters', cleanedLitter.toMap(), where: 'id = ?', whereArgs: [cleanedLitter.id]).ignore();
           }
+
+          // If the litter is >= 49 days old (7 weeks old), automatically transition nursing kits and litter to 'Weaned'
+          if (ageDays >= 49 && (litter.status.toLowerCase() == 'nursing' || litter.kits.any((k) => k.status.toLowerCase() == 'nursing' || k.status.isEmpty || k.status.toLowerCase() == 'active'))) {
+            final weanedKits = litter.kits.map((k) {
+              final st = k.status.toLowerCase().trim();
+              if (st == 'nursing' || st.isEmpty || st == 'active') {
+                return k.copyWith(status: 'Weaned');
+              }
+              return k;
+            }).toList();
+            cleanedLitter = litter.copyWith(
+              status: (litter.status.toLowerCase() == 'nursing' || litter.status.isEmpty) ? 'Weaned' : litter.status,
+              kits: weanedKits,
+            );
+            db.update('litters', cleanedLitter.toMap(), where: 'id = ?', whereArgs: [cleanedLitter.id]).ignore();
+          }
+
           litters.add(await _resolveLitterPhotos(cleanedLitter));
         } catch (e) {
           print('  ❌ Error parsing litter ${map['id']}: $e');
@@ -2143,6 +2159,20 @@ class DatabaseService {
       final db = await database;
       final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
       if (doeMap.isEmpty) return;
+      final currentDoeStatus = (doeMap.first['status'] as String? ?? '').toLowerCase();
+      // If the doe is currently pregnant/bred, palpateDue, quarantine, or archived, do not reset her status or clear breeding dates!
+      if (currentDoeStatus.contains('pregnant') || currentDoeStatus.contains('palpatedue') || currentDoeStatus.contains('quarantine') || currentDoeStatus.contains('archived')) {
+        return;
+      }
+
+      final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
+      final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+      final kindleStr = doeMap.first['kindleDate'] as String?;
+      final kindle = kindleStr != null ? DateTime.tryParse(kindleStr) : null;
+      if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed))) {
+        // Doe is currently bred, do not reset to open
+        return;
+      }
 
       final litters = await getLitters();
       final doeLitters = litters.where((l) =>
@@ -2190,9 +2220,6 @@ class DatabaseService {
             'status': RabbitStatus.open.toString(),
             'kindleDate': null,
             'weanDate': null,
-            'dueDate': null,
-            'lastBreedDate': null,
-            'lastBreedBuckId': null,
             'currentLitterSize': 0,
             'updatedAt': DateTime.now().toIso8601String(),
           },

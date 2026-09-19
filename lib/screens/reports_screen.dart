@@ -491,7 +491,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     for (final l in periodLitters) {
       _bornTotal += l.totalKits ?? l.aliveKits ?? 0;
       _bornLive += l.aliveKits ?? 0;
-      if (l.weanDate != null) {
+      final isLitterWeaned = l.status.toLowerCase() == 'weaned' || (l.weanDate != null && DateTime.now().isAfter(l.weanDate!));
+      if (isLitterWeaned) {
         final weanedFromKits = l.kits.where((k) => !k.isArchived || k.status == 'Sold' || k.status == 'Butchered').length;
         _weanedCount += weanedFromKits > 0 ? weanedFromKits : (l.aliveKits ?? 0);
       }

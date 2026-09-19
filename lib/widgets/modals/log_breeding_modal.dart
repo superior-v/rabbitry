@@ -176,11 +176,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       ),
                       if (widget.doe != null) ...[
                         const SizedBox(height: 4),
-                        Text(
-                          widget.doe!.fullName,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kLilacText),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        _buildRabbitNameWidget(widget.doe!, fontSize: 14),
                       ],
                     ],
                   ),
@@ -226,10 +222,13 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         label: 'Select Doe',
                         value: _selectedDoe,
                         prefixIcon: Icons.female_rounded,
+                        selectedItemBuilder: (context) {
+                          return _does.map((doe) => _buildRabbitNameWidget(doe, fontSize: 15)).toList();
+                        },
                         items: _does.map((doe) {
-                          return DropdownMenuItem(
+                          return DropdownMenuItem<Rabbit>(
                             value: doe,
-                            child: Text(doe.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                            child: _buildRabbitNameWidget(doe, fontSize: 15),
                           );
                         }).toList(),
                         onChanged: (doe) {
@@ -262,10 +261,13 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       label: 'Select Buck',
                       value: _selectedBuck,
                       prefixIcon: Icons.male_rounded,
+                      selectedItemBuilder: (context) {
+                        return _bucks.map((buck) => _buildRabbitNameWidget(buck, fontSize: 15)).toList();
+                      },
                       items: _bucks.map((buck) {
-                        return DropdownMenuItem(
+                        return DropdownMenuItem<Rabbit>(
                           value: buck,
-                          child: Text(buck.fullName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          child: _buildRabbitNameWidget(buck, fontSize: 15),
                         );
                       }).toList(),
                       onChanged: (buck) {
@@ -425,6 +427,50 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
     );
   }
 
+  Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 16}) {
+    final isDoe = rabbit.type == RabbitType.doe;
+    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final prefix = (rabbit.breederPrefix ?? '').trim();
+    final name = rabbit.name.trim();
+    final ear = (rabbit.earNumber?.trim().isNotEmpty == true
+            ? rabbit.earNumber!.trim()
+            : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).trim())
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              color: nameColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: TextStyle(
+                color: nameColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+      style: TextStyle(fontSize: fontSize),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   // ✅ Helper widgets for the new themed layout
   Widget _buildOutlinedField({
     required String label,
@@ -443,8 +489,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
         hintText: hint,
         hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
@@ -468,8 +514,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -496,16 +542,18 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
     required IconData prefixIcon,
+    DropdownButtonBuilder? selectedItemBuilder,
   }) {
     return DropdownButtonFormField<T>(
       value: value,
       items: items,
+      selectedItemBuilder: selectedItemBuilder,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         prefixIcon: Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 20),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

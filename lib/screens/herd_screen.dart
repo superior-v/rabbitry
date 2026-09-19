@@ -534,7 +534,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     return SafeArea(
       bottom: false,
       child: Container(
-        height: 60,
+        height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Stack(
           children: [
@@ -543,12 +543,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
                   const SizedBox(width: 8),
                   const Text(
                     'Herd',
                     style: TextStyle(
-                      color: Color(0xFF4F4F56),
+                      color: Color(0xFF2C2C2E),
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -566,7 +566,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildSegmentedControl() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
       alignment: Alignment.center,
       child: Center(
         child: Container(
@@ -863,13 +863,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Open',
         'Bred',
         'Nursing',
-        'Inactive',
+        'Resting',
+        'Quarantine',
       ];
     } else if (_tabController.index == 1) {
       return [
         'All',
         'Active',
-        'Inactive',
+        'Resting',
+        'Quarantine',
       ];
     } else {
       return [
@@ -918,40 +920,47 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         color: Color(0xFF8F8A90),
         border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: statuses.map((status) {
-          final mappedStatus = status == 'Bred' ? 'Pregnant' : (status == 'Grow Out' ? 'GrowOut' : status);
-          final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: statuses.map((status) {
+              final mappedStatus = status == 'Bred' ? 'Pregnant' : (status == 'Grow Out' ? 'GrowOut' : status);
+              final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _currentFilter = mappedStatus),
-            child: Container(
-              height: 46,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: isActive ? Colors.white : Colors.transparent,
-                    width: 2.2,
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _currentFilter = mappedStatus),
+                child: Container(
+                  height: 46,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: isActive ? Colors.white : Colors.transparent,
+                        width: 2.2,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    status.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                      color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                      letterSpacing: 0.45,
+                    ),
                   ),
                 ),
-              ),
-              child: Text(
-                status.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                  color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-                  letterSpacing: 0.45,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -1391,8 +1400,19 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         final filterName = _currentFilter.toLowerCase();
         if (filterName == 'growout') {
           if (statusName != 'growout' && statusName != 'weaned') return false;
-        } else if (filterName == 'bred') {
+        } else if (filterName == 'bred' || filterName == 'pregnant') {
           if (statusName != 'palpatedue' && statusName != 'pregnant') return false;
+        } else if (filterName == 'quarantine') {
+          final isQuarantined = statusName == 'quarantine' || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
+          if (!isQuarantined) return false;
+        } else if (filterName == 'resting') {
+          if (statusName != 'resting') return false;
+        } else if (filterName == 'nursing') {
+          if (statusName != 'nursing') return false;
+        } else if (filterName == 'open') {
+          if (statusName != 'open') return false;
+        } else if (filterName == 'active') {
+          if (statusName != 'active') return false;
         } else if (statusName != filterName) {
           return false;
         }
@@ -1775,36 +1795,36 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Column(
                 children: [
                   _buildStatsRow(
-                    'EAR NO.:',
+                    'Ear No.:',
                     rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
-                    'CAGE NO.:',
-                    rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '',
+                    'Cage No.:',
+                    rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '-',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
                   _buildSingleStatRow(
-                    'SIRE:',
+                    'Sire:',
                     sireName,
                     isDoe: isDoe,
                     isTinted: false,
                   ),
                   _buildSingleStatRow(
-                    'DAM:',
+                    'Dam:',
                     damName,
                     isDoe: isDoe,
                     isTinted: true,
                   ),
                   _buildStatsRow(
-                    'LITTERS:',
+                    'Litters:',
                     littersCount > 0 ? littersCount.toString().padLeft(2, '0') : '0',
-                    'KITS:',
+                    'Kits:',
                     kitsCount > 0 ? kitsCount.toString().padLeft(2, '0') : '0',
                     isDoe: isDoe,
                     isTinted: false,
                   ),
                   _buildNotesRow(
-                    'NOTES:',
-                    rabbit.notes?.isNotEmpty == true ? rabbit.notes! : (rabbit.statusDetails?.isNotEmpty == true ? rabbit.statusDetails! : ''),
+                    'Notes:',
+                    rabbit.notes?.isNotEmpty == true ? rabbit.notes! : '',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
