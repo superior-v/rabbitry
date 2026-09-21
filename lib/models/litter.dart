@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+const _kitSentinel = Object();
+
 class Kit {
   final String id;
   final String sex;
@@ -35,9 +37,9 @@ class Kit {
     String? color,
     double? weight,
     String? status,
-    String? details,
-    double? price,
-    String? imagePath,
+    Object? details = _kitSentinel,
+    Object? price = _kitSentinel,
+    Object? imagePath = _kitSentinel,
   }) {
     return Kit(
       id: id ?? this.id,
@@ -45,9 +47,9 @@ class Kit {
       color: color ?? this.color,
       weight: weight ?? this.weight,
       status: status ?? this.status,
-      details: details ?? this.details,
-      price: price ?? this.price,
-      imagePath: imagePath ?? this.imagePath,
+      details: identical(details, _kitSentinel) ? this.details : (details as String?),
+      price: identical(price, _kitSentinel) ? this.price : (price as double?),
+      imagePath: identical(imagePath, _kitSentinel) ? this.imagePath : (imagePath as String?),
     );
   }
 
@@ -304,7 +306,7 @@ class Litter {
       dueDate: map['dueDate'] != null && map['dueDate'] != '' ? DateTime.parse(map['dueDate'] as String) : null,
       kindleDate: map['kindleDate'] != null && map['kindleDate'] != '' ? DateTime.parse(map['kindleDate'] as String) : null,
       totalKits: (map['totalBorn'] ?? map['totalKits'] ?? 0) as int,
-      aliveKits: (map['currentAlive'] ?? map['aliveKits'] ?? 0) as int,
+      aliveKits: (map['aliveBorn'] ?? map['aliveKits'] ?? map['currentAlive'] ?? 0) as int,
       deadKits: (map['deadBorn'] ?? map['deadKits'] ?? 0) as int,
       weanDate: map['weanDate'] != null && map['weanDate'] != '' ? DateTime.parse(map['weanDate'] as String) : null,
       notes: map['notes'] as String?,

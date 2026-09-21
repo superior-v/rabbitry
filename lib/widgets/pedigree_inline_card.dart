@@ -548,9 +548,9 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
       final updated = widget.rabbit;
       if (gender == RabbitType.buck) {
-        updated.sireId = selectedRabbit.id;
+        updated.sireId = selectedRabbit?.id;
       } else {
-        updated.damId = selectedRabbit.id;
+        updated.damId = selectedRabbit?.id;
       }
       await _db.updateRabbit(updated);
       _loadPedigree();
@@ -567,9 +567,9 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
       final updatedParent = parent;
       if (gender == RabbitType.buck) {
-        updatedParent.sireId = selectedRabbit.id;
+        updatedParent.sireId = selectedRabbit?.id;
       } else {
-        updatedParent.damId = selectedRabbit.id;
+        updatedParent.damId = selectedRabbit?.id;
       }
       await _db.updateRabbit(updatedParent);
       _loadPedigree();
@@ -582,7 +582,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     );
   }
 
-  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit) onSelect) async {
+  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect) async {
     final options = await _db.getRabbitsByType(type);
     if (!mounted) return;
 
@@ -678,7 +678,7 @@ class _PedigreeEntryModal extends StatefulWidget {
   final String label;
   final RabbitType type;
   final List<Rabbit> options;
-  final Function(Rabbit) onSelect;
+  final Function(Rabbit?) onSelect;
   final DatabaseService db;
 
   const _PedigreeEntryModal({
@@ -762,16 +762,41 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
                         color: Color(0xFF4A3E6D),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
-                          shape: BoxShape.circle,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            widget.onSelect(null);
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Leave Blank',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -806,30 +831,41 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   }
 
   Widget _buildHerdTab() {
-     if (widget.options.isEmpty) {
-       return Center(
-         child: Column(
-           mainAxisAlignment: MainAxisAlignment.center,
-           children: [
-             Icon(PhosphorIcons.users(), size: 48, color: kNeutral400),
-             const SizedBox(height: 16),
-             Text('No active herd members', style: TextStyle(color: kNeutral400, fontWeight: FontWeight.w600)),
-             const SizedBox(height: 16),
-             TextButton(
-               onPressed: () => _tabController.animateTo(1),
-               child: const Text('Add Manually Instead', style: TextStyle(color: Color(0xFF6B2D6D), fontWeight: FontWeight.w700)),
-             ),
-           ],
-         ),
-       );
-     }
-
      return ListView.separated(
        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-       itemCount: widget.options.length,
+       itemCount: widget.options.length + 1,
        separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFE5DEEC)),
        itemBuilder: (context, index) {
-         final rabbit = widget.options[index];
+         if (index == 0) {
+           return ListTile(
+             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+             leading: Container(
+               width: 38,
+               height: 38,
+               decoration: BoxDecoration(
+                 color: Colors.red.shade50,
+                 shape: BoxShape.circle,
+                 border: Border.all(color: Colors.red.shade200),
+               ),
+               child: Icon(Icons.block, color: Colors.red.shade700, size: 18),
+             ),
+             title: Text(
+               'None (Leave Blank)',
+               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.red.shade700),
+             ),
+             subtitle: Text(
+               'Clear ${widget.label.toLowerCase()} and leave this field blank',
+               style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+             ),
+             trailing: const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
+             onTap: () {
+               Navigator.pop(context);
+               widget.onSelect(null);
+             },
+           );
+         }
+
+         final rabbit = widget.options[index - 1];
          final breedStr = (rabbit.breed != null && rabbit.breed!.isNotEmpty) ? rabbit.breed! : 'Dwarf Hotot';
          final earStr = (rabbit.earNumber != null && rabbit.earNumber!.isNotEmpty) ? rabbit.earNumber! : '-';
          final idStr = rabbit.id.length > 8 ? rabbit.id.substring(0, 8).toUpperCase() : rabbit.id.toUpperCase();
@@ -916,16 +952,39 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
           ),
           const SizedBox(height: 20),
 
-          ElevatedButton(
-            onPressed: _saveManual,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6B2D6D),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
-            child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onSelect(null);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    side: BorderSide(color: Colors.red.shade300),
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Leave Blank', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: _saveManual,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6B2D6D),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
         ],
@@ -941,23 +1000,25 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
       return;
     }
     
-    final id = _idController.text.isNotEmpty ? _idController.text : 'PED-${DateTime.now().millisecondsSinceEpoch}';
+    final earNo = _idController.text.trim();
+    final id = 'PED-${DateTime.now().millisecondsSinceEpoch}';
     final weight = double.tryParse(_weightController.text);
 
     final newRabbit = Rabbit(
       id: id,
-      name: _nameController.text,
-      type: _gender,
-      status: RabbitStatus.inactive,
-      breed: _breedController.text.isNotEmpty ? _breedController.text : 'Dwarf Hotot',
-      color: _colorController.text.isNotEmpty ? _colorController.text : null,
+      name: _nameController.text.trim(),
+      type: RabbitType.pedigree,
+      status: RabbitStatus.archived,
+      breed: _breedController.text.isNotEmpty ? _breedController.text.trim() : 'Dwarf Hotot',
+      color: _colorController.text.isNotEmpty ? _colorController.text.trim() : null,
       weight: weight,
       dateOfBirth: _dateOfBirth,
       acquiredDate: _acquiredDate,
-      registrationNumber: _regController.text.isNotEmpty ? _regController.text : null,
-      grandChampionNumber: _gcController.text.isNotEmpty ? _gcController.text : null,
+      earNumber: earNo.isNotEmpty ? earNo : null,
+      registrationNumber: _regController.text.isNotEmpty ? _regController.text.trim() : null,
+      grandChampionNumber: _gcController.text.isNotEmpty ? _gcController.text.trim() : null,
       grandChampionLegs: int.tryParse(_legsController.text) ?? 0,
-      genetics: _genotypeController.text.isNotEmpty ? _genotypeController.text : null,
+      genetics: _genotypeController.text.isNotEmpty ? _genotypeController.text.trim() : null,
       broken: _isBroken,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),

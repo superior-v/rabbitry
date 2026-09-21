@@ -380,6 +380,39 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       initialDate: initialDate,
       firstDate: _breedDate,
       lastDate: _breedDate.add(const Duration(days: 90)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF8B5CF6),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF2C2C2E),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              headerBackgroundColor: const Color(0xFFE2BFFB),
+              headerForegroundColor: const Color(0xFF463466),
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              todayForegroundColor: const WidgetStatePropertyAll(Color(0xFF8B5CF6)),
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return const Color(0xFF2C2C2E);
+              }),
+              dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF8B5CF6);
+                }
+                return null;
+              }),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -572,6 +605,39 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       initialDate: _breedDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF8B5CF6),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF2C2C2E),
+            ),
+            datePickerTheme: DatePickerThemeData(
+              headerBackgroundColor: const Color(0xFFE2BFFB),
+              headerForegroundColor: const Color(0xFF463466),
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              todayForegroundColor: const WidgetStatePropertyAll(Color(0xFF8B5CF6)),
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return const Color(0xFF2C2C2E);
+              }),
+              dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF8B5CF6);
+                }
+                return null;
+              }),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() => _breedDate = picked);

@@ -324,99 +324,108 @@ class _TasksCardState extends State<TasksCard> {
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showTaskOptions(task),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Front small circle checkbox
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () async {
-                      if (isCompleted) {
-                        await _uncompleteTask(task);
-                      } else {
-                        await _showTaskCostDialog(task);
-                      }
-                    },
-                    child: Container(
-                      width: 15,
-                      height: 15,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
-                        border: Border.all(
-                          color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
-                          width: 1.5,
-                        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Front circle checkbox with comfortable touch target
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  if (isCompleted) {
+                    await _uncompleteTask(task);
+                  } else {
+                    await _showTaskCostDialog(task);
+                  }
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 17,
+                    height: 17,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                      border: Border.all(
+                        color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                        width: 1.5,
                       ),
-                      child: isCompleted
-                          ? const Center(
-                              child: Icon(Icons.check, size: 10, color: Colors.white),
-                            )
-                          : null,
                     ),
+                    child: isCompleted
+                        ? const Center(
+                            child: Icon(Icons.check, size: 11, color: Colors.white),
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(width: 10),
-                // Title & Bunny Name (NOT BOLD)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        task['name'] ?? task['task'] ?? 'Task',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500, // NOT BOLD
-                          color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF1F2937),
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
-                          height: 1.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (bunnyName.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+              ),
+              const SizedBox(width: 4),
+              // Title & Bunny Name (Finance font: fontSize 14, w600, Color 0xFF4F4F56)
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    if (isCompleted) {
+                      await _uncompleteTask(task);
+                    } else {
+                      await _showTaskCostDialog(task);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          bunnyName,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF8B5CF6),
-                            letterSpacing: 0.5,
+                          task['name'] ?? task['task'] ?? 'Task',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            height: 1.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if (bunnyName.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            bunnyName,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF8B5CF6),
+                              letterSpacing: 0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Time label
-                if (timeLabel.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Text(timeLabel, style: timeLabelStyle),
-                  ),
-                const SizedBox(width: 4),
-                // More options button (three dots)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showTaskOptions(task),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                    child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              // Time label
+              if (timeLabel.isNotEmpty)
+                Text(timeLabel, style: timeLabelStyle),
+              const SizedBox(width: 4),
+              // More options button (three dots)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showTaskOptions(task),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

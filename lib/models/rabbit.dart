@@ -445,7 +445,7 @@ class Rabbit {
         orElse: () => map['type'] == 'RabbitType.pedigree' ? RabbitType.pedigree : RabbitType.doe,
       ),
       status: () {
-        RabbitStatus s = RabbitStatus.values.firstWhere(
+        return RabbitStatus.values.firstWhere(
           (e) => e.toString() == map['status'],
           orElse: () {
             final st = (map['status'] as String? ?? '').toLowerCase();
@@ -461,12 +461,6 @@ class Rabbit {
             return RabbitStatus.open;
           },
         );
-        final lastBreed = map['lastBreedDate'] != null ? DateTime.tryParse(map['lastBreedDate']) : null;
-        final kindle = map['kindleDate'] != null ? DateTime.tryParse(map['kindleDate']) : null;
-        if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed)) && (s == RabbitStatus.open || s == RabbitStatus.active)) {
-          s = RabbitStatus.pregnant;
-        }
-        return s;
       }(),
       breed: map['breed'] ?? '',
       location: map['location'],

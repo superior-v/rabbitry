@@ -419,13 +419,30 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   const SizedBox(height: 12),
                   _buildTextField('Registration #', regController),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B6BA0), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _clearAncestor(childId, isSire),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            side: BorderSide(color: Colors.red.shade300),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Leave Blank', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B6BA0), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -455,6 +472,28 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     );
   }
 
+  Future<void> _clearAncestor(String childId, bool isSire) async {
+    Navigator.pop(context);
+    setState(() => _isLoading = true);
+    try {
+      final child = await _db.getRabbit(childId);
+      if (child != null) {
+        if (isSire) {
+          child.sireId = null;
+        } else {
+          child.damId = null;
+        }
+        await _db.updateRabbit(child);
+      }
+      await _loadPedigreeData();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${isSire ? "Sire" : "Dam"} cleared'), backgroundColor: const Color(0xFF7B6BA0)));
+    } catch (e) {
+      print('Error removing ancestor: $e');
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to clear ancestor'), backgroundColor: Color(0xFFD44C47)));
+    }
+  }
+
   Future<void> _saveAncestorUpdate(String childId, bool isSire, bool isExternal, Rabbit? selectedHerd, String name, String id, String breed, String color, String reg) async {
     Navigator.pop(context);
     setState(() => _isLoading = true);
@@ -471,7 +510,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             id: id,
             name: name,
             type: RabbitType.pedigree,
-            status: RabbitStatus.active,
+            status: RabbitStatus.archived,
             breed: breed,
             color: color,
             registrationNumber: reg,

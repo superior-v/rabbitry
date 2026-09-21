@@ -393,6 +393,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   int _countRabbitsInLocation(String location, [String? cage]) {
     return _allRabbits.where((r) {
+      if (r.type == RabbitType.pedigree || r.id.startsWith('PED-') || r.id.startsWith('ped_')) return false;
       if (r.status == RabbitStatus.archived) return false;
       if (cage != null) {
         return r.location == location && r.cage == cage;
@@ -410,12 +411,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   int _getTotalRabbits() {
-    return _allRabbits.where((r) => r.status != RabbitStatus.archived).length;
+    return _allRabbits.where((r) => r.status != RabbitStatus.archived && r.type != RabbitType.pedigree && !r.id.startsWith('PED-') && !r.id.startsWith('ped_')).length;
   }
 
   int _getUnassignedCount() {
     return _allRabbits.where((r) {
-      return r.status != RabbitStatus.archived && (r.location == null || r.location!.isEmpty || r.location == 'Unassigned');
+      return r.status != RabbitStatus.archived && r.type != RabbitType.pedigree && !r.id.startsWith('PED-') && !r.id.startsWith('ped_') && (r.location == null || r.location!.isEmpty || r.location == 'Unassigned');
     }).length;
   }
 
@@ -534,7 +535,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     return SafeArea(
       bottom: false,
       child: Container(
-        height: 50,
+        height: 60,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Stack(
           children: [
@@ -543,12 +544,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
+                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
                   const SizedBox(width: 8),
                   const Text(
                     'Herd',
                     style: TextStyle(
-                      color: Color(0xFF2C2C2E),
+                      color: Color(0xFF4F4F56),
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -566,7 +567,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildSegmentedControl() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
       alignment: Alignment.center,
       child: Center(
         child: Container(
@@ -935,14 +936,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _currentFilter = mappedStatus),
                 child: Container(
-                  height: 46,
+                  height: 48,
                   alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
                         color: isActive ? Colors.white : Colors.transparent,
-                        width: 2.2,
+                        width: 2.5,
                       ),
                     ),
                   ),
@@ -950,10 +951,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     status.toUpperCase(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 14,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                      color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-                      letterSpacing: 0.45,
+                      color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -1220,6 +1221,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildArchivedList() {
     List<Rabbit> filtered = _archivedList.where((r) {
+      if (r.type == RabbitType.pedigree || r.id.startsWith('PED-') || r.id.startsWith('ped_')) return false;
+
       if (_breedFilter != 'All') {
         final normalizedRabbitBreed = _normalizeBreed(r.breed);
         final normalizedFilter = _normalizeBreed(_breedFilter);
@@ -1269,7 +1272,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         Expanded(
           child: ListView.builder(
             controller: _archiveScrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
             itemCount: filtered.length,
             itemBuilder: (context, index) => _buildRedesignedRabbitCard(filtered[index]),
           ),
@@ -1387,6 +1390,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   Widget _buildRabbitList(RabbitType type) {
     List<Rabbit> filtered = _allRabbits.where((r) {
       if (r.type != type) return false;
+      if (r.type == RabbitType.pedigree) return false;
+      if (r.id.startsWith('PED-') || r.id.startsWith('ped_')) return false;
       if (r.status == RabbitStatus.archived) return false;
 
       if (_breedFilter != 'All') {
@@ -1494,7 +1499,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           Expanded(
             child: ListView.builder(
               controller: type == RabbitType.doe ? _doeScrollController : _buckScrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
               itemCount: filtered.length,
               itemBuilder: (context, index) {
                 final rabbit = filtered[index];
@@ -1577,7 +1582,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Widget _buildCountHeader(int count) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -1737,7 +1742,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         Text(
                           '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF787774),
                           ),
@@ -1750,7 +1755,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                               ? '${rabbit.age} • ${FormatUtils.formatWeight(rabbit.weight!)}'
                               : rabbit.age,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF787774),
                           ),
@@ -1766,8 +1771,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildStatusBadge(rabbit),
-                      const SizedBox(height: 4),
+                      if (_currentFilter.toLowerCase() == 'all') ...[
+                        _buildStatusBadge(rabbit),
+                        const SizedBox(height: 4),
+                      ],
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
@@ -1894,9 +1901,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           Text(
             label,
             style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF4F4F56),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF555555),
             ),
           ),
           const SizedBox(width: 6),
@@ -1904,9 +1911,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             child: Text(
               val,
               style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4F4F56),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF555555),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1930,9 +1937,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 Text(
                   label1,
                   style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF4F4F56),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF555555),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -1940,9 +1947,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   child: Text(
                     val1,
                     style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4F4F56),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF555555),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1957,9 +1964,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 Text(
                   label2,
                   style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF4F4F56),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF555555),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -1967,9 +1974,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   child: Text(
                     val2,
                     style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4F4F56),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF555555),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1993,9 +2000,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           Text(
             label,
             style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF4F4F56),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF555555),
             ),
           ),
           const SizedBox(width: 6),
@@ -2003,9 +2010,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             child: Text(
               val,
               style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4F4F56),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF555555),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

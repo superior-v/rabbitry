@@ -118,6 +118,18 @@ class _LogBirthModalState extends State<LogBirthModal> {
       }
     } else {
       _loadNextLitterId();
+      if (widget.doe.breedingNotes != null && widget.doe.breedingNotes!.trim().isNotEmpty) {
+        _notesController.text = widget.doe.breedingNotes!.trim();
+      }
+      _db.getRabbit(widget.doe.id).then((freshDoe) {
+        if (freshDoe != null && mounted) {
+          if (_notesController.text.isEmpty && freshDoe.breedingNotes != null && freshDoe.breedingNotes!.trim().isNotEmpty) {
+            setState(() {
+              _notesController.text = freshDoe.breedingNotes!.trim();
+            });
+          }
+        }
+      });
     }
   }
 
@@ -441,7 +453,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 _buildOutlinedField(
                   label: 'Notes',
                   controller: _notesController,
-                  maxLines: 1,
+                  maxLines: 2,
                 ),
               ],
             ),
@@ -524,6 +536,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
             ),
           ),
         ),
+        if (_isMissedLitter) ...[
+          const SizedBox(height: 10),
+          _buildOutlinedField(
+            label: 'Notes',
+            controller: _notesController,
+            hint: 'Notes on missed breeding...',
+            maxLines: 2,
+          ),
+        ],
         const SizedBox(height: 12),
       ],
     );
@@ -988,6 +1009,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
           bucksProduced: int.tryParse(_bucksProducedController.text),
           doesProduced: int.tryParse(_doesProducedController.text),
           peanutsProduced: int.tryParse(_peanutsProducedController.text),
+          notes: _notesController.text,
         );
       }
 

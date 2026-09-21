@@ -78,6 +78,13 @@ class DatabaseService {
              await db.execute("ALTER TABLE documents ADD COLUMN folder TEXT DEFAULT 'Other'");
           }
         } catch (_) {}
+
+        // Hot-patch fix any PED- / ped_ rabbits that were saved with normal types or active statuses
+        try {
+          await db.rawUpdate(
+            "UPDATE rabbits SET type = 'RabbitType.pedigree', status = 'RabbitStatus.archived' WHERE id LIKE 'PED-%' OR id LIKE 'ped_%'",
+          );
+        } catch (_) {}
       },
     );
   }
@@ -912,18 +919,31 @@ class DatabaseService {
     }
   }
 
+  Future<void> fixPedigreeRabbits() async {
+    try {
+      final db = await database;
+      await db.rawUpdate(
+        "UPDATE rabbits SET type = 'RabbitType.pedigree', status = 'RabbitStatus.archived' WHERE id LIKE 'PED-%' OR id LIKE 'ped_%'",
+      );
+    } catch (e) {
+      print('Error in fixPedigreeRabbits: $e');
+    }
+  }
+
   Future<List<Rabbit>> getAllRabbits() async {
+    await fixPedigreeRabbits();
     await checkAndUpdateRebreedStatuses();
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
-      where: 'status != ?',
-      whereArgs: ['RabbitStatus.archived'],
+      where: 'status != ? AND type != ? AND type != ?',
+      whereArgs: ['RabbitStatus.archived', 'RabbitType.pedigree', 'pedigree'],
       orderBy: 'name ASC',
     );
     final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
     final resolved = <Rabbit>[];
     for (final r in list) {
+      if (r.type == RabbitType.pedigree || r.id.startsWith('PED-') || r.id.startsWith('ped_')) continue;
       resolved.add(await _resolveRabbitPhotos(r));
     }
     return resolved;
@@ -933,13 +953,14 @@ class DatabaseService {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
-      where: 'status = ?',
-      whereArgs: ['RabbitStatus.archived'],
+      where: 'status = ? AND type != ? AND type != ?',
+      whereArgs: ['RabbitStatus.archived', 'RabbitType.pedigree', 'pedigree'],
       orderBy: 'archiveDate DESC',
     );
     final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
     final resolved = <Rabbit>[];
     for (final r in list) {
+      if (r.type == RabbitType.pedigree || r.id.startsWith('PED-') || r.id.startsWith('ped_')) continue;
       resolved.add(await _resolveRabbitPhotos(r));
     }
     return resolved;
@@ -959,6 +980,20 @@ class DatabaseService {
 
   Future<List<Rabbit>> getRabbitsByType(RabbitType type) async {
     final db = await database;
+    if (type == RabbitType.pedigree) {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'rabbits',
+        where: 'type = ? OR type = ? OR id LIKE ? OR id LIKE ?',
+        whereArgs: ['RabbitType.pedigree', 'pedigree', 'PED-%', 'ped_%'],
+        orderBy: 'name ASC',
+      );
+      final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+      final resolved = <Rabbit>[];
+      for (final r in list) {
+        resolved.add(await _resolveRabbitPhotos(r));
+      }
+      return resolved;
+    }
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
       where: 'type = ? AND status != ?',
@@ -968,6 +1003,7 @@ class DatabaseService {
     final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
     final resolved = <Rabbit>[];
     for (final r in list) {
+      if (r.type == RabbitType.pedigree || r.id.startsWith('PED-') || r.id.startsWith('ped_')) continue;
       resolved.add(await _resolveRabbitPhotos(r));
     }
     return resolved;
@@ -1311,6 +1347,7 @@ class DatabaseService {
     int? bucksProduced,
     int? doesProduced,
     int? peanutsProduced,
+    String? notes,
   }) async {
     final db = await database;
     final settings = SettingsService.instance;
@@ -1385,6 +1422,7 @@ class DatabaseService {
       'doesProduced': doesProduced,
       'peanutsProduced': peanutsProduced,
       'kits': kitsJson,
+      'notes': notes,
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     });
@@ -1445,6 +1483,28 @@ class DatabaseService {
   /// Get next suggested litter ID for UI
   Future<String> getNextLitterId() async {
     return await _generateNextLitterId();
+  }
+
+  /// Get next sequential past litter ID (P-001, P-002, etc.)
+  Future<String> getNextPastLitterId() async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT id FROM litters 
+      WHERE id LIKE 'P-%' 
+      ORDER BY id DESC 
+      LIMIT 1
+    ''');
+
+    int nextNumber = 1;
+    if (result.isNotEmpty) {
+      final lastId = result.first['id'] as String;
+      final numberPart = lastId.replaceAll(RegExp(r'[^0-9]'), '');
+      if (numberPart.isNotEmpty) {
+        nextNumber = int.parse(numberPart) + 1;
+      }
+    }
+
+    return 'P-${nextNumber.toString().padLeft(3, '0')}';
   }
 
   Future<void> weanLitter(
@@ -1905,17 +1965,6 @@ class DatabaseService {
           final litter = Litter.fromMap(map);
           final ageDays = DateTime.now().difference(litter.dob).inDays;
           Litter cleanedLitter = litter;
-          // If the litter is < 49 days old (e.g. 3 weeks old) and has kits mistakenly marked 'Weaned', heal them to 'Nursing'
-          if (ageDays < 49 && litter.kits.any((k) => k.status.toLowerCase() == 'weaned')) {
-            final healedKits = litter.kits.map((k) {
-              if (k.status.toLowerCase() == 'weaned') {
-                return k.copyWith(status: 'Nursing');
-              }
-              return k;
-            }).toList();
-            cleanedLitter = litter.copyWith(kits: healedKits);
-            db.update('litters', cleanedLitter.toMap(), where: 'id = ?', whereArgs: [cleanedLitter.id]).ignore();
-          }
 
           // If the litter is >= 49 days old (7 weeks old), automatically transition nursing kits and litter to 'Weaned'
           if (ageDays >= 49 && (litter.status.toLowerCase() == 'nursing' || litter.kits.any((k) => k.status.toLowerCase() == 'nursing' || k.status.isEmpty || k.status.toLowerCase() == 'active'))) {
@@ -2010,7 +2059,7 @@ class DatabaseService {
         'totalBorn': litter.totalKits,
         'aliveBorn': litter.aliveKits,
         'deadBorn': litter.deadKits,
-        'currentAlive': litter.aliveKits,
+        'currentAlive': litter.kits.where((k) => !k.isArchived && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'died').length,
         'weanDate': litter.weanDate?.toIso8601String(),
         'notes': litter.notes,
         'updatedAt': DateTime.now().toIso8601String(),
@@ -2049,22 +2098,111 @@ class DatabaseService {
     }
   }
 
-  /// Scans all nursing does in the database and updates them to OPEN if all their kits are dead or fostered.
+  /// Scans all does and syncs their status accurately:
+  /// - If doe has active nursing kits in nursery -> Nursing
+  /// - If doe was marked nursing but has no active nursing kits -> Open
   Future<void> syncAllNursingDoes() async {
     try {
       final db = await database;
-      final nursingDoes = await db.query(
+      final does = await db.query(
         'rabbits',
-        where: "type = 'RabbitType.doe' AND status LIKE '%nursing%'",
+        where: "type = 'RabbitType.doe'",
       );
-      for (final doe in nursingDoes) {
+      final litters = await getLitters();
+
+      for (final doe in does) {
         final doeId = doe['id'] as String?;
-        if (doeId != null && doeId.isNotEmpty) {
-          await checkAndUpdateDoeStatusIfLitterEmpty(doeId);
+        if (doeId == null || doeId.isEmpty) continue;
+
+        final currentStatus = doe['status']?.toString().toLowerCase() ?? '';
+        if (currentStatus.contains('archived') || currentStatus.contains('quarantine')) continue;
+
+        // Check if doe has any active nursing litter in nursery
+        final doeLitters = litters.where((l) =>
+          l.doeId == doeId &&
+          l.status.toLowerCase() != 'archived' &&
+          l.status.toLowerCase() != 'weaned' &&
+          l.status.toLowerCase() != 'not taken' &&
+          l.status.toLowerCase() != 'died'
+        ).toList();
+
+        bool hasActiveNursingKits = false;
+        for (final litter in doeLitters) {
+          final activeKits = litter.kits.where((k) {
+            final s = k.status.toLowerCase().trim();
+            return s != 'dead' &&
+                s != 'died' &&
+                s != 'deceased' &&
+                s != 'fostered' &&
+                s != 'archived' &&
+                s != 'sold' &&
+                s != 'butchered' &&
+                s != 'cull';
+          }).toList();
+
+          final int aliveCount = litter.aliveKits ?? 0;
+          if (litter.kits.isNotEmpty) {
+            if (activeKits.isNotEmpty) {
+              hasActiveNursingKits = true;
+              break;
+            }
+          } else if (aliveCount > 0) {
+            hasActiveNursingKits = true;
+            break;
+          }
+        }
+
+        if (hasActiveNursingKits) {
+          if (!currentStatus.contains('nursing')) {
+            await db.update(
+              'rabbits',
+              {
+                'status': RabbitStatus.nursing.toString(),
+                'updatedAt': DateTime.now().toIso8601String(),
+              },
+              where: 'id = ?',
+              whereArgs: [doeId],
+            );
+          }
+        } else if (currentStatus.contains('nursing')) {
+          await db.update(
+            'rabbits',
+            {
+              'status': RabbitStatus.open.toString(),
+              'currentLitterSize': 0,
+              'weanDate': null,
+              'updatedAt': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [doeId],
+          );
         }
       }
     } catch (e) {
       print('⚠️ Error in syncAllNursingDoes: $e');
+    }
+  }
+
+  Future<void> deleteLitter(String id) async {
+    try {
+      final db = await database;
+      final maps = await db.query('litters', where: 'id = ?', whereArgs: [id]);
+      String? doeId;
+      if (maps.isNotEmpty) {
+        doeId = maps.first['doeId'] as String?;
+      }
+      await db.delete('litters', where: 'id = ?', whereArgs: [id]);
+      try {
+        await db.delete('tasks', where: 'litterId = ?', whereArgs: [id]);
+      } catch (_) {}
+      if (doeId != null && doeId.isNotEmpty) {
+        await checkAndUpdateDoeStatusIfLitterEmpty(doeId);
+      }
+      notifyDataChanged();
+      print('🗑️ Deleted litter: $id');
+    } catch (e) {
+      print('❌ Error deleting litter: $e');
+      rethrow;
     }
   }
 
@@ -2160,17 +2298,8 @@ class DatabaseService {
       final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
       if (doeMap.isEmpty) return;
       final currentDoeStatus = (doeMap.first['status'] as String? ?? '').toLowerCase();
-      // If the doe is currently pregnant/bred, palpateDue, quarantine, or archived, do not reset her status or clear breeding dates!
-      if (currentDoeStatus.contains('pregnant') || currentDoeStatus.contains('palpatedue') || currentDoeStatus.contains('quarantine') || currentDoeStatus.contains('archived')) {
-        return;
-      }
-
-      final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
-      final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
-      final kindleStr = doeMap.first['kindleDate'] as String?;
-      final kindle = kindleStr != null ? DateTime.tryParse(kindleStr) : null;
-      if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed))) {
-        // Doe is currently bred, do not reset to open
+      // If the doe is quarantine or archived, do not reset her status
+      if (currentDoeStatus.contains('quarantine') || currentDoeStatus.contains('archived')) {
         return;
       }
 
@@ -2214,13 +2343,36 @@ class DatabaseService {
 
       if (!hasActiveNursingKits) {
         // Doe has NO active nursing kits remaining (all died, fostered, or weaned/archived)
+        // Check if doe has an active new breeding that occurred after her latest litter
+        final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
+        final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+        final dueDateStr = doeMap.first['dueDate'] as String?;
+        final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
+
+        DateTime? latestKindle;
+        for (final l in litters.where((l) => l.doeId == doeId)) {
+          final kDate = l.kindleDate ?? l.dob;
+          if (latestKindle == null || (kDate != null && kDate.isAfter(latestKindle))) {
+            latestKindle = kDate;
+          }
+        }
+
+        final bool isNewlyBred = lastBreed != null &&
+                                (latestKindle == null || lastBreed.isAfter(latestKindle)) &&
+                                dueDate != null &&
+                                DateTime.now().difference(lastBreed).inDays <= 35;
+
+        final newStatus = isNewlyBred ? RabbitStatus.pregnant.toString() : RabbitStatus.open.toString();
+
         await db.update(
           'rabbits',
           {
-            'status': RabbitStatus.open.toString(),
+            'status': newStatus,
             'kindleDate': null,
             'weanDate': null,
             'currentLitterSize': 0,
+            if (!isNewlyBred) 'dueDate': null,
+            if (!isNewlyBred) 'palpationDate': null,
             'updatedAt': DateTime.now().toIso8601String(),
           },
           where: 'id = ?',
@@ -2244,19 +2396,12 @@ class DatabaseService {
           );
         }
 
-        print('🐰 Doe $doeId status updated to OPEN because all kits are dead or fostered.');
+        print('🐰 Doe $doeId status updated to $newStatus because all kits are dead/fostered/none.');
         notifyDataChanged();
       }
     } catch (e) {
       print('⚠️ Error in checkAndUpdateDoeStatusIfLitterEmpty: $e');
     }
-  }
-
-  // ✅ NEW: Delete litter
-  Future<void> deleteLitter(String litterId) async {
-    final db = await database;
-    await db.delete('litters', where: 'id = ?', whereArgs: [litterId]);
-    print('🗑️ Deleted litter: $litterId');
   }
 
   // ==================== TASK CRUD ====================
@@ -3303,12 +3448,31 @@ class DatabaseService {
     );
     
     if (maps.isNotEmpty) {
-      final txn = finance_model.Transaction.fromMap(maps.first);
+      final rawMap = maps.first;
+      final txn = finance_model.Transaction.fromMap(rawMap);
+      
+      String? targetLitterId = txn.litterId ?? rawMap['litterId']?.toString();
+      String? targetKitId = txn.kitId ?? rawMap['kitId']?.toString();
+      
+      if (targetLitterId == null && txn.description != null) {
+        final match = RegExp(r'Sold Kit ([A-Za-z0-9_\-]+)-([A-Za-z0-9_\-]+)', caseSensitive: false).firstMatch(txn.description!);
+        if (match != null) {
+          targetLitterId = match.group(1);
+          targetKitId = match.group(2);
+        }
+      }
       
       // If it is a sold kit transaction
-      if (txn.category == finance_model.TransactionCategory.soldKit && txn.litterId != null && txn.kitId != null) {
+      final bool isKitSale = (txn.category == finance_model.TransactionCategory.soldKit ||
+                             txn.category == finance_model.TransactionCategory.litterSale ||
+                             txn.linkType == finance_model.LinkType.litter ||
+                             txn.linkType == finance_model.LinkType.kit ||
+                             (txn.description != null && txn.description!.toLowerCase().contains('kit'))) &&
+                             targetLitterId != null && targetKitId != null;
+
+      if (isKitSale) {
         // Find litter
-        final litterList = await db.query('litters', where: 'id = ?', whereArgs: [txn.litterId]);
+        final litterList = await db.query('litters', where: 'id = ?', whereArgs: [targetLitterId]);
         if (litterList.isNotEmpty) {
           final litter = Litter.fromMap(litterList.first);
           final dob = litter.kindleDate ?? litter.dob;
@@ -3318,15 +3482,15 @@ class DatabaseService {
           final String restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
 
           bool isMatch(String kId, String targetId) {
-            if (kId == targetId || kId.toLowerCase() == targetId.toLowerCase()) return true;
+            if (kId.toLowerCase() == targetId.toLowerCase()) return true;
             final num1 = kId.replaceAll(RegExp(r'[^0-9]'), '');
             final num2 = targetId.replaceAll(RegExp(r'[^0-9]'), '');
             return num1.isNotEmpty && num1 == num2;
           }
 
           final updatedKits = litter.kits.map((k) {
-            if (isMatch(k.id, txn.kitId!)) {
-              final cleanDetails = (k.details != null && k.details!.toLowerCase().startsWith('sold to')) ? null : k.details;
+            if (isMatch(k.id, targetKitId!)) {
+              final cleanDetails = (k.details != null && (k.details!.toLowerCase().contains('sold to') || k.details!.toLowerCase().startsWith('sold'))) ? null : k.details;
               return k.copyWith(status: restoredStatus, price: null, details: cleanDetails);
             }
             return k;
@@ -3342,7 +3506,7 @@ class DatabaseService {
           final updatedLitter = litter.copyWith(
             kits: updatedKits,
             aliveKits: aliveCount,
-            status: (litter.status.toLowerCase() == 'sold' || litter.status.toLowerCase() == 'archived') ? 'Nursing' : litter.status,
+            status: (litter.status.toLowerCase() == 'sold' || litter.status.toLowerCase() == 'archived') ? restoredStatus : litter.status,
           );
 
           await db.update(
@@ -3351,7 +3515,7 @@ class DatabaseService {
             where: 'id = ?',
             whereArgs: [litter.id],
           );
-          print('🔄 Restored Kit ${litter.id}-${txn.kitId} status to $restoredStatus due to sale transaction deletion.');
+          print('🔄 Restored Kit ${litter.id}-$targetKitId status to $restoredStatus due to sale transaction deletion.');
 
           // Restore doe nursing status if needed
           if (litter.doeId.isNotEmpty) {

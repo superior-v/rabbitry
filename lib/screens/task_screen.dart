@@ -443,7 +443,10 @@ class TaskScreenState extends State<TaskScreen> {
       if (taskId == null) return;
       await _db.unmarkScheduledTaskCompleted(taskId);
     }
-    if (reload) await _loadScheduledTasks();
+    if (reload) {
+      await _loadScheduledTasks();
+      await _loadStats();
+    }
   }
 
   void _handleTaskIgnore(dynamic taskId) {
@@ -1250,12 +1253,12 @@ class TaskScreenState extends State<TaskScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header: Task Name + Date
+            // Header: Task Name + Date (Finance Page Style: w600, #4F4F56)
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -1264,8 +1267,8 @@ class TaskScreenState extends State<TaskScreen> {
                     title,
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1F2937),
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4F4F56),
                       height: 1.2,
                     ),
                     maxLines: 1,
@@ -1287,7 +1290,7 @@ class TaskScreenState extends State<TaskScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 2),
             // Indented list of bunnies
             ...groupTasks.map((task) {
               final isCompleted = task['completedAt'] != null;
@@ -1298,11 +1301,11 @@ class TaskScreenState extends State<TaskScreen> {
               final displayName = bunnyName.isNotEmpty ? bunnyName : 'Unlinked';
 
               return Padding(
-                padding: const EdgeInsets.only(left: 10, top: 4, bottom: 4),
+                padding: const EdgeInsets.only(left: 4, top: 0, bottom: 0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Small circle Checkbox matching single task style
+                    // Generous touch hitbox for circle checkbox
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: isIgnored
@@ -1315,46 +1318,66 @@ class TaskScreenState extends State<TaskScreen> {
                               }
                             },
                       child: Container(
-                        width: 15,
-                        height: 15,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
-                          border: Border.all(
-                            color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
-                            width: 1.5,
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 17,
+                          height: 17,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                            border: Border.all(
+                              color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                              width: 1.5,
+                            ),
                           ),
+                          child: isCompleted
+                              ? const Center(
+                                  child: Icon(Icons.check, size: 11, color: Colors.white),
+                                )
+                              : null,
                         ),
-                        child: isCompleted
-                            ? const Center(
-                                child: Icon(Icons.check, size: 10, color: Colors.white),
-                              )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Indented dash and Bunny name in purple
-                    Expanded(
-                      child: Text(
-                        '- $displayName',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF8B5CF6),
-                          decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
-                          letterSpacing: 0.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    // 3 dots
+                    // Indented dash and Bunny name in purple
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: isIgnored
+                            ? null
+                            : () {
+                                if (isCompleted) {
+                                  _handleTaskUncomplete(task);
+                                } else {
+                                  _handleTaskComplete(task);
+                                }
+                              },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            '- $displayName',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF8B5CF6),
+                              decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
+                              letterSpacing: 0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // 3 dots options menu
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => _showTaskOptionsSheet(task),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                         child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
                       ),
                     ),
@@ -1397,113 +1420,128 @@ class TaskScreenState extends State<TaskScreen> {
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          onTap: isIgnored ? null : () => _showTaskOptionsSheet(task),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Column 1: Small circle checkbox matching text height
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: isIgnored
-                        ? null
-                        : () {
-                            if (task != null) {
-                              if (isCompleted) {
-                                _handleTaskUncomplete(task);
-                              } else {
-                                _handleTaskComplete(task);
-                              }
-                            }
-                          },
-                    child: Container(
-                      width: 15,
-                      height: 15,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
-                        border: Border.all(
-                          color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFD1D5DB),
-                          width: 1.5,
-                        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Column 1: Generous touch target for circle Checkbox
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: isIgnored
+                    ? null
+                    : () {
+                        if (task != null) {
+                          if (isCompleted) {
+                            _handleTaskUncomplete(task);
+                          } else {
+                            _handleTaskComplete(task);
+                          }
+                        }
+                      },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 17,
+                    height: 17,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                      border: Border.all(
+                        color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                        width: 1.5,
                       ),
-                      child: isCompleted
-                          ? const Center(
-                              child: Icon(Icons.check, size: 10, color: Colors.white),
-                            )
-                          : null,
                     ),
+                    child: isCompleted
+                        ? const Center(
+                            child: Icon(Icons.check, size: 11, color: Colors.white),
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(width: 10),
-                // Column 2: Content (Task name NOT bold + Bunny name in purple)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500, // NOT BOLD
-                          color: (isCompleted || isIgnored) ? kNeutral400 : const Color(0xFF1F2937),
-                          decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
-                          height: 1.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (bunnyName.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+              ),
+              const SizedBox(width: 4),
+              // Column 2: Content (Finance style font: fontSize 14, w600, Color 0xFF4F4F56)
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: isIgnored
+                      ? null
+                      : () {
+                          if (task != null) {
+                            if (isCompleted) {
+                              _handleTaskUncomplete(task);
+                            } else if (taskType != null && taskType != 'scheduled' && taskType != 'general') {
+                              _handleTaskTap(taskType, rabbitId, title);
+                            } else {
+                              _handleTaskComplete(task);
+                            }
+                          }
+                        },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          bunnyName,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF8B5CF6),
-                            letterSpacing: 0.5,
+                          title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                            decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
+                            height: 1.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if (bunnyName.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            bunnyName,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF8B5CF6),
+                              letterSpacing: 0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Column 3: Due date status
-                Padding(
-                  padding: const EdgeInsets.only(top: 1),
-                  child: Text(
-                    date,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isOverdue
-                          ? const Color(0xFFEF4444)
-                          : isToday
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFF6B7280),
-                      fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                // Column 4: Options Menu (3 dots)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showTaskOptionsSheet(task),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                    child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              // Column 3: Due date status
+              Text(
+                date,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isOverdue
+                      ? const Color(0xFFEF4444)
+                      : isToday
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF6B7280),
+                  fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 4),
+              // Column 4: Options Menu (3 dots)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showTaskOptionsSheet(task),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                ),
+              ),
+            ],
           ),
         ),
       ),

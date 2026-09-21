@@ -209,23 +209,40 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     try {
       final bucks = await _db.getRabbitsByType(RabbitType.buck);
       final does = await _db.getRabbitsByType(RabbitType.doe);
+      String? sireName;
+      String? damName;
+
+      if (_selectedSireId != null && _selectedSireId!.isNotEmpty) {
+        final sireMatches = bucks.where((b) => b.id == _selectedSireId).toList();
+        if (sireMatches.isNotEmpty) {
+          sireName = sireMatches.first.name;
+        } else {
+          final sRabbit = await _db.getRabbit(_selectedSireId!);
+          sireName = sRabbit?.name ?? _selectedSireId;
+        }
+      }
+
+      if (_selectedDamId != null && _selectedDamId!.isNotEmpty) {
+        final damMatches = does.where((d) => d.id == _selectedDamId).toList();
+        if (damMatches.isNotEmpty) {
+          damName = damMatches.first.name;
+        } else {
+          final dRabbit = await _db.getRabbit(_selectedDamId!);
+          damName = dRabbit?.name ?? _selectedDamId;
+        }
+      }
+
       if (mounted) {
         setState(() {
           _availableBucks = bucks;
           _availableDoes = does;
-          if (_selectedSireId != null) {
-            final sire = bucks.where((b) => b.id == _selectedSireId).toList();
-            if (sire.isNotEmpty) {
-              _selectedSireName = sire.first.name;
-              _sireController.text = sire.first.name;
-            }
+          if (sireName != null) {
+            _selectedSireName = sireName;
+            _sireController.text = sireName;
           }
-          if (_selectedDamId != null) {
-            final dam = does.where((d) => d.id == _selectedDamId).toList();
-            if (dam.isNotEmpty) {
-              _selectedDamName = dam.first.name;
-              _damController.text = dam.first.name;
-            }
+          if (damName != null) {
+            _selectedDamName = damName;
+            _damController.text = damName;
           }
         });
       }
@@ -1542,7 +1559,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildParentSelector(String label, String? selectedId, String? selectedName, List<Rabbit> options, void Function(String?, String?) onSelect) {
-    final hasSelection = selectedId != null && selectedName != null;
+    final hasSelection = (selectedId != null && selectedId.isNotEmpty) || (selectedName != null && selectedName.isNotEmpty);
     final controller = label == 'Sire' ? _sireController : _damController;
     final color = label == 'Dam' ? kFemaleColor : kMaleColor;
 
@@ -1554,7 +1571,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             _showParentPickerDialog(label, options, (id, name) {
               onSelect(id, name);
               setState(() {
-                controller.text = name;
+                if (name != null) {
+                  controller.text = name;
+                } else {
+                  controller.clear();
+                }
               });
             });
           },
@@ -1591,6 +1612,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             right: 4,
             child: IconButton(
               icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
+              tooltip: 'Clear $label',
               onPressed: () {
                 onSelect(null, null);
                 setState(() {
@@ -1608,36 +1630,74 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
-  void _showParentPickerDialog(String label, List<Rabbit> options, void Function(String, String) onSelect) {
+  void _showParentPickerDialog(String label, List<Rabbit> options, void Function(String?, String?) onSelect) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Select $label', style: const TextStyle(fontSize: 19)),
+        title: Text('Select $label', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
         content: SizedBox(
           width: double.maxFinite,
-          child: options.isEmpty
-              ? const Text('No rabbits available', style: TextStyle(fontSize: 17))
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (context, index) {
-                    final rabbit = options[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
-                        child: Text(rabbit.name.isNotEmpty ? rabbit.name[0] : '?', style: TextStyle(fontSize: 17, color: label == 'Dam' ? kFemaleColor : kMaleColor)),
-                      ),
-                      title: Text(rabbit.name, style: const TextStyle(fontSize: 17)),
-                      subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 15)),
-                      onTap: () {
-                        Navigator.pop(context);
-                        onSelect(rabbit.id, rabbit.name);
-                      },
-                    );
-                  },
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Icon(Icons.block, color: Colors.red.shade700, size: 18),
                 ),
+                title: Text(
+                  'None (Leave Blank)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.red.shade700),
+                ),
+                subtitle: Text('Clear $label and leave field empty', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(null, null);
+                },
+              ),
+              const Divider(height: 1, color: Color(0xFFE5DEEC)),
+              if (options.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text('No rabbits available in herd', style: TextStyle(fontSize: 14, color: Color(0xFF787880))),
+                  ),
+                )
+              else
+                ...options.map((rabbit) {
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
+                      child: Text(
+                        rabbit.name.isNotEmpty ? rabbit.name[0] : '?',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: label == 'Dam' ? kFemaleColor : kMaleColor),
+                      ),
+                    ),
+                    title: Text(rabbit.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onSelect(rabbit.id, rabbit.name);
+                    },
+                  );
+                }),
+            ],
+          ),
         ),
         actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onSelect(null, null);
+            },
+            child: Text('Leave Blank', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.red.shade700)),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel', style: TextStyle(fontSize: 16)),
@@ -1752,6 +1812,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         updated.color = _colorController.text.isEmpty ? null : _colorController.text;
         updated.location = _selectedLocation;
         updated.cage = _selectedCage;
+        updated.sireId = _selectedSireId;
+        updated.damId = _selectedDamId;
 
         await _db.updateRabbit(updated);
         notifyDataChanged();

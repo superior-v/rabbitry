@@ -8,6 +8,7 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import '../screens/litters_screen.dart';
+import '../screens/kit_detail_screen.dart';
 import '../screens/home_dashboard_screen.dart' show HomeDashboardScreen;
 import 'modals/wean_litter_modal.dart';
 import 'modals/log_birth_modal.dart';
@@ -59,7 +60,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         return true;
       }).toList();
       final litters = unique.map((data) => Litter.fromMap(data)).toList();
-      litters.sort((a, b) => (b.kindleDate ?? b.breedDate).compareTo(a.kindleDate ?? a.breedDate));
+      litters.sort((a, b) {
+        final dateA = a.dob ?? a.kindleDate ?? a.breedDate;
+        final dateB = b.dob ?? b.kindleDate ?? b.breedDate;
+        return dateB.compareTo(dateA);
+      });
 
       if (mounted) {
         setState(() {
@@ -183,21 +188,25 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isDam = widget.rabbit.id == litter.doeId;
     final partner = isDam ? litter.buckName : litter.doeName;
     final partnerId = isDam ? litter.buckId : litter.doeId;
-    final bornDateStr = FormatUtils.formatDate(litter.kindleDate ?? litter.breedDate);
-    final bredDateStr = FormatUtils.formatDate(litter.breedDate);
+    final String bredDateStr = DateFormat('MMM d, yyyy').format(litter.breedDate);
+    final String bornDateStr = (litter.dob ?? litter.kindleDate) != null
+        ? DateFormat('MMM d, yyyy').format(litter.dob ?? litter.kindleDate!)
+        : '-';
     final isExpanded = _expandedLitters.contains(litter.id);
+    final String lStatus = litter.status.toLowerCase().trim();
+    final bool isMissedLitter = lStatus == 'not taken' || lStatus == 'missed' || lStatus == 'missed litter';
 
     String fullAgeStr = '';
-    if (litter.status == 'Not Taken') {
+    if (isMissedLitter) {
       fullAgeStr = '';
-    } else if (litter.status == 'Weaned') {
-      if (litter.kindleDate != null) {
-        fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate)}';
+    } else if (lStatus == 'weaned') {
+      if (litter.kindleDate != null || litter.dob != null) {
+        fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
       } else {
         fullAgeStr = 'Weaned';
       }
-    } else if (litter.kindleDate != null) {
-      fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate)}';
+    } else if (litter.kindleDate != null || litter.dob != null) {
+      fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     }
 
     return Container(
@@ -235,11 +244,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      litter.status == 'Not Taken' ? 'MISSED LITTER' : litter.id,
+                      isMissedLitter ? 'MISSED LITTER' : litter.id,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                        color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -279,13 +288,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        litter.status == 'Not Taken'
-                            ? 'Not Pregnant — archived'
+                        isMissedLitter
+                            ? 'Not Pregnant — Missed Litter'
                             : '$partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                          color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -307,20 +316,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        litter.status == 'Not Taken'
-                            ? 'Not Taken'
-                            : '${litter.totalKits} born • ${litter.aliveKits} alive',
+                        isMissedLitter
+                            ? 'Missed Litter'
+                            : '${litter.totalKits ?? 0} Born • ${litter.aliveKits ?? 0} Alive',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: litter.status == 'Not Taken' ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                          color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Born $bornDateStr',
+                      isMissedLitter ? '' : 'Born $bornDateStr',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -344,24 +353,275 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             ),
           ),
 
-          // Expandable children notes
+          // Expandable children kits & notes matching Nursery page
           if (isExpanded) ...[
-            const SizedBox(height: 10),
-            _buildFigmaField(litter, 'Patterns', 'patternsProduced', litter.patternsProduced),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(child: _buildFigmaField(litter, 'Bucks', 'bucksProduced', litter.bucksProduced?.toString(), isNumber: true)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildFigmaField(litter, 'Does', 'doesProduced', litter.doesProduced?.toString(), isNumber: true)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildFigmaField(litter, 'Peanuts', 'peanutsProduced', litter.peanutsProduced?.toString(), isNumber: true)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _buildFigmaField(litter, 'Notes', 'notes', litter.notes),
+            const Divider(height: 20, color: Color(0xFFE5E5EA)),
+            if (litter.kits.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                child: Text(
+                  isMissedLitter ? 'Missed breeding — no kits' : 'No kits recorded in this litter',
+                  style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontStyle: FontStyle.italic),
+                ),
+              )
+            else
+              ...litter.kits.map((kit) => _buildKitRow(litter, kit)).toList(),
+            const SizedBox(height: 8),
+            _buildLitterNotesBox(litter),
             const SizedBox(height: 4),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKitRow(Litter litter, Kit kit) {
+    final String kStatus = kit.status.toLowerCase().trim();
+    final bool isOutcome = [
+      'sold',
+      'butchered',
+      'dead',
+      'died',
+      'deceased',
+      'cull'
+    ].contains(kStatus);
+
+    final bool isFosteredIn = kit.id.startsWith('F-') ||
+        kit.id.startsWith('foster_') ||
+        (kit.details != null && kit.details!.toLowerCase().contains('fostered from'));
+
+    String displayKitId;
+    if (isFosteredIn) {
+      final fosteredKitsInLitter = litter.kits.where((k) =>
+        k.id.startsWith('F-') ||
+        k.id.startsWith('foster_') ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered from'))
+      ).toList();
+      final fosterIndex = fosteredKitsInLitter.indexOf(kit) + 1;
+      displayKitId = 'F-${fosterIndex > 0 ? fosterIndex : 1}';
+    } else {
+      final numericPart = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      displayKitId = 'K-${numericPart.isEmpty ? (litter.kits.indexOf(kit) + 1) : numericPart}';
+    }
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => KitDetailScreen(
+              litter: litter,
+              kit: kit,
+              onUpdated: () => _loadLitterHistory(),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFF2F2F7))),
+          color: Colors.white,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Index Pill (Purple matching Nursery)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              height: 24,
+              constraints: const BoxConstraints(minWidth: 40),
+              decoration: BoxDecoration(
+                color: isFosteredIn
+                    ? const Color(0xFF3A3A3C)
+                    : (isOutcome ? const Color(0xFFF2F2F7) : const Color(0xFFF5F1FC)),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isFosteredIn
+                      ? const Color(0xFF55555A)
+                      : (isOutcome ? const Color(0xFFE5E5EA) : const Color(0xFFE8DFFA)),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  displayKitId,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: isFosteredIn
+                        ? const Color(0xFFE2BFFB)
+                        : (isOutcome ? const Color(0xFF8E8E93) : const Color(0xFF5A4880)),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        kit.color.isNotEmpty ? kit.color : 'Kit $displayKitId',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isOutcome ? const Color(0xFF8E8E93) : const Color(0xFF37352F),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
+                        size: 14,
+                        color: kit.sex == 'M' ? const Color(0xFF5B8AD0) : (kit.sex == 'F' ? const Color(0xFFD4809A) : const Color(0xFF7B6BA0)),
+                      ),
+                    ],
+                  ),
+                  if (kit.weight > 0)
+                    Text(
+                      'Weight: ${FormatUtils.formatWeight(kit.weight)}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFAEAEB2), fontWeight: FontWeight.w500),
+                    ),
+                  if (kit.details != null && kit.details!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      kit.details!,
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (isOutcome) ...[
+              _buildOutcomeBadge(kit.status),
+              const SizedBox(width: 6),
+            ],
+            const Icon(PhosphorIconsRegular.caretRight, size: 16, color: Color(0xFFE5E5EA)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOutcomeBadge(String status) {
+    final s = status.toLowerCase();
+    if (s == 'sold') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E24),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(PhosphorIconsFill.tag, size: 10, color: Colors.white),
+            SizedBox(width: 3),
+            Text(
+              'SOLD',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (s == 'dead' || s == 'died') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: const Color(0xFFE57373)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.close, size: 11, color: Color(0xFFD32F2F)),
+            SizedBox(width: 3),
+            Text(
+              'Kit Died',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFD32F2F),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F7),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF8E8E93),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLitterNotesBox(Litter litter) {
+    final hasNotes = litter.notes != null && litter.notes!.trim().isNotEmpty;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 6, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8DFFA), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7B6BA0).withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.notes_rounded, size: 16, color: Color(0xFF6B2D6D)),
+              SizedBox(width: 6),
+              Text(
+                'Notes',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4A3E6D),
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            hasNotes ? litter.notes!.trim() : 'No notes recorded.',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: hasNotes ? const Color(0xFF333333) : const Color(0xFF8E8E93),
+              height: 1.35,
+              fontStyle: hasNotes ? FontStyle.normal : FontStyle.italic,
+            ),
+          ),
         ],
       ),
     );
@@ -799,60 +1059,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     }
   }
 
-  Widget _buildKitRow(Kit kit, int index) {
 
-    final bool isDied = [
-      'Dead',
-      'Cull'
-    ].contains(kit.status);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F5FB),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFEEE6F5)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              kit.sex == 'Male' ? PhosphorIconsFill.genderMale : (kit.sex == 'Female' ? PhosphorIconsFill.genderFemale : PhosphorIconsFill.question),
-              size: 12,
-              color: const Color(0xFF9F8BC0),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$index. ${kit.color.isNotEmpty ? kit.color : 'Unknown'}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF4F4F57)),
-                  ),
-                  if (kit.details != null && kit.details!.contains('Fostered from'))
-                    Text(
-                      '(${RegExp(r'Fostered from [^\n•]+').firstMatch(kit.details!)?.group(0) ?? kit.details})',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B1FA2)),
-                    ),
-                ],
-              ),
-            ),
-            Text(
-              isDied ? 'Died day 2' : 'Alive',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDied ? const Color(0xFFE95462) : const Color(0xFF7F7F88),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.more_horiz, size: 14, color: Color(0xFFB5B5BD)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildMetaRow(String label, String value) {
     return Container(

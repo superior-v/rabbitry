@@ -85,8 +85,35 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF5E4A8A),
-          primary: const Color(0xFF5E4A8A),
+          seedColor: const Color(0xFF7B6BA0),
+          primary: const Color(0xFF7B6BA0),
+        ),
+        datePickerTheme: DatePickerThemeData(
+          headerBackgroundColor: const Color(0xFFE2BFFB),
+          headerForegroundColor: const Color(0xFF463466),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+          todayForegroundColor: const WidgetStatePropertyAll(Color(0xFF8B5CF6)),
+          dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return Colors.white;
+            }
+            return const Color(0xFF2C2C2E);
+          }),
+          dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const Color(0xFF8B5CF6);
+            }
+            return null;
+          }),
+          confirmButtonStyle: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF8B5CF6),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          cancelButtonStyle: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF787880),
+          ),
         ),
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(

@@ -672,20 +672,14 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
   Widget _buildKindleCard(Map<String, dynamic> entry, {required int index, required bool isLast}) {
     final int daysUntil = entry['daysUntil'];
 
-    String daysText;
+    final String daysText = daysUntil == 0 ? 'Today' : '${daysUntil}d';
     Color daysColor;
 
     if (daysUntil < 0) {
-      daysText = '-${daysUntil.abs()} Days';
       daysColor = kError;
-    } else if (daysUntil == 0) {
-      daysText = 'Today';
-      daysColor = const Color(0xFF1B5E20);
-    } else if (daysUntil == 1) {
-      daysText = '1 Day';
+    } else if (daysUntil <= 1) {
       daysColor = const Color(0xFF1B5E20);
     } else {
-      daysText = '$daysUntil Days';
       daysColor = const Color(0xFF4F4F56);
     }
 
@@ -731,37 +725,44 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
           }
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral200, width: 0.5)),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                flex: 7,
+                flex: 6,
                 child: Text(
-                  '${entry['doeName']} × ${entry['buckName']}',
+                  '${entry['doeName']}\u00A0× ${entry['buckName']}',
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF1E293B),
+                    height: 1.3,
                   ),
+                  maxLines: 2,
+                  softWrap: true,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Expanded(
-                flex: 2,
-                child: Text(
-                  formattedDate,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF334155),
-                    fontFeatures: [
-                      ui.FontFeature.tabularFigures()
-                    ],
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(
+                    formattedDate,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF334155),
+                      fontFeatures: [
+                        ui.FontFeature.tabularFigures()
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.left,
                 ),
               ),
               Expanded(
@@ -770,7 +771,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                   daysText,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: daysUntil == 0 ? FontWeight.w700 : FontWeight.w500,
                     color: daysColor,
                   ),
                   textAlign: TextAlign.right,

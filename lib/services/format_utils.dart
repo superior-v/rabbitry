@@ -11,7 +11,12 @@ class FormatUtils {
   /// Full date format from settings (e.g., "Jan 24, 2026", "02-14-2026" or "14-02-2026")
   static String formatDate(DateTime date) {
     try {
-      return DateFormat(_settings.dateFormat).format(date);
+      String pattern = _settings.dateFormat;
+      if (pattern == 'MM-DD-YYYY') pattern = 'MM-dd-yyyy';
+      if (pattern == 'DD-MM-YYYY') pattern = 'dd-MM-yyyy';
+      if (pattern == 'MM/dd/yyyy') pattern = 'MM-dd-yyyy';
+      if (pattern == 'dd/MM/yyyy') pattern = 'dd-MM-yyyy';
+      return DateFormat(pattern).format(date);
     } catch (_) {
       return DateFormat('MMM d, yyyy').format(date);
     }
