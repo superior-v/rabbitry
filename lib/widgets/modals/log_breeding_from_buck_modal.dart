@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/format_utils.dart';
 import '../../constants/app_colors.dart';
+import 'rabbit_picker_modal.dart';
 
 /// Log Breeding Modal when initiated from a Buck
 /// Asks for the Doe, date, and shows palpation reminder timeline
@@ -158,22 +158,12 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       ),
                     )
                   else
-                    _buildDropdownField<Rabbit>(
+                    _buildRabbitSelectorField(
                       label: 'Select Doe',
-                      value: _selectedDoe,
+                      selectedRabbit: _selectedDoe,
+                      onTap: _pickDoe,
                       prefixIcon: Icons.female_rounded,
-                      selectedItemBuilder: (context) {
-                        return _does.map((doe) => _buildRabbitNameWidget(doe, fontSize: 15)).toList();
-                      },
-                      items: _does.map((doe) {
-                        return DropdownMenuItem<Rabbit>(
-                          value: doe,
-                          child: _buildRabbitNameWidget(doe, fontSize: 15),
-                        );
-                      }).toList(),
-                      onChanged: (doe) {
-                        setState(() => _selectedDoe = doe);
-                      },
+                      prefixColor: const Color(0xFFE04F9F),
                     ),
                   const SizedBox(height: 10),
 
@@ -188,7 +178,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                     child: Column(
                       children: [
                         _buildDatePickerField(
-                          label: 'Breed Date',
+                          label: 'Date Bred',
                           value: _breedDate,
                           onTap: () => _selectDate(context),
                         ),
@@ -550,8 +540,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: TextStyle(
-                color: nameColor,
+              style: const TextStyle(
+                color: Color(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -601,7 +591,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
@@ -610,14 +601,61 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B6BA0), size: 18),
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _pickDoe() async {
+    final picked = await showRabbitPickerBottomSheet(
+      context: context,
+      title: 'Select Doe',
+      rabbits: _does,
+      selectedRabbit: _selectedDoe,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDoe = picked;
+      });
+    }
+  }
+
+  Widget _buildRabbitSelectorField({
+    required String label,
+    required Rabbit? selectedRabbit,
+    required VoidCallback onTap,
+    required IconData prefixIcon,
+    required Color prefixColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
+          suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7B6BA0)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: selectedRabbit != null
+            ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
+            : Text(
+                'Select $label',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+              ),
       ),
     );
   }

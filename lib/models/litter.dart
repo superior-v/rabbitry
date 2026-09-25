@@ -276,6 +276,27 @@ class Litter {
           // Handle List directly (for in-memory objects)
           kitsList = (map['kits'] as List).map((k) => Kit.fromMap(k as Map<String, dynamic>)).toList();
         }
+
+        // Ensure each kit has a unique non-empty ID without dropping any kits
+        final seenIds = <String>{};
+        final uniqueKitsList = <Kit>[];
+        int kitIndex = 1;
+        for (final k in kitsList) {
+          String kId = k.id.trim();
+          if (kId.isEmpty || seenIds.contains(kId)) {
+            while (seenIds.contains('K-$kitIndex') || seenIds.contains('$kitIndex')) {
+              kitIndex++;
+            }
+            kId = 'K-$kitIndex';
+            seenIds.add(kId);
+            uniqueKitsList.add(k.copyWith(id: kId));
+          } else {
+            seenIds.add(kId);
+            uniqueKitsList.add(k);
+          }
+          kitIndex++;
+        }
+        kitsList = uniqueKitsList;
       } catch (e) {
         print('❌ Error parsing kits JSON: $e');
       }

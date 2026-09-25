@@ -677,8 +677,19 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     // Survival rate (alive / total across all litters)
     String survival = '--';
     if (_litters.isNotEmpty) {
-      final totalBorn = _litters.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
-      final totalAlive = _litters.fold<int>(0, (sum, l) => sum + (l.aliveKits ?? 0));
+      final totalBorn = _litters.fold<int>(0, (sum, l) {
+        if (l.totalKits != null && l.totalKits! > 0) return sum + l.totalKits!;
+        return sum + l.kits.length;
+      });
+      final totalAlive = _litters.fold<int>(0, (sum, l) {
+        if (l.kits.isNotEmpty) {
+          return sum + l.kits.where((k) {
+            final st = k.status.trim().toLowerCase();
+            return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+          }).length;
+        }
+        return sum + (l.aliveKits ?? l.totalKits ?? 0);
+      });
       if (totalBorn > 0) {
         survival = '${((totalAlive / totalBorn) * 100).round()}%';
       }

@@ -209,10 +209,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
     final aliveBorn = int.tryParse(_aliveBornController.text) ?? 0;
     final avgWeight = double.tryParse(_weightAvgController.text) ?? 0.0;
 
-    if (_kitDetails.length < aliveBorn) {
-      final startCount = _kitDetails.length;
+    final archivedCount = widget.existingLitter != null
+        ? widget.existingLitter!.kits.where((k) => k.isArchived).length
+        : 0;
+    final targetActiveCount = (aliveBorn - archivedCount).clamp(0, aliveBorn);
+
+    if (_kitDetails.length < targetActiveCount) {
+      final startCount = _kitDetails.length + archivedCount;
       final newKits = List.generate(
-        aliveBorn - startCount,
+        targetActiveCount - _kitDetails.length,
         (index) => {
           'id': 'K-${startCount + index + 1}',
           'sex': 'U',
@@ -222,8 +227,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
         },
       );
       _kitDetails.addAll(newKits);
-    } else if (_kitDetails.length > aliveBorn) {
-      _kitDetails = _kitDetails.sublist(0, aliveBorn);
+    } else if (_kitDetails.length > targetActiveCount) {
+      _kitDetails = _kitDetails.sublist(0, targetActiveCount);
     }
   }
 
@@ -957,7 +962,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
 
     try {
       await SettingsService.instance.init();
-      final weaningWeeks = SettingsService.instance.weanAge;
+      final weaningWeeks = widget.doe.customWeanWeek ?? SettingsService.instance.weanAge;
 
       _adjustKitDetailsToMatchAliveBorn();
 
@@ -977,8 +982,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
             .where((k) => k.isArchived)
             .toList();
 
-        // Combine: updated active kits + archived kits preserved
-        final allKits = [...updatedActiveKits, ...archivedKits];
+        // Combine: updated active kits + archived kits preserved (deduplicated by ID)
+        final activeIds = updatedActiveKits.map((k) => k.id).toSet();
+        final uniqueArchived = archivedKits.where((k) => !activeIds.contains(k.id)).toList();
+        final allKits = [...updatedActiveKits, ...uniqueArchived];
 
         // Prepare updated litter object
         final updatedLitter = widget.existingLitter!.copyWith(

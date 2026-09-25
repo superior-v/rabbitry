@@ -1186,6 +1186,20 @@ class DatabaseService {
       whereArgs: [doeId],
     );
 
+    // Delete any obsolete open_breeding / previous breeding tasks for this doe
+    await db.delete(
+      'tasks',
+      where: 'rabbitId = ? AND taskType IN (?, ?, ?, ?, ?)',
+      whereArgs: [
+        doeId,
+        'palpation',
+        'nestbox',
+        'kindle',
+        'wean',
+        'open_breeding'
+      ],
+    );
+
     // Create tasks based on pipeline settings
     if (settings.palpationEnabled && settings.palpationAutoTask) {
       // Palpation is enabled and auto-create is ON
@@ -2039,10 +2053,28 @@ class DatabaseService {
         whereArgs: [litter.id],
       );
 
-      // Encode kits to JSON string
+      // Encode kits to JSON string (ensuring unique non-empty IDs without dropping kits)
       String kitsJson = '[]';
       try {
-        kitsJson = jsonEncode(litter.kits.map((k) => k.toMap()).toList());
+        final seenKitIds = <String>{};
+        final uniqueKits = <Kit>[];
+        int kitIndex = 1;
+        for (final k in litter.kits) {
+          String kId = k.id.trim();
+          if (kId.isEmpty || seenKitIds.contains(kId)) {
+            while (seenKitIds.contains('K-$kitIndex') || seenKitIds.contains('$kitIndex')) {
+              kitIndex++;
+            }
+            kId = 'K-$kitIndex';
+            seenKitIds.add(kId);
+            uniqueKits.add(k.copyWith(id: kId));
+          } else {
+            seenKitIds.add(kId);
+            uniqueKits.add(k);
+          }
+          kitIndex++;
+        }
+        kitsJson = jsonEncode(uniqueKits.map((k) => k.toMap()).toList());
       } catch (e) {
         print('❌ Error encoding kits: $e');
       }
@@ -2121,6 +2153,8 @@ class DatabaseService {
         final doeLitters = litters.where((l) =>
           l.doeId == doeId &&
           l.status.toLowerCase() != 'archived' &&
+          l.status.toLowerCase() != 'history_only' &&
+          l.status.toLowerCase() != 'deleted_archive' &&
           l.status.toLowerCase() != 'weaned' &&
           l.status.toLowerCase() != 'not taken' &&
           l.status.toLowerCase() != 'died'
@@ -2519,10 +2553,83 @@ class DatabaseService {
       List<Map<String, dynamic>> tasks) async {
     final List<Map<String, dynamic>> normalized = [];
 
+    final db = await database;
     for (final task in tasks) {
       final taskType = task['taskType']?.toString() ?? '';
       final rabbitId = task['rabbitId']?.toString() ?? '';
       final litterId = task['litterId']?.toString() ?? '';
+
+      // If task is open_breeding but rabbit is currently bred/pregnant, delete and skip
+      if (taskType == 'open_breeding' && rabbitId.isNotEmpty) {
+        final rabbit = await getRabbit(rabbitId);
+        if (rabbit != null && (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue || rabbit.lastBreedDate != null)) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+      }
+
+      // If task is nestbox, ensure dueDate aligns with rabbit's due date / breed date
+      String taskDueDate = task['dueDate']?.toString() ?? '';
+      if (taskType == 'nestbox' && rabbitId.isNotEmpty) {
+        final rabbit = await getRabbit(rabbitId);
+        if (rabbit != null && rabbit.dueDate != null) {
+          final settings = SettingsService.instance;
+          final nestDays = rabbit.customNestBoxDay ?? settings.nestBoxDays;
+          final correctNestDate = rabbit.lastBreedDate != null
+              ? rabbit.lastBreedDate!.add(Duration(days: nestDays))
+              : rabbit.dueDate!.subtract(Duration(days: (settings.gestationDays - nestDays).clamp(1, 10)));
+          final correctNestStr = correctNestDate.toIso8601String();
+          final parsedTaskDate = DateTime.tryParse(taskDueDate);
+          if (parsedTaskDate == null || parsedTaskDate.difference(correctNestDate).inDays.abs() > 1) {
+            taskDueDate = correctNestStr;
+            await db.update('tasks', {'dueDate': correctNestStr}, where: 'id = ?', whereArgs: [task['id']]);
+          }
+        }
+      }
+
+      // If task is wean, ensure dueDate aligns with exact birth date (DOB / kindleDate) + (weanWeeks * 7 days)
+      if (taskType == 'wean') {
+        DateTime? birthDate;
+        int weanWeeks = SettingsService.instance.weanAge;
+        if (litterId.isNotEmpty) {
+          final litter = await getLitter(litterId);
+          if (litter != null) {
+            birthDate = litter.dob ?? litter.kindleDate;
+            final doe = await getRabbit(litter.doeId);
+            if (doe?.customWeanWeek != null) {
+              weanWeeks = doe!.customWeanWeek!;
+            }
+          }
+        }
+        if (birthDate == null && rabbitId.isNotEmpty) {
+          final rabbit = await getRabbit(rabbitId);
+          if (rabbit?.customWeanWeek != null) {
+            weanWeeks = rabbit!.customWeanWeek!;
+          }
+          if (rabbit?.kindleDate != null) {
+            birthDate = rabbit!.kindleDate;
+          } else if (rabbit?.weanDate != null) {
+            birthDate = rabbit!.weanDate!.subtract(Duration(days: weanWeeks * 7));
+          } else if (rabbit?.lastBreedDate != null) {
+            final gestDays = rabbit!.customGestationDay ?? SettingsService.instance.gestationDays;
+            birthDate = rabbit!.lastBreedDate!.add(Duration(days: gestDays));
+          }
+        }
+
+        if (birthDate != null) {
+          final correctWeanDate = birthDate.add(Duration(days: weanWeeks * 7));
+          final correctWeanStr = correctWeanDate.toIso8601String();
+          final parsedTaskDate = DateTime.tryParse(taskDueDate);
+          if (parsedTaskDate == null ||
+              parsedTaskDate.difference(correctWeanDate).inDays.abs() >= 1 ||
+              (parsedTaskDate.day != correctWeanDate.day ||
+                  parsedTaskDate.month != correctWeanDate.month ||
+                  parsedTaskDate.year != correctWeanDate.year)) {
+            taskDueDate = correctWeanStr;
+            await db.update('tasks', {'dueDate': correctWeanStr}, where: 'id = ?', whereArgs: [task['id']]);
+          }
+        }
+      }
 
       // Get entity name for display
       String entityName = rabbitId;
@@ -2596,7 +2703,7 @@ class DatabaseService {
         'linkedEntities': [
           {'id': rabbitId, 'name': entityName, 'cage': entityCage}
         ],
-        'dueDate': task['dueDate'],
+        'dueDate': taskDueDate,
         'createdAt': task['createdAt'],
         'completedAt': task['completedAt'],
       });
@@ -3254,8 +3361,13 @@ class DatabaseService {
 
       // Create wean task
       final weanDate = litter['weanDate']?.toString();
-      final dueDate =
-          weanDate ?? DateTime.now().add(Duration(days: 28)).toIso8601String();
+      final doe = await getRabbit(doeId);
+      final weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
+      final dobStr = litter['dob']?.toString() ?? litter['kindleDate']?.toString();
+      final dob = DateTime.tryParse(dobStr ?? '');
+      final dueDate = (dob != null)
+          ? dob.add(Duration(days: weanWeeks * 7)).toIso8601String()
+          : (weanDate ?? DateTime.now().add(Duration(days: weanWeeks * 7)).toIso8601String());
       final aliveKits = litter['currentAlive'] ?? litter['aliveKits'] ?? 0;
 
       await insertTask({
@@ -3332,10 +3444,105 @@ class DatabaseService {
     }
   }
 
+  /// Removes duplicate kit sale transactions if multiple entries refer to the same kit
+  Future<void> deduplicateKitTransactions() async {
+    final db = await database;
+    final allTxnsData = await db.query('transactions');
+    final allTxns = allTxnsData.map((m) => finance_model.Transaction.fromMap(m)).toList();
+
+    // Map of key -> List<Transaction>
+    final Map<String, List<finance_model.Transaction>> kitGroups = {};
+
+    for (final txn in allTxns) {
+      if (txn.type != finance_model.TransactionType.income) continue;
+
+      String? litterId = txn.litterId;
+      String? kitId = txn.kitId;
+
+      if ((litterId == null || kitId == null) && txn.description != null) {
+        final match = RegExp(r'(?:Sold Kit|Kit)?\s*([A-Za-z0-9_\-]+)[-\s]+([0-9]+|K-[0-9]+)', caseSensitive: false)
+            .firstMatch(txn.description!);
+        if (match != null) {
+          litterId ??= match.group(1);
+          kitId ??= match.group(2);
+        }
+      }
+
+      if (litterId != null && kitId != null) {
+        final cleanKit = kitId.replaceAll('K-', '').trim();
+        final key = '${litterId.trim().toUpperCase()}_$cleanKit';
+        kitGroups.putIfAbsent(key, () => []).add(txn);
+      }
+    }
+
+    for (final entry in kitGroups.entries) {
+      final list = entry.value;
+      if (list.length > 1) {
+        // Sort to keep the best one (prioritize non-backfill or one with notes/buyerInfo/color, then latest)
+        list.sort((a, b) {
+          int scoreA = (a.buyerInfo != null && a.buyerInfo!.isNotEmpty ? 3 : 0) +
+                       (a.notes != null && a.notes!.isNotEmpty ? 2 : 0) +
+                       (a.kitColor != null && a.kitColor!.isNotEmpty ? 2 : 0) +
+                       (a.kitSex != null && a.kitSex!.isNotEmpty ? 1 : 0) +
+                       (!a.id.startsWith('txn_backfill') ? 2 : 0);
+          int scoreB = (b.buyerInfo != null && b.buyerInfo!.isNotEmpty ? 3 : 0) +
+                       (b.notes != null && b.notes!.isNotEmpty ? 2 : 0) +
+                       (b.kitColor != null && b.kitColor!.isNotEmpty ? 2 : 0) +
+                       (b.kitSex != null && b.kitSex!.isNotEmpty ? 1 : 0) +
+                       (!b.id.startsWith('txn_backfill') ? 2 : 0);
+          if (scoreA != scoreB) return scoreB.compareTo(scoreA);
+          return b.createdAt.compareTo(a.createdAt);
+        });
+
+        // Merge missing fields into the keeper
+        final keeper = list.first;
+        final updatedKeeper = keeper.copyWith(
+          buyerInfo: keeper.buyerInfo ?? list.firstWhere((t) => t.buyerInfo != null, orElse: () => keeper).buyerInfo,
+          notes: keeper.notes ?? list.firstWhere((t) => t.notes != null, orElse: () => keeper).notes,
+          kitColor: keeper.kitColor ?? list.firstWhere((t) => t.kitColor != null, orElse: () => keeper).kitColor,
+          kitSex: keeper.kitSex ?? list.firstWhere((t) => t.kitSex != null, orElse: () => keeper).kitSex,
+        );
+        await db.update('transactions', updatedKeeper.toMap(), where: 'id = ?', whereArgs: [keeper.id]);
+
+        // Delete the duplicate transactions
+        for (int i = 1; i < list.length; i++) {
+          final dup = list[i];
+          await db.delete('transactions', where: 'id = ?', whereArgs: [dup.id]);
+          print('🗑️ Removed duplicate kit transaction: ${dup.id} (${dup.description})');
+        }
+      }
+    }
+  }
+
+  Future<finance_model.Transaction?> getTransactionForKit(String litterId, String kitId) async {
+    final db = await database;
+    final cleanKitId = kitId.replaceAll('K-', '').trim();
+    final maps = await db.query(
+      'transactions',
+      where: 'litterId = ? OR description LIKE ?',
+      whereArgs: [litterId, '%$litterId%'],
+    );
+    for (final map in maps) {
+      final txn = finance_model.Transaction.fromMap(map);
+      final tKitId = txn.kitId?.replaceAll('K-', '').trim();
+      final desc = txn.description ?? '';
+      if (tKitId == cleanKitId ||
+          desc.contains('$litterId-$kitId') ||
+          desc.contains('$litterId-$cleanKitId') ||
+          desc.contains('$litterId K-$cleanKitId')) {
+        return txn;
+      }
+    }
+    return null;
+  }
+
   /// Backfill finance transactions for sold kits and sold rabbits that are missing transactions.
   /// This handles data created before the sell flow was fixed to auto-create transactions.
   Future<void> backfillSoldTransactionsFix() async {
     final db = await database;
+
+    // First: clean up any existing duplicate kit transactions
+    await deduplicateKitTransactions();
 
     // 1. Backfill sold KITS from litters
     final littersData = await db.query('litters');
@@ -3343,17 +3550,8 @@ class DatabaseService {
       final litter = Litter.fromMap(litterMap);
       for (final kit in litter.kits) {
         if (kit.status == 'Sold' && kit.price != null && kit.price! > 0) {
-          // Check if a transaction already exists for this kit
-          final existing = await db.query(
-            'transactions',
-            where: 'kitId = ? AND litterId = ? AND category = ?',
-            whereArgs: [
-              kit.id.toString(),
-              litter.id,
-              'TransactionCategory.soldKit'
-            ],
-          );
-          if (existing.isEmpty) {
+          final existing = await getTransactionForKit(litter.id, kit.id.toString());
+          if (existing == null) {
             final transaction = finance_model.Transaction(
               id: 'txn_backfill_kit_${litter.id}_${kit.id}',
               type: finance_model.TransactionType.income,
@@ -3367,7 +3565,7 @@ class DatabaseService {
               kitId: kit.id.toString(),
               kitColor: kit.color,
               kitSex: kit.sex,
-              buyerInfo: kit.details?.replaceFirst('Sold to ', ''),
+              buyerInfo: kit.details?.replaceFirst('Sold to ', '')?.replaceFirst('Buyer: ', ''),
             );
             await db.insert('transactions', transaction.toMap(),
                 conflictAlgorithm: ConflictAlgorithm.ignore);
@@ -3393,8 +3591,8 @@ class DatabaseService {
       // Check if a transaction already exists for this rabbit sale
       final existing = await db.query(
         'transactions',
-        where: 'rabbitId = ? AND category = ?',
-        whereArgs: [rabbitId, 'TransactionCategory.soldKit'],
+        where: 'rabbitId = ?',
+        whereArgs: [rabbitId],
       );
       if (existing.isEmpty) {
         final transaction = finance_model.Transaction(

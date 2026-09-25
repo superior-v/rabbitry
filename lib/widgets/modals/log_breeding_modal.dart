@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/format_utils.dart';
 import '../../constants/app_colors.dart';
+import 'rabbit_picker_modal.dart';
 
 class LogBreedingModal extends StatefulWidget {
   final Rabbit? doe;
@@ -218,24 +218,12 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         ),
                       )
                     else
-                      _buildDropdownField<Rabbit>(
+                      _buildRabbitSelectorField(
                         label: 'Select Doe',
-                        value: _selectedDoe,
+                        selectedRabbit: _selectedDoe,
+                        onTap: _pickDoe,
                         prefixIcon: Icons.female_rounded,
-                        selectedItemBuilder: (context) {
-                          return _does.map((doe) => _buildRabbitNameWidget(doe, fontSize: 15)).toList();
-                        },
-                        items: _does.map((doe) {
-                          return DropdownMenuItem<Rabbit>(
-                            value: doe,
-                            child: _buildRabbitNameWidget(doe, fontSize: 15),
-                          );
-                        }).toList(),
-                        onChanged: (doe) {
-                          setState(() {
-                            _selectedDoe = doe;
-                          });
-                        },
+                        prefixColor: const Color(0xFFE04F9F),
                       ),
                     const SizedBox(height: 16),
                   ],
@@ -257,22 +245,12 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       ),
                     )
                   else
-                    _buildDropdownField<Rabbit>(
+                    _buildRabbitSelectorField(
                       label: 'Select Buck',
-                      value: _selectedBuck,
+                      selectedRabbit: _selectedBuck,
+                      onTap: _pickBuck,
                       prefixIcon: Icons.male_rounded,
-                      selectedItemBuilder: (context) {
-                        return _bucks.map((buck) => _buildRabbitNameWidget(buck, fontSize: 15)).toList();
-                      },
-                      items: _bucks.map((buck) {
-                        return DropdownMenuItem<Rabbit>(
-                          value: buck,
-                          child: _buildRabbitNameWidget(buck, fontSize: 15),
-                        );
-                      }).toList(),
-                      onChanged: (buck) {
-                        setState(() => _selectedBuck = buck);
-                      },
+                      prefixColor: const Color(0xFF2196F3),
                     ),
                   const SizedBox(height: 16),
 
@@ -287,7 +265,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                     child: Column(
                       children: [
                         _buildDatePickerField(
-                          label: 'Breed Date',
+                          label: 'Date Bred',
                           value: _breedDate,
                           onTap: () => _selectDate(context),
                         ),
@@ -295,7 +273,6 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         _buildOutlinedField(
                           label: 'Fall Offs',
                           controller: _fallOffsController,
-                          prefixIcon: Icons.repeat_on_rounded,
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 16),
@@ -491,8 +468,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: TextStyle(
-                color: nameColor,
+              style: const TextStyle(
+                color: Color(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -561,10 +538,72 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _pickDoe() async {
+    final picked = await showRabbitPickerBottomSheet(
+      context: context,
+      title: 'Select Doe',
+      rabbits: _does,
+      selectedRabbit: _selectedDoe,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDoe = picked;
+      });
+    }
+  }
+
+  Future<void> _pickBuck() async {
+    final picked = await showRabbitPickerBottomSheet(
+      context: context,
+      title: 'Select Buck',
+      rabbits: _bucks,
+      selectedRabbit: _selectedBuck,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBuck = picked;
+      });
+    }
+  }
+
+  Widget _buildRabbitSelectorField({
+    required String label,
+    required Rabbit? selectedRabbit,
+    required VoidCallback onTap,
+    required IconData prefixIcon,
+    required Color prefixColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
+          suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: selectedRabbit != null
+            ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
+            : Text(
+                'Select $label',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+              ),
       ),
     );
   }

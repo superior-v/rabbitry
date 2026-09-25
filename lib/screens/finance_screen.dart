@@ -114,6 +114,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     setState(() => _isLoading = true);
 
     try {
+      await _db.deduplicateKitTransactions();
       final transactions = await _db.getAllTransactions();
       final rabbits = await _db.getAllRabbits();
       final litters = await _db.getLitters();
@@ -1213,12 +1214,126 @@ class FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
+  String _getRabbitNameOnly(String rabbitId) {
+    final rabbit = _rabbits.cast<Rabbit?>().firstWhere(
+      (r) => r != null && r.id == rabbitId,
+      orElse: () => null,
+    );
+    if (rabbit != null && rabbit.name.isNotEmpty) {
+      return rabbit.name;
+    }
+    return rabbitId;
+  }
+
+  KitSaleDisplayInfo? _getKitSaleDisplayInfo(Transaction t) {
+    final bool isKitSale = t.category == TransactionCategory.soldKit ||
+        t.category == TransactionCategory.litterSale ||
+        t.linkType == LinkType.litter ||
+        t.linkType == LinkType.kit ||
+        (t.description != null && (t.description!.toLowerCase().contains('kit') || t.description!.toLowerCase().contains('sold kit')));
+
+    if (!isKitSale) return null;
+
+    String? litterId = t.litterId;
+    String? kitId = t.kitId;
+
+    if ((litterId == null || kitId == null) && t.description != null) {
+      final match = RegExp(r'(?:Sold Kit|Kit)?\s*([A-Za-z0-9_\-]+)[-\s]+([0-9]+|K-[0-9]+)', caseSensitive: false)
+          .firstMatch(t.description!);
+      if (match != null) {
+        litterId ??= match.group(1);
+        kitId ??= match.group(2);
+      }
+    }
+
+    final litter = _litters.cast<Litter?>().firstWhere(
+      (l) => l != null && litterId != null && (l.id.toUpperCase() == litterId.toUpperCase() || l.id.toUpperCase().replaceAll('-', '') == litterId.toUpperCase().replaceAll('-', '')),
+      orElse: () => null,
+    );
+
+    Kit? kit;
+    if (litter != null && kitId != null) {
+      final cleanKId = kitId.replaceAll('K-', '').trim();
+      kit = litter.kits.cast<Kit?>().firstWhere(
+        (k) => k != null && (k.id.replaceAll('K-', '').trim() == cleanKId || k.id == kitId),
+        orElse: () => null,
+      );
+    }
+
+    // 1. Title: Doe name X Buck name - Kit Color
+    String title;
+    if (litter != null) {
+      final dam = litter.doeName.trim().isNotEmpty
+          ? litter.doeName.trim()
+          : (litter.doeId.trim().isNotEmpty ? _getRabbitNameOnly(litter.doeId) : (litter.dam.trim().isNotEmpty ? litter.dam.trim() : 'Unknown Doe'));
+      final sire = litter.buckName.trim().isNotEmpty
+          ? litter.buckName.trim()
+          : (litter.buckId.trim().isNotEmpty ? _getRabbitNameOnly(litter.buckId) : (litter.sire.trim().isNotEmpty ? litter.sire.trim() : 'Unknown Buck'));
+
+      final color = (kit != null && kit.color.trim().isNotEmpty)
+          ? kit.color.trim()
+          : (t.kitColor != null && t.kitColor!.trim().isNotEmpty ? t.kitColor!.trim() : '');
+
+      if (color.isNotEmpty) {
+        title = '$dam × $sire - $color';
+      } else {
+        title = '$dam × $sire';
+      }
+    } else {
+      title = (t.description != null && t.description!.isNotEmpty) ? t.description! : 'Kit Sale';
+    }
+
+    // 2. Subtitle: Date - Kit Sale - Litter ID - Kit Number
+    final dateStr = FormatUtils.formatDateShort(t.date);
+    final lId = litter?.id ?? litterId ?? '';
+    final rawKitId = kit?.id ?? kitId ?? '';
+    final kId = rawKitId.isNotEmpty ? (rawKitId.startsWith('K-') ? rawKitId : 'K-$rawKitId') : '';
+
+    String subtitle = '$dateStr - Kit Sale';
+    if (lId.isNotEmpty) subtitle += ' - $lId';
+    if (kId.isNotEmpty) subtitle += ' - $kId';
+
+    // 3. Notes / Buyer
+    String? notes;
+    if (t.buyerInfo != null && t.buyerInfo!.trim().isNotEmpty) {
+      final b = t.buyerInfo!.trim();
+      notes = (b.toLowerCase().startsWith('sold to') || b.toLowerCase().startsWith('buyer:')) ? b : 'Sold to $b';
+    } else if (t.notes != null && t.notes!.trim().isNotEmpty) {
+      notes = t.notes!.trim();
+    } else if (kit?.details != null && kit!.details!.trim().isNotEmpty) {
+      notes = kit.details!.trim();
+    }
+
+    // 4. Sex
+    final sex = (kit != null && kit.sex.trim().isNotEmpty)
+        ? kit.sex.trim()
+        : (t.kitSex != null && t.kitSex!.trim().isNotEmpty ? t.kitSex!.trim() : null);
+
+    return KitSaleDisplayInfo(
+      title: title,
+      subtitle: subtitle,
+      notes: notes,
+      sex: sex,
+    );
+  }
+
   Widget _buildTransactionCard(Transaction t, {bool showRabbit = true, bool showCategory = false, int index = 0}) {
     final isIncome = t.type == TransactionType.income;
     final dateStr = FormatUtils.formatDateShort(t.date);
 
     final isOdd = index % 2 == 1;
     final backgroundColor = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+
+    final kitInfo = _getKitSaleDisplayInfo(t);
+    final titleText = kitInfo != null
+        ? kitInfo.title
+        : ((t.description != null && t.description!.isNotEmpty) ? t.description! : t.categoryName);
+    final subtitleText = kitInfo != null
+        ? kitInfo.subtitle
+        : ((t.description != null && t.description!.isNotEmpty) ? '$dateStr - ${t.categoryName}' : dateStr);
+    final notesText = kitInfo != null
+        ? kitInfo.notes
+        : (t.notes != null && t.notes!.isNotEmpty ? t.notes! : null);
 
     return GestureDetector(
       onTap: () => _editTransaction(t),
@@ -1253,11 +1368,9 @@ class FinanceScreenState extends State<FinanceScreen> {
                 children: [
                   Row(
                     children: [
-                      Expanded(
+                      Flexible(
                         child: Text(
-                          (t.description != null && t.description!.isNotEmpty)
-                              ? t.description!
-                              : t.categoryName,
+                          titleText,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1267,6 +1380,13 @@ class FinanceScreenState extends State<FinanceScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (kitInfo != null && (kitInfo.sex == 'F' || kitInfo.sex == 'doe')) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.female_rounded, size: 16, color: Color(0xFFE04F9F)),
+                      ] else if (kitInfo != null && (kitInfo.sex == 'M' || kitInfo.sex == 'buck')) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.male_rounded, size: 16, color: Color(0xFF2196F3)),
+                      ],
                       if (t.isBatchTransaction) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -1290,19 +1410,17 @@ class FinanceScreenState extends State<FinanceScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    (t.description != null && t.description!.isNotEmpty)
-                        ? '$dateStr - ${t.categoryName}'
-                        : dateStr,
+                    subtitleText,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF55555C),
                     ),
                   ),
-                  if (t.notes != null && t.notes!.isNotEmpty) ...[
+                  if (notesText != null && notesText.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      t.notes!,
+                      notesText,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -1878,4 +1996,18 @@ class FinanceScreenState extends State<FinanceScreen> {
       SnackBar(content: Text('Export feature coming soon!')),
     );
   }
+}
+
+class KitSaleDisplayInfo {
+  final String title;
+  final String subtitle;
+  final String? notes;
+  final String? sex;
+
+  KitSaleDisplayInfo({
+    required this.title,
+    required this.subtitle,
+    this.notes,
+    this.sex,
+  });
 }

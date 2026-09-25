@@ -96,8 +96,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     }
 
     int totalLitters = _litters.length;
-    int totalKits = _litters.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
-    int totalAlive = _litters.fold<int>(0, (sum, l) => sum + (l.aliveKits ?? 0));
+    int totalKits = _litters.fold<int>(0, (sum, l) {
+      if (l.totalKits != null && l.totalKits! > 0) return sum + l.totalKits!;
+      return sum + l.kits.length;
+    });
+    int totalAlive = _litters.fold<int>(0, (sum, l) {
+      if (l.kits.isNotEmpty) {
+        return sum + l.kits.where((k) {
+          final st = k.status.trim().toLowerCase();
+          return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+        }).length;
+      }
+      return sum + (l.aliveKits ?? l.totalKits ?? 0);
+    });
     String survival = totalKits > 0 ? '${(totalAlive / totalKits * 100).round()}% survival' : '0% survival';
 
     return Column(
@@ -192,20 +203,38 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final String bornDateStr = (litter.dob ?? litter.kindleDate) != null
         ? DateFormat('MMM d, yyyy').format(litter.dob ?? litter.kindleDate!)
         : '-';
+    final String dueDateStr = (litter.dueDate ?? litter.dob ?? litter.kindleDate) != null
+        ? DateFormat('MMM d, yyyy').format(litter.dueDate ?? litter.dob ?? litter.kindleDate!)
+        : '-';
     final isExpanded = _expandedLitters.contains(litter.id);
     final String lStatus = litter.status.toLowerCase().trim();
-    final bool isMissedLitter = lStatus == 'not taken' || lStatus == 'missed' || lStatus == 'missed litter';
+
+    final int born = (litter.totalKits != null && litter.totalKits! > 0)
+        ? litter.totalKits!
+        : (litter.kits.isNotEmpty ? litter.kits.length : 0);
+    final int alive = litter.kits.isNotEmpty
+        ? litter.kits.where((k) {
+            final st = k.status.trim().toLowerCase();
+            return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+          }).length
+        : (litter.aliveKits ?? born);
+
+    final bool isMissedLitter = litter.missedLitter == true ||
+        lStatus == 'not taken' ||
+        lStatus == 'missed' ||
+        lStatus == 'missed litter' ||
+        lStatus == 'missed_litter' ||
+        (born == 0 && alive == 0);
+    final bool isLitterDied = !isMissedLitter && (born > 0 && alive == 0);
 
     String fullAgeStr = '';
     if (isMissedLitter) {
       fullAgeStr = '';
+    } else if (isLitterDied) {
+      fullAgeStr = 'Litter Died';
     } else if (lStatus == 'weaned') {
-      if (litter.kindleDate != null || litter.dob != null) {
-        fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
-      } else {
-        fullAgeStr = 'Weaned';
-      }
-    } else if (litter.kindleDate != null || litter.dob != null) {
+      fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
+    } else {
       fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     }
 
@@ -288,13 +317,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        isMissedLitter
-                            ? 'Not Pregnant — Missed Litter'
-                            : '$partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})',
-                        style: TextStyle(
+                        partner.isNotEmpty
+                            ? '$partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})'
+                            : (isMissedLitter ? 'Missed Litter' : 'Unknown'),
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                          color: Color(0xFF4F4F56),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -311,41 +340,50 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ],
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        isMissedLitter
-                            ? 'Missed Litter'
-                            : '${litter.totalKits ?? 0} Born • ${litter.aliveKits ?? 0} Alive',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      isMissedLitter ? '' : 'Born $bornDateStr',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF4F4F56),
-                      ),
-                    ),
-                  ],
-                ),
-                if (fullAgeStr.isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                if (isMissedLitter) ...[
                   Text(
-                    fullAgeStr,
+                    'Due $dueDateStr',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF4F4F56),
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$born Born • $alive Alive',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF4F4F56),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Born $bornDateStr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF4F4F56),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (fullAgeStr.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    fullAgeStr,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isLitterDied ? FontWeight.w700 : FontWeight.w500,
+                      color: isLitterDied ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
                     ),
                   ),
                 ],
@@ -461,7 +499,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 2,
                     children: [
                       Text(
                         kit.color.isNotEmpty ? kit.color : 'Kit $displayKitId',
@@ -471,7 +512,6 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           color: isOutcome ? const Color(0xFF8E8E93) : const Color(0xFF37352F),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Icon(
                         kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
                         size: 14,
@@ -514,6 +554,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E24),
           borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -533,26 +580,64 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ),
       );
     }
-    if (s == 'dead' || s == 'died') {
+    if (s == 'cull' || s == 'culled') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFEBEE),
+          color: const Color(0xFFD32F2F), // Solid red box matching SOLD
           borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: const Color(0xFFE57373)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(Icons.close, size: 11, color: Color(0xFFD32F2F)),
+            Icon(Icons.close, size: 10, color: Colors.white),
             SizedBox(width: 3),
             Text(
-              'Kit Died',
+              'CULL',
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFFD32F2F),
-                letterSpacing: 0.2,
+                color: Colors.white,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (s == 'dead' || s == 'died' || s == 'deceased') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD32F2F), // Solid red box matching SOLD
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.close, size: 10, color: Colors.white),
+            SizedBox(width: 3),
+            Text(
+              'DIED',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.4,
               ),
             ),
           ],
@@ -578,6 +663,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
   Widget _buildLitterNotesBox(Litter litter) {
     final hasNotes = litter.notes != null && litter.notes!.trim().isNotEmpty;
+    if (!hasNotes) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 6, bottom: 4),
@@ -614,12 +700,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           ),
           const SizedBox(height: 6),
           Text(
-            hasNotes ? litter.notes!.trim() : 'No notes recorded.',
-            style: TextStyle(
+            litter.notes!.trim(),
+            style: const TextStyle(
               fontSize: 12.5,
-              color: hasNotes ? const Color(0xFF333333) : const Color(0xFF8E8E93),
+              color: Color(0xFF333333),
               height: 1.35,
-              fontStyle: hasNotes ? FontStyle.normal : FontStyle.italic,
             ),
           ),
         ],
