@@ -516,7 +516,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   String _getStatusDisplayText() {
     if (_currentRabbit.status == RabbitStatus.pregnant && _currentRabbit.dueDate != null) {
-      final formattedDate = DateFormat('MMM d').format(_currentRabbit.dueDate!);
+      final formattedDate = FormatUtils.formatDateShort(_currentRabbit.dueDate!);
       return 'BRED • DUE $formattedDate';
     }
     return _getStatusText(_currentRabbit.status).toUpperCase();

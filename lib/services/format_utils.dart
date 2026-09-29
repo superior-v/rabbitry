@@ -9,6 +9,7 @@ class FormatUtils {
   // ==================== DATE FORMATTING ====================
 
   /// Full date format from settings (e.g., "Jan 24, 2026", "02-14-2026" or "14-02-2026")
+  /// Day numbers always have 2 digits (e.g., "Sep 03, 2026")
   static String formatDate(DateTime date) {
     try {
       String pattern = _settings.dateFormat;
@@ -16,9 +17,13 @@ class FormatUtils {
       if (pattern == 'DD-MM-YYYY') pattern = 'dd-MM-yyyy';
       if (pattern == 'MM/dd/yyyy') pattern = 'MM-dd-yyyy';
       if (pattern == 'dd/MM/yyyy') pattern = 'dd-MM-yyyy';
+      if (pattern == 'MMM d, yyyy') pattern = 'MMM dd, yyyy';
+      if (pattern.contains('d') && !pattern.contains('dd')) {
+        pattern = pattern.replaceAll('d', 'dd');
+      }
       return DateFormat(pattern).format(date);
     } catch (_) {
-      return DateFormat('MMM d, yyyy').format(date);
+      return DateFormat('MMM dd, yyyy').format(date);
     }
   }
 
@@ -61,9 +66,9 @@ class FormatUtils {
   static String formatDateShort(DateTime date) {
     final fmt = _settings.dateFormat.toLowerCase();
     if (fmt.startsWith('dd')) {
-      return DateFormat('d MMM').format(date);
+      return DateFormat('dd MMM').format(date);
     }
-    return DateFormat('MMM d').format(date);
+    return DateFormat('MMM dd').format(date);
   }
 
   /// Month-year format (e.g., "Sep 2026")
@@ -75,11 +80,11 @@ class FormatUtils {
   static String formatDateLong(DateTime date) {
     final fmt = _settings.dateFormat.toLowerCase();
     if (fmt.startsWith('dd')) {
-      return DateFormat('d MMMM, yyyy').format(date);
+      return DateFormat('dd MMMM, yyyy').format(date);
     } else if (fmt.startsWith('yyyy')) {
-      return DateFormat('yyyy MMMM d').format(date);
+      return DateFormat('yyyy MMMM dd').format(date);
     }
-    return DateFormat('MMMM d, yyyy').format(date);
+    return DateFormat('MMMM dd, yyyy').format(date);
   }
 
   /// Chart/axis label - very short (e.g., "Feb 14" or "Feb '26")

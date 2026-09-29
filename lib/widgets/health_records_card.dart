@@ -2,14 +2,118 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/format_utils.dart';
-import '../services/settings_service.dart';
 import '../services/database_service.dart';
 import '../constants/app_colors.dart';
+import 'modals/health_record_modal.dart';
 
-class HealthRecordsCard extends StatelessWidget {
+class HealthRecordsCard extends StatefulWidget {
   final Rabbit rabbit;
 
   const HealthRecordsCard({Key? key, required this.rabbit}) : super(key: key);
+
+  @override
+  State<HealthRecordsCard> createState() => _HealthRecordsCardState();
+}
+
+class _HealthRecordsCardState extends State<HealthRecordsCard> {
+  final DatabaseService _db = DatabaseService();
+  List<Map<String, dynamic>> _records = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecords();
+  }
+
+  @override
+  void didUpdateWidget(covariant HealthRecordsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rabbit.id != widget.rabbit.id) {
+      _loadRecords();
+    }
+  }
+
+  Future<void> _loadRecords() async {
+    try {
+      final records = await _db.getHealthRecordsByRabbit(widget.rabbit.id);
+      if (mounted) {
+        setState(() {
+          _records = records;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showAddRecordModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => HealthRecordModal(
+        rabbit: widget.rabbit,
+        onComplete: () {
+          _loadRecords();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteRecord(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Health Record', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Are you sure you want to delete this health record?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _db.deleteHealthRecord(id);
+      await _loadRecords();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Health record deleted'), backgroundColor: kPrimary),
+        );
+      }
+    }
+  }
+
+  IconData _getRecordIcon(String type, String treatment) {
+    final combined = '$type $treatment'.toLowerCase();
+    if (combined.contains('nail') || combined.contains('trim') || combined.contains('groom')) {
+      return PhosphorIcons.scissors(PhosphorIconsStyle.duotone);
+    }
+    if (combined.contains('deworm') || combined.contains('vaccin') || combined.contains('inject')) {
+      return PhosphorIcons.syringe(PhosphorIconsStyle.duotone);
+    }
+    if (combined.contains('quarantine')) {
+      return PhosphorIcons.shieldCheck(PhosphorIconsStyle.duotone);
+    }
+    if (combined.contains('weight')) {
+      return PhosphorIcons.scales(PhosphorIconsStyle.duotone);
+    }
+    return PhosphorIcons.firstAid(PhosphorIconsStyle.duotone);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +142,7 @@ class HealthRecordsCard extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => _showAddRecordDialog(context),
+                  onTap: _showAddRecordModal,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
@@ -67,533 +171,152 @@ class HealthRecordsCard extends StatelessWidget {
           ),
           const Divider(height: 1, color: kNeutral100),
 
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Empty state - no records yet
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      'No health records yet.\nTap ADD to create one.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF787774),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator(color: Color(0xFF7B6BA0), strokeWidth: 2)),
+            )
+          else if (_records.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'No health records yet.\nTap ADD to create one.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF787774),
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                SizedBox(height: 16),
-              ],
+                  SizedBox(height: 8),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                children: _records.map((record) => _buildRecordItem(record)).toList(),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildHealthRecordItem(
-    BuildContext context,
-    String title,
-    String subtitle,
-    String cost,
-    Color iconColor,
-    IconData icon,
-  ) {
+  Widget _buildRecordItem(Map<String, dynamic> record) {
+    final id = record['id']?.toString() ?? '';
+    final type = record['type']?.toString() ?? 'Treatment';
+    final treatment = record['treatment']?.toString() ?? type;
+    final dateStr = record['date']?.toString();
+    final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+    final cost = record['cost'] is num ? (record['cost'] as num).toDouble() : double.tryParse(record['cost']?.toString() ?? '');
+    final notes = record['notes']?.toString();
+    final icon = _getRecordIcon(type, treatment);
+
     return Container(
-      padding: EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFF7B6BA0).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: iconColor, size: 20),
+            child: Icon(icon, color: const Color(0xFF7B6BA0), size: 18),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                  treatment.isNotEmpty ? treatment : type,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF1E293B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (date != null)
+                      Text(
+                        FormatUtils.formatDate(date),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    if (cost != null && cost > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '•  ${FormatUtils.formatCurrency(cost)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Cost: $cost',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
-            onPressed: () => _showRecordOptions(context, title),
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVaccinationItem(
-    BuildContext context,
-    String title,
-    String lastDate,
-    String nextDate,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  lastDate,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  nextDate,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFEF4444),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
-            onPressed: () => _showRecordOptions(context, title),
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddRecordDialog(BuildContext context) {
-    final TextEditingController typeController = TextEditingController();
-    final TextEditingController conditionController = TextEditingController();
-    final TextEditingController dateController = TextEditingController();
-    final TextEditingController treatmentController = TextEditingController();
-    final TextEditingController costController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                if (notes != null && notes.trim().isNotEmpty && notes != 'Completed from Tasks') ...[
+                  const SizedBox(height: 2),
                   Text(
-                    'Add Health Record',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Color(0xFF6B7280)),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
+                    notes,
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-
-              SizedBox(height: 24),
-
-              // Type Field
-              Text(
-                'Type',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: typeController,
-                decoration: InputDecoration(
-                  hintText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-              // Condition Field
-              Text(
-                'Condition',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-              ),
-              SizedBox(height: 8),
-              Autocomplete<String>(
-                optionsBuilder: (textEditingValue) {
-                  final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
-                  if (textEditingValue.text.isEmpty) return issues;
-                  return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                },
-                fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
-                  textController.addListener(() {
-                    conditionController.text = textController.text;
-                  });
-                  return TextField(
-                    controller: textController,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Snuffles, GI Stasis...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                  );
-                },
-                onSelected: (value) {
-                  conditionController.text = value;
-                  // Auto-fill treatment if available
-                  final issues = SettingsService.instance.healthIssues;
-                  final match = issues.firstWhere((i) => i['name'] == value, orElse: () => {});
-                  if (match['treatment'] != null && match['treatment']!.isNotEmpty) {
-                    treatmentController.text = match['treatment']!;
-                  }
-                },
-              ),
-
-              SizedBox(height: 20),
-
-              // Date Field
-              Text(
-                'Date',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: dateController,
-                readOnly: true,
-                decoration: InputDecoration(
-                  hintText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  suffixIcon: Icon(Icons.calendar_today, size: 18, color: Color(0xFF9CA3AF)),
-                ),
-                onTap: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2030),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: Color(0xFF7B6BA0),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null) {
-                    dateController.text = FormatUtils.formatDate(picked);
-                  }
-                },
-              ),
-
-              SizedBox(height: 20),
-
-              // Treatment Field
-              Text(
-                'Treatment',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: treatmentController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-              // Cost Field
-              Text(
-                'Cost',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: costController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  prefixText: FormatUtils.currencyPrefix,
-                  prefixStyle: TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 15,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFFD1D5DB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-
-              SizedBox(height: 8),
-
-              // Helper Text
-              Text(
-                'This will be added to the ledger automatically',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF9CA3AF),
-                ),
-              ),
-
-              SizedBox(height: 24),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Color(0xFFD1D5DB)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Color(0xFF374151),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (typeController.text.isNotEmpty && conditionController.text.isNotEmpty) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Health record added successfully'),
-                              backgroundColor: Color(0xFF7B6BA0),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF7B6BA0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Save',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showRecordOptions(BuildContext context, String title) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 4,
-              width: 40,
-              margin: EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.edit, color: Color(0xFF64748B)),
-              title: Text('Edit'),
-              onTap: () {
-                Navigator.pop(context);
-                _showAddRecordDialog(context);
+          if (id.isNotEmpty)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onSelected: (val) {
+                if (val == 'delete') {
+                  _deleteRecord(id);
+                }
               },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            ListTile(
-              leading: Icon(Icons.visibility, color: Color(0xFF64748B)),
-              title: Text('View Details'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete, color: Color(0xFFEF4444)),
-              title: Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
-              onTap: () => Navigator.pop(context),
-            ),
-            SizedBox(height: 20),
-          ],
-        ),
+        ],
       ),
     );
   }

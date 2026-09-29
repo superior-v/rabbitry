@@ -296,8 +296,7 @@ class _TasksCardState extends State<TasksCard> {
     } else if (isToday) {
       timeLabel = 'Today';
     } else if (dueDate != null) {
-      final diff = dueDate.difference(now).inDays;
-      timeLabel = '${DateFormat('MMM d').format(dueDate)} ($diff d)';
+      timeLabel = FormatUtils.formatDateShort(dueDate);
     } else {
       timeLabel = '';
     }
@@ -806,7 +805,10 @@ class _TasksCardState extends State<TasksCard> {
                                 'Weekly Starting',
                                 'Fortnightly Starting',
                                 'Monthly Starting',
-                                'Semi Annually starting',
+                                '2 Months starting',
+                                '3 Months starting',
+                                '4 Months starting',
+                                '6 Months starting',
                                 'Annually'
                               ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
                               onChanged: (val) {

@@ -2751,6 +2751,21 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [taskId],
     );
+
+    try {
+      final rows = await db.query('tasks', where: 'id = ?', whereArgs: [taskId]);
+      if (rows.isNotEmpty) {
+        final t = rows.first;
+        final rabbitId = t['rabbitId']?.toString();
+        if (rabbitId != null && rabbitId.isNotEmpty) {
+          await _recordHealthIfApplicable(
+            category: t['category']?.toString(),
+            taskName: t['title']?.toString() ?? t['name']?.toString() ?? t['task']?.toString(),
+            rabbitIds: [rabbitId],
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> deleteTask(String id) async {
@@ -2805,6 +2820,15 @@ class DatabaseService {
       await insertTransaction(transaction);
       print('✅ Task completed with ${type.name}: \$$amount');
     }
+
+    if (rabbitId != null && rabbitId.isNotEmpty) {
+      await _recordHealthIfApplicable(
+        category: taskCategory,
+        taskName: taskTitle,
+        rabbitIds: [rabbitId],
+        cost: amount,
+      );
+    }
   }
 
   // Complete scheduled task with optional cost/income logging
@@ -2837,6 +2861,32 @@ class DatabaseService {
       await insertTransaction(transaction);
       print('✅ Scheduled task completed with ${type.name}: \$$amount');
     }
+
+    try {
+      final rows = await db.query('scheduled_tasks', where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) {
+        final t = rows.first;
+        final rIds = <String>[];
+        if (rabbitId != null && rabbitId.isNotEmpty) {
+          rIds.add(rabbitId);
+        }
+        final entities = t['linkedEntities'] != null
+            ? (t['linkedEntities'] is String ? json.decode(t['linkedEntities'] as String) : t['linkedEntities'])
+            : [];
+        if (entities is List) {
+          for (var e in entities) {
+            final rId = e is Map ? e['id']?.toString() : e?.toString();
+            if (rId != null && rId.isNotEmpty && !rIds.contains(rId)) rIds.add(rId);
+          }
+        }
+        await _recordHealthIfApplicable(
+          category: taskCategory ?? t['category']?.toString(),
+          taskName: taskTitle ?? t['name']?.toString() ?? t['task']?.toString(),
+          rabbitIds: rIds,
+          cost: amount,
+        );
+      }
+    } catch (_) {}
   }
 
   // Map task category to transaction category
@@ -3027,6 +3077,36 @@ class DatabaseService {
       'createdAt': DateTime.now().toIso8601String(),
     });
     print('✅ Added health record for $rabbitId');
+  }
+
+  Future<void> deleteHealthRecord(String id) async {
+    final db = await database;
+    await db.delete('health_records', where: 'id = ?', whereArgs: [id]);
+    print('✅ Deleted health record $id');
+  }
+
+  Future<void> _recordHealthIfApplicable({
+    required String? category,
+    required String? taskName,
+    required List<String> rabbitIds,
+    double? cost,
+  }) async {
+    final cat = (category ?? '').toLowerCase();
+    if (cat == 'health' || cat == 'medical' || cat == 'nail trim' || cat == 'grooming' || cat == 'quarantine') {
+      final name = (taskName != null && taskName.trim().isNotEmpty) ? taskName.trim() : 'Health Task';
+      for (final rId in rabbitIds) {
+        if (rId.trim().isNotEmpty) {
+          await addHealthRecord(
+            rId.trim(),
+            name,
+            DateTime.now(),
+            name,
+            cost,
+            'Completed from Tasks',
+          );
+        }
+      }
+    }
   }
 
   Future<List<Map<String, dynamic>>> getHealthRecordsByRabbit(
@@ -4042,8 +4122,14 @@ class DatabaseService {
       case 'Monthly':
       case 'Monthly Starting':
         return DateTime(from.year, from.month + 1, from.day);
+      case '2 Months starting':
+        return DateTime(from.year, from.month + 2, from.day);
+      case '3 Months starting':
       case 'Quarterly':
         return DateTime(from.year, from.month + 3, from.day);
+      case '4 Months starting':
+        return DateTime(from.year, from.month + 4, from.day);
+      case '6 Months starting':
       case 'Semi-Annually':
       case 'Semi Annually starting':
       case 'Semi-Annual':
@@ -4066,6 +4152,28 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+
+    try {
+      final rows = await db.query('scheduled_tasks', where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) {
+        final t = rows.first;
+        final rIds = <String>[];
+        final entities = t['linkedEntities'] != null
+            ? (t['linkedEntities'] is String ? json.decode(t['linkedEntities'] as String) : t['linkedEntities'])
+            : [];
+        if (entities is List) {
+          for (var e in entities) {
+            final rId = e is Map ? e['id']?.toString() : e?.toString();
+            if (rId != null && rId.isNotEmpty && !rIds.contains(rId)) rIds.add(rId);
+          }
+        }
+        await _recordHealthIfApplicable(
+          category: t['category']?.toString(),
+          taskName: t['name']?.toString() ?? t['task']?.toString(),
+          rabbitIds: rIds,
+        );
+      }
+    } catch (_) {}
   }
 
   /// Unmark a scheduled task as completed (user unchecked the box)
@@ -4296,12 +4404,12 @@ class DatabaseService {
     final filtered = rabbitTasks.where((task) {
       try {
         final entities = task['linkedEntities'] != null
-            ? json.decode(task['linkedEntities'] as String)
+            ? (task['linkedEntities'] is String ? json.decode(task['linkedEntities'] as String) : task['linkedEntities'])
             : [];
         if (entities is List) {
           return entities.any((e) {
-            if (e is Map) return e['id'] == rabbitId;
-            if (e is String) return e == rabbitId;
+            if (e is Map) return e['id']?.toString() == rabbitId.toString();
+            if (e is String) return e.toString() == rabbitId.toString();
             return false;
           });
         }
@@ -4327,12 +4435,12 @@ class DatabaseService {
     final litterFiltered = litterTasks.where((task) {
       try {
         final entities = task['linkedEntities'] != null
-            ? json.decode(task['linkedEntities'] as String)
+            ? (task['linkedEntities'] is String ? json.decode(task['linkedEntities'] as String) : task['linkedEntities'])
             : [];
         if (entities is List) {
           return entities.any((e) {
             if (e is Map) return litterIds.contains(e['id']?.toString());
-            if (e is String) return litterIds.contains(e);
+            if (e is String) return litterIds.contains(e.toString());
             return false;
           });
         }
@@ -4613,6 +4721,13 @@ class DatabaseService {
     await db.insert('breeding_plans', plan,
         conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted breeding plan for Doe ID: ${plan['doeId']}');
+  }
+
+  Future<void> updateBreedingPlan(Map<String, dynamic> plan) async {
+    final db = await database;
+    await db.update('breeding_plans', plan,
+        where: 'id = ?', whereArgs: [plan['id']]);
+    print('✅ Updated breeding plan with id: ${plan['id']}');
   }
 
   Future<List<Map<String, dynamic>>> getAllBreedingPlans() async {

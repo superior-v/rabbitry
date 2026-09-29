@@ -830,13 +830,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             _buildSettingRow(
               'Date Format',
               _buildStandardDropdown<String>(
-                value: ['MMM d, yyyy', 'MM-dd-yyyy', 'dd-MM-yyyy'].contains(dateFormat)
+                value: ['MMM dd, yyyy', 'MM-dd-yyyy', 'dd-MM-yyyy'].contains(dateFormat)
                     ? dateFormat
-                    : (dateFormat == 'MM/dd/yyyy'
-                        ? 'MM-dd-yyyy'
-                        : (dateFormat == 'dd/MM/yyyy' ? 'dd-MM-yyyy' : 'MMM d, yyyy')),
+                    : (dateFormat == 'MMM d, yyyy'
+                        ? 'MMM dd, yyyy'
+                        : (dateFormat == 'MM/dd/yyyy'
+                            ? 'MM-dd-yyyy'
+                            : (dateFormat == 'dd/MM/yyyy' ? 'dd-MM-yyyy' : 'MMM dd, yyyy'))),
                 items: const [
-                  DropdownMenuItem(value: 'MMM d, yyyy', child: Text('Jan 24, 2026 (Default)', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'MMM dd, yyyy', child: Text('Jan 24, 2026 (Default)', style: TextStyle(color: Color(0xFF4F4F56)))),
                   DropdownMenuItem(value: 'MM-dd-yyyy', child: Text('MM-DD-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
                   DropdownMenuItem(value: 'dd-MM-yyyy', child: Text('DD-MM-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
                 ],
@@ -3876,7 +3878,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 'Weekly Starting',
                                 'Fortnightly Starting',
                                 'Monthly Starting',
-                                'Semi Annually starting',
+                                '2 Months starting',
+                                '3 Months starting',
+                                '4 Months starting',
+                                '6 Months starting',
                                 'Annually'
                               ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
                               onChanged: (val) {

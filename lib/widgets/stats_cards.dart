@@ -6,6 +6,7 @@ import '../models/rabbit.dart';
 import '../models/litter.dart';
 import '../models/transaction.dart' as finance_model;
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 
 class StatsCards extends StatefulWidget {
   final Rabbit rabbit;
@@ -915,7 +916,7 @@ class _StatsCardsState extends State<StatsCards> {
               ),
               const SizedBox(height: 2),
               Text(
-                DateFormat('MMM d').format(t.date),
+                FormatUtils.formatDateShort(t.date),
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,

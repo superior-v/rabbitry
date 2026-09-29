@@ -17,6 +17,7 @@ import 'home_dashboard_screen.dart';
 import 'package:intl/intl.dart';
 import '../widgets/modals/log_breeding_modal.dart';
 import '../widgets/modals/future_breeding_plan_modal.dart';
+import '../widgets/modals/rabbit_picker_modal.dart';
 
 // Primary color constant for theme (mapping to the premium palette)
 const kPrimary = kLilacDeep;
@@ -876,7 +877,7 @@ class TaskScreenState extends State<TaskScreen> {
           } else if (_selectedCategory == 'Contacts') {
             _showAddContactDialog();
           } else {
-            _showNewScheduleDialog(context);
+            _showNewScheduleDialog(context, initialCategory: _selectedCategory);
           }
         },
         backgroundColor: const Color(0xFFE6BEFE),
@@ -893,31 +894,36 @@ class TaskScreenState extends State<TaskScreen> {
     required bool isEmpty,
     required String emptyText,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E5EA)),
-      ),
-      padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: header,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: header,
+        ),
+        const SizedBox(height: 6),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F2F7),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E5EA)),
           ),
-          const SizedBox(height: 6),
-          if (isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
-            )
-          else
-            ...tasks,
-        ],
-      ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
+                )
+              else
+                ...tasks,
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -937,9 +943,9 @@ class TaskScreenState extends State<TaskScreen> {
       color: const Color(0xFFEEDAFE),
       child: ListView(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
         children: [
-          // DUE SECTION IN LIGHT GREY CARD
+          // DUE SECTION
           _buildSectionCard(
             header: _buildSectionTitle('TODAY & OVERDUE', _getFilteredTodayTasksCount()),
             tasks: todayTasks,
@@ -947,44 +953,49 @@ class TaskScreenState extends State<TaskScreen> {
             emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently',
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 16),
 
-          // UPCOMING SECTION IN LIGHT GREY CARD
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F2F7),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
-            ),
-            padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: _buildUpcomingSectionHeader(),
+          // UPCOMING SECTION
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildUpcomingSectionHeader(),
+              ),
+              if (_showUpcoming) ...[
+                const SizedBox(height: 6),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E5EA)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (upcomingTasks.isEmpty && !_isLoading)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          child: Text(
+                            _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
+                            style: TextStyle(fontSize: 13, color: kNeutral500),
+                          ),
+                        )
+                      else
+                        ...upcomingTasks,
+                    ],
+                  ),
                 ),
-                if (_showUpcoming) ...[
-                  const SizedBox(height: 6),
-                  if (upcomingTasks.isEmpty && !_isLoading)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: Text(
-                        _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
-                        style: TextStyle(fontSize: 13, color: kNeutral500),
-                      ),
-                    )
-                  else
-                    ...upcomingTasks,
-                ],
               ],
-            ),
+            ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 16),
 
-          // ARCHIVE SECTION IN LIGHT GREY CARD
+          // ARCHIVE SECTION
           _buildSectionCard(
             header: _buildSectionTitle('ARCHIVE', _getFilteredArchivedTasksCount()),
             tasks: archivedTasks,
@@ -1000,7 +1011,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildSectionTitle(String title, int count) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1021,26 +1032,20 @@ class TaskScreenState extends State<TaskScreen> {
               ),
             ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9D5FF),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  '$count',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF4A3E6D),
-                  ),
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9D5FF),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4A3E6D),
               ),
-              const SizedBox(width: 22),
-            ],
+            ),
           ),
         ],
       ),
@@ -1053,7 +1058,7 @@ class TaskScreenState extends State<TaskScreen> {
       onTap: () => setState(() => _showUpcoming = !_showUpcoming),
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1225,8 +1230,7 @@ class TaskScreenState extends State<TaskScreen> {
       } else if (isDueToday || isToday) {
         dateStr = 'Today';
       } else if (dueDate != null) {
-        final diff = dueDate.difference(DateTime.now()).inDays;
-        dateStr = '${DateFormat('MMM d').format(dueDate)} ($diff d)';
+        dateStr = FormatUtils.formatDateShort(dueDate);
       } else {
         dateStr = isToday ? 'Today' : 'Upcoming';
       }
@@ -1386,9 +1390,9 @@ class TaskScreenState extends State<TaskScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Text(
-                          '- $displayName',
+                          displayName,
                           style: TextStyle(
-                            fontSize: 12.5,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF8B5CF6),
                             decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
@@ -2040,25 +2044,6 @@ class TaskScreenState extends State<TaskScreen> {
         _buildSectionTitle('BREEDER CONTACTS', _contacts.length),
         const SizedBox(height: 16),
         if (_contacts.isEmpty) _buildEmptyState('No contacts added yet.') else ..._contacts.map((contact) => _buildContactCard(contact)).toList(),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _showAddContactDialog(),
-            icon: Icon(PhosphorIcons.userPlus(), size: 18),
-            label: const Text('Add Contact'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: kLilacDeep,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: kLilac),
-              ),
-            ),
-          ),
-        ),
         const SizedBox(height: 100),
       ],
     );
@@ -2283,7 +2268,7 @@ class TaskScreenState extends State<TaskScreen> {
                             Icon(PhosphorIcons.calendar(), size: 14, color: kNeutral400),
                             const SizedBox(width: 4),
                             Text(
-                              date != null ? FormatUtils.formatDateShort(date) : 'No Date',
+                              date != null ? FormatUtils.formatDate(date) : 'No Date',
                               style: const TextStyle(fontSize: 13, color: kNeutral600),
                             ),
                           ],
@@ -2294,6 +2279,10 @@ class TaskScreenState extends State<TaskScreen> {
                 ],
               ),
             ),
+          ),
+          IconButton(
+            icon: Icon(PhosphorIcons.pencilSimple(), color: kLilacDeep, size: 20),
+            onPressed: () => _showEditBreedingPlanDialog(plan),
           ),
           IconButton(
             icon: Icon(PhosphorIcons.trash(), color: kNeutral400, size: 20),
@@ -2430,38 +2419,49 @@ class TaskScreenState extends State<TaskScreen> {
             ));
   }
 
-  void _showNewScheduleDialog(BuildContext context) async {
-    String selectedCategory = 'Operations';
+  void _showNewScheduleDialog(BuildContext context, {String? initialCategory}) async {
+    String selectedCategory = (initialCategory == 'Breeding' || initialCategory == 'Health' || initialCategory == 'Operations')
+        ? initialCategory!
+        : 'Operations';
     String? selectedTask;
     String selectedFrequency = 'Select date';
-    String selectedLinkType = 'unlinked';
     bool isCustomTask = false;
     DateTime? selectedCustomDate = DateTime.now();
-    Rabbit? selectedRabbitForLink;
+    List<Rabbit> selectedRabbitsForLink = [];
     final customTaskController = TextEditingController();
     final _db2 = DatabaseService();
-    List<Map<String, dynamic>> taskDirectoryItems = [];
-    try {
-      taskDirectoryItems = await _db2.getAllTaskDirectoryItems();
-    } catch (e) {}
+    bool isSaving = false;
 
     List<Rabbit> allRabbitsList = [];
     try {
       final fetchedRabbits = await _db2.getAllRabbits();
       allRabbitsList = fetchedRabbits.where((r) => r.status != RabbitStatus.archived).toList();
+      allRabbitsList.sort((a, b) {
+        final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+        if (breedCompare != 0) return breedCompare;
+        final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+        if (nameCompare != 0) return nameCompare;
+        final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+        if (prefixCompare != 0) return prefixCompare;
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        return earA.compareTo(earB);
+      });
     } catch (e) {}
 
-    showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext dialogContext) {
-          return StatefulBuilder(builder: (context, setDialogState) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
             Widget buildCategoryRadio(String label, String value) {
               final bool isSelected = (value == 'Custom' && isCustomTask) ||
                   (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
               return GestureDetector(
                 onTap: () {
-                  setDialogState(() {
+                  setSheetState(() {
                     if (value == 'Custom') {
                       selectedCategory = 'Custom';
                       isCustomTask = true;
@@ -2471,11 +2471,7 @@ class TaskScreenState extends State<TaskScreen> {
                       isCustomTask = false;
                       selectedTask = null;
                       if (selectedCategory == 'Breeding') {
-                        // If current selected rabbit is not a doe, clear selection
-                        if (selectedRabbitForLink != null && selectedRabbitForLink!.type != RabbitType.doe) {
-                          selectedRabbitForLink = null;
-                          selectedLinkType = 'unlinked';
-                        }
+                        selectedRabbitsForLink = selectedRabbitsForLink.where((r) => r.type == RabbitType.doe).take(1).toList();
                       }
                     }
                   });
@@ -2501,8 +2497,8 @@ class TaskScreenState extends State<TaskScreen> {
                       label,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? const Color(0xFF4A3E6D) : const Color(0xFF475569),
                       ),
                     ),
                   ],
@@ -2510,7 +2506,6 @@ class TaskScreenState extends State<TaskScreen> {
               );
             }
 
-            // Task options per category
             List<String> currentTaskOptions;
             if (selectedCategory == 'Health') {
               currentTaskOptions = [
@@ -2546,261 +2541,282 @@ class TaskScreenState extends State<TaskScreen> {
               ];
             }
 
-            // Filter rabbits based on category: Breeding only shows DOES
             final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
             final availableRabbits = isBreeding
                 ? allRabbitsList.where((r) => r.type == RabbitType.doe).toList()
                 : allRabbitsList;
 
-            String formatRabbitLabel(Rabbit r) {
-              final prefix = (r.breederPrefix != null && r.breederPrefix!.trim().isNotEmpty)
-                  ? '${r.breederPrefix!.trim()} '
-                  : '';
-              final ear = (r.earNumber != null && r.earNumber!.trim().isNotEmpty)
-                  ? ' (${r.earNumber!.trim()})'
-                  : '';
-              return '$prefix${r.name}$ear';
-            }
-
-            BoxDecoration inputDec() => BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(12));
-
-            Future<void> pickDate() async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedCustomDate ?? DateTime.now(),
-                firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
-                lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
-              );
-              if (picked != null) {
-                setDialogState(() {
-                  selectedCustomDate = picked;
-                });
+            Future<void> pickRabbit() async {
+              if (isBreeding) {
+                final picked = await showRabbitPickerBottomSheet(
+                  context: context,
+                  title: 'Select Doe',
+                  rabbits: availableRabbits,
+                  selectedRabbit: selectedRabbitsForLink.isNotEmpty ? selectedRabbitsForLink.first : null,
+                );
+                if (picked != null) {
+                  setSheetState(() => selectedRabbitsForLink = [picked]);
+                }
+              } else {
+                final picked = await showMultiRabbitPickerBottomSheet(
+                  context: context,
+                  title: 'Select Bunnies',
+                  rabbits: availableRabbits,
+                  selectedRabbits: selectedRabbitsForLink,
+                );
+                if (picked != null) {
+                  setSheetState(() => selectedRabbitsForLink = picked);
+                }
               }
             }
 
-            return Dialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              insetPadding: const EdgeInsets.all(16),
-              child: Container(
-                  width: double.infinity,
-                  constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
-                  padding: const EdgeInsets.all(20),
-                  child: SingleChildScrollView(
-                      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
-                      GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)))),
-                    ]),
-                    const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)))),
-                    Row(
-                      children: [
-                        Expanded(child: buildCategoryRadio('Operations', 'Operations')),
-                        Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(child: buildCategoryRadio('Health', 'Health')),
-                        Expanded(child: buildCategoryRadio('Custom', 'Custom')),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (!isCustomTask) ...[
-                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                      Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: inputDec(),
-                          child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildModalHeader(context, 'New Task'),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CATEGORY',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                              Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: buildCategoryRadio('Health', 'Health')),
+                              Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          if (!isCustomTask) ...[
+                            InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Task',
+                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelBehavior: FloatingLabelBehavior.always,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
                                   value: (selectedTask == '+ Custom...') ? null : selectedTask,
-                                  hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                                  hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: kNeutral400)),
                                   isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
                                   items: currentTaskOptions.map((e) => DropdownMenuItem(
                                     value: e,
                                     child: Text(
                                       e,
                                       style: TextStyle(
                                         fontSize: 14,
+                                        fontWeight: e == '+ Custom...' ? FontWeight.w600 : FontWeight.normal,
                                         fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
-                                        color: e == '+ Custom...' ? kPrimary : const Color(0xFF1E293B),
+                                        color: e == '+ Custom...' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
                                       ),
                                     ),
                                   )).toList(),
                                   onChanged: (val) {
                                     if (val == '+ Custom...') {
-                                      setDialogState(() {
+                                      setSheetState(() {
                                         isCustomTask = true;
                                         selectedTask = null;
                                       });
                                     } else {
-                                      setDialogState(() {
+                                      setSheetState(() {
                                         selectedTask = val;
                                       });
                                     }
-                                  }))),
-                    ] else ...[
-                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Custom Task Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                      TextField(controller: customTaskController, decoration: InputDecoration(hintText: 'Enter custom task name...', hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary)))),
-                    ],
-                    const SizedBox(height: 14),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        isBreeding ? 'Link to Doe (Female Only)' : 'Link to Bunny (Optional)',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
-                      ),
-                    ),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<Rabbit?>(
-                                value: selectedRabbitForLink,
-                                hint: Text(isBreeding ? 'Select a Doe...' : 'None (Unlinked)', style: const TextStyle(fontSize: 14, color: Color(0xFF64748B))),
-                                isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
-                                items: [
-                                  if (!isBreeding)
-                                    const DropdownMenuItem<Rabbit?>(
-                                      value: null,
-                                      child: Text('None (Unlinked)', style: TextStyle(fontSize: 14)),
-                                    ),
-                                  ...availableRabbits.map((r) => DropdownMenuItem<Rabbit?>(
-                                    value: r,
-                                    child: Text(formatRabbitLabel(r), style: const TextStyle(fontSize: 14)),
-                                  )).toList()
-                                ],
-                                onChanged: (val) => setDialogState(() {
-                                  selectedRabbitForLink = val;
-                                  if (val != null) {
-                                    selectedLinkType = 'rabbit';
-                                  } else {
-                                    selectedLinkType = 'unlinked';
-                                  }
-                                })))),
-                    const SizedBox(height: 14),
-                    // Frequency is hidden for Breeding category!
-                    if (!isBreeding) ...[
-                      const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                      Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: inputDec(),
-                          child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
+                                  },
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            _buildModalOutlinedField(
+                              label: 'Custom Task Name',
+                              controller: customTaskController,
+                              hintText: 'Enter task name...',
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          _buildModalRabbitSelectorField(
+                            label: isBreeding ? 'Link to Doe (Required)' : 'Link to Bunny (Optional)',
+                            hint: isBreeding ? 'Select a Doe...' : 'None (Unlinked)',
+                            selectedRabbits: selectedRabbitsForLink,
+                            onTap: pickRabbit,
+                            onClear: isBreeding ? null : () => setSheetState(() => selectedRabbitsForLink = []),
+                            prefixIcon: isBreeding ? Icons.female_rounded : Icons.pets_rounded,
+                            prefixColor: isBreeding ? const Color(0xFFE04F9F) : const Color(0xFF7B6BA0),
+                          ),
+                          const SizedBox(height: 16),
+                          if (!isBreeding) ...[
+                            InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Frequency',
+                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelBehavior: FloatingLabelBehavior.always,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
                                   value: selectedFrequency,
                                   isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
                                   items: [
                                     'Select date',
                                     'Daily',
-                                    'Weekly Starting',
-                                    'Fortnightly Starting',
-                                    'Monthly Starting',
-                                    'Semi Annually starting',
-                                    'Annually'
-                                  ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                                    'Weekly',
+                                    'Bi-Weekly',
+                                    'Monthly',
+                                    '2 Months starting',
+                                    '3 Months starting',
+                                    '4 Months starting',
+                                    '6 Months starting',
+                                    'Once'
+                                  ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
                                   onChanged: (val) {
-                                    setDialogState(() {
-                                      selectedFrequency = val!;
-                                    });
-                                    if (val != 'Daily') {
-                                      pickDate();
+                                    if (val != null) {
+                                      setSheetState(() => selectedFrequency = val);
                                     }
-                                  }))),
-                      const SizedBox(height: 14),
-                    ],
-                    // Date selector: always shown for Breeding or when Frequency is not Daily
-                    if (isBreeding || selectedFrequency != 'Daily') ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          isBreeding ? 'Select a Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date'),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: pickDate,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: inputDec(),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                selectedCustomDate == null
-                                    ? 'Choose date...'
-                                    : FormatUtils.formatDate(selectedCustomDate!),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: selectedCustomDate == null ? const Color(0xFF94A3B8) : const Color(0xFF1F2937),
+                                  },
                                 ),
                               ),
-                              const Icon(Icons.calendar_today, size: 18, color: Color(0xFF64748B)),
-                            ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (isBreeding || selectedFrequency != 'Daily') ...[
+                            _buildModalDatePickerField(
+                              context: context,
+                              label: isBreeding ? 'Due Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date'),
+                              value: selectedCustomDate,
+                              onDateSelected: (picked) => setSheetState(() => selectedCustomDate = picked),
+                            ),
+                            const SizedBox(height: 24),
+                          ] else ...[
+                            const SizedBox(height: 8),
+                          ],
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      final finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
+                                      if (finalTaskName.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                        );
+                                        return;
+                                      }
+                                      if (isBreeding && selectedRabbitsForLink.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)),
+                                        );
+                                        return;
+                                      }
+                                      final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                                      final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
+                                      final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
+
+                                      List<Map<String, String>> entitiesToSave = selectedRabbitsForLink.map((r) => {
+                                        'id': r.id,
+                                        'name': r.name,
+                                        'code': r.cage ?? r.location ?? 'No cage',
+                                      }).toList();
+
+                                      setSheetState(() => isSaving = true);
+                                      try {
+                                        await DatabaseService().insertScheduledTask({
+                                          'name': finalTaskName,
+                                          'category': selectedCategory,
+                                          'frequency': freqToSave,
+                                          'linkType': selectedRabbitsForLink.isNotEmpty ? 'rabbit' : 'unlinked',
+                                          'linkedEntities': entitiesToSave,
+                                          'dueDate': dueDate.toIso8601String(),
+                                        });
+                                        Navigator.pop(sheetContext);
+                                        await _loadScheduledTasks();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                        );
+                                      } finally {
+                                        if (mounted) setSheetState(() => isSaving = false);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE6BEFE),
+                                foregroundColor: const Color(0xFF4A3E6D),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Save Task',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF4A3E6D),
+                                      ),
+                                    ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 20),
-                    ] else ...[
-                      const SizedBox(height: 8),
-                    ],
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
-                            if (finalTaskName.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)));
-                              return;
-                            }
-                            if (isBreeding && selectedRabbitForLink == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)));
-                              return;
-                            }
-                            final isDaily = !isBreeding && selectedFrequency == 'Daily';
-                            final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
-                            final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
-
-                            List<Map<String, String>> entitiesToSave = [];
-                            if (selectedRabbitForLink != null) {
-                              entitiesToSave = [{
-                                'id': selectedRabbitForLink!.id,
-                                'name': selectedRabbitForLink!.name,
-                                'code': selectedRabbitForLink!.cage ?? selectedRabbitForLink!.location ?? 'No cage'
-                              }];
-                            }
-
-                            try {
-                              await DatabaseService().insertScheduledTask({
-                                'name': finalTaskName,
-                                'category': selectedCategory,
-                                'frequency': freqToSave,
-                                'linkType': selectedRabbitForLink != null ? 'rabbit' : 'unlinked',
-                                'linkedEntities': entitiesToSave,
-                                'dueDate': dueDate.toIso8601String(),
-                              });
-                              Navigator.pop(dialogContext);
-                              await _loadScheduledTasks();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)));
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('Save Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                        )),
-                    const SizedBox(height: 8),
-                    SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),
-                  ]))),
+                    ),
+                  ),
+                ],
+              ),
             );
-          });
-        });
+          },
+        );
+      },
+    );
   }
 
   Future<void> _showAddContactDialog({Map<String, dynamic>? existing}) async {
@@ -2809,91 +2825,144 @@ class TaskScreenState extends State<TaskScreen> {
     final phoneController = TextEditingController(text: existing?['phone'] ?? '');
     final emailController = TextEditingController(text: existing?['email'] ?? '');
     final notesController = TextEditingController(text: existing?['notes'] ?? '');
+    bool isSaving = false;
 
-    showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  existing == null ? 'Add Contact' : 'Edit Contact',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kNeutral900),
-                ),
-                const SizedBox(height: 20),
-                _buildDialogField('Name *', nameController),
-                _buildDialogField('Farm Name', farmController),
-                _buildDialogField('Phone', phoneController),
-                _buildDialogField('Email', emailController),
-                _buildDialogField('Notes', notesController, maxLines: 3),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (nameController.text.trim().isEmpty) return;
-                        final contact = {
-                          'id': existing?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                          'name': nameController.text.trim(),
-                          'farmName': farmController.text.trim(),
-                          'phone': phoneController.text.trim(),
-                          'email': emailController.text.trim(),
-                          'notes': notesController.text.trim(),
-                          'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
-                        };
-                        if (existing == null) {
-                          await _db.insertContact(contact);
-                        } else {
-                          await _db.updateContact(contact);
-                        }
-                        Navigator.pop(ctx);
-                        _loadContacts();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE6BEFE),
-                        foregroundColor: kLilacText,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildModalHeader(context, existing == null ? 'Add Contact' : 'Edit Contact'),
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildModalOutlinedField(
+                        label: 'Name *',
+                        controller: nameController,
+                        hintText: 'Contact name',
                       ),
-                      child: const Text('Save Contact'),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      _buildModalOutlinedField(
+                        label: 'Farm Name',
+                        controller: farmController,
+                        hintText: 'Farm / Rabbitry name',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildModalOutlinedField(
+                        label: 'Phone',
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        hintText: 'Phone number',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildModalOutlinedField(
+                        label: 'Email',
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        hintText: 'Email address',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildModalOutlinedField(
+                        label: 'Notes',
+                        controller: notesController,
+                        maxLines: 3,
+                        hintText: 'Additional contact notes...',
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  if (nameController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please enter a contact name'),
+                                        backgroundColor: Color(0xFFD44C47),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setModalState(() => isSaving = true);
+                                  try {
+                                    final contact = {
+                                      'id': existing?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                                      'name': nameController.text.trim(),
+                                      'farmName': farmController.text.trim(),
+                                      'phone': phoneController.text.trim(),
+                                      'email': emailController.text.trim(),
+                                      'notes': notesController.text.trim(),
+                                      'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
+                                    };
+                                    if (existing == null) {
+                                      await _db.insertContact(contact);
+                                    } else {
+                                      await _db.updateContact(contact);
+                                    }
+                                    Navigator.pop(ctx);
+                                    _loadContacts();
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                    );
+                                  } finally {
+                                    if (mounted) setModalState(() => isSaving = false);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6BEFE),
+                            foregroundColor: const Color(0xFF4A3E6D),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                  ),
+                                )
+                              : Text(
+                                  existing == null ? 'Save Contact' : 'Update Contact',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF4A3E6D),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDialogField(String label, TextEditingController controller, {int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral600)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: controller,
-            maxLines: maxLines,
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kNeutral300)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacDeep)),
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
       ),
     );
   }
@@ -2911,6 +2980,20 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
+  void _showEditBreedingPlanDialog(Map<String, dynamic> plan) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FutureBreedingPlanModal(
+        existingPlan: plan,
+        onSaved: () {
+          _loadBreedingPlans();
+        },
+      ),
+    );
+  }
+
   void _showEditTaskDialog(Map<String, dynamic> task) async {
     final taskId = task['id'] as int?;
     if (taskId == null) return;
@@ -2920,130 +3003,460 @@ class TaskScreenState extends State<TaskScreen> {
     String selectedFrequency = task['frequency']?.toString() ?? 'Weekly';
     final taskNameController = TextEditingController(text: finalTaskName);
     final _db2 = DatabaseService();
+    bool isSaving = false;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: true,
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          BoxDecoration inputDec() => BoxDecoration(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                borderRadius: BorderRadius.circular(12),
-              );
-
-          return Dialog(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            insetPadding: const EdgeInsets.all(16),
-            child: Container(
-              width: double.infinity,
-              constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
-              padding: const EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Edit Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
-                        GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)))),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task Title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    TextField(
-                      controller: taskNameController,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary)),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildModalHeader(context, 'Edit Task'),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildModalOutlinedField(
+                            label: 'Task Title',
+                            controller: taskNameController,
+                            hintText: 'Enter task title',
+                          ),
+                          const SizedBox(height: 16),
+                          InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Category',
+                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelBehavior: FloatingLabelBehavior.always,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
                                 value: selectedCategory,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
                                 items: [
                                   'Operations',
                                   'Health',
                                   if (SettingsService.instance.meatProductionEnabled) 'Butchering',
                                   'Pregnancy',
                                   'Other'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-                                onChanged: (val) => setDialogState(() => selectedCategory = val!)))),
-                    const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: inputDec(),
-                        child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setSheetState(() => selectedCategory = val);
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Frequency',
+                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelBehavior: FloatingLabelBehavior.always,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
                                 value: selectedFrequency,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
                                 items: [
                                   'Daily',
                                   'Weekly',
                                   'Bi-Weekly',
                                   'Monthly',
+                                  '2 Months starting',
+                                  '3 Months starting',
+                                  '4 Months starting',
+                                  '6 Months starting',
                                   'Once'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-                                onChanged: (val) => setDialogState(() => selectedFrequency = val!)))),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (taskNameController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a task name'), backgroundColor: Color(0xFFD44C47)));
-                              return;
-                            }
-                            try {
-                              final db = await _db2.database;
-                              await db.update(
-                                'scheduled_tasks',
-                                {
-                                  'name': taskNameController.text.trim(),
-                                  'category': selectedCategory,
-                                  'frequency': selectedFrequency
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setSheetState(() => selectedFrequency = val);
                                 },
-                                where: 'id = ?',
-                                whereArgs: [
-                                  taskId
-                                ],
-                              );
-                              Navigator.pop(dialogContext);
-                              await _loadScheduledTasks();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Updated'), backgroundColor: kPrimary));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)));
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE6BEFE), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
-                        )),
-                    const SizedBox(height: 8),
-                    SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),
-                  ],
-                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      if (taskNameController.text.trim().isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                        );
+                                        return;
+                                      }
+                                      setSheetState(() => isSaving = true);
+                                      try {
+                                        final db = await _db2.database;
+                                        await db.update(
+                                          'scheduled_tasks',
+                                          {
+                                            'name': taskNameController.text.trim(),
+                                            'category': selectedCategory,
+                                            'frequency': selectedFrequency
+                                          },
+                                          where: 'id = ?',
+                                          whereArgs: [taskId],
+                                        );
+                                        Navigator.pop(sheetContext);
+                                        await _loadScheduledTasks();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Task Updated'), backgroundColor: kPrimary),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                        );
+                                      } finally {
+                                        if (mounted) setSheetState(() => isSaving = false);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE6BEFE),
+                                foregroundColor: const Color(0xFF4A3E6D),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Save Changes',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF4A3E6D),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          );
-        });
+            );
+          },
+        );
       },
     );
   }
+
+  Widget _buildModalHeader(BuildContext context, String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: const BoxDecoration(
+        color: kLilacLight,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(bottom: BorderSide(color: kLilac, width: 1)),
+      ),
+      child: Column(
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF4A3E6D),
+                  letterSpacing: -0.3,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModalOutlinedField({
+    required String label,
+    required TextEditingController controller,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? hintText,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+    );
+  }
+
+  Widget _buildModalDatePickerField({
+    required BuildContext context,
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime> onDateSelected,
+  }) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
+          lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Color(0xFF8B5CF6),
+                  onPrimary: Colors.white,
+                  surface: Colors.white,
+                  onSurface: Color(0xFF2C2C2E),
+                ),
+                datePickerTheme: DatePickerThemeData(
+                  headerBackgroundColor: const Color(0xFFE2BFFB),
+                  headerForegroundColor: const Color(0xFF463466),
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                  todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return const Color(0xFF8B5CF6);
+                    return null;
+                  }),
+                  todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return Colors.white;
+                    return const Color(0xFF8B5CF6);
+                  }),
+                  dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return Colors.white;
+                    if (states.contains(WidgetState.disabled)) return const Color(0xFFC7C7CC);
+                    return const Color(0xFF2C2C2E);
+                  }),
+                  dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return const Color(0xFF8B5CF6);
+                    return null;
+                  }),
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          onDateSelected(picked);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              value != null ? FormatUtils.formatDate(value) : 'Select date',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: value != null ? const Color(0xFF4F4F56) : kNeutral400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModalRabbitSelectorField({
+    required String label,
+    required String hint,
+    required List<Rabbit> selectedRabbits,
+    required VoidCallback onTap,
+    VoidCallback? onClear,
+    required IconData prefixIcon,
+    required Color prefixColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
+          suffixIcon: selectedRabbits.isNotEmpty && onClear != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF787774)),
+                      onPressed: onClear,
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+                    const SizedBox(width: 4),
+                  ],
+                )
+              : const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: selectedRabbits.isEmpty
+            ? Text(
+                hint,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+              )
+            : selectedRabbits.length == 1
+                ? _buildModalRabbitNameWidget(selectedRabbits.first, fontSize: 15)
+                : Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: selectedRabbits.map((r) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: kLilacLight),
+                      ),
+                      child: _buildModalRabbitNameWidget(r, fontSize: 13),
+                    )).toList(),
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildModalRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
+    final isDoe = rabbit.type == RabbitType.doe;
+    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final prefix = (rabbit.breederPrefix ?? '').trim();
+    final name = rabbit.name.trim();
+    final ear = (rabbit.earNumber?.trim().isNotEmpty == true
+            ? rabbit.earNumber!.trim()
+            : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).trim())
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              color: nameColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (ear.isNotEmpty)
+            TextSpan(
+              text: ' ($ear)',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+      style: TextStyle(fontSize: fontSize),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
 }
+
 
 class CuteGlossyHeart extends StatelessWidget {
   final double size;

@@ -710,10 +710,24 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
-              todayForegroundColor: const WidgetStatePropertyAll(Color(0xFF8B5CF6)),
+              todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF8B5CF6);
+                }
+                return null;
+              }),
+              todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return const Color(0xFF8B5CF6);
+              }),
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
+                }
+                if (states.contains(WidgetState.disabled)) {
+                  return const Color(0xFFC7C7CC);
                 }
                 return const Color(0xFF2C2C2E);
               }),

@@ -199,12 +199,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isDam = widget.rabbit.id == litter.doeId;
     final partner = isDam ? litter.buckName : litter.doeName;
     final partnerId = isDam ? litter.buckId : litter.doeId;
-    final String bredDateStr = DateFormat('MMM d, yyyy').format(litter.breedDate);
+    final String bredDateStr = FormatUtils.formatDate(litter.breedDate);
     final String bornDateStr = (litter.dob ?? litter.kindleDate) != null
-        ? DateFormat('MMM d, yyyy').format(litter.dob ?? litter.kindleDate!)
+        ? FormatUtils.formatDate(litter.dob ?? litter.kindleDate!)
         : '-';
     final String dueDateStr = (litter.dueDate ?? litter.dob ?? litter.kindleDate) != null
-        ? DateFormat('MMM d, yyyy').format(litter.dueDate ?? litter.dob ?? litter.kindleDate!)
+        ? FormatUtils.formatDate(litter.dueDate ?? litter.dob ?? litter.kindleDate!)
         : '-';
     final isExpanded = _expandedLitters.contains(litter.id);
     final String lStatus = litter.status.toLowerCase().trim();

@@ -7,6 +7,7 @@ import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
+import '../widgets/modals/rabbit_picker_modal.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? transaction;
@@ -74,9 +75,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       final rabbits = await _db.getAllRabbits();
       final litters = await _db.getLitters();
+      final activeRabbits = rabbits.where((r) => r.status != RabbitStatus.archived).toList();
+      activeRabbits.sort((a, b) {
+        final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+        if (breedCompare != 0) return breedCompare;
+        final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+        if (nameCompare != 0) return nameCompare;
+        final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+        if (prefixCompare != 0) return prefixCompare;
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        return earA.compareTo(earB);
+      });
 
       setState(() {
-        _rabbits = rabbits.where((r) => r.status != RabbitStatus.archived).toList();
+        _rabbits = activeRabbits;
         _litters = litters;
         _isLoading = false;
       });
@@ -393,7 +406,74 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
+  Future<void> _pickRabbit() async {
+    final selected = _selectedRabbitId != null
+        ? _rabbits.where((r) => r.id == _selectedRabbitId).firstOrNull
+        : null;
+    final picked = await showRabbitPickerBottomSheet(
+      context: context,
+      title: 'Select Rabbit',
+      rabbits: _rabbits,
+      selectedRabbit: selected,
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedRabbitId = picked.id;
+      });
+    }
+  }
+
+  Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 14}) {
+    final isDoe = rabbit.type == RabbitType.doe;
+    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final prefix = (rabbit.breederPrefix ?? '').trim();
+    final name = rabbit.name.trim();
+    final ear = (rabbit.earNumber?.trim().isNotEmpty == true
+            ? rabbit.earNumber!.trim()
+            : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).trim())
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              color: nameColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+      style: TextStyle(fontSize: fontSize),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   Widget _buildRabbitSelector() {
+    Rabbit? selectedRabbit;
+    if (_selectedRabbitId != null) {
+      final matches = _rabbits.where((r) => r.id == _selectedRabbitId).toList();
+      if (matches.isNotEmpty) selectedRabbit = matches.first;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -407,26 +487,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFD6CEE2)),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: DropdownButtonFormField<String>(
-            value: _selectedRabbitId,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        InkWell(
+          onTap: _pickRabbit,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFD6CEE2)),
+              borderRadius: BorderRadius.circular(14),
             ),
-            hint: const Text('Select rabbit', style: TextStyle(color: Color(0xFF787880))),
-            items: _rabbits.map((rabbit) {
-              return DropdownMenuItem(
-                value: rabbit.id,
-                child: Text('${rabbit.name} (${rabbit.id})', style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56))),
-              );
-            }).toList(),
-            onChanged: (value) => setState(() => _selectedRabbitId = value),
+            child: Row(
+              children: [
+                Expanded(
+                  child: selectedRabbit != null
+                      ? _buildRabbitNameWidget(selectedRabbit, fontSize: 14)
+                      : const Text(
+                          'Select rabbit',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF787880),
+                          ),
+                        ),
+                ),
+                const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+              ],
+            ),
           ),
         ),
       ],
@@ -568,7 +655,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         GestureDetector(
           onTap: _selectDate,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: const Color(0xFFD6CEE2)),
@@ -576,8 +663,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.calendar(PhosphorIconsStyle.bold), color: const Color(0xFF4F4F56), size: 18),
-                const SizedBox(width: 6),
+                const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     FormatUtils.formatDate(_date),
@@ -589,7 +676,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(PhosphorIcons.caretRight(PhosphorIconsStyle.bold), color: const Color(0xFF787880), size: 16),
               ],
             ),
           ),

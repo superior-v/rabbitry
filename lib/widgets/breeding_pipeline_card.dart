@@ -44,7 +44,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   String _formatDate(DateTime date) {
-    return DateFormat('MMM d').format(date);
+    return FormatUtils.formatDateShort(date);
   }
 
   int get _daysSinceBred {

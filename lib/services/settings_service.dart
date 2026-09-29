@@ -49,7 +49,7 @@ class SettingsService {
   // App settings
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
   String get currency => _prefs?.getString('currency') ?? 'usd';
-  String get dateFormat => _prefs?.getString('dateFormat') ?? 'MMM d, yyyy';
+  String get dateFormat => _prefs?.getString('dateFormat') ?? 'MMM dd, yyyy';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
   String get digestTime => _prefs?.getString('digestTime') ?? '07:00';

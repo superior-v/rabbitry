@@ -6,12 +6,14 @@ import '../../constants/app_colors.dart';
 import 'rabbit_picker_modal.dart';
 
 class FutureBreedingPlanModal extends StatefulWidget {
+  final Map<String, dynamic>? existingPlan;
   final VoidCallback onSaved;
 
   const FutureBreedingPlanModal({
     super.key,
+    this.existingPlan,
     required this.onSaved,
-  }) : super();
+  });
 
   @override
   State<FutureBreedingPlanModal> createState() => _FutureBreedingPlanModalState();
@@ -45,10 +47,50 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
     final does = rabbits.where((r) => r.type == RabbitType.doe && r.status != RabbitStatus.archived).toList();
     final bucks = rabbits.where((r) => r.type == RabbitType.buck && r.status != RabbitStatus.archived).toList();
 
+    final sortRabbits = (List<Rabbit> list) {
+      list.sort((a, b) {
+        final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+        if (breedCompare != 0) return breedCompare;
+        final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+        if (nameCompare != 0) return nameCompare;
+        final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+        if (prefixCompare != 0) return prefixCompare;
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        return earA.compareTo(earB);
+      });
+    };
+    sortRabbits(does);
+    sortRabbits(bucks);
+
+    Rabbit? preselectedDoe;
+    Rabbit? preselectedBuck;
+    DateTime plannedDate = DateTime.now().add(const Duration(days: 7));
+    String notes = '';
+
+    if (widget.existingPlan != null) {
+      final doeId = widget.existingPlan!['doeId']?.toString();
+      final buckId = widget.existingPlan!['buckId']?.toString();
+      if (doeId != null) {
+        preselectedDoe = does.where((d) => d.id == doeId).firstOrNull ?? rabbits.where((r) => r.id == doeId).firstOrNull;
+      }
+      if (buckId != null) {
+        preselectedBuck = bucks.where((b) => b.id == buckId).firstOrNull ?? rabbits.where((r) => r.id == buckId).firstOrNull;
+      }
+      if (widget.existingPlan!['plannedDate'] != null) {
+        plannedDate = DateTime.tryParse(widget.existingPlan!['plannedDate'].toString()) ?? plannedDate;
+      }
+      notes = widget.existingPlan!['notes']?.toString() ?? '';
+      _notesController.text = notes;
+    }
+
     if (mounted) {
       setState(() {
         _does = does;
         _bucks = bucks;
+        _selectedDoe = preselectedDoe;
+        _selectedBuck = preselectedBuck;
+        _plannedDate = plannedDate;
         _isLoading = false;
       });
     }
@@ -99,10 +141,24 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
-              todayForegroundColor: const WidgetStatePropertyAll(Color(0xFF8B5CF6)),
+              todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF8B5CF6);
+                }
+                return null;
+              }),
+              todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return const Color(0xFF8B5CF6);
+              }),
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
+                }
+                if (states.contains(WidgetState.disabled)) {
+                  return const Color(0xFFC7C7CC);
                 }
                 return const Color(0xFF2C2C2E);
               }),
@@ -137,13 +193,17 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
     setState(() => _isSaving = true);
 
     try {
+      final planId = widget.existingPlan != null && widget.existingPlan!['id'] != null
+          ? widget.existingPlan!['id'].toString()
+          : DateTime.now().millisecondsSinceEpoch.toString();
+
       await _db.insertBreedingPlan({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'id': planId,
         'doeId': _selectedDoe!.id,
         'buckId': _selectedBuck!.id,
         'plannedDate': _plannedDate.toIso8601String(),
         'notes': _notesController.text.trim(),
-        'createdAt': DateTime.now().toIso8601String(),
+        'createdAt': widget.existingPlan?['createdAt'] ?? DateTime.now().toIso8601String(),
       });
 
       widget.onSaved();
@@ -206,9 +266,9 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Future Breeding Plan',
-                      style: TextStyle(
+                    Text(
+                      widget.existingPlan != null ? 'Edit Breeding Plan' : 'Future Breeding Plan',
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF4A3E6D),
@@ -339,9 +399,9 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                                   valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
                                 ),
                               )
-                            : const Text(
-                                'Save Breeding Plan',
-                                style: TextStyle(
+                            : Text(
+                                widget.existingPlan != null ? 'Update Breeding Plan' : 'Save Breeding Plan',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF4A3E6D),
