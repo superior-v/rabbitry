@@ -224,12 +224,32 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         lStatus == 'missed' ||
         lStatus == 'missed litter' ||
         lStatus == 'missed_litter' ||
-        (born == 0 && alive == 0);
-    final bool isLitterDied = !isMissedLitter && (born > 0 && alive == 0);
+        (born == 0 && alive == 0 && litter.kits.isEmpty);
+
+    final bool hasSoldKits = litter.kits.any((k) => k.status.toLowerCase().trim() == 'sold');
+    final bool allNonDeadKitsSold = litter.kits.isNotEmpty &&
+        hasSoldKits &&
+        litter.kits.every((k) {
+          final s = k.status.toLowerCase().trim();
+          return s == 'sold' ||
+              s == 'dead' ||
+              s == 'died' ||
+              s == 'deceased' ||
+              s == 'cull' ||
+              s == 'culled' ||
+              s == 'fostered';
+        });
+    final bool isLitterSold = !isMissedLitter &&
+        (lStatus == 'sold' || (born > 0 && allNonDeadKitsSold));
+    final bool isLitterDied = !isMissedLitter &&
+        !isLitterSold &&
+        (born > 0 && alive == 0);
 
     String fullAgeStr = '';
     if (isMissedLitter) {
       fullAgeStr = '';
+    } else if (isLitterSold) {
+      fullAgeStr = 'Litter Sold • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     } else if (isLitterDied) {
       fullAgeStr = 'Litter Died';
     } else if (lStatus == 'weaned') {

@@ -1006,6 +1006,28 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  List<Kit> _getOrGenerateLitterKits(Litter litter) {
+    if (litter.kits.isNotEmpty) {
+      return List<Kit>.from(litter.kits);
+    }
+    final int count = (litter.totalKits != null && litter.totalKits! > 0)
+        ? litter.totalKits!
+        : (litter.aliveKits != null && litter.aliveKits! > 0
+            ? litter.aliveKits!
+            : (litter.totalKitsCount > 0 ? litter.totalKitsCount : 1));
+    final String defaultStatus = litter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing';
+    return List.generate(
+      count,
+      (i) => Kit(
+        id: 'K-${i + 1}',
+        sex: 'U',
+        color: 'Unknown',
+        weight: 0.0,
+        status: defaultStatus,
+      ),
+    );
+  }
+
   Widget _buildLitterCard(Litter litter) {
     final isExpanded = _expandedLitters[litter.id] ?? false;
     final doeRabbit = _rabbitMap[litter.doeId];
@@ -1024,32 +1046,46 @@ class LittersScreenState extends State<LittersScreen> {
                 st != 'deceased' &&
                 st != 'sold' &&
                 st != 'butchered' &&
-                st != 'cull';
+                st != 'cull' &&
+                st != 'culled';
           }).length
         : (litter.aliveKits ?? 0);
 
     final String lStatus = litter.status.toLowerCase().trim();
     final bool isMissedLitter = litter.missedLitter == true ||
-        (born == 0 && alive == 0) ||
+        (born == 0 && alive == 0 && litter.kits.isEmpty) ||
         lStatus == 'missed' ||
         lStatus == 'not taken';
     final bool isLitterCulled = !isMissedLitter && (lStatus == 'cull' || lStatus == 'culled');
-    final bool isLitterDied = !isMissedLitter && !isLitterCulled && ((born > 0 && alive == 0) || lStatus == 'died' || lStatus == 'dead');
+    final bool hasFosteredKits = litter.kits.any((k) =>
+        k.status.toLowerCase() == 'fostered' ||
+        (k.details != null && k.details!.toLowerCase().contains('fostered to')));
+    final bool hasSoldKits = litter.kits.any((k) => k.status.toLowerCase().trim() == 'sold');
+    final bool allNonDeadKitsSold = litter.kits.isNotEmpty &&
+        hasSoldKits &&
+        litter.kits.every((k) {
+          final s = k.status.toLowerCase().trim();
+          return s == 'sold' ||
+              s == 'dead' ||
+              s == 'died' ||
+              s == 'deceased' ||
+              s == 'cull' ||
+              s == 'culled' ||
+              s == 'fostered';
+        });
+    final bool isLitterSold = !isMissedLitter &&
+        !isLitterCulled &&
+        (lStatus == 'sold' || (born > 0 && alive == 0 && allNonDeadKitsSold));
+    final bool isLitterDied = !isMissedLitter &&
+        !isLitterCulled &&
+        !isLitterSold &&
+        !hasFosteredKits &&
+        ((born > 0 && alive == 0) || lStatus == 'died' || lStatus == 'dead');
 
-    final List<Kit> displayKits = litter.kits.isNotEmpty
-        ? (_currentStage.toLowerCase() == 'all'
-            ? litter.kits.where((k) => !k.isArchived || k.status.toLowerCase() == 'sold' || k.status.toLowerCase() == 'dead' || k.status.toLowerCase() == 'died' || k.status.toLowerCase() == 'cull').toList()
-            : litter.kits.where((k) => _kitMatchesStage(k, litter)).toList())
-        : List.generate(
-            litter.aliveKits ?? litter.totalKitsCount,
-            (i) => Kit(
-              id: 'K-${i + 1}',
-              sex: 'U',
-              color: 'Unknown',
-              weight: 0.0,
-              status: (_currentStage.toLowerCase() == 'weaned' || litter.status.toLowerCase() == 'weaned') ? 'Weaned' : 'Nursing',
-            ),
-          );
+    final List<Kit> allKits = _getOrGenerateLitterKits(litter);
+    final List<Kit> displayKits = _currentStage.toLowerCase() == 'all'
+        ? allKits
+        : allKits.where((k) => _kitMatchesStage(k, litter)).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
@@ -1080,7 +1116,7 @@ class LittersScreenState extends State<LittersScreen> {
                 // Doe (Mother) Avatar - Left (Larger photo size)
                 _buildCircularAvatar(litter.doeId),
                 const SizedBox(width: 8),
-                // Center Info: Doe name, Buck name, and (Age/Wean OR Missed Litter OR Litter Died)
+                // Center Info: Doe name, Buck name, and (Age/Wean OR Missed Litter OR Litter Died OR Litter Sold)
                 Expanded(
                   child: Column(
                     children: [
@@ -1127,6 +1163,27 @@ class LittersScreenState extends State<LittersScreen> {
                             textAlign: TextAlign.center,
                           ),
                         )
+                      else if (isLitterSold) ...[
+                        Text(
+                          'Age: ${_formatNurseryAge(litter)}',
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF555555),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 1),
+                        const Text(
+                          'Litter Sold',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF7B6BA0),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ]
                       else ...[
                         Text(
                           'Age: ${_formatNurseryAge(litter)}',
@@ -1574,20 +1631,21 @@ class LittersScreenState extends State<LittersScreen> {
 
   Widget _buildKitRow(Litter litter, Kit kit) {
     final String kStatus = kit.status.toLowerCase().trim();
-    final bool isOutcome = [
-      'sold',
-      'butchered',
-      'dead',
-      'died',
-      'deceased',
-      'cull'
-    ].contains(kStatus);
-
     final bool isFosteredIn = kit.id.startsWith('F-') ||
         kit.id.startsWith('foster_') ||
         (kit.details != null && kit.details!.toLowerCase().contains('fostered from'));
     final bool isFosteredOut = kStatus == 'fostered' ||
         (kit.details != null && kit.details!.toLowerCase().contains('fostered to'));
+
+    final bool isOutcome = !isFosteredOut && [
+      'sold',
+      'butchered',
+      'dead',
+      'died',
+      'deceased',
+      'cull',
+      'culled',
+    ].contains(kStatus);
 
     String displayKitId;
     if (isFosteredIn) {
@@ -3087,8 +3145,16 @@ class LittersScreenState extends State<LittersScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final updatedLitter = litter.copyWith(status: 'history_only');
-                await _db.updateLitter(updatedLitter);
+                final db = await _db.database;
+                await db.update(
+                  'litters',
+                  {
+                    'status': 'history_only',
+                    'updatedAt': DateTime.now().toIso8601String(),
+                  },
+                  where: 'id = ?',
+                  whereArgs: [litter.id],
+                );
                 await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
                 await _refreshLitters();
                 if (mounted) {
@@ -3309,10 +3375,78 @@ class LittersScreenState extends State<LittersScreen> {
         (kit.details != null && kit.details!.toLowerCase().contains('fostered to'));
     final bool isFostered = isFosteredIn || isFosteredOut;
 
+    final bool isSold = kStatus == 'sold';
+    final bool isDeadOrCulled = kStatus == 'dead' ||
+        kStatus == 'died' ||
+        kStatus == 'deceased' ||
+        kStatus == 'cull' ||
+        kStatus == 'culled';
+
     final String kitTag = _getKitDisplayTag(litter, kit);
     final List<Widget> actions = [];
 
-    if (kitStage == 'nursing') {
+    if (isSold) {
+      // 1. Edit Kit info
+      actions.add(_buildCompactActionTile(
+        label: 'Edit Kit info',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, kit);
+        },
+      ));
+
+      // 2. Cancel Sale
+      actions.add(_buildCompactActionTile(
+        label: 'Cancel Sale',
+        color: const Color(0xFF7B6BA0),
+        onTap: () {
+          Navigator.pop(context);
+          _cancelKitSale(litter, kit);
+        },
+      ));
+
+      // 3. Birth Certificate
+      actions.add(_buildCompactActionTile(
+        label: 'Birth Certificate',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, kit);
+        },
+      ));
+
+      // 4. Pedigree
+      actions.add(_buildCompactActionTile(
+        label: 'Pedigree',
+        color: kNeutral700,
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, kit);
+        },
+      ));
+    } else if (isDeadOrCulled) {
+      // 1. Edit Kit info
+      actions.add(_buildCompactActionTile(
+        label: 'Edit Kit info',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, kit);
+        },
+      ));
+
+      // 2. Cancel Death
+      actions.add(_buildCompactActionTile(
+        label: 'Cancel Death',
+        color: const Color(0xFF2E7B32),
+        textColor: const Color(0xFF2E7B32),
+        onTap: () {
+          Navigator.pop(context);
+          _showReverseKitDiedDialog(litter, kit);
+        },
+      ));
+    } else if (kitStage == 'nursing') {
       // 1. Nursing
       // - Edit Kit info
       actions.add(_buildCompactActionTile(
@@ -3926,7 +4060,13 @@ class LittersScreenState extends State<LittersScreen> {
     }
 
     String displayStageName;
-    if (kitStage == 'growout') {
+    if (isSold) {
+      displayStageName = 'Sold';
+    } else if (kStatus == 'cull' || kStatus == 'culled') {
+      displayStageName = 'Culled';
+    } else if (kStatus == 'dead' || kStatus == 'died' || kStatus == 'deceased') {
+      displayStageName = 'Died';
+    } else if (kitStage == 'growout') {
       displayStageName = 'Grow Out';
     } else {
       displayStageName = kitStage.isNotEmpty
@@ -4029,8 +4169,19 @@ class LittersScreenState extends State<LittersScreen> {
       final index = litters.indexWhere((l) => l.id == litter.id);
       if (index == -1) return;
 
-      final updatedKits = litters[index].kits.map((k) {
-        if (k.id == kit.id) {
+      final currentLitter = litters[index];
+      final kitsList = _getOrGenerateLitterKits(currentLitter);
+
+      final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      bool updated = false;
+      final updatedKits = kitsList.map((k) {
+        final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+        final bool isExactId = k.id == kit.id;
+        final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+            (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+            kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+        if ((isExactId || isNumericMatch) && !updated) {
+          updated = true;
           return k.copyWith(status: targetStage == 'Archived' ? 'Cull' : targetStage);
         }
         return k;
@@ -4042,7 +4193,8 @@ class LittersScreenState extends State<LittersScreen> {
           k.status.toLowerCase() == 'dead' ||
           k.status.toLowerCase() == 'died' ||
           k.status.toLowerCase() == 'butchered' ||
-          k.status.toLowerCase() == 'cull');
+          k.status.toLowerCase() == 'cull' ||
+          k.status.toLowerCase() == 'culled');
 
       final bool hasAnyNursing = updatedKits.any((k) {
         final s = k.status.toLowerCase().trim();
@@ -4454,8 +4606,17 @@ class LittersScreenState extends State<LittersScreen> {
       );
 
       // 2. Restore kit in litter
-      final updatedKits = litter.kits.map((k) {
-        if (k.id == kit.id) {
+      final kitsList = _getOrGenerateLitterKits(litter);
+      final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      bool updated = false;
+      final updatedKits = kitsList.map((k) {
+        final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+        final bool isExactId = k.id == kit.id;
+        final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+            (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+            kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+        if ((isExactId || isNumericMatch) && !updated) {
+          updated = true;
           final cleanDetails = (k.details != null && (k.details!.toLowerCase().contains('sold to') || k.details!.toLowerCase().startsWith('sold'))) ? null : k.details;
           return k.copyWith(status: restoredStatus, price: null, details: cleanDetails);
         }
@@ -4471,6 +4632,7 @@ class LittersScreenState extends State<LittersScreen> {
 
       final updatedLitter = litter.copyWith(
         kits: updatedKits,
+        aliveKits: aliveCount,
         status: (litter.status.toLowerCase() == 'sold' || litter.status.toLowerCase() == 'archived') ? restoredStatus : litter.status,
       );
 
@@ -4512,13 +4674,13 @@ class LittersScreenState extends State<LittersScreen> {
             Icon(Icons.favorite, color: Color(0xFFE04F9F), size: 24),
             SizedBox(width: 8),
             Text(
-              'Reverse Action?',
+              'Cancel Death',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
           ],
         ),
         content: Text(
-          'Do you want to reverse this action and bring Kit $kitTag back to life in the nursery?',
+          'Do you want to cancel death / cull for Kit $kitTag and bring it back to active status in the nursery?',
           style: const TextStyle(fontSize: 14, color: Color(0xFF444444)),
         ),
         actions: [
@@ -4534,7 +4696,7 @@ class LittersScreenState extends State<LittersScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
             child: const Text(
-              'Bring Back to Life',
+              'Cancel Death',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
             ),
           ),
@@ -4558,9 +4720,18 @@ class LittersScreenState extends State<LittersScreen> {
           ? 'Weaned'
           : 'Nursing';
 
-      final updatedKits = litter.kits.map((k) {
-        if (k.id == kit.id) {
-          final cleanDetails = (k.details != null && (k.details!.toLowerCase().contains('deceased') || k.details!.toLowerCase().contains('died')))
+      final kitsList = _getOrGenerateLitterKits(litter);
+      final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+      bool updated = false;
+      final updatedKits = kitsList.map((k) {
+        final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+        final bool isExactId = k.id == kit.id;
+        final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+            (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+            kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+        if ((isExactId || isNumericMatch) && !updated) {
+          updated = true;
+          final cleanDetails = (k.details != null && (k.details!.toLowerCase().contains('deceased') || k.details!.toLowerCase().contains('died') || k.details!.toLowerCase().contains('cull')))
               ? null
               : k.details;
           return k.copyWith(status: restoredStatus, details: cleanDetails);
@@ -4568,12 +4739,28 @@ class LittersScreenState extends State<LittersScreen> {
         return k;
       }).toList();
 
-      final currentDeadKits = (litter.deadKits ?? 0);
-      final newDeadKits = currentDeadKits > 0 ? currentDeadKits - 1 : 0;
+      final int newAlive = updatedKits.where((k) {
+        final s = k.status.toLowerCase().trim();
+        return !k.isArchived &&
+            s != 'dead' &&
+            s != 'died' &&
+            s != 'deceased' &&
+            s != 'sold' &&
+            s != 'butchered' &&
+            s != 'cull' &&
+            s != 'culled' &&
+            s != 'fostered';
+      }).length;
+
+      final int deadCount = updatedKits.where((k) {
+        final s = k.status.toLowerCase().trim();
+        return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+      }).length;
 
       final updatedLitter = litter.copyWith(
         kits: updatedKits,
-        deadKits: newDeadKits,
+        aliveKits: newAlive,
+        deadKits: deadCount,
         status: (litter.status.toLowerCase() == 'died' || litter.status.toLowerCase() == 'archived')
             ? restoredStatus
             : litter.status,
@@ -5558,27 +5745,17 @@ class LittersScreenState extends State<LittersScreen> {
                       final litterIndex = litters.indexWhere((l) => l.id == litter.id);
                       if (litterIndex != -1) {
                         final currentLitter = litters[litterIndex];
-                        List<Kit> kitsList = List<Kit>.from(currentLitter.kits);
-                        if (kitsList.isEmpty) {
-                          final count = currentLitter.aliveKits ?? currentLitter.totalKitsCount;
-                          kitsList = List.generate(
-                            count > 0 ? count : 1,
-                            (i) => Kit(
-                              id: 'K-${i + 1}',
-                              sex: 'U',
-                              color: 'Unknown',
-                              weight: 0.0,
-                              status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
-                            ),
-                          );
-                        }
+                        List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
 
                         final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                         bool updated = false;
                         final updatedKits = kitsList.map((k) {
                           final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                          final isMatch = k.id == kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-                          if (isMatch && !updated) {
+                          final bool isExactId = k.id == kit.id;
+                          final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                              (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                          if ((isExactId || isNumericMatch) && !updated) {
                             updated = true;
                             return k.copyWith(
                               status: 'Sold',
@@ -5589,7 +5766,23 @@ class LittersScreenState extends State<LittersScreen> {
                           return k;
                         }).toList();
 
-                        final updatedLitter = currentLitter.copyWith(kits: updatedKits);
+                        final int newAlive = updatedKits.where((k) {
+                          final s = k.status.toLowerCase().trim();
+                          return !k.isArchived &&
+                              s != 'dead' &&
+                              s != 'died' &&
+                              s != 'deceased' &&
+                              s != 'sold' &&
+                              s != 'butchered' &&
+                              s != 'cull' &&
+                              s != 'culled' &&
+                              s != 'fostered';
+                        }).length;
+
+                        final updatedLitter = currentLitter.copyWith(
+                          kits: updatedKits,
+                          aliveKits: newAlive,
+                        );
                         await _db.updateLitter(updatedLitter);
 
                         // Create or update finance transaction for kit sale
@@ -5877,13 +6070,22 @@ class LittersScreenState extends State<LittersScreen> {
           ),
           TextButton(
             onPressed: () async {
-              // ÃƒÂ¢Ã…â€œâ‚¬Â¦ ADD async
               Navigator.pop(context);
 
               final litterIndex = litters.indexWhere((l) => l.id == litter.id);
               if (litterIndex != -1) {
-                final updatedKits = litters[litterIndex].kits.map((k) {
-                  if (k.id == kit.id) {
+                final currentLitter = litters[litterIndex];
+                final kitsList = _getOrGenerateLitterKits(currentLitter);
+                final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                bool updated = false;
+                final updatedKits = kitsList.map((k) {
+                  final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                  final bool isExactId = k.id == kit.id;
+                  final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                      (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                  if ((isExactId || isNumericMatch) && !updated) {
+                    updated = true;
                     return k.copyWith(
                       status: 'Butchered',
                       details: 'Yield ${yieldController.text}${FormatUtils.weightUnit}',
@@ -5892,7 +6094,7 @@ class LittersScreenState extends State<LittersScreen> {
                   return k;
                 }).toList();
 
-                final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+                final updatedLitter = currentLitter.copyWith(kits: updatedKits);
                 await _db.updateLitter(updatedLitter);
                 await _refreshLitters();
               }
@@ -5932,14 +6134,24 @@ class LittersScreenState extends State<LittersScreen> {
 
               final litterIndex = litters.indexWhere((l) => l.id == litter.id);
               if (litterIndex != -1) {
-                final updatedKits = litters[litterIndex].kits.map((k) {
-                  if (k.id == kit.id) {
+                final currentLitter = litters[litterIndex];
+                final kitsList = _getOrGenerateLitterKits(currentLitter);
+                final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                bool updated = false;
+                final updatedKits = kitsList.map((k) {
+                  final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                  final bool isExactId = k.id == kit.id;
+                  final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                      (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                  if ((isExactId || isNumericMatch) && !updated) {
+                    updated = true;
                     return k.copyWith(status: 'Quarantine');
                   }
                   return k;
                 }).toList();
 
-                final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
+                final updatedLitter = currentLitter.copyWith(kits: updatedKits);
                 await _db.updateLitter(updatedLitter);
                 await _refreshLitters();
               }
@@ -6008,20 +6220,7 @@ class LittersScreenState extends State<LittersScreen> {
               final litterIndex = litters.indexWhere((l) => l.id == litter.id);
               if (litterIndex != -1) {
                 final currentLitter = litters[litterIndex];
-                List<Kit> kitsList = List<Kit>.from(currentLitter.kits);
-                if (kitsList.isEmpty) {
-                  final count = currentLitter.aliveKits ?? currentLitter.totalKitsCount;
-                  kitsList = List.generate(
-                    count > 0 ? count : 1,
-                    (i) => Kit(
-                      id: 'K-${i + 1}',
-                      sex: 'U',
-                      color: 'Unknown',
-                      weight: 0.0,
-                      status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
-                    ),
-                  );
-                }
+                List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
 
                 final double weightVal = weightController.text.trim().isNotEmpty
                     ? (double.tryParse(weightController.text.trim()) ?? 0.0)
@@ -6030,8 +6229,11 @@ class LittersScreenState extends State<LittersScreen> {
                 bool updated = false;
                 final updatedKits = kitsList.map((k) {
                   final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final isMatch = k.id == kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-                  if (isMatch && !updated) {
+                  final bool isExactId = k.id == kit.id;
+                  final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                      (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                  if ((isExactId || isNumericMatch) && !updated) {
                     updated = true;
                     return k.copyWith(
                       weight: weightVal,
@@ -6342,27 +6544,19 @@ class LittersScreenState extends State<LittersScreen> {
 
   Future<void> _handleFosterKits(Litter source, Litter target, List<String> kitIds) async {
     try {
-      final db = await _db.database;
       final sourceDamName = source.doeName.isNotEmpty ? source.doeName : source.dam;
       final targetDoeName = target.doeName.isNotEmpty ? target.doeName : target.dam;
 
-      // Count existing foster kits in target litter for F-1, F-2 naming
-      int existingTargetFosterCount = target.kits.where((k) =>
-        k.status.toLowerCase() == 'fostered' ||
-        (k.details != null && k.details!.toLowerCase().contains('fostered')) ||
-        k.id.startsWith('F-') ||
-        k.id.startsWith('foster_')
-      ).length;
+      final sourceKits = _getOrGenerateLitterKits(source);
+      final targetKits = _getOrGenerateLitterKits(target);
 
       // Mark moved kits with foster note and structured ID
       final List<Kit> kitsToMove = [];
-      for (final k in source.kits.where((k) => kitIds.contains(k.id))) {
-        existingTargetFosterCount++;
+      for (final k in sourceKits.where((k) => kitIds.contains(k.id))) {
         final existingNote = k.details ?? '';
-        final fosterNote = 'Fostered from $sourceDamName';
-        final newDetails = existingNote.contains(fosterNote)
+        final newDetails = existingNote.contains('Fostered from')
             ? existingNote
-            : (existingNote.isEmpty ? fosterNote : '$existingNote • $fosterNote');
+            : 'Fostered from $sourceDamName';
         kitsToMove.add(k.copyWith(
           id: 'foster_${source.id}_${k.id}',
           status: 'Nursing',
@@ -6371,7 +6565,7 @@ class LittersScreenState extends State<LittersScreen> {
       }
 
       // Mark source kits as Fostered
-      final updatedSourceKits = source.kits.map((k) {
+      final updatedSourceKits = sourceKits.map((k) {
         if (kitIds.contains(k.id)) {
           return k.copyWith(status: 'Fostered', details: 'Fostered to $targetDoeName');
         }
@@ -6379,43 +6573,53 @@ class LittersScreenState extends State<LittersScreen> {
       }).toList();
 
       // Add kits to target litter
-      final targetKits = [...target.kits, ...kitsToMove];
+      final updatedTargetKits = [...targetKits, ...kitsToMove];
 
-      // Update source litter: Fostered kits are still alive, so keep aliveBorn intact
-      final sourceAliveCount = updatedSourceKits.where((k) =>
-        !k.isArchived &&
-        k.status.toLowerCase() != 'dead' &&
-        k.status.toLowerCase() != 'died' &&
-        k.status.toLowerCase() != 'cull'
-      ).length;
+      // Update source litter: Fostered kits are still alive! Born is totalKits, aliveKits is all living kits
+      final sourceAliveCount = updatedSourceKits.where((k) {
+        final s = k.status.toLowerCase().trim();
+        return !k.isArchived &&
+            s != 'dead' &&
+            s != 'died' &&
+            s != 'deceased' &&
+            s != 'cull' &&
+            s != 'culled' &&
+            s != 'sold' &&
+            s != 'butchered';
+      }).length;
 
-      await db.update('litters', {
-        'kits': jsonEncode(updatedSourceKits.map((k) => k.toMap()).toList()),
-        'currentAlive': sourceAliveCount,
-        'aliveBorn': sourceAliveCount,
-        if (source.status.toLowerCase() != 'weaned') 'status': 'Nursing',
-        'updatedAt': DateTime.now().toIso8601String(),
-      }, where: 'id = ?', whereArgs: [source.id]);
+      final updatedSourceLitter = source.copyWith(
+        kits: updatedSourceKits,
+        aliveKits: sourceAliveCount,
+        status: source.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
+      );
+      await _db.updateLitter(updatedSourceLitter);
 
-      // Update target litter: Fostering mother's alive count should NOT increase
-      final targetOwnAliveCount = targetKits.where((k) =>
-        !k.isArchived &&
-        k.status.toLowerCase() != 'dead' &&
-        k.status.toLowerCase() != 'died' &&
-        k.status.toLowerCase() != 'cull' &&
-        !k.id.startsWith('foster_') &&
-        !k.id.startsWith('F-') &&
-        !(k.details != null && k.details!.toLowerCase().contains('fostered from'))
-      ).length;
+      // Update target litter:
+      // USER RULE: "FOSTERING MOTHER's ALIVE should NOT increase by 1"
+      final targetOwnAliveCount = updatedTargetKits.where((k) {
+        final s = k.status.toLowerCase().trim();
+        final bool isFosteredIn = k.id.startsWith('foster_') ||
+            k.id.startsWith('F-') ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+        return !k.isArchived &&
+            s != 'dead' &&
+            s != 'died' &&
+            s != 'deceased' &&
+            s != 'cull' &&
+            s != 'culled' &&
+            s != 'sold' &&
+            s != 'butchered' &&
+            !isFosteredIn;
+      }).length;
 
-      await db.update('litters', {
-        'kits': jsonEncode(targetKits.map((k) => k.toMap()).toList()),
-        'currentAlive': targetOwnAliveCount,
-        'aliveBorn': targetOwnAliveCount,
-        'updatedAt': DateTime.now().toIso8601String(),
-      }, where: 'id = ?', whereArgs: [target.id]);
+      final updatedTargetLitter = target.copyWith(
+        kits: updatedTargetKits,
+        aliveKits: targetOwnAliveCount,
+      );
+      await _db.updateLitter(updatedTargetLitter);
 
-      // Check if source doe has remaining active nursing kits; if not, change doe status to OPEN
+      // Check if source doe has remaining active nursing kits in her own cage; if not, change doe status to OPEN
       await _db.checkAndUpdateDoeStatusIfLitterEmpty(source.doeId);
 
       await _refreshLitters();
@@ -6473,35 +6677,38 @@ class LittersScreenState extends State<LittersScreen> {
   Future<void> _deleteKit(Litter litter, Kit kit) async {
     try {
       final kitTag = _getKitDisplayTag(litter, kit);
-      final st = kit.status.toLowerCase().trim();
-      final bool wasAlive = !kit.isArchived &&
-          st != 'dead' &&
-          st != 'died' &&
-          st != 'deceased' &&
-          st != 'sold' &&
-          st != 'butchered' &&
-          st != 'cull' &&
-          st != 'culled';
-
+      final currentKits = _getOrGenerateLitterKits(litter);
+      final targetId = kit.id.trim().toLowerCase();
       final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
       bool deleted = false;
       final updatedKits = <Kit>[];
-      for (final k in litter.kits) {
+      for (final k in currentKits) {
+        final kId = k.id.trim().toLowerCase();
         final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-        final isMatch = k.id == kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-        if (isMatch && !deleted) {
+        final bool isExactId = kId == targetId;
+        final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+            (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+            kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+        if ((isExactId || isNumericMatch) && !deleted) {
           deleted = true;
           continue;
         }
         updatedKits.add(k);
       }
-      final int currentTotal = litter.totalKits ?? litter.kits.length;
+      final int currentTotal = litter.totalKits ?? currentKits.length;
       final int newTotal = currentTotal > 0 ? currentTotal - 1 : 0;
-      final int currentAlive = litter.aliveKits ?? litter.kits.where((k) {
+      final int newAlive = updatedKits.where((k) {
         final s = k.status.toLowerCase().trim();
-        return !k.isArchived && s != 'dead' && s != 'died' && s != 'deceased' && s != 'sold' && s != 'butchered' && s != 'cull' && s != 'culled';
+        return !k.isArchived &&
+            s != 'dead' &&
+            s != 'died' &&
+            s != 'deceased' &&
+            s != 'sold' &&
+            s != 'butchered' &&
+            s != 'cull' &&
+            s != 'culled' &&
+            s != 'fostered';
       }).length;
-      final int newAlive = wasAlive ? (currentAlive > 0 ? currentAlive - 1 : 0) : currentAlive;
 
       final updatedLitter = litter.copyWith(
         kits: updatedKits,
@@ -6568,22 +6775,19 @@ class LittersScreenState extends State<LittersScreen> {
 
               final litterIndex = litters.indexWhere((l) => l.id == litter.id);
               if (litterIndex != -1) {
-                final st = kit.status.toLowerCase().trim();
-                final bool wasAlive = !kit.isArchived &&
-                    st != 'dead' &&
-                    st != 'died' &&
-                    st != 'deceased' &&
-                    st != 'sold' &&
-                    st != 'butchered' &&
-                    st != 'cull' &&
-                    st != 'culled';
-
+                final currentLitter = litters[litterIndex];
+                final kitsList = _getOrGenerateLitterKits(currentLitter);
+                final targetId = kit.id.trim().toLowerCase();
                 final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                 bool updated = false;
-                final updatedKits = litters[litterIndex].kits.map((k) {
+                final updatedKits = kitsList.map((k) {
+                  final kId = k.id.trim().toLowerCase();
                   final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final isMatch = k.id == kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-                  if (isMatch && !updated) {
+                  final bool isExactId = kId == targetId;
+                  final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                      (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                  if ((isExactId || isNumericMatch) && !updated) {
                     updated = true;
                     return k.copyWith(
                       status: 'Cull',
@@ -6593,16 +6797,28 @@ class LittersScreenState extends State<LittersScreen> {
                   return k;
                 }).toList();
 
-                final currentAlive = litters[litterIndex].aliveKits ?? litters[litterIndex].kits.where((k) {
+                final int newAlive = updatedKits.where((k) {
                   final s = k.status.toLowerCase().trim();
-                  return !k.isArchived && s != 'dead' && s != 'died' && s != 'deceased' && s != 'sold' && s != 'butchered' && s != 'cull' && s != 'culled';
+                  return !k.isArchived &&
+                      s != 'dead' &&
+                      s != 'died' &&
+                      s != 'deceased' &&
+                      s != 'sold' &&
+                      s != 'butchered' &&
+                      s != 'cull' &&
+                      s != 'culled' &&
+                      s != 'fostered';
                 }).length;
-                final int newAlive = wasAlive ? (currentAlive > 0 ? currentAlive - 1 : 0) : currentAlive;
 
-                final updatedLitter = litters[litterIndex].copyWith(
+                final int deadCount = updatedKits.where((k) {
+                  final s = k.status.toLowerCase().trim();
+                  return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+                }).length;
+
+                final updatedLitter = currentLitter.copyWith(
                   kits: updatedKits,
                   aliveKits: newAlive,
-                  deadKits: (litters[litterIndex].deadKits ?? 0) + (wasAlive ? 1 : 0),
+                  deadKits: deadCount,
                 );
 
                 await _db.updateLitter(updatedLitter);
@@ -6668,22 +6884,19 @@ class LittersScreenState extends State<LittersScreen> {
 
               final litterIndex = litters.indexWhere((l) => l.id == litter.id);
               if (litterIndex != -1) {
-                final st = kit.status.toLowerCase().trim();
-                final bool wasAlive = !kit.isArchived &&
-                    st != 'dead' &&
-                    st != 'died' &&
-                    st != 'deceased' &&
-                    st != 'sold' &&
-                    st != 'butchered' &&
-                    st != 'cull' &&
-                    st != 'culled';
-
+                final currentLitter = litters[litterIndex];
+                final kitsList = _getOrGenerateLitterKits(currentLitter);
+                final targetId = kit.id.trim().toLowerCase();
                 final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                 bool updated = false;
-                final updatedKits = litters[litterIndex].kits.map((k) {
+                final updatedKits = kitsList.map((k) {
+                  final kId = k.id.trim().toLowerCase();
                   final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final isMatch = k.id == kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-                  if (isMatch && !updated) {
+                  final bool isExactId = kId == targetId;
+                  final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                      (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                  if ((isExactId || isNumericMatch) && !updated) {
                     updated = true;
                     return k.copyWith(
                       status: 'Dead',
@@ -6693,16 +6906,28 @@ class LittersScreenState extends State<LittersScreen> {
                   return k;
                 }).toList();
 
-                final currentAlive = litters[litterIndex].aliveKits ?? litters[litterIndex].kits.where((k) {
+                final int newAlive = updatedKits.where((k) {
                   final s = k.status.toLowerCase().trim();
-                  return !k.isArchived && s != 'dead' && s != 'died' && s != 'deceased' && s != 'sold' && s != 'butchered' && s != 'cull' && s != 'culled';
+                  return !k.isArchived &&
+                      s != 'dead' &&
+                      s != 'died' &&
+                      s != 'deceased' &&
+                      s != 'sold' &&
+                      s != 'butchered' &&
+                      s != 'cull' &&
+                      s != 'culled' &&
+                      s != 'fostered';
                 }).length;
-                final int newAlive = wasAlive ? (currentAlive > 0 ? currentAlive - 1 : 0) : currentAlive;
 
-                final updatedLitter = litters[litterIndex].copyWith(
+                final int deadCount = updatedKits.where((k) {
+                  final s = k.status.toLowerCase().trim();
+                  return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+                }).length;
+
+                final updatedLitter = currentLitter.copyWith(
                   kits: updatedKits,
                   aliveKits: newAlive,
-                  deadKits: (litters[litterIndex].deadKits ?? 0) + (wasAlive ? 1 : 0),
+                  deadKits: deadCount,
                 );
 
                 await _db.updateLitter(updatedLitter);
@@ -6714,7 +6939,7 @@ class LittersScreenState extends State<LittersScreen> {
                 ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Kit $kitTag marked as deceased'),
+                    content: Text('Kit $kitTag marked as died'),
                     backgroundColor: const Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -9175,8 +9400,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
   String? _selectedDoeId;
   String? _selectedBuckId;
-  late DateTime _breedDate;
-  late DateTime _dob;
+  DateTime? _breedDate;
+  DateTime? _dob;
 
   final TextEditingController _litterIdController = TextEditingController();
   final TextEditingController _totalKitsController = TextEditingController();
@@ -9197,9 +9422,6 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
   @override
   void initState() {
     super.initState();
-    final gestationDays = SettingsService.instance.gestationDays;
-    _dob = DateTime.now();
-    _breedDate = _dob.subtract(Duration(days: gestationDays));
     _loadRabbits();
     _loadNextLitterId();
   }
@@ -9213,19 +9435,23 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       if (mounted) {
         final doesList = allRabbits.where((r) => r.type == RabbitType.doe && r.status != RabbitStatus.archived).toList()
           ..sort((a, b) {
+            final nameCompare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            if (nameCompare != 0) return nameCompare;
             final breedCompare = a.breed.toLowerCase().compareTo(b.breed.toLowerCase());
             if (breedCompare != 0) return breedCompare;
-            final nameA = '${a.breederPrefix ?? ''} ${a.name}'.trim().toLowerCase();
-            final nameB = '${b.breederPrefix ?? ''} ${b.name}'.trim().toLowerCase();
-            return nameA.compareTo(nameB);
+            final prefixA = (a.breederPrefix ?? '').trim().toLowerCase();
+            final prefixB = (b.breederPrefix ?? '').trim().toLowerCase();
+            return prefixA.compareTo(prefixB);
           });
         final bucksList = allRabbits.where((r) => r.type == RabbitType.buck && r.status != RabbitStatus.archived).toList()
           ..sort((a, b) {
+            final nameCompare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            if (nameCompare != 0) return nameCompare;
             final breedCompare = a.breed.toLowerCase().compareTo(b.breed.toLowerCase());
             if (breedCompare != 0) return breedCompare;
-            final nameA = '${a.breederPrefix ?? ''} ${a.name}'.trim().toLowerCase();
-            final nameB = '${b.breederPrefix ?? ''} ${b.name}'.trim().toLowerCase();
-            return nameA.compareTo(nameB);
+            final prefixA = (a.breederPrefix ?? '').trim().toLowerCase();
+            final prefixB = (b.breederPrefix ?? '').trim().toLowerCase();
+            return prefixA.compareTo(prefixB);
           });
 
         setState(() {
@@ -9256,20 +9482,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     }
   }
 
-  void _onDoeSelected(String? doeId) {
+  void _onDoeSelected(String? doeId) async {
     setState(() {
       _selectedDoeId = doeId;
       if (doeId != null) {
         final doeMatches = _does.where((d) => d.id == doeId).toList();
         if (doeMatches.isNotEmpty) {
           final doe = doeMatches.first;
-          // Auto pre-fill breed date if available
-          if (doe.lastBreedDate != null) {
-            _breedDate = doe.lastBreedDate!;
-          }
-          // Calculate Date of Birth based on gestation setting or doe custom gestation
-          final gestationDays = doe.customGestationDay ?? SettingsService.instance.gestationDays;
-          _dob = _breedDate.add(Duration(days: gestationDays));
 
           // Auto pre-fill location & cage if available
           if (doe.location != null && doe.location!.isNotEmpty) {
@@ -9290,6 +9509,23 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
         }
       }
     });
+
+    if (doeId != null && _breedDate != null && _dob != null) {
+      final collision = await _checkPregnancyCollision(
+        doeId: doeId,
+        breedDate: _breedDate!,
+        dob: _dob!,
+      );
+      if (collision != null && mounted) {
+        final proceed = await _showCollisionAlert(collision);
+        if (!proceed && mounted) {
+          setState(() {
+            _breedDate = null;
+            _dob = null;
+          });
+        }
+      }
+    }
   }
 
   Future<void> _pickDoe() async {
@@ -9467,7 +9703,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
   Widget _buildDatePickerField({
     required String label,
-    required DateTime value,
+    required DateTime? value,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -9489,8 +9725,12 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           children: [
             Expanded(
               child: Text(
-                FormatUtils.formatDate(value),
-                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(0xFF787774)),
+                value != null ? FormatUtils.formatDate(value) : 'Select date',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: value != null ? const Color(0xFF787774) : const Color(0xFFA0A0A0),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -9502,12 +9742,104 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     );
   }
 
+  Future<String?> _checkPregnancyCollision({
+    required String doeId,
+    required DateTime breedDate,
+    required DateTime dob,
+  }) async {
+    final doeMatches = _does.where((d) => d.id == doeId).toList();
+    if (doeMatches.isEmpty) return null;
+    final doe = doeMatches.first;
+
+    final gestationDays = doe.customGestationDay ?? SettingsService.instance.gestationDays;
+
+    // 1. Check active pregnancy / bred status
+    if (doe.status == RabbitStatus.pregnant || doe.status == RabbitStatus.palpateDue || doe.lastBreedDate != null) {
+      final activeStart = doe.lastBreedDate ?? doe.dueDate?.subtract(Duration(days: gestationDays));
+      final activeEnd = doe.dueDate ?? (activeStart != null ? activeStart.add(Duration(days: gestationDays)) : null);
+      if (activeStart != null && activeEnd != null) {
+        if (!breedDate.isAfter(activeEnd) && !dob.isBefore(activeStart)) {
+          return '${doe.name} is currently recorded as pregnant/bred from ${FormatUtils.formatDate(activeStart)} to ${FormatUtils.formatDate(activeEnd)}. The selected dates (${FormatUtils.formatDate(breedDate)} - ${FormatUtils.formatDate(dob)}) collide with this pregnancy.';
+        }
+      }
+    }
+
+    // 2. Check existing litters for this doe
+    try {
+      final allLitters = await _db.getLitters();
+      final litters = allLitters.where((l) => l.doeId == doeId).toList();
+      for (final litter in litters) {
+        final lBreed = litter.breedDate;
+        final lDob = litter.dob;
+        if (!breedDate.isAfter(lDob) && !dob.isBefore(lBreed)) {
+          return 'The selected dates (${FormatUtils.formatDate(breedDate)} - ${FormatUtils.formatDate(dob)}) collide with existing litter "${litter.id}" (${FormatUtils.formatDate(lBreed)} - ${FormatUtils.formatDate(lDob)}).';
+        }
+      }
+    } catch (e) {
+      print('Error checking pregnancy collisions: $e');
+    }
+
+    return null;
+  }
+
+  Future<bool> _showCollisionAlert(String message) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Pregnancy Collision',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Change Dates', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Proceed Anyway', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Future<void> _selectBreedDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _breedDate,
+      initialDate: _breedDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF7B6BA0),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF333333),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -9518,20 +9850,72 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           if (matches.isNotEmpty) doe = matches.first;
         }
         final gestationDays = doe?.customGestationDay ?? SettingsService.instance.gestationDays;
-        _dob = _breedDate.add(Duration(days: gestationDays));
+        final daysToAdd = gestationDays > 0 ? gestationDays : 31;
+        _dob = _breedDate!.add(Duration(days: daysToAdd));
       });
+
+      if (_selectedDoeId != null && _breedDate != null && _dob != null) {
+        final collision = await _checkPregnancyCollision(
+          doeId: _selectedDoeId!,
+          breedDate: _breedDate!,
+          dob: _dob!,
+        );
+        if (collision != null && mounted) {
+          final proceed = await _showCollisionAlert(collision);
+          if (!proceed && mounted) {
+            setState(() => _breedDate = null);
+          }
+        }
+      }
     }
   }
 
   Future<void> _selectDob(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dob,
+      initialDate: _dob ?? (_breedDate != null ? _breedDate!.add(Duration(days: SettingsService.instance.gestationDays)) : DateTime.now()),
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF7B6BA0),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF333333),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
-      setState(() => _dob = picked);
+      setState(() {
+        _dob = picked;
+        if (_breedDate == null) {
+          Rabbit? doe;
+          if (_selectedDoeId != null) {
+            final matches = _does.where((d) => d.id == _selectedDoeId).toList();
+            if (matches.isNotEmpty) doe = matches.first;
+          }
+          final gestationDays = doe?.customGestationDay ?? SettingsService.instance.gestationDays;
+          _breedDate = _dob!.subtract(Duration(days: gestationDays));
+        }
+      });
+
+      if (_selectedDoeId != null && _breedDate != null && _dob != null) {
+        final collision = await _checkPregnancyCollision(
+          doeId: _selectedDoeId!,
+          breedDate: _breedDate!,
+          dob: _dob!,
+        );
+        if (collision != null && mounted) {
+          final proceed = await _showCollisionAlert(collision);
+          if (!proceed && mounted) {
+            setState(() => _dob = null);
+          }
+        }
+      }
     }
   }
 
@@ -10012,6 +10396,34 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       );
       return;
     }
+    if (_breedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a Bred Date'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_dob == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select Date of Birth'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (_dob!.isBefore(_breedDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Date of Birth cannot be before Bred Date'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final collision = await _checkPregnancyCollision(
+      doeId: _selectedDoeId!,
+      breedDate: _breedDate!,
+      dob: _dob!,
+    );
+    if (collision != null) {
+      final proceed = await _showCollisionAlert(collision);
+      if (!proceed) return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -10029,7 +10441,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
       final settings = SettingsService.instance;
       final weanDays = (doe.customWeanWeek ?? settings.weanAge) * 7;
-      final ageDays = DateTime.now().difference(_dob).inDays;
+      final ageDays = DateTime.now().difference(_dob!).inDays;
       final bool isWeaned = ageDays >= weanDays;
       final String kitStatus = isWeaned ? 'Weaned' : 'Nursing';
       final String litterStatus = _isMissedLitter ? 'archived' : (isWeaned ? 'Weaned' : 'Nursing');
@@ -10059,9 +10471,9 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
         doeName: doe.name,
         buckId: buck.id,
         buckName: buck.name,
-        breedDate: _breedDate,
-        dob: _dob,
-        kindleDate: _dob,
+        breedDate: _breedDate!,
+        dob: _dob!,
+        kindleDate: _dob!,
         location: _selectedLocation ?? doe.location ?? '',
         cage: _selectedCage ?? doe.cage ?? '',
         breed: doe.breed,
@@ -10099,7 +10511,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           whereArgs: [doe.id],
         );
       } else {
-        final weanDate = _dob.add(Duration(days: weanDays));
+        final weanDate = _dob!.add(Duration(days: weanDays));
         await db.update(
           'rabbits',
           {
@@ -10108,7 +10520,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
             'currentLitterSize': aliveKits,
             'weanDate': weanDate.toIso8601String(),
             'dueDate': null,
-            'lastBreedDate': _breedDate.toIso8601String(),
+            'lastBreedDate': _breedDate!.toIso8601String(),
             'lastBreedBuckId': buck.id,
             'updatedAt': DateTime.now().toIso8601String(),
           },
@@ -10366,11 +10778,17 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       final litterIndex = litters.indexWhere((l) => l.id == widget.litter.id);
       if (litterIndex != -1) {
         final currentLitter = litters[litterIndex];
+        final totalNeeded = [
+          currentLitter.totalKits ?? 0,
+          currentLitter.aliveKits ?? 0,
+          currentLitter.kits.length,
+          1,
+        ].reduce((a, b) => a > b ? a : b);
+
         List<Kit> kitsList = List<Kit>.from(currentLitter.kits);
         if (kitsList.isEmpty) {
-          final count = currentLitter.aliveKits ?? currentLitter.totalKitsCount;
           kitsList = List.generate(
-            count > 0 ? count : 1,
+            totalNeeded,
             (i) => Kit(
               id: 'K-${i + 1}',
               sex: 'U',
@@ -10379,6 +10797,24 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
             ),
           );
+        } else if (kitsList.length < totalNeeded) {
+          final existingNums = kitsList
+              .map((k) => int.tryParse(k.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+              .toSet();
+          int nextNum = 1;
+          while (kitsList.length < totalNeeded) {
+            while (existingNums.contains(nextNum)) {
+              nextNum++;
+            }
+            existingNums.add(nextNum);
+            kitsList.add(Kit(
+              id: 'K-$nextNum',
+              sex: 'U',
+              color: 'Unknown',
+              weight: 0.0,
+              status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
+            ));
+          }
         }
 
         final double weightVal = _weightController.text.trim().isNotEmpty
@@ -10391,12 +10827,17 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ? _notesController.text.trim()
             : null;
 
+        final targetId = widget.kit.id.trim().toLowerCase();
         final targetNum = widget.kit.id.replaceAll(RegExp(r'[^0-9]'), '');
         bool updated = false;
         final updatedKits = kitsList.map<Kit>((k) {
+          final kId = k.id.trim().toLowerCase();
           final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-          final isMatch = k.id == widget.kit.id || (kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum);
-          if (isMatch && !updated) {
+          final bool isExactId = kId == targetId;
+          final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+              (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+          if ((isExactId || isNumericMatch) && !updated) {
             updated = true;
             return k.copyWith(
               sex: _selectedSex,
@@ -10650,9 +11091,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               controller: _weightController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(fontSize: 17),
-              decoration: _buildInputDecoration(FormatUtils.weightLabel()).copyWith(
-                suffixText: FormatUtils.weightUnit,
-              ),
+              decoration: _buildInputDecoration('Weight'),
             ),
             const SizedBox(height: 12),
 

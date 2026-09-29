@@ -96,10 +96,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
       list = List<Rabbit>.from(widget.rabbits);
     }
     list.sort((a, b) {
-      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
-      if (breedCompare != 0) return breedCompare;
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
+      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+      if (breedCompare != 0) return breedCompare;
       final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
       if (prefixCompare != 0) return prefixCompare;
       final earA = (a.earNumber ?? a.id).trim().toLowerCase();
@@ -421,10 +421,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
       list = List<Rabbit>.from(widget.rabbits);
     }
     list.sort((a, b) {
-      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
-      if (breedCompare != 0) return breedCompare;
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
+      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+      if (breedCompare != 0) return breedCompare;
       final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
       if (prefixCompare != 0) return prefixCompare;
       final earA = (a.earNumber ?? a.id).trim().toLowerCase();

@@ -2338,25 +2338,32 @@ class DatabaseService {
       }
 
       final litters = await getLitters();
-      final doeLitters = litters.where((l) =>
-        l.doeId == doeId &&
-        l.status.toLowerCase() != 'archived' &&
-        l.status.toLowerCase() != 'weaned' &&
-        l.status.toLowerCase() != 'not taken'
-      ).toList();
+      final doeLitters = litters.where((l) {
+        final st = l.status.toLowerCase();
+        return l.doeId == doeId &&
+            st != 'archived' &&
+            st != 'weaned' &&
+            st != 'not taken' &&
+            st != 'history_only' &&
+            st != 'deleted_archive' &&
+            st != 'sold';
+      }).toList();
 
       bool hasActiveNursingKits = false;
       for (final litter in doeLitters) {
         final activeKits = litter.kits.where((k) {
           final s = k.status.toLowerCase().trim();
+          final bool isFosteredOut = s == 'fostered' ||
+              (k.details != null && k.details!.toLowerCase().contains('fostered to'));
           return s != 'dead' &&
               s != 'died' &&
               s != 'deceased' &&
-              s != 'fostered' &&
+              !isFosteredOut &&
               s != 'archived' &&
               s != 'sold' &&
               s != 'butchered' &&
-              s != 'cull';
+              s != 'cull' &&
+              s != 'culled';
         }).toList();
 
         final int aliveCount = litter.aliveKits ?? 0;
@@ -2368,7 +2375,7 @@ class DatabaseService {
           }
         } else {
           // No individual kit items, rely on numeric alive count
-          if (aliveCount > 0) {
+          if (aliveCount > 0 && litter.status.toLowerCase() != 'fostered') {
             hasActiveNursingKits = true;
             break;
           }
@@ -2376,8 +2383,7 @@ class DatabaseService {
       }
 
       if (!hasActiveNursingKits) {
-        // Doe has NO active nursing kits remaining (all died, fostered, or weaned/archived)
-        // Check if doe has an active new breeding that occurred after her latest litter
+        // Doe has NO active nursing kits remaining in her own cage -> Doe status becomes OPEN (ready for breeding)
         final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
         final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
         final dueDateStr = doeMap.first['dueDate'] as String?;
@@ -2413,24 +2419,32 @@ class DatabaseService {
           whereArgs: [doeId],
         );
 
-        // Also update any active litters of this doe that have no alive kits left
+        // Only mark litters as 'Died' if all kits are explicitly deceased/culled
         for (final litter in doeLitters) {
-          final allFostered = litter.kits.isNotEmpty && litter.kits.every((k) => k.status.toLowerCase() == 'fostered');
-          final allDied = (litter.kits.isNotEmpty && litter.kits.every((k) => ['dead', 'died', 'deceased', 'cull'].contains(k.status.toLowerCase()))) || ((litter.aliveKits ?? 0) == 0);
-          await db.update(
-            'litters',
-            {
-              'currentAlive': 0,
-              'aliveBorn': 0,
-              if (allFostered) 'status': 'Fostered' else if (allDied) 'status': 'Died',
-              'updatedAt': DateTime.now().toIso8601String(),
-            },
-            where: 'id = ?',
-            whereArgs: [litter.id],
-          );
+          final lSt = litter.status.toLowerCase();
+          if (lSt == 'history_only' || lSt == 'deleted_archive' || lSt == 'fostered') continue;
+
+          final allDied = litter.kits.isNotEmpty && litter.kits.every((k) {
+            final s = k.status.toLowerCase();
+            return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+          });
+
+          if (allDied) {
+            await db.update(
+              'litters',
+              {
+                'currentAlive': 0,
+                'aliveBorn': 0,
+                'status': 'Died',
+                'updatedAt': DateTime.now().toIso8601String(),
+              },
+              where: 'id = ?',
+              whereArgs: [litter.id],
+            );
+          }
         }
 
-        print('🐰 Doe $doeId status updated to $newStatus because all kits are dead/fostered/none.');
+        print('🐰 Doe $doeId status updated to $newStatus (Doe ready for breeding).');
         notifyDataChanged();
       }
     } catch (e) {
