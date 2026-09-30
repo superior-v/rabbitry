@@ -27,6 +27,28 @@ class FormatUtils {
     }
   }
 
+  /// Formats date specifically for certificates in 'MMM d, yyyy' format (e.g. 'May 12, 2026', 'Feb 2, 2026').
+  /// In the app, Rabbit dateOfBirth is stored in SQLite as ISO-8601 string ('YYYY-MM-DDTHH:mm:ss.sss')
+  /// and parsed into a DateTime instance on the Rabbit model.
+  static String formatCertificateDate(dynamic date) {
+    if (date == null) return '—';
+    if (date is DateTime) {
+      return DateFormat('MMM d, yyyy', 'en_US').format(date);
+    }
+    if (date is String) {
+      final trimmed = date.trim();
+      if (trimmed.isEmpty || trimmed == 'N/A' || trimmed == '-') return '—';
+      try {
+        final parsed = DateTime.tryParse(trimmed);
+        if (parsed != null) {
+          return DateFormat('MMM d, yyyy', 'en_US').format(parsed);
+        }
+      } catch (_) {}
+      return trimmed;
+    }
+    return '—';
+  }
+
   /// Age formatted in at most 3 units (e.g., "2y 3m 2w", "3y 2w 5d", "9m 4w 5d", "3w 2d", "5d")
   static String formatAge(DateTime? dob, {DateTime? targetDate}) {
     if (dob == null) return 'Unknown';

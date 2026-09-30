@@ -6,6 +6,8 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import '../screens/add_rabbit_screen.dart';
+import 'pedigree_layout.dart';
+import 'pedigree_preview_modal.dart';
 
 class PedigreeInlineCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -78,6 +80,17 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     }
   }
 
+  Future<void> _exportPedigree() async {
+    try {
+      final data = await PedigreeData.fromRabbit(widget.rabbit, db: _db);
+      if (mounted) {
+        PedigreePreviewSheet.show(context, data);
+      }
+    } catch (e) {
+      debugPrint('Error preparing pedigree export: $e');
+    }
+  }
+
   Color get _primaryColor => widget.rabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
   Color get _washColor => widget.rabbit.type == RabbitType.buck ? kBlueWash : kPinkWash;
 
@@ -140,15 +153,19 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIcons.downloadSimple(), size: 14, color: kNeutral600),
-                      const SizedBox(width: 6),
-                      const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
-                    ],
+                InkWell(
+                  onTap: _exportPedigree,
+                  borderRadius: BorderRadius.circular(100),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(100)),
+                    child: Row(
+                      children: [
+                        Icon(PhosphorIcons.downloadSimple(), size: 14, color: kNeutral600),
+                        const SizedBox(width: 6),
+                        const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
+                      ],
+                    ),
                   ),
                 ),
               ],

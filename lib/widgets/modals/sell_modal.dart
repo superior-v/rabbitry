@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import '../../models/rabbit.dart';
 import '../../models/transaction.dart' as finance;
 import '../../services/database_service.dart';
 import '../../services/format_utils.dart';
+import '../../services/pedigree_pdf_service.dart';
+import '../pedigree_layout.dart';
 
 class SellModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -297,6 +300,20 @@ class _SellModalState extends State<SellModal> {
           buyerInfo: _buyerController.text.isNotEmpty ? _buyerController.text : null,
         );
         await _db.insertTransaction(transaction);
+      }
+
+      if (_generatePedigree) {
+        try {
+          final pedData = await PedigreeData.fromRabbit(widget.rabbit, db: _db);
+          final pdfBytes = await PedigreePdfService.generatePedigree(pedData);
+          final safeName = (widget.rabbit.name.isNotEmpty ? widget.rabbit.name : 'Rabbit').replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+          await Printing.sharePdf(
+            bytes: pdfBytes,
+            filename: 'Pedigree_$safeName.pdf',
+          );
+        } catch (e) {
+          debugPrint('Error generating pedigree for sold rabbit: $e');
+        }
       }
 
       Navigator.pop(context);

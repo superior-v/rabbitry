@@ -1196,8 +1196,11 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       _buildMenuItem('Sell', () {
                         _showArchiveModalWithReason(ArchiveReason.sold);
                       }),
-                      _buildMenuItem('Cull / Died', () {
-                        _showArchiveModal();
+                      _buildMenuItem('Cull', () {
+                        _showArchiveModalWithReason(ArchiveReason.cull);
+                      }),
+                      _buildMenuItem('Died', () {
+                        _showArchiveModalWithReason(ArchiveReason.dead);
                       }),
                       _buildMenuItem('Delete', () {
                         _confirmDeleteRabbit();

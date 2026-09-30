@@ -715,7 +715,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 controller: _ownerNameController,
                 hintText: 'e.g. John Doe',
               ),
-              description: 'Used for pedigree generation.',
+              description: 'Used for signature on birth certificates and pedigree.',
+            ),
+            _buildVerticalSetting(
+              'Farm Address',
+              _buildStandardTextField(
+                controller: _farmAddressController,
+                hintText: 'e.g. Amaranth, ON L9W 3Y4',
+              ),
+              description: 'Shown in the certificate footer.',
+            ),
+            _buildVerticalSetting(
+              'Farm Email',
+              _buildStandardTextField(
+                controller: _farmEmailController,
+                hintText: 'e.g. contact@rabbitry.com',
+              ),
+              description: 'Shown in the certificate footer.',
+            ),
+            _buildVerticalSetting(
+              'Farm Phone',
+              _buildStandardTextField(
+                controller: _farmPhoneController,
+                hintText: 'e.g. (555) 123-4567',
+              ),
             ),
             _buildVerticalSetting(
               'Logo',

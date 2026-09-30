@@ -45,6 +45,23 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/fonts/
+
+  fonts:
+    - family: CertificateTitle
+      fonts:
+        - asset: assets/fonts/MrDeHaviland-Regular.ttf
+    - family: CertificateBadge
+      fonts:
+        - asset: assets/fonts/EBGaramond-Regular.ttf
+    - family: CertificateDetails
+      fonts:
+        - asset: assets/fonts/PT_Sans-Web-Regular.ttf
+        - asset: assets/fonts/PT_Sans-Web-Bold.ttf
+          weight: 700
+    - family: CertificateSignature
+      fonts:
+        - asset: assets/fonts/MrsSaintDelafield-Regular.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

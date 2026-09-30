@@ -1,28 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:typed_data';
-import 'dart:io';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../services/settings_service.dart';
+import '../services/certificate_pdf_service.dart';
 import '../constants/app_colors.dart';
-
-const String rabbitSvg = '''
-<svg viewBox="0 0 24 24" fill="currentColor">
-  <path d="M12 2c.55 0 1 .45 1 1v5c0 .55-.45 1-1 1s-1-.45-1-1V3c0-.55.45-1 1-1zm3 1c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1s-1-.45-1-1V4c0-.55.45-1 1-1zm-6 7c-2.21 0-4 1.79-4 4 0 1.5.83 2.8 2.06 3.5-.06.16-.06.33-.06.5 0 .83.67 1.5 1.5 1.5h7c.83 0 1.5-.67 1.5-1.5 0-.17 0-.34-.06-.5 1.23-.7 2.06-2 2.06-3.5 0-2.21-1.79-4-4-4H9z"/>
-</svg>
-''';
+import 'certificate_layout.dart';
 
 class CertificateCard extends StatefulWidget {
   final Rabbit rabbit;
-  const CertificateCard({Key? key, required this.rabbit}) : super(key: key);
+  const CertificateCard({super.key, required this.rabbit});
 
   @override
   State<CertificateCard> createState() => _CertificateCardState();
@@ -31,29 +21,110 @@ class CertificateCard extends StatefulWidget {
 class _CertificateCardState extends State<CertificateCard> {
   final DatabaseService _db = DatabaseService();
   final SettingsService _settings = SettingsService.instance;
-  String _sireName = '';
-  String _damName = '';
 
-  Color get _primaryColor =>
-      widget.rabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
+  Rabbit? _sire;
+  Rabbit? _dam;
+  bool _isLoadingParents = true;
 
   @override
   void initState() {
     super.initState();
-    _loadParentNames();
+    _loadParents();
   }
 
-  Future<void> _loadParentNames() async {
+  Future<void> _loadParents() async {
     try {
+      Rabbit? sire;
+      Rabbit? dam;
+
       if (widget.rabbit.sireId?.isNotEmpty ?? false) {
-        final sire = await _db.getRabbit(widget.rabbit.sireId!);
-        if (sire != null && mounted) setState(() => _sireName = sire.name);
+        sire = await _db.getRabbit(widget.rabbit.sireId!);
       }
       if (widget.rabbit.damId?.isNotEmpty ?? false) {
-        final dam = await _db.getRabbit(widget.rabbit.damId!);
-        if (dam != null && mounted) setState(() => _damName = dam.name);
+        dam = await _db.getRabbit(widget.rabbit.damId!);
       }
-    } catch (e) {}
+
+      if (mounted) {
+        setState(() {
+          _sire = sire;
+          _dam = dam;
+          _isLoadingParents = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingParents = false);
+    }
+  }
+
+  String _formatWeight(double? weight) {
+    if (weight == null || weight <= 0) return '—';
+    if (_settings.weightUnit == 'lbs') {
+      final int lbs = weight.floor();
+      final int oz = ((weight - lbs) * 16).round();
+      if (oz > 0) {
+        return '${lbs}lbs ${oz}oz';
+      } else {
+        return '${lbs}lbs';
+      }
+    }
+    return FormatUtils.formatWeight(weight);
+  }
+
+  String _fallbackDash(String? value) {
+    if (value == null || value.trim().isEmpty || value.trim() == 'N/A') return '—';
+    return value.trim();
+  }
+
+  CertificateData _buildCertificateData(bool includePhoto) {
+    final rabbit = widget.rabbit;
+    final sex = rabbit.type == RabbitType.doe ? 'Female' : 'Male';
+    final dob = FormatUtils.formatCertificateDate(rabbit.dateOfBirth);
+
+    final sireName = _sire?.name.trim().isNotEmpty == true
+        ? _sire!.name.trim()
+        : (rabbit.sireId?.trim().isNotEmpty == true ? rabbit.sireId!.trim() : 'Unknown');
+    final sireBreed = _fallbackDash(_sire?.breed);
+    final sireColor = _fallbackDash(_sire?.color);
+    final sireDob = FormatUtils.formatCertificateDate(_sire?.dateOfBirth);
+    final sireWeight = _formatWeight(_sire?.weight);
+    final sirePhoto = _sire?.photos?.isNotEmpty == true ? _sire!.photos!.first : null;
+
+    final damName = _dam?.name.trim().isNotEmpty == true
+        ? _dam!.name.trim()
+        : (rabbit.damId?.trim().isNotEmpty == true ? rabbit.damId!.trim() : 'Unknown');
+    final damBreed = _fallbackDash(_dam?.breed);
+    final damColor = _fallbackDash(_dam?.color);
+    final damDob = FormatUtils.formatCertificateDate(_dam?.dateOfBirth);
+    final damWeight = _formatWeight(_dam?.weight);
+    final damPhoto = _dam?.photos?.isNotEmpty == true ? _dam!.photos!.first : null;
+
+    final kitPhoto = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
+
+    return CertificateData(
+      farmName: _settings.farmName.trim().isNotEmpty ? _settings.farmName.trim() : 'Dynasty',
+      ownerName: _settings.ownerName.trim(),
+      farmAddress: _settings.farmAddress.trim(),
+      farmEmail: _settings.farmEmail.trim(),
+      kitName: rabbit.name.trim().isNotEmpty ? rabbit.name.trim() : '—',
+      kitBreed: _fallbackDash(rabbit.breed),
+      kitColor: _fallbackDash(rabbit.color),
+      kitDob: dob,
+      kitSex: sex,
+      kitPhotoPath: kitPhoto,
+      sireName: sireName,
+      sireBreed: sireBreed,
+      sireColor: sireColor,
+      sireDob: sireDob,
+      sireWeight: sireWeight,
+      sirePhotoPath: sirePhoto,
+      damName: damName,
+      damBreed: damBreed,
+      damColor: damColor,
+      damDob: damDob,
+      damWeight: damWeight,
+      damPhotoPath: damPhoto,
+      includePhoto: includePhoto,
+    );
   }
 
   @override
@@ -65,7 +136,7 @@ class _CertificateCardState extends State<CertificateCard> {
         border: Border.all(color: kNeutral200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -75,9 +146,9 @@ class _CertificateCardState extends State<CertificateCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: const Text(
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
               'BIRTH CERTIFICATE',
               style: TextStyle(
                 fontSize: 13,
@@ -95,19 +166,21 @@ class _CertificateCardState extends State<CertificateCard> {
                   'Generate a printable birth certificate for this rabbit',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF4F4F56),
-                      fontWeight: FontWeight.w600),
+                    fontSize: 13,
+                    color: Color(0xFF4F4F56),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _showPreviewModal(context),
+                    onPressed: _isLoadingParents ? null : () => _showPreviewModal(context),
                     icon: Icon(
-                        PhosphorIcons.fileText(PhosphorIconsStyle.duotone),
-                        size: 18,
-                        color: const Color(0xFF4F4F56)),
+                      PhosphorIcons.fileText(PhosphorIconsStyle.duotone),
+                      size: 18,
+                      color: const Color(0xFF4F4F56),
+                    ),
                     label: const Text(
                       'Preview Certificate',
                       style: TextStyle(
@@ -141,335 +214,47 @@ class _CertificateCardState extends State<CertificateCard> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _CertificatePreviewSheet(
-        rabbit: widget.rabbit,
-        sireName: _sireName,
-        damName: _damName,
-        onDownload: (isPrint, includePhoto, includeWatercolor) =>
-            _generateAndPrint(ctx, isPrint, includePhoto, includeWatercolor),
+        dataBuilder: _buildCertificateData,
+        onDownload: (data) => _generateAndShare(ctx, data),
       ),
     );
   }
 
-  Future<void> _generateAndPrint(
-    BuildContext sheetContext,
-    bool isPrint,
-    bool includePhoto,
-    bool includeWatercolor,
-  ) async {
+  Future<void> _generateAndShare(BuildContext sheetContext, CertificateData data) async {
     Navigator.of(sheetContext).pop();
-
     try {
-      final pdf = pw.Document(compress: false);
-
-      final fontScript = await PdfGoogleFonts.greatVibesRegular();
-      final fontBold = await PdfGoogleFonts.playfairDisplayBold();
-      final fontLabel = await PdfGoogleFonts.latoRegular();
-
-      Uint8List? rabbitPhotoBytes;
-      if (includePhoto &&
-          widget.rabbit.photos != null &&
-          widget.rabbit.photos!.isNotEmpty) {
-        final file = File(widget.rabbit.photos!.first);
-        if (await file.exists()) {
-          final data = await file.readAsBytes();
-          rabbitPhotoBytes = Uint8List.fromList(data);
-        }
-      }
-
-      Uint8List? templateBytes;
-      try {
-        final byteData = await rootBundle.load('assets/images/certificate_template1.png');
-        templateBytes = byteData.buffer.asUint8List();
-      } catch (e) {
-        debugPrint('Certificate template1 asset not found: $e');
-      }
-
-      final name = widget.rabbit.name;
-      final breed = widget.rabbit.breed;
-      final sex = widget.rabbit.type == RabbitType.doe ? 'Doe' : 'Buck';
-      final color = widget.rabbit.color ?? '';
-      final dob = widget.rabbit.dateOfBirth != null
-          ? FormatUtils.formatDate(widget.rabbit.dateOfBirth!)
-          : 'N/A';
-      final address = _settings.farmAddress;
-      final sire = _sireName.isEmpty ? 'Unknown' : _sireName;
-      final dam = _damName.isEmpty ? 'Unknown' : _damName;
-      final ownerName = _settings.ownerName.isNotEmpty ? _settings.ownerName : 'Farm Owner';
-
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.letter.landscape,
-          margin: pw.EdgeInsets.zero,
-          build: (pw.Context ctx) {
-            final double W = PdfPageFormat.letter.landscape.width;
-            final double H = PdfPageFormat.letter.landscape.height;
-            final double valueFontSize = 13.5;
-            final dynamicTextColor = const PdfColor(0.35, 0.35, 0.35); // Dark grey
-
-            final Map<String, double> fieldYRatios = {
-              'name': 0.3141,
-              'breed': 0.3782,
-              'color': 0.4457,
-              'dob': 0.5184,
-              'sex': 0.5914,
-              'sire': 0.6625,
-              'dam': 0.7346,
-            };
-            final double valueX = W * 0.70;
-
-            final Map<String, String> fields = {
-              'name': name.toUpperCase(),
-              'breed': breed,
-              'color': color.isEmpty ? 'N/A' : color,
-              'dob': dob,
-              'sex': sex,
-              'sire': sire,
-              'dam': dam,
-            };
-
-            return pw.Stack(
-              children: [
-                // Background template if loaded
-                if (templateBytes != null)
-                  pw.Positioned.fill(
-                    child: pw.Image(
-                      pw.MemoryImage(templateBytes),
-                      fit: pw.BoxFit.fill,
-                    ),
-                  )
-                else
-                  pw.Positioned.fill(
-                    child: pw.Container(
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        gradient: includeWatercolor
-                            ? const pw.LinearGradient(
-                                begin: pw.Alignment.topLeft,
-                                end: pw.Alignment.bottomRight,
-                                colors: [
-                                  PdfColor(0.96, 0.94, 0.98),
-                                  PdfColor(0.98, 0.96, 0.98),
-                                  PdfColor(0.95, 0.93, 0.97),
-                                ],
-                              )
-                            : null,
-                      ),
-                      child: pw.Padding(
-                        padding: const pw.EdgeInsets.all(12),
-                        child: pw.Container(
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(color: const PdfColor(0.2, 0.2, 0.2), width: 1.5),
-                          ),
-                          child: pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Container(
-                              decoration: pw.BoxDecoration(
-                                border: pw.Border.all(color: const PdfColor(0.42, 0.38, 0.52), width: 3),
-                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Fallback static labels and titles (only drawn if template PNG is missing)
-                if (templateBytes == null) ...[
-                  // Cursive Farm Name
-                  pw.Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 40,
-                    child: pw.Text(
-                      _settings.farmName,
-                      style: pw.TextStyle(font: fontScript, fontSize: 36, color: const PdfColor(0.3, 0.3, 0.3)),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                  ),
-                  // Title Block
-                  pw.Positioned(
-                    left: (W - 300) / 2,
-                    top: 90,
-                    child: pw.SizedBox(
-                      width: 300,
-                      child: pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor(0.97, 0.91, 0.94),
-                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
-                        ),
-                        child: pw.Text(
-                          'CERTIFICATE OF BIRTH',
-                          style: pw.TextStyle(
-                            font: fontBold,
-                            fontSize: 22,
-                            letterSpacing: 2,
-                            color: const PdfColor(0.42, 0.38, 0.52),
-                          ),
-                          textAlign: pw.TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Metadata pre-printed labels (fallback only — template PNG has these built-in)
-                  pw.Positioned(
-                    left: W * 0.55,
-                    top: H * 0.305,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        _buildFallbackLabelRow('Name',  fontLabel),
-                        _buildFallbackLabelRow('Breed', fontLabel),
-                        _buildFallbackLabelRow('Color', fontLabel),
-                        _buildFallbackLabelRow('DOB',   fontLabel),
-                        _buildFallbackLabelRow('Sex',   fontLabel),
-                        _buildFallbackLabelRow('Sire',  fontLabel),
-                        _buildFallbackLabelRow('Dam',   fontLabel),
-                      ],
-                    ),
-                  ),
-                  // Signature Block
-                  pw.Positioned(
-                    right: 50,
-                    bottom: 40,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          'I here certify all the above mentioned information',
-                          style: pw.TextStyle(
-                              font: fontLabel,
-                              fontSize: 10,
-                              color: const PdfColor(0.45, 0.45, 0.45),
-                              fontStyle: pw.FontStyle.italic),
-                        ),
-                        pw.SizedBox(height: 6),
-                        pw.Text(
-                          ownerName,
-                          style: pw.TextStyle(font: fontScript, fontSize: 24, color: const PdfColor(0.3, 0.3, 0.3)),
-                        ),
-                        pw.SizedBox(height: 4),
-                        if (address.isNotEmpty)
-                          pw.Text(
-                            address,
-                            style: pw.TextStyle(font: fontLabel, fontSize: 10, color: const PdfColor(0.45, 0.45, 0.45)),
-                          ),
-                        if (_settings.farmEmail.isNotEmpty)
-                          pw.Text(
-                            _settings.farmEmail,
-                            style: pw.TextStyle(font: fontLabel, fontSize: 10, color: const PdfColor(0.45, 0.45, 0.45)),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // Overlaid Dynamic Photo (perfectly nested inside the border)
-                pw.Positioned(
-                  left: W * 0.1593,
-                  top: H * 0.3076,
-                  child: pw.SizedBox(
-                    width: W * 0.3703,
-                    height: H * 0.3734,
-                    child: rabbitPhotoBytes != null
-                        ? pw.ClipRRect(
-                            horizontalRadius: 10,
-                            verticalRadius: 10,
-                            child: pw.Image(pw.MemoryImage(rabbitPhotoBytes), fit: pw.BoxFit.cover),
-                          )
-                        : templateBytes == null
-                            ? pw.Container(
-                                decoration: const pw.BoxDecoration(
-                                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
-                                  color: PdfColor(0.92, 0.92, 0.92),
-                                ),
-                                child: pw.Center(
-                                  child: pw.Text('🐰', style: pw.TextStyle(fontSize: 40)),
-                                ),
-                              )
-                            : pw.SizedBox(),
-                  ),
-                ),
-
-                // Values overlay — independently calibrated Y positions per field
-                ...fields.entries.map((entry) {
-                  final yRatio = fieldYRatios[entry.key] ?? 0.0;
-                  return pw.Positioned(
-                    left: valueX,
-                    top: H * yRatio,
-                    child: pw.Text(
-                      entry.value,
-                      style: pw.TextStyle(font: fontBold, fontSize: valueFontSize, color: dynamicTextColor),
-                    ),
-                  );
-                }),
-              ],
-            );
-          },
-        ),
+      final bytes = await CertificatePdfService.generatePdf(data);
+      await Printing.sharePdf(
+        bytes: bytes,
+        filename: 'BirthCertificate_${data.kitName.replaceAll(' ', '_')}.pdf',
       );
-
-      final bytes = await pdf.save();
-      await Printing.sharePdf(bytes: bytes, filename: 'BirthCertificate_${widget.rabbit.name}.pdf');
     } catch (e) {
-      debugPrint('Certificate processing error: $e');
+      debugPrint('Certificate generation error: $e');
     }
-  }
-
-  /// Used only in the fallback PDF (no template PNG). Draws "Label:" text rows.
-  pw.Widget _buildFallbackLabelRow(String label, pw.Font fontLabel) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 5.5),
-      child: pw.Text(
-        '$label:',
-        style: pw.TextStyle(font: fontLabel, fontSize: 13, color: const PdfColor(0.35, 0.35, 0.35)),
-      ),
-    );
   }
 }
 
 // ─── Preview Sheet ────────────────────────────────────────────────────────────
 
 class _CertificatePreviewSheet extends StatefulWidget {
-  final Rabbit rabbit;
-  final String sireName;
-  final String damName;
-  final Function(bool isPrint, bool includePhoto, bool includeWatercolor)
-      onDownload;
+  final CertificateData Function(bool includePhoto) dataBuilder;
+  final Function(CertificateData data) onDownload;
 
   const _CertificatePreviewSheet({
-    required this.rabbit,
-    required this.sireName,
-    required this.damName,
+    required this.dataBuilder,
     required this.onDownload,
   });
 
   @override
-  State<_CertificatePreviewSheet> createState() =>
-      _CertificatePreviewSheetState();
+  State<_CertificatePreviewSheet> createState() => _CertificatePreviewSheetState();
 }
 
 class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
   bool _includePhoto = true;
-  bool _includeWatercolor = true;
-  final SettingsService _settings = SettingsService.instance;
 
   @override
   Widget build(BuildContext context) {
-    final bool hasPhoto = widget.rabbit.photos != null &&
-        widget.rabbit.photos!.isNotEmpty;
-    final String? photoPath = hasPhoto ? widget.rabbit.photos!.first : null;
-    final bool photoExists =
-        hasPhoto && photoPath != null && File(photoPath).existsSync();
-
-    // Prepared Strings
-    final sex = widget.rabbit.type == RabbitType.doe ? 'Doe' : 'Buck';
-    final color = widget.rabbit.color ?? '';
-    final dob = widget.rabbit.dateOfBirth != null ? FormatUtils.formatDate(widget.rabbit.dateOfBirth!) : 'N/A';
-    final sire = widget.sireName.isEmpty ? 'Unknown' : widget.sireName;
-    final dam = widget.damName.isEmpty ? 'Unknown' : widget.damName;
-    final ownerName = _settings.ownerName.isNotEmpty ? _settings.ownerName : 'Farm Owner';
+    final certificateData = widget.dataBuilder(_includePhoto);
 
     return Container(
       decoration: const BoxDecoration(
@@ -477,7 +262,7 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -487,21 +272,27 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-                color: kNeutral300, borderRadius: BorderRadius.circular(2)),
+              color: kNeutral300,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Birth Certificate',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: kNeutral900)),
+                const Text(
+                  'Birth Certificate Preview',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: kNeutral900,
+                  ),
+                ),
                 IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close)),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
               ],
             ),
           ),
@@ -510,310 +301,38 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Certificate Double Border Preview Box
-                  AspectRatio(
-                    aspectRatio: 11 / 8.5,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kNeutral300),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final W = constraints.maxWidth;
-                          final H = constraints.maxHeight;
-                          final valueFontSize = W * 0.024;
-                          final dynamicTextColor = const Color(0xFF555555); // Dark grey
-
-                          final Map<String, double> fieldYRatios = {
-                            'name': 0.3141,
-                            'breed': 0.3782,
-                            'color': 0.4457,
-                            'dob': 0.5184,
-                            'sex': 0.5914,
-                            'sire': 0.6625,
-                            'dam': 0.7346,
-                          };
-                          final double valueX = W * 0.70;
-
-                          final Map<String, String> fields = {
-                            'name': widget.rabbit.name.toUpperCase(),
-                            'breed': widget.rabbit.breed,
-                            'color': color.isEmpty ? 'N/A' : color,
-                            'dob': dob,
-                            'sex': sex,
-                            'sire': sire,
-                            'dam': dam,
-                          };
-
-                          return Stack(
-                            children: [
-                              // Background Template Image
-                              Positioned.fill(
-                                child: Image.asset(
-                                  'assets/images/certificate_template1.png',
-                                  fit: BoxFit.fill,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    // Fallback UI
-                                    return Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        gradient: _includeWatercolor
-                                            ? const LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  Color(0xFFF5F3FF),
-                                                  Color(0xFFFCE7F3),
-                                                  Color(0xFFEFF6FF),
-                                                ],
-                                              )
-                                            : null,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(color: const Color(0xFF1F2937), width: 1.2),
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: const Color(0xFF7B5FA0), width: 2.2),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                          child: Column(
-                                            children: [
-                                              // Cursive Farm Name
-                                              Text(
-                                                _settings.farmName,
-                                                style: const TextStyle(
-                                                  fontFamily: 'serif',
-                                                  fontSize: 22,
-                                                  fontStyle: FontStyle.italic,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF5B4F73),
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              const SizedBox(height: 6),
-                                              // Title Block
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFFDF2F8),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: const Text(
-                                                  'CERTIFICATE OF BIRTH',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 1.5,
-                                                    color: Color(0xFF7B5FA0),
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              // Details Layout (Fallback)
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  // Photo
-                                                  Expanded(
-                                                    flex: 5,
-                                                    child: Column(
-                                                      children: [
-                                                        if (_includePhoto && photoExists)
-                                                          Container(
-                                                            width: 110,
-                                                            height: 90,
-                                                            decoration: BoxDecoration(
-                                                              borderRadius: BorderRadius.circular(10),
-                                                              border: Border.all(color: const Color(0xFF1F2937), width: 1.2),
-                                                              image: DecorationImage(
-                                                                image: FileImage(File(photoPath!)),
-                                                                fit: BoxFit.cover,
-                                                              ),
-                                                            ),
-                                                          )
-                                                        else if (_includePhoto)
-                                                          Container(
-                                                            width: 110,
-                                                            height: 90,
-                                                            decoration: BoxDecoration(
-                                                              borderRadius: BorderRadius.circular(10),
-                                                              border: Border.all(color: const Color(0xFF1F2937), width: 1.2),
-                                                              color: kNeutral100,
-                                                            ),
-                                                            child: const Center(
-                                                              child: Text('🐰', style: TextStyle(fontSize: 28)),
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  // Metadata
-                                                  Expanded(
-                                                    flex: 6,
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        _buildPreviewDetailRow('Name', widget.rabbit.name),
-                                                        _buildPreviewDetailRow('Breed', widget.rabbit.breed),
-                                                        _buildPreviewDetailRow('Color', color.isEmpty ? 'N/A' : color),
-                                                        _buildPreviewDetailRow('DOB', dob),
-                                                        _buildPreviewDetailRow('Sex', sex),
-                                                        _buildPreviewDetailRow('Sire', sire),
-                                                        _buildPreviewDetailRow('Dam', dam),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const Spacer(),
-                                              // Signature Block (Fallback)
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                children: [
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                                    children: [
-                                                      const Text(
-                                                        'I here certify all the above mentioned information',
-                                                        style: TextStyle(
-                                                            fontSize: 8,
-                                                            color: Color(0xFF6B7280),
-                                                            fontStyle: FontStyle.italic),
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        ownerName,
-                                                        style: const TextStyle(
-                                                          fontFamily: 'serif',
-                                                          fontSize: 14,
-                                                          fontStyle: FontStyle.italic,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Color(0xFF5B4F73),
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      if (_settings.farmAddress.isNotEmpty)
-                                                        Text(
-                                                          _settings.farmAddress,
-                                                          style: const TextStyle(fontSize: 8, color: Color(0xFF6B7280)),
-                                                        ),
-                                                      if (_settings.farmEmail.isNotEmpty)
-                                                        Text(
-                                                          _settings.farmEmail,
-                                                          style: const TextStyle(fontSize: 8, color: Color(0xFF6B7280)),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              // Overlaid Dynamic Photo (centered inside the black frame)
-                              Positioned(
-                                left: W * 0.1593,
-                                top: H * 0.3076,
-                                width: W * 0.3703,
-                                height: H * 0.3734,
-                                child: _includePhoto && photoExists
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(W * 0.020),
-                                        child: Image.file(
-                                          File(photoPath!),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : const SizedBox(),
-                              ),
-
-                              // Text Overlays — independently calibrated Y positions per field
-                              ...fields.entries.map((entry) {
-                                final yRatio = fieldYRatios[entry.key] ?? 0.0;
-                                return Positioned(
-                                  left: valueX,
-                                  top: H * yRatio,
-                                  child: Text(
-                                    entry.value,
-                                    style: GoogleFonts.playfairDisplay(
-                                      fontSize: valueFontSize,
-                                      fontWeight: FontWeight.w600,
-                                      color: dynamicTextColor,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  // WYSIWYG 1:1 Preview Box
+                  CertificatePreviewWidget(data: certificateData),
                   const SizedBox(height: 24),
-                  _buildToggle('Include Photo', _includePhoto, (v) => setState(() => _includePhoto = v)),
-                  _buildToggle('Watercolor Background', _includeWatercolor, (v) => setState(() => _includeWatercolor = v)),
-                  const SizedBox(height: 32),
+                  _buildToggle(
+                    'Include Photos',
+                    _includePhoto,
+                    (v) => setState(() => _includePhoto = v),
+                  ),
+                  const SizedBox(height: 28),
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => widget.onDownload(false, _includePhoto, _includeWatercolor),
+                    child: ElevatedButton.icon(
+                      onPressed: () => widget.onDownload(certificateData),
+                      icon: const Icon(Icons.download_rounded, size: 20),
+                      label: const Text(
+                        'Download & Share PDF',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF7B6BA0),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         elevation: 0,
                       ),
-                      child: const Text('Download & Share PDF',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(height: 20),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreviewDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SvgPicture.string(
-            rabbitSvg,
-            width: 14,
-            height: 14,
-            colorFilter: const ColorFilter.mode(Color(0xFF7B5FA0), BlendMode.srcIn),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$label: ',
-            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563), fontWeight: FontWeight.normal),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF111827), fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -827,10 +346,422 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           Switch(value: value, onChanged: onChanged, activeColor: kPinkDeep),
         ],
       ),
     );
+  }
+}
+
+// ─── WYSIWYG Preview Widget ───────────────────────────────────────────────────
+
+class CertificatePreviewWidget extends StatelessWidget {
+  final CertificateData data;
+
+  const CertificatePreviewWidget({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: CertificateLayout.aspectRatio,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kNeutral300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double W = constraints.maxWidth;
+            final double H = constraints.maxHeight;
+
+            final hasKitPhoto = data.includePhoto &&
+                data.kitPhotoPath != null &&
+                File(data.kitPhotoPath!).existsSync();
+
+            final hasSirePhoto = data.includePhoto &&
+                data.sirePhotoPath != null &&
+                File(data.sirePhotoPath!).existsSync();
+
+            final hasDamPhoto = data.includePhoto &&
+                data.damPhotoPath != null &&
+                File(data.damPhotoPath!).existsSync();
+
+            return Stack(
+              children: [
+                // Layer 1: Background Template Image (Full Bleed)
+                Positioned.fill(
+                  child: Image.asset(
+                    CertificateLayout.backgroundAsset,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+
+                // Layer 2: Farm Name (Title) with auto-scaling to avoid overflow/collision
+                Positioned(
+                  left: W * (0.5000 - CertificateLayout.titleMaxWidth / 2),
+                  top: H * CertificateLayout.titleCenterY - (H * CertificateLayout.titleBoxHeight / 2),
+                  width: W * CertificateLayout.titleMaxWidth,
+                  height: H * CertificateLayout.titleBoxHeight,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        data.farmName,
+                        style: TextStyle(
+                          fontFamily: CertificateLayout.fontFamilyTitle,
+                          fontSize: W * CertificateLayout.fontRatioTitle,
+                          color: CertificateLayout.colorTitle,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 2: "Birth Certificate" Badge
+                Positioned(
+                  left: W * CertificateLayout.badgeLeft,
+                  top: H * CertificateLayout.badgeTop,
+                  width: W * CertificateLayout.badgeWidth,
+                  height: H * CertificateLayout.badgeHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: CertificateLayout.colorBadgeBg,
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.badgeRadius),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Birth Certificate',
+                        style: TextStyle(
+                          fontFamily: CertificateLayout.fontFamilyBadge,
+                          fontSize: W * CertificateLayout.fontRatioBadge,
+                          color: CertificateLayout.colorBadgeText,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 2: Kit Photo (Left Column)
+                Positioned(
+                  left: W * CertificateLayout.kitPhotoLeft,
+                  top: H * CertificateLayout.kitPhotoTop,
+                  width: W * CertificateLayout.kitPhotoWidth,
+                  height: H * CertificateLayout.kitPhotoHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.kitPhotoRadius),
+                      color: hasKitPhoto ? null : Colors.black.withValues(alpha: 0.06),
+                    ),
+                    child: hasKitPhoto
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(W * CertificateLayout.kitPhotoRadius),
+                            child: Image.file(
+                              File(data.kitPhotoPath!),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : const Center(
+                            child: Text(
+                              'No Photo',
+                              style: TextStyle(
+                                fontFamily: CertificateLayout.fontFamilyDetails,
+                                fontSize: 11,
+                                color: Color(0xFF999999),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+
+                // Layer 2: Kit Detail Rows (Center)
+                ..._buildKitRow(W, H, CertificateLayout.kitNameCenterY, 'Name: ${data.kitName}'),
+                ..._buildKitRow(W, H, CertificateLayout.kitBreedCenterY, 'Breed: ${data.kitBreed}'),
+                ..._buildKitRow(W, H, CertificateLayout.kitColorCenterY, 'Color: ${data.kitColor}'),
+                ..._buildKitRow(W, H, CertificateLayout.kitDobCenterY, 'DOB: ${data.kitDob}'),
+                ..._buildKitRow(W, H, CertificateLayout.kitSexCenterY, 'Sex: ${data.kitSex}'),
+
+                // Layer 2: Sire Photo (Right Column Top)
+                Positioned(
+                  left: W * CertificateLayout.sirePhotoLeft,
+                  top: H * CertificateLayout.sirePhotoTop,
+                  width: W * CertificateLayout.sirePhotoWidth,
+                  height: H * CertificateLayout.sirePhotoHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.sirePhotoRadius),
+                      color: hasSirePhoto ? null : Colors.black.withValues(alpha: 0.06),
+                    ),
+                    child: hasSirePhoto
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(W * CertificateLayout.sirePhotoRadius),
+                            child: Image.file(
+                              File(data.sirePhotoPath!),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : const Center(
+                            child: Text(
+                              'Sire Photo',
+                              style: TextStyle(
+                                fontFamily: CertificateLayout.fontFamilyDetails,
+                                fontSize: 9,
+                                color: Color(0xFF999999),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+
+                // Layer 2: Sire Card
+                Positioned(
+                  left: W * CertificateLayout.sireCardLeft,
+                  top: H * CertificateLayout.sireCardTop,
+                  width: W * CertificateLayout.sireCardWidth,
+                  height: H * CertificateLayout.sireCardHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: CertificateLayout.colorSireCardBg,
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.sireCardRadius),
+                    ),
+                  ),
+                ),
+                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[0], 'Sire: ${data.sireName}'),
+                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[1], 'Breed: ${data.sireBreed}'),
+                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[2], 'Color: ${data.sireColor}'),
+                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[3], 'DOB: ${data.sireDob}'),
+                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[4], 'Wt: ${data.sireWeight}'),
+
+                // Layer 2: Dam Photo (Right Column Bottom with White Frame)
+                Positioned(
+                  left: W * CertificateLayout.damPhotoLeft,
+                  top: H * CertificateLayout.damPhotoTop,
+                  width: W * CertificateLayout.damPhotoWidth,
+                  height: H * CertificateLayout.damPhotoHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius),
+                    ),
+                    padding: const EdgeInsets.all(2.5),
+                    child: hasDamPhoto
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius * 0.8),
+                            child: Image.file(
+                              File(data.damPhotoPath!),
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius * 0.8),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Dam Photo',
+                                style: TextStyle(
+                                  fontFamily: CertificateLayout.fontFamilyDetails,
+                                  fontSize: 9,
+                                  color: Color(0xFF999999),
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+
+                // Layer 2: Dam Card
+                Positioned(
+                  left: W * CertificateLayout.damCardLeft,
+                  top: H * CertificateLayout.damCardTop,
+                  width: W * CertificateLayout.damCardWidth,
+                  height: H * CertificateLayout.damCardHeight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: CertificateLayout.colorDamCardBg,
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.damCardRadius),
+                    ),
+                  ),
+                ),
+                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[0], 'Dam: ${data.damName}'),
+                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[1], 'Breed: ${data.damBreed}'),
+                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[2], 'Color: ${data.damColor}'),
+                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[3], 'DOB: ${data.damDob}'),
+                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[4], 'Wt: ${data.damWeight}'),
+
+                // Layer 2: Footer / Certification (Bottom Left)
+                Positioned(
+                  left: W * CertificateLayout.footerTextLeft,
+                  top: H * CertificateLayout.certifyLine1CenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
+                  width: W * CertificateLayout.footerTextMaxWidth,
+                  height: H * CertificateLayout.footerRowBoxHeight,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'I hereby certify this certificate is true',
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: W * CertificateLayout.fontRatioCertify,
+                        color: CertificateLayout.colorCertifyText,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: W * CertificateLayout.footerTextLeft,
+                  top: H * CertificateLayout.certifyLine2CenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
+                  width: W * CertificateLayout.footerTextMaxWidth,
+                  height: H * CertificateLayout.footerRowBoxHeight,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'to the best of my knowledge',
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: W * CertificateLayout.fontRatioCertify,
+                        color: CertificateLayout.colorCertifyText,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                if (data.ownerName.trim().isNotEmpty)
+                  Positioned(
+                    left: W * CertificateLayout.signatureLeft,
+                    top: H * CertificateLayout.signatureCenterY - (H * CertificateLayout.signatureBoxHeight / 2),
+                    width: W * CertificateLayout.footerTextMaxWidth,
+                    height: H * CertificateLayout.signatureBoxHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        data.ownerName.trim(),
+                        style: TextStyle(
+                          fontFamily: CertificateLayout.fontFamilySignature,
+                          fontSize: W * CertificateLayout.fontRatioSignature,
+                          color: CertificateLayout.colorSignatureText,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                if (data.farmAddress.trim().isNotEmpty)
+                  Positioned(
+                    left: W * CertificateLayout.addressLeft,
+                    top: H * CertificateLayout.addressCenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
+                    width: W * CertificateLayout.footerTextMaxWidth,
+                    height: H * CertificateLayout.footerRowBoxHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        data.farmAddress.trim(),
+                        style: TextStyle(
+                          fontFamily: CertificateLayout.fontFamilyDetails,
+                          fontSize: W * CertificateLayout.fontRatioContact,
+                          color: CertificateLayout.colorContactText,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                if (data.farmEmail.trim().isNotEmpty)
+                  Positioned(
+                    left: W * CertificateLayout.emailLeft,
+                    top: H * CertificateLayout.emailCenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
+                    width: W * CertificateLayout.footerTextMaxWidth,
+                    height: H * CertificateLayout.footerRowBoxHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        data.farmEmail.trim(),
+                        style: TextStyle(
+                          fontFamily: CertificateLayout.fontFamilyDetails,
+                          fontSize: W * CertificateLayout.fontRatioContact,
+                          color: CertificateLayout.colorContactText,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static List<Widget> _buildKitRow(double W, double H, double centerY, String text) {
+    final rowHeight = H * CertificateLayout.kitRowBoxHeight;
+    final iconHeight = H * CertificateLayout.kitIconHeight;
+    final iconWidth = W * CertificateLayout.kitIconWidth;
+
+    return [
+      Positioned(
+        left: W * CertificateLayout.kitIconLeft,
+        top: H * centerY - (iconHeight / 2),
+        width: iconWidth,
+        height: iconHeight,
+        child: Image.asset(CertificateLayout.rabbitIconAsset, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: W * CertificateLayout.kitTextLeft,
+        top: H * centerY - (rowHeight / 2),
+        width: W * CertificateLayout.kitTextMaxWidth,
+        height: rowHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: CertificateLayout.fontFamilyDetails,
+              fontSize: W * CertificateLayout.fontRatioKitRows,
+              color: CertificateLayout.colorKitText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    ];
+  }
+
+  static List<Widget> _buildCardRow(double W, double H, double centerY, String text) {
+    final rowHeight = H * CertificateLayout.cardRowBoxHeight;
+    return [
+      Positioned(
+        left: W * CertificateLayout.cardTextLeft,
+        top: H * centerY - (rowHeight / 2),
+        width: W * CertificateLayout.cardTextMaxWidth,
+        height: rowHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: CertificateLayout.fontFamilyDetails,
+              fontSize: W * CertificateLayout.fontRatioCardRows,
+              color: CertificateLayout.colorCardText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    ];
   }
 }

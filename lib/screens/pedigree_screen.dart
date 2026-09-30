@@ -11,6 +11,9 @@ import '../models/pedigree.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../constants/app_colors.dart';
+import '../widgets/pedigree_layout.dart';
+import '../widgets/pedigree_preview_modal.dart';
+import '../services/format_utils.dart';
 
 // Colors matched to HTML reference
 const Color _kBlueLeft = Color(0xFF5B8AD0);
@@ -128,6 +131,17 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     }
   }
 
+  Future<void> _exportPedigree() async {
+    try {
+      final data = await PedigreeData.fromRabbit(_baseRabbit, db: _db);
+      if (mounted) {
+        PedigreePreviewSheet.show(context, data);
+      }
+    } catch (e) {
+      debugPrint('Error preparing pedigree export: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -151,6 +165,12 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               setState(() => _generations = v);
               _loadPedigreeData();
             },
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(PhosphorIcons.downloadSimple(), color: _kNeutral800, size: 20),
+            tooltip: 'Export Pedigree PDF',
+            onPressed: _exportPedigree,
           ),
           const SizedBox(width: 8),
         ],
@@ -329,6 +349,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     final breedController = TextEditingController(text: current != null ? current.breed : '');
     final colorController = TextEditingController(text: current != null ? current.color ?? '' : '');
     final regController = TextEditingController(text: current != null ? current.registrationNumber ?? '' : '');
+    final earController = TextEditingController(text: current != null ? (current.earNumber ?? '') : '');
+    final legsController = TextEditingController(text: current != null && current.grandChampionLegs != null ? current.grandChampionLegs.toString() : '');
+    final weightController = TextEditingController(text: current != null && current.weight != null ? current.weight.toString() : '');
+    final dobController = TextEditingController(text: current != null && current.dateOfBirth != null ? FormatUtils.formatCertificateDate(current.dateOfBirth) : '');
 
     bool isExternal = current == null || current.type == RabbitType.pedigree;
     Rabbit? selectedHerdRabbit;
@@ -401,6 +425,11 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                             idController.text = val.id;
                             breedController.text = val.breed;
                             colorController.text = val.color ?? '';
+                            regController.text = val.registrationNumber ?? '';
+                            earController.text = val.earNumber ?? '';
+                            legsController.text = val.grandChampionLegs?.toString() ?? '';
+                            weightController.text = val.weight?.toString() ?? '';
+                            dobController.text = val.dateOfBirth != null ? FormatUtils.formatCertificateDate(val.dateOfBirth) : '';
                           }
                         });
                       },
@@ -418,6 +447,20 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                   _buildTextField('Color', colorController),
                   const SizedBox(height: 12),
                   _buildTextField('Registration #', regController),
+                  const SizedBox(height: 12),
+                  _buildTextField('Ear No. / Tattoo', earController),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField('Legs', legsController, keyboardType: TextInputType.number),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField('Weight (lbs)', weightController, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -437,7 +480,20 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                       Expanded(
                         flex: 2,
                         child: ElevatedButton(
-                          onPressed: () => _saveAncestorUpdate(childId, isSire, isExternal, selectedHerdRabbit, nameController.text, idController.text, breedController.text, colorController.text, regController.text),
+                          onPressed: () => _saveAncestorUpdate(
+                            childId,
+                            isSire,
+                            isExternal,
+                            selectedHerdRabbit,
+                            nameController.text,
+                            idController.text,
+                            breedController.text,
+                            colorController.text,
+                            regController.text,
+                            earNumber: earController.text,
+                            legs: int.tryParse(legsController.text.trim()),
+                            weight: double.tryParse(weightController.text.trim()),
+                          ),
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B6BA0), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                         ),
@@ -494,7 +550,20 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     }
   }
 
-  Future<void> _saveAncestorUpdate(String childId, bool isSire, bool isExternal, Rabbit? selectedHerd, String name, String id, String breed, String color, String reg) async {
+  Future<void> _saveAncestorUpdate(
+    String childId,
+    bool isSire,
+    bool isExternal,
+    Rabbit? selectedHerd,
+    String name,
+    String id,
+    String breed,
+    String color,
+    String reg, {
+    String? earNumber,
+    int? legs,
+    double? weight,
+  }) async {
     Navigator.pop(context);
     setState(() => _isLoading = true);
 
@@ -514,12 +583,23 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             breed: breed,
             color: color,
             registrationNumber: reg,
+            earNumber: earNumber?.isNotEmpty == true ? earNumber : null,
+            grandChampionLegs: legs,
+            weight: weight,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );
           await _db.insertRabbit(newPedRabbit);
         } else {
-          final updated = existing.copyWith(name: name, breed: breed, color: color, registrationNumber: reg);
+          final updated = existing.copyWith(
+            name: name,
+            breed: breed,
+            color: color,
+            registrationNumber: reg,
+            earNumber: earNumber?.isNotEmpty == true ? earNumber : existing.earNumber,
+            grandChampionLegs: legs ?? existing.grandChampionLegs,
+            weight: weight ?? existing.weight,
+          );
           await _db.updateRabbit(updated);
         }
       }
@@ -539,7 +619,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     }
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller, {TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -554,6 +634,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: 'Enter $label',
             filled: true,
@@ -763,23 +844,9 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     );
   }
 
-  void _sharePedigree() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share pedigree feature coming soon')),
-    );
-  }
-
-  void _printPedigree() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Print pedigree feature coming soon')),
-    );
-  }
-
-  void _exportPDF() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export PDF feature coming soon')),
-    );
-  }
+  void _sharePedigree() => _exportPedigree();
+  void _printPedigree() => _exportPedigree();
+  void _exportPDF() => _exportPedigree();
 }
 
 class _PedCard extends StatefulWidget {

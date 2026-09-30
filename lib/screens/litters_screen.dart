@@ -1028,6 +1028,45 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  int _computeTotalBornCount(Litter litter) {
+    if (litter.totalKits != null && litter.totalKits! > 0) {
+      return litter.totalKits!;
+    }
+    if (litter.kits.isNotEmpty) {
+      final ownKits = litter.kits.where((k) {
+        final bool isFosteredIn = k.id.startsWith('foster_') ||
+            k.id.startsWith('F-') ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+        return !isFosteredIn;
+      }).toList();
+      if (ownKits.isNotEmpty) {
+        return ownKits.length + (litter.deadKits ?? 0);
+      }
+    }
+    return (litter.aliveKits ?? 0) + (litter.deadKits ?? 0);
+  }
+
+  int _computeLiveKitCount(Litter litter) {
+    if (litter.kits.isNotEmpty) {
+      final ownKits = litter.kits.where((k) {
+        final bool isFosteredIn = k.id.startsWith('foster_') ||
+            k.id.startsWith('F-') ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+        return !isFosteredIn;
+      }).toList();
+      if (ownKits.isNotEmpty) {
+        return ownKits.where((k) {
+          final s = k.status.toLowerCase().trim();
+          return s != 'dead' && s != 'died' && s != 'deceased';
+        }).length;
+      }
+    }
+    final born = litter.totalKits ?? 0;
+    final dead = litter.deadKits ?? 0;
+    if (litter.aliveKits != null && litter.aliveKits! > 0) return litter.aliveKits!;
+    return (born - dead).clamp(0, born);
+  }
+
   Widget _buildLitterCard(Litter litter) {
     final isExpanded = _expandedLitters[litter.id] ?? false;
     final doeRabbit = _rabbitMap[litter.doeId];
@@ -1036,20 +1075,8 @@ class LittersScreenState extends State<LittersScreen> {
     final int weanWeeks = doeRabbit?.customWeanWeek ?? SettingsService.instance.weanAge;
     final int weanDays = weanWeeks * 7;
     final bool isWeanPassed = litter.ageDays >= weanDays || litter.status.toLowerCase() == 'weaned';
-    final int born = litter.totalKits ?? 0;
-    final int alive = (litter.kits.isNotEmpty)
-        ? litter.kits.where((k) {
-            final st = k.status.toLowerCase().trim();
-            return !k.isArchived &&
-                st != 'dead' &&
-                st != 'died' &&
-                st != 'deceased' &&
-                st != 'sold' &&
-                st != 'butchered' &&
-                st != 'cull' &&
-                st != 'culled';
-          }).length
-        : (litter.aliveKits ?? 0);
+    final int born = _computeTotalBornCount(litter);
+    final int alive = _computeLiveKitCount(litter);
 
     final String lStatus = litter.status.toLowerCase().trim();
     final bool isMissedLitter = litter.missedLitter == true ||
@@ -1075,12 +1102,18 @@ class LittersScreenState extends State<LittersScreen> {
         });
     final bool isLitterSold = !isMissedLitter &&
         !isLitterCulled &&
-        (lStatus == 'sold' || (born > 0 && alive == 0 && allNonDeadKitsSold));
+        (lStatus == 'sold' || allNonDeadKitsSold);
+    final bool allKitsDead = (litter.kits.isNotEmpty &&
+            litter.kits.every((k) {
+              final s = k.status.toLowerCase().trim();
+              return s == 'dead' || s == 'died' || s == 'deceased';
+            })) ||
+        (litter.kits.isEmpty && born > 0 && (litter.deadKits ?? 0) >= born && (litter.aliveKits ?? 0) == 0);
     final bool isLitterDied = !isMissedLitter &&
         !isLitterCulled &&
         !isLitterSold &&
         !hasFosteredKits &&
-        ((born > 0 && alive == 0) || lStatus == 'died' || lStatus == 'dead');
+        (lStatus == 'died' || lStatus == 'dead' || allKitsDead);
 
     final List<Kit> allKits = _getOrGenerateLitterKits(litter);
     final List<Kit> displayKits = _currentStage.toLowerCase() == 'all'
@@ -1163,23 +1196,20 @@ class LittersScreenState extends State<LittersScreen> {
                             textAlign: TextAlign.center,
                           ),
                         )
-                      else if (isLitterSold) ...[
+                      else if (isLitterSold ||
+                          _currentStage.toLowerCase() == 'archive' ||
+                          _currentStage.toLowerCase() == 'weaned' ||
+                          _currentStage.toLowerCase() == 'growout' ||
+                          _currentStage.toLowerCase() == 'grow out' ||
+                          _currentStage.toLowerCase() == 'grow-out' ||
+                          _currentStage.toLowerCase() == 'quarantine' ||
+                          isWeanPassed) ...[
                         Text(
                           'Age: ${_formatNurseryAge(litter)}',
                           style: const TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF555555),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 1),
-                        const Text(
-                          'Litter Sold',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF7B6BA0),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1253,7 +1283,7 @@ class LittersScreenState extends State<LittersScreen> {
                           children: [
                             if (!isMissedLitter) ...[
                               Text(
-                                'Born: ${litter.totalKits ?? 0}  Alive: ${litter.aliveKits ?? litter.totalKitsCount}',
+                                'Born: $born  Alive: $alive',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -5466,12 +5496,18 @@ class LittersScreenState extends State<LittersScreen> {
                           return k;
                         }).toList();
 
+                        final int liveCount = updatedKits.where((k) {
+                          final s = k.status.toLowerCase().trim();
+                          return s != 'dead' && s != 'died' && s != 'deceased';
+                        }).length;
+
                         final updatedLitter = litters[litterIndex].copyWith(
                           kits: updatedKits,
                           status: 'Sold',
-                          aliveKits: 0,
+                          aliveKits: liveCount,
                         );
                         await _db.updateLitter(updatedLitter);
+                        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
 
                         final salePrice = double.tryParse(priceController.text);
                         if (salePrice != null && salePrice > 0) {
@@ -5766,24 +5802,17 @@ class LittersScreenState extends State<LittersScreen> {
                           return k;
                         }).toList();
 
-                        final int newAlive = updatedKits.where((k) {
+                        final int liveCount = updatedKits.where((k) {
                           final s = k.status.toLowerCase().trim();
-                          return !k.isArchived &&
-                              s != 'dead' &&
-                              s != 'died' &&
-                              s != 'deceased' &&
-                              s != 'sold' &&
-                              s != 'butchered' &&
-                              s != 'cull' &&
-                              s != 'culled' &&
-                              s != 'fostered';
+                          return s != 'dead' && s != 'died' && s != 'deceased';
                         }).length;
 
                         final updatedLitter = currentLitter.copyWith(
                           kits: updatedKits,
-                          aliveKits: newAlive,
+                          aliveKits: liveCount,
                         );
                         await _db.updateLitter(updatedLitter);
+                        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
 
                         // Create or update finance transaction for kit sale
                         final salePrice = double.tryParse(priceController.text);

@@ -25,6 +25,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   final DatabaseService _db = DatabaseService();
   List<Litter> _litters = [];
   List<Litter> _filteredLitters = [];
+  Map<String, Rabbit> _rabbitMap = {};
   bool _isLoading = true;
   String _searchQuery = '';
   final Set<String> _expandedLitters = <String>{};
@@ -40,8 +41,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
   Future<void> _loadLitterHistory() async {
     try {
-      final littersData = await _db.getLittersByDoe(widget.rabbit.id);
       final db = await _db.database;
+      final rabbitsData = await db.query('rabbits');
+      final rabbitMap = {for (var r in rabbitsData.map((d) => Rabbit.fromMap(d))) r.id: r};
+      final littersData = await _db.getLittersByDoe(widget.rabbit.id);
       final sireLitters = await db.query('litters',
           where: 'buckId = ?',
           whereArgs: [
@@ -70,6 +73,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         setState(() {
           _litters = litters;
           _filteredLitters = litters;
+          _rabbitMap = rabbitMap;
           _isLoading = false;
         });
       }
@@ -199,12 +203,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isDam = widget.rabbit.id == litter.doeId;
     final partner = isDam ? litter.buckName : litter.doeName;
     final partnerId = isDam ? litter.buckId : litter.doeId;
-    final String bredDateStr = FormatUtils.formatDate(litter.breedDate);
+    final String bredDateStr = DateFormat('MMM dd, yyyy').format(litter.breedDate);
     final String bornDateStr = (litter.dob ?? litter.kindleDate) != null
-        ? FormatUtils.formatDate(litter.dob ?? litter.kindleDate!)
+        ? DateFormat('MMM dd, yyyy').format(litter.dob ?? litter.kindleDate!)
         : '-';
     final String dueDateStr = (litter.dueDate ?? litter.dob ?? litter.kindleDate) != null
-        ? FormatUtils.formatDate(litter.dueDate ?? litter.dob ?? litter.kindleDate!)
+        ? DateFormat('MMM dd, yyyy').format(litter.dueDate ?? litter.dob ?? litter.kindleDate!)
         : '-';
     final isExpanded = _expandedLitters.contains(litter.id);
     final String lStatus = litter.status.toLowerCase().trim();
@@ -240,10 +244,26 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               s == 'fostered';
         });
     final bool isLitterSold = !isMissedLitter &&
-        (lStatus == 'sold' || (born > 0 && allNonDeadKitsSold));
+        (lStatus == 'sold' || allNonDeadKitsSold);
+    final bool allKitsDead = (litter.kits.isNotEmpty &&
+            litter.kits.every((k) {
+              final s = k.status.toLowerCase().trim();
+              return s == 'dead' || s == 'died' || s == 'deceased';
+            })) ||
+        (litter.kits.isEmpty && born > 0 && (litter.deadKits ?? 0) >= born && (litter.aliveKits ?? 0) == 0);
     final bool isLitterDied = !isMissedLitter &&
         !isLitterSold &&
-        (born > 0 && alive == 0);
+        (lStatus == 'died' || lStatus == 'dead' || allKitsDead);
+
+    final partnerRabbit = _rabbitMap[partnerId];
+    final partnerName = (partner.isNotEmpty
+            ? partner
+            : (partnerRabbit?.name ?? (isDam ? litter.sire : litter.dam)))
+        .trim();
+    final partnerEarNumber = (partnerRabbit?.earNumber ?? '').trim();
+    final String partnerDisplay = partnerName.isNotEmpty
+        ? (partnerEarNumber.isNotEmpty ? '$partnerName ($partnerEarNumber)' : partnerName)
+        : 'Unknown';
 
     String fullAgeStr = '';
     if (isMissedLitter) {
@@ -252,8 +272,6 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       fullAgeStr = 'Litter Sold • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     } else if (isLitterDied) {
       fullAgeStr = 'Litter Died';
-    } else if (lStatus == 'weaned') {
-      fullAgeStr = 'Weaned • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     } else {
       fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     }
@@ -294,10 +312,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   children: [
                     Text(
                       isMissedLitter ? 'MISSED LITTER' : litter.id,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: isMissedLitter ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                        color: Color(0xFF4F4F56),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -337,9 +355,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        partner.isNotEmpty
-                            ? '$partner (${(partnerId.length > 4 ? partnerId.substring(0, 4) : partnerId).toUpperCase()})'
-                            : (isMissedLitter ? 'Missed Litter' : 'Unknown'),
+                        partnerDisplay,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -403,7 +419,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: isLitterDied ? FontWeight.w700 : FontWeight.w500,
-                      color: isLitterDied ? const Color(0xFFC47070) : const Color(0xFF4F4F56),
+                      color: const Color(0xFF4F4F56),
                     ),
                   ),
                 ],

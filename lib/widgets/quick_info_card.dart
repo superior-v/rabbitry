@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/rabbit.dart';
 import '../services/settings_service.dart';
 import '../services/database_service.dart';
@@ -78,7 +79,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
           rowIndex: 2),
       _buildInfoRow(context, 'Date of Birth:',
-          _currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : '-',
+          _currentRabbit.dateOfBirth != null ? DateFormat('MMM dd, yyyy').format(_currentRabbit.dateOfBirth!) : '-',
           rowIndex: 3),
       _buildInfoRow(context, 'Age:',
           _calculateAge(),

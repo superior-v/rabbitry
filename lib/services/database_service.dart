@@ -4667,8 +4667,11 @@ class DatabaseService {
       name: rabbit.name,
       breed: rabbit.breed,
       color: rabbit.color,
-      weight: rabbit.weight?.toString(),
+      weight: rabbit.weight != null && rabbit.weight! > 0 ? rabbit.weight!.toString() : null,
       registrationNumber: rabbit.registrationNumber,
+      earNumber: rabbit.earNumber,
+      legs: rabbit.grandChampionLegs,
+      dateOfBirth: rabbit.dateOfBirth,
       sex: rabbit.type == RabbitType.doe ? 'Doe' : 'Buck',
       profileImage: (rabbit.photos != null && rabbit.photos!.isNotEmpty)
           ? rabbit.photos!.first

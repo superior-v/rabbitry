@@ -5,8 +5,11 @@ class PedigreeRabbit {
   final String? color;
   final String? weight;
   final String? registrationNumber;
+  final String? earNumber;
+  final int? legs;
+  final DateTime? dateOfBirth;
   final String? sex;
-  String? profileImage; // Remove 'final' to make it mutable
+  String? profileImage;
   PedigreeRabbit? sire;
   PedigreeRabbit? dam;
   final int generation;
@@ -19,6 +22,9 @@ class PedigreeRabbit {
     this.color,
     this.weight,
     this.registrationNumber,
+    this.earNumber,
+    this.legs,
+    this.dateOfBirth,
     this.sex,
     this.profileImage,
     this.sire,
@@ -27,7 +33,6 @@ class PedigreeRabbit {
     this.isExternal = false,
   });
 
-  // Add method to update profile image
   void updateProfileImage(String? imagePath) {
     profileImage = imagePath;
   }
@@ -39,6 +44,9 @@ class PedigreeRabbit {
     String? color,
     String? weight,
     String? registrationNumber,
+    String? earNumber,
+    int? legs,
+    DateTime? dateOfBirth,
     String? sex,
     String? profileImage,
     PedigreeRabbit? sire,
@@ -53,6 +61,9 @@ class PedigreeRabbit {
       color: color ?? this.color,
       weight: weight ?? this.weight,
       registrationNumber: registrationNumber ?? this.registrationNumber,
+      earNumber: earNumber ?? this.earNumber,
+      legs: legs ?? this.legs,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       sex: sex ?? this.sex,
       profileImage: profileImage ?? this.profileImage,
       sire: sire ?? this.sire,
@@ -70,6 +81,9 @@ class PedigreeRabbit {
       'color': color,
       'weight': weight,
       'registrationNumber': registrationNumber,
+      'earNumber': earNumber,
+      'legs': legs,
+      'dateOfBirth': dateOfBirth?.toIso8601String(),
       'sex': sex,
       'profileImage': profileImage,
       'sire': sire?.toJson(),
@@ -87,6 +101,9 @@ class PedigreeRabbit {
       color: json['color'],
       weight: json['weight'],
       registrationNumber: json['registrationNumber'],
+      earNumber: json['earNumber'],
+      legs: json['legs'] is int ? json['legs'] : int.tryParse(json['legs']?.toString() ?? ''),
+      dateOfBirth: json['dateOfBirth'] != null ? DateTime.tryParse(json['dateOfBirth']) : null,
       sex: json['sex'],
       profileImage: json['profileImage'],
       sire: json['sire'] != null ? PedigreeRabbit.fromJson(json['sire']) : null,
