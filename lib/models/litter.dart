@@ -4,6 +4,7 @@ const _kitSentinel = Object();
 
 class Kit {
   final String id;
+  final String? name;
   final String sex;
   final String color;
   final double weight;
@@ -14,6 +15,7 @@ class Kit {
 
   Kit({
     required this.id,
+    this.name,
     required this.sex,
     required this.color,
     required this.weight,
@@ -29,10 +31,12 @@ class Kit {
         'dead',
         'died',
         'cull',
+        'culled',
       ].contains(status.trim().toLowerCase());
 
   Kit copyWith({
     String? id,
+    Object? name = _kitSentinel,
     String? sex,
     String? color,
     double? weight,
@@ -43,6 +47,7 @@ class Kit {
   }) {
     return Kit(
       id: id ?? this.id,
+      name: identical(name, _kitSentinel) ? this.name : (name as String?),
       sex: sex ?? this.sex,
       color: color ?? this.color,
       weight: weight ?? this.weight,
@@ -56,6 +61,7 @@ class Kit {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'name': name,
       'sex': sex,
       'color': color,
       'weight': weight,
@@ -69,6 +75,7 @@ class Kit {
   factory Kit.fromMap(Map<String, dynamic> map) {
     return Kit(
       id: map['id'] as String? ?? '0',
+      name: map['name'] as String?,
       sex: map['sex'] as String? ?? 'U',
       color: map['color'] as String? ?? 'Unknown',
       weight: (map['weight'] as num?)?.toDouble() ?? 0.0,

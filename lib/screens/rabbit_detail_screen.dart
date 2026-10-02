@@ -37,6 +37,7 @@ import 'pedigree_screen.dart';
 import 'finance_screen.dart';
 import 'home_dashboard_screen.dart' show HomeDashboardScreen;
 import '../constants/app_colors.dart';
+import '../widgets/purple_dialog.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
@@ -432,10 +433,11 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ✅ Avatar - grey outline, less rounded corner
+            // ✅ Avatar - grey outline, less rounded corner, with sale ribbon if tagged
             Container(
               width: 82,
               height: 82,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: Colors.white,
@@ -447,13 +449,29 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       )
                     : null,
               ),
-              child: hasPhoto && photoPath != null && File(photoPath).existsSync()
-                  ? null
-                  : Icon(
-                      PhosphorIconsDuotone.rabbit,
-                      size: 42,
-                      color: _primaryColor,
+              child: Stack(
+                children: [
+                  if (!hasPhoto || photoPath == null || !File(photoPath).existsSync())
+                    Center(
+                      child: Icon(
+                        PhosphorIconsDuotone.rabbit,
+                        size: 42,
+                        color: _primaryColor,
+                      ),
                     ),
+                  if (_currentRabbit.salePrice != null)
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: Image.asset(
+                        'assets/images/tag_for_sale.png',
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(width: 14),
             // Info
@@ -774,6 +792,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           TasksCard(rabbit: _currentRabbit),
           const SizedBox(height: 24),
           HealthRecordsCard(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
+          WeightHistoryCard(rabbit: _currentRabbit),
         ],
       ),
     );
@@ -1145,20 +1165,79 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${_currentRabbit.name} (${_currentRabbit.id})',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E), letterSpacing: -0.5),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
+                child: FutureBuilder<Rabbit?>(
+                  future: _currentRabbit.lastBreedBuckId != null && _currentRabbit.lastBreedBuckId!.isNotEmpty
+                      ? DatabaseService().getRabbit(_currentRabbit.lastBreedBuckId!)
+                      : Future.value(null),
+                  builder: (ctx2, snapshot) {
+                    final buck = snapshot.data;
+                    final isDoe = _currentRabbit.type == RabbitType.doe;
+                    final hasBreedingBuck = buck != null || (_currentRabbit.lastBreedBuckId != null && _currentRabbit.lastBreedBuckId!.isNotEmpty);
+                    final buckName = buck != null ? (buck.fullName.isNotEmpty ? buck.fullName : buck.name) : (_currentRabbit.lastBreedBuckId ?? '');
+                    final earNum = _currentRabbit.earNumber?.trim().isNotEmpty == true ? _currentRabbit.earNumber!.trim() : _currentRabbit.id.trim();
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 5,
+                            runSpacing: 2,
+                            children: [
+                              if ((_currentRabbit.breederPrefix ?? '').trim().isNotEmpty)
+                                Text(
+                                  _currentRabbit.breederPrefix!.trim(),
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF787774),
+                                  ),
+                                ),
+                              Text(
+                                _currentRabbit.name,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                                ),
+                              ),
+                              if (hasBreedingBuck) ...[
+                                const Text(
+                                  'X',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF787774),
+                                  ),
+                                ),
+                                Text(
+                                  buckName,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF2196F3),
+                                  ),
+                                ),
+                              ],
+                              if (earNum.isNotEmpty)
+                                Text(
+                                  earNum,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF787774),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 12),
@@ -1190,18 +1269,23 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                           ),
                         );
                       }),
-                      _buildMenuItem('Tag for Sale', () {
-                        _showTagForSaleDialog();
-                      }),
+                      if (_currentRabbit.salePrice != null)
+                        _buildMenuItem('Remove Tag for Sale', () {
+                          _removeTagForSale();
+                        })
+                      else
+                        _buildMenuItem('Tag for Sale', () {
+                          _showTagForSaleDialog();
+                        }),
                       _buildMenuItem('Sell', () {
                         _showArchiveModalWithReason(ArchiveReason.sold);
                       }),
                       _buildMenuItem('Cull', () {
                         _showArchiveModalWithReason(ArchiveReason.cull);
-                      }),
+                      }, isDangerous: true),
                       _buildMenuItem('Died', () {
                         _showArchiveModalWithReason(ArchiveReason.dead);
-                      }),
+                      }, isDangerous: true),
                       _buildMenuItem('Delete', () {
                         _confirmDeleteRabbit();
                       }, isDestructive: true),
@@ -1217,7 +1301,19 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
-  void _showCageCardDialog() {
+  Future<void> _showCageCardDialog() async {
+    String sireName = '—';
+    String damName = '—';
+    if (_currentRabbit.sireId != null && _currentRabbit.sireId!.isNotEmpty) {
+      final s = await _db.getRabbit(_currentRabbit.sireId!);
+      sireName = s != null ? (s.fullName.isNotEmpty ? s.fullName : s.name) : (!RegExp(r'^(R-|PED-|ped_|K-|F-|\d+|[0-9a-fA-F-]{8,})').hasMatch(_currentRabbit.sireId!) ? _currentRabbit.sireId! : '—');
+    }
+    if (_currentRabbit.damId != null && _currentRabbit.damId!.isNotEmpty) {
+      final d = await _db.getRabbit(_currentRabbit.damId!);
+      damName = d != null ? (d.fullName.isNotEmpty ? d.fullName : d.name) : (!RegExp(r'^(R-|PED-|ped_|K-|F-|\d+|[0-9a-fA-F-]{8,})').hasMatch(_currentRabbit.damId!) ? _currentRabbit.damId! : '—');
+    }
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1255,7 +1351,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   const SizedBox(height: 4),
                   Text('DOB: ${_currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : "—"}'),
                   const SizedBox(height: 4),
-                  Text('Sire: ${_currentRabbit.sireId ?? "—"}   |   Dam: ${_currentRabbit.damId ?? "—"}'),
+                  Text('Sire: $sireName   |   Dam: $damName'),
                 ],
               ),
             ),
@@ -1291,8 +1387,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   void _showTagForSaleDialog() {
-    final priceController = TextEditingController(text: _currentRabbit.salePrice != null ? _currentRabbit.salePrice.toString() : '');
-    final notesController = TextEditingController(text: _currentRabbit.notes ?? '');
+    final priceController = TextEditingController(
+        text: (_currentRabbit.salePrice != null && _currentRabbit.salePrice! > 0)
+            ? _currentRabbit.salePrice.toString()
+            : '');
+    final notesController =
+        TextEditingController(text: _currentRabbit.notes ?? '');
 
     showDialog(
       context: context,
@@ -1307,9 +1407,10 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             const SizedBox(height: 12),
             TextField(
               controller: priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: 'Price (\$)',
+                labelText: 'Price (\$) (optional)',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.attach_money),
               ),
@@ -1318,7 +1419,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             TextField(
               controller: notesController,
               decoration: const InputDecoration(
-                labelText: 'Sale Notes',
+                labelText: 'Sale Notes (optional)',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1327,23 +1428,28 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final price = double.tryParse(priceController.text.trim());
+              final price = double.tryParse(priceController.text.trim()) ?? 0.0;
               final updated = _currentRabbit.copyWith(
                 salePrice: price,
-                notes: notesController.text.trim().isNotEmpty ? notesController.text.trim() : _currentRabbit.notes,
+                notes: notesController.text.trim().isNotEmpty
+                    ? notesController.text.trim()
+                    : _currentRabbit.notes,
               );
               await _db.updateRabbit(updated);
               await _refreshRabbitData();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${_currentRabbit.name} tagged for sale${price != null ? " (\$${price.toStringAsFixed(2)})" : ""}'),
+                    content: Text(
+                        '${_currentRabbit.name} tagged for sale${price > 0 ? " (\$${price.toStringAsFixed(2)})" : ""}'),
                     backgroundColor: const Color(0xFF7B6BA0),
+                    behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
@@ -1351,13 +1457,31 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7B6BA0),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Save'),
+            child: const Text('Tag for Sale'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _removeTagForSale() async {
+    final updated = _currentRabbit.copyWith(
+      salePrice: null,
+    );
+    await _db.updateRabbit(updated);
+    await _refreshRabbitData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_currentRabbit.name} removed from sale tag'),
+          backgroundColor: const Color(0xFF7B6BA0),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showQuarantineModal() {
@@ -1383,7 +1507,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => StopQuarantineModal(
         rabbit: _currentRabbit,
         onComplete: () {
-          Navigator.pop(context);
           _refreshRabbitData();
         },
       ),
@@ -1399,8 +1522,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         rabbit: _currentRabbit,
         preselectedReason: reason,
         onComplete: () {
-          Navigator.pop(context);
-          Navigator.pop(context);
+          if (mounted && Navigator.canPop(context)) {
+            Navigator.pop(context, true);
+          }
         },
       ),
     );
@@ -1417,29 +1541,26 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     _loadBreedingStats();
   }
 
-  void _confirmDeleteRabbit() {
-    showDialog(
+  void _confirmDeleteRabbit() async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Rabbit'),
-        content: Text('Are you sure you want to permanently delete "${_currentRabbit.name}"? This action cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: kNeutral500))),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _db.deleteRabbit(_currentRabbit.id);
-              if (mounted) {
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_currentRabbit.name} deleted'), backgroundColor: kPinkDeep));
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: kPinkDeep, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      title: 'Delete Rabbit',
+      content:
+          'Are you sure you want to permanently delete "${_currentRabbit.name}"? This action cannot be undone.',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      await _db.deleteRabbit(_currentRabbit.id);
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${_currentRabbit.name} deleted'),
+            backgroundColor: kPinkDeep));
+      }
+    }
   }
 
   void _handleEdit() async {
@@ -1461,7 +1582,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => MoveCageModal(
           rabbit: _currentRabbit,
           onComplete: () {
-            Navigator.pop(context);
             _refreshRabbitData();
           }),
     );
@@ -1475,7 +1595,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => LogWeightModal(
           rabbit: _currentRabbit,
           onComplete: () {
-            Navigator.pop(context);
             _refreshRabbitData();
           }),
     );
@@ -1489,7 +1608,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => HealthRecordModal(
           rabbit: _currentRabbit,
           onComplete: () {
-            Navigator.pop(context);
             _refreshRabbitData();
           }),
     );
@@ -1503,8 +1621,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       builder: (context) => ArchiveModal(
           rabbit: _currentRabbit,
           onComplete: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            if (mounted && Navigator.canPop(context)) {
+              Navigator.pop(context, true);
+            }
           }),
     );
   }

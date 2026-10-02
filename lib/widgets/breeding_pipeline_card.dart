@@ -10,6 +10,7 @@ import 'modals/log_birth_modal.dart';
 import 'modals/confirm_pregnancy_modal.dart';
 import 'modals/wean_litter_modal.dart';
 import 'modals/log_breeding_modal.dart';
+import 'purple_dialog.dart';
 
 class BreedingPipelineCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -915,35 +916,19 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
     );
   }
 
-  void _showMarkOpenDialog(BuildContext context) {
-    showDialog(
+  void _showMarkOpenDialog(BuildContext context) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Breeding Record'),
-        content: Text(
-          'This will end the current breeding cycle. Are you sure?',
-          style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _handleMarkOpen();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD94452),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('Delete Breeding', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'Delete Breeding Record',
+      content: 'This will end the current breeding cycle. Are you sure?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete Breeding',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      await _handleMarkOpen();
+    }
   }
 
   Future<void> _handleMarkOpen() async {

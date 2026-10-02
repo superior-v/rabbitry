@@ -14,6 +14,7 @@ import '../modals/archive_modal.dart';
 import '../modals/quarantine_modal.dart';
 import '../modals/stop_quarantine_modal.dart';
 import '../modals/log_breeding_from_buck_modal.dart';
+import '../purple_dialog.dart';
 
 class RabbitActionSheet extends StatelessWidget {
   final Rabbit rabbit;
@@ -50,25 +51,79 @@ class RabbitActionSheet extends StatelessWidget {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      rabbit.fullName.isNotEmpty ? rabbit.fullName : rabbit.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1C1C1E),
-                        letterSpacing: -0.5,
+              child: FutureBuilder<Rabbit?>(
+                future: rabbit.lastBreedBuckId != null && rabbit.lastBreedBuckId!.isNotEmpty
+                    ? DatabaseService().getRabbit(rabbit.lastBreedBuckId!)
+                    : Future.value(null),
+                builder: (context, snapshot) {
+                  final buck = snapshot.data;
+                  final isDoe = rabbit.type == RabbitType.doe;
+                  final hasBreedingBuck = buck != null || (rabbit.lastBreedBuckId != null && rabbit.lastBreedBuckId!.isNotEmpty);
+                  final buckName = buck != null ? (buck.fullName.isNotEmpty ? buck.fullName : buck.name) : (rabbit.lastBreedBuckId ?? '');
+                  final earNum = rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim();
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 5,
+                          runSpacing: 2,
+                          children: [
+                            if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
+                              Text(
+                                rabbit.breederPrefix!.trim(),
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF787774),
+                                ),
+                              ),
+                            Text(
+                              isDoe ? rabbit.name : (hasBreedingBuck ? rabbit.name : rabbit.name),
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                              ),
+                            ),
+                            if (hasBreedingBuck) ...[
+                              const Text(
+                                'X',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF787774),
+                                ),
+                              ),
+                              Text(
+                                buckName,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF2196F3),
+                                ),
+                              ),
+                            ],
+                            if (earNum.isNotEmpty)
+                              Text(
+                                earNum,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF787774),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 12),
@@ -112,11 +167,17 @@ class RabbitActionSheet extends StatelessWidget {
                       'Log Health',
                       () => _showHealthRecordModal(context),
                     ),
-                    // 4. Move - Resting Quarantine or Archive (or Open)
-                    _buildOption(
-                      'Move',
-                      () => _showMoveOptions(context),
-                    ),
+                    // 4. Move - For a Bred Doe REPLACE with Quarantine
+                    if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue)
+                      _buildOption(
+                        'Quarantine',
+                        () => _showQuarantineModal(context),
+                      )
+                    else
+                      _buildOption(
+                        'Move',
+                        () => _showMoveOptions(context),
+                      ),
                     // 5. Cancel Breeding (if Bred)
                     if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue)
                       _buildOption(
@@ -204,7 +265,7 @@ class RabbitActionSheet extends StatelessWidget {
                             await _moveToOpen(context);
                           },
                         ),
-                      if (rabbit.status != RabbitStatus.resting)
+                      if (rabbit.status != RabbitStatus.resting && rabbit.status != RabbitStatus.pregnant && rabbit.status != RabbitStatus.palpateDue)
                         _buildOption(
                           'Resting',
                           () async {
@@ -456,41 +517,31 @@ class RabbitActionSheet extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteRabbit(BuildContext context) {
-    showDialog(
+  void _confirmDeleteRabbit(BuildContext context) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Rabbit'),
-        content: Text(
+      title: 'Delete Rabbit',
+      content:
           'Are you sure you want to permanently delete "${rabbit.name}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx); // close dialog
-              final db = DatabaseService();
-              await db.deleteRabbit(rabbit.id);
-              onActionComplete();
-              if (context.mounted) {
-                Navigator.pop(context); // close action sheet
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${rabbit.name} deleted'),
-                    backgroundColor: const Color(0xFFD44C47),
-                  ),
-                );
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Color(0xFFD44C47), fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      final db = DatabaseService();
+      await db.deleteRabbit(rabbit.id);
+      onActionComplete();
+      if (context.mounted) {
+        Navigator.pop(context); // close action sheet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${rabbit.name} deleted'),
+            backgroundColor: const Color(0xFFD44C47),
+          ),
+        );
+      }
+    }
   }
 
   void _showArchiveModal(BuildContext context) {

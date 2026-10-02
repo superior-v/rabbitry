@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../services/format_utils.dart';
 import '../screens/rabbit_detail_screen.dart';
 import '../constants/app_colors.dart';
 
@@ -140,7 +141,9 @@ class _ParentageCardState extends State<ParentageCard> {
                       ),
                     ],
                     TextSpan(
-                      text: rabbit?.name ?? fallbackId ?? '-',
+                      text: (rabbit != null && rabbit.name.isNotEmpty && !FormatUtils.isSystemId(rabbit.name))
+                          ? rabbit.name
+                          : FormatUtils.cleanParentName(fallbackId),
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,

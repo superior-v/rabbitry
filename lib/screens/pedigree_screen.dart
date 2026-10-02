@@ -416,7 +416,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                       ),
                       hint: const Text('Choose a rabbit'),
                       value: selectedHerdRabbit,
-                      items: herdOptions.map((r) => DropdownMenuItem(value: r, child: Text('${r.name} (${r.id})'))).toList(),
+                      items: herdOptions.map((r) => DropdownMenuItem(value: r, child: Text((r.breederPrefix != null && r.breederPrefix!.isNotEmpty) ? '${r.breederPrefix} ${r.name}' : r.name))).toList(),
                       onChanged: (val) {
                         setModalState(() {
                           selectedHerdRabbit = val;

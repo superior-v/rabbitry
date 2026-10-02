@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
 import '../services/format_utils.dart';
+import '../services/database_service.dart';
 import '../constants/app_colors.dart';
 
 class RabbitCard extends StatelessWidget {
@@ -166,9 +167,22 @@ class RabbitCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         _buildInfoRow('Ear #:', rabbit.earNumber ?? rabbit.id),
                         const SizedBox(height: 4),
-                        _buildInfoRow('Parents:', (rabbit.sireId != null || rabbit.damId != null) 
-                            ? '${rabbit.sireId ?? '?'} x ${rabbit.damId ?? '?'}' 
-                            : '-'),
+                        FutureBuilder<List<Rabbit?>>(
+                          future: Future.wait([
+                            rabbit.sireId != null && rabbit.sireId!.isNotEmpty ? DatabaseService().getRabbit(rabbit.sireId!) : Future.value(null),
+                            rabbit.damId != null && rabbit.damId!.isNotEmpty ? DatabaseService().getRabbit(rabbit.damId!) : Future.value(null),
+                          ]),
+                          builder: (context, snapshot) {
+                            final s = snapshot.data?[0];
+                            final d = snapshot.data?[1];
+                            final sRaw = s != null ? (s.fullName.isNotEmpty ? s.fullName : s.name) : FormatUtils.cleanParentName(rabbit.sireId);
+                            final dRaw = d != null ? (d.fullName.isNotEmpty ? d.fullName : d.name) : FormatUtils.cleanParentName(rabbit.damId);
+                            final sName = (sRaw != '-' && !FormatUtils.isSystemId(sRaw)) ? sRaw : null;
+                            final dName = (dRaw != '-' && !FormatUtils.isSystemId(dRaw)) ? dRaw : null;
+                            if (sName == null && dName == null) return _buildInfoRow('Parents:', '-');
+                            return _buildInfoRow('Parents:', '${sName ?? '?'} x ${dName ?? '?'}');
+                          },
+                        ),
                         const SizedBox(height: 4),
                         _buildInfoRow('Regn:', rabbit.registrationNumber ?? '-'),
                       ],

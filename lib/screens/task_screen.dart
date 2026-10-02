@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 import '../widgets/modals/log_breeding_modal.dart';
 import '../widgets/modals/future_breeding_plan_modal.dart';
 import '../widgets/modals/rabbit_picker_modal.dart';
+import '../widgets/purple_dialog.dart';
 
 // Primary color constant for theme (mapping to the premium palette)
 const kPrimary = kLilacDeep;
@@ -822,7 +823,7 @@ class TaskScreenState extends State<TaskScreen> {
           border: Border(
             top: BorderSide(
               color: isActive ? Colors.white : Colors.transparent,
-              width: 2.2,
+              width: 2.5,
             ),
           ),
         ),
@@ -831,10 +832,10 @@ class TaskScreenState extends State<TaskScreen> {
           child: Text(
             label.toUpperCase(),
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 13,
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
               color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-              letterSpacing: 0.45,
+              letterSpacing: 0.4,
             ),
           ),
         ),
@@ -2114,16 +2115,13 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   Future<void> _deleteContact(String id) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Contact?'),
-        content: const Text('Are you sure you want to remove this contact?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kError))),
-        ],
-      ),
+      title: 'Delete Contact?',
+      content: 'Are you sure you want to remove this contact?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
     if (confirm == true) {
       await _db.deleteContact(id);
@@ -2176,54 +2174,40 @@ class TaskScreenState extends State<TaskScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () async {
                 if (isFuture) {
-                  // Planned date has NOT arrived yet — block logging
-                  showDialog(
+                  // Planned date has NOT arrived yet — prompt with bright purple dialog
+                  final confirm = await showBrightPurpleDialog<bool>(
                     context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      title: const Text('Breeding Not Yet Due'),
-                      content: Text(
-                        'Breeding can only be logged on or after ${FormatUtils.formatDateShort(date!)}.\n\nPlease come back on the planned date to log this breeding.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('OK', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
+                    title: 'Breeding not due',
+                    content:
+                        'Breeding is not due until ${FormatUtils.formatDateShort(date!)}.\n\nDo you still want to breed today?',
+                    cancelText: 'Cancel',
+                    confirmText: 'OK',
                   );
-                  return;
+                  if (confirm != true) return;
+                } else {
+                  // Planned date has arrived — show normal confirmation
+                  final confirm = await showBrightPurpleDialog<bool>(
+                    context: context,
+                    title: 'Log Planned Mating?',
+                    content:
+                        'The planned mating date (${FormatUtils.formatDateShort(date!)}) has occurred. Would you like to log it now?',
+                    cancelText: 'Cancel',
+                    confirmText: 'Log Breeding',
+                  );
+                  if (confirm != true) return;
                 }
 
-                // Planned date has arrived — show normal confirmation
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    title: const Text('Log Planned Mating?'),
-                    content: Text(
-                      'The planned mating date (${FormatUtils.formatDateShort(date!)}) has occurred. Would you like to log it now?',
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Log Breeding', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true) {
-                  final doe = await _db.getRabbit(plan['doeId']);
-                  final buck = await _db.getRabbit(plan['buckId']);
-                  if (doe == null) {
+                final doe = await _db.getRabbit(plan['doeId']);
+                final buck = await _db.getRabbit(plan['buckId']);
+                if (doe == null) {
+                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Error: Doe not found'), backgroundColor: Color(0xFFD44C47)),
                     );
-                    return;
                   }
+                  return;
+                }
+                if (mounted) {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -2294,16 +2278,13 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   Future<void> _deleteBreedingPlan(String id) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Breeding Plan?'),
-        content: const Text('Are you sure you want to remove this planned mating?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kError))),
-        ],
-      ),
+      title: 'Delete Breeding Plan?',
+      content: 'Are you sure you want to remove this planned mating?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
     if (confirm == true) {
       await _db.deleteBreedingPlan(id);

@@ -936,8 +936,8 @@ class DatabaseService {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
-      where: 'status != ? AND type != ? AND type != ?',
-      whereArgs: ['RabbitStatus.archived', 'RabbitType.pedigree', 'pedigree'],
+      where: 'status != ? AND status != ? AND status != ? AND status NOT LIKE ? AND archiveDate IS NULL AND archiveReason IS NULL AND type != ? AND type != ? AND id NOT LIKE ? AND id NOT LIKE ?',
+      whereArgs: ['RabbitStatus.archived', 'archived', 'Archived', '%archived%', 'RabbitType.pedigree', 'pedigree', 'PED-%', 'ped_%'],
       orderBy: 'name ASC',
     );
     final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
@@ -953,9 +953,9 @@ class DatabaseService {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'rabbits',
-      where: 'status = ? AND type != ? AND type != ?',
-      whereArgs: ['RabbitStatus.archived', 'RabbitType.pedigree', 'pedigree'],
-      orderBy: 'archiveDate DESC',
+      where: '(status = ? OR status = ? OR status = ? OR status LIKE ? OR archiveDate IS NOT NULL OR archiveReason IS NOT NULL) AND type != ? AND type != ? AND id NOT LIKE ? AND id NOT LIKE ?',
+      whereArgs: ['RabbitStatus.archived', 'archived', 'Archived', '%archived%', 'RabbitType.pedigree', 'pedigree', 'PED-%', 'ped_%'],
+      orderBy: 'COALESCE(archiveDate, updatedAt, createdAt) DESC',
     );
     final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
     final resolved = <Rabbit>[];
@@ -976,6 +976,30 @@ class DatabaseService {
     if (maps.isEmpty) return null;
     final r = Rabbit.fromMap(maps.first);
     return await _resolveRabbitPhotos(r);
+  }
+
+  /// Returns a map of all rabbit IDs to their display names (Prefix + Name or Name)
+  Future<Map<String, String>> getAllRabbitDisplayNames() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      'SELECT id, name, breederPrefix FROM rabbits',
+    );
+    final result = <String, String>{};
+    for (final map in maps) {
+      final id = map['id'] as String?;
+      final name = (map['name'] as String? ?? '').trim();
+      final prefix = (map['breederPrefix'] as String? ?? '').trim();
+      if (id != null && id.isNotEmpty) {
+        if (prefix.isNotEmpty && name.isNotEmpty) {
+          result[id] = '$prefix $name';
+        } else if (name.isNotEmpty) {
+          result[id] = name;
+        } else if (prefix.isNotEmpty) {
+          result[id] = prefix;
+        }
+      }
+    }
+    return result;
   }
 
   Future<List<Rabbit>> getRabbitsByType(RabbitType type) async {

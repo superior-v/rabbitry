@@ -122,21 +122,26 @@ class _StatsCardsState extends State<StatsCards> {
   Widget _buildKitOutcomesCard() {
     int sold = 0, breeder = 0, cull = 0, died = 0, total = 0;
     for (var l in _litters) {
-      total += l.totalKits ?? 0;
+      final int deadBorn = l.deadKits ?? 0;
+      died += deadBorn;
+
       for (var k in l.kits) {
-        if (k.status == 'Sold') {
+        final st = k.status.trim().toLowerCase();
+        if (st == 'sold') {
           sold++;
-        } else if (k.status == 'Breeder') {
+        } else if (st == 'breeder') {
           breeder++;
-        } else if (k.status == 'Cull' || k.status == 'Butchered') {
+        } else if (st == 'cull' || st == 'culled' || st == 'butchered') {
           cull++;
-        } else if (k.status == 'Dead' || k.status == 'Died') {
+        } else if (st == 'dead' || st == 'died' || st == 'deceased') {
           died++;
         }
       }
-      if (l.kits.isEmpty && l.deadKits != null) {
-        died += l.deadKits!;
-      }
+
+      final int litterTotal = (l.totalKits != null && l.totalKits! > 0)
+          ? l.totalKits!
+          : (l.kits.length + deadBorn);
+      total += litterTotal;
     }
 
     final int alive = (total - died).clamp(0, total);
@@ -815,7 +820,6 @@ class _StatsCardsState extends State<StatsCards> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Recent transactions
                 if (_transactions.isNotEmpty)
                   ..._transactions.take(2).map((t) => _buildTransactionItem(t))
                 else
@@ -828,27 +832,6 @@ class _StatsCardsState extends State<StatsCards> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 12),
-                Center(
-                  child: GestureDetector(
-                    onTap: widget.onViewAllTransactions,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          'View All Transactions',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: _kBlueAccent,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 14, color: _kBlueAccent),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

@@ -260,10 +260,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             ? partner
             : (partnerRabbit?.name ?? (isDam ? litter.sire : litter.dam)))
         .trim();
-    final partnerEarNumber = (partnerRabbit?.earNumber ?? '').trim();
-    final String partnerDisplay = partnerName.isNotEmpty
-        ? (partnerEarNumber.isNotEmpty ? '$partnerName ($partnerEarNumber)' : partnerName)
-        : 'Unknown';
+    final String partnerDisplay = partnerName.isNotEmpty ? partnerName : 'Unknown';
 
     String fullAgeStr = '';
     if (isMissedLitter) {
@@ -273,7 +270,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     } else if (isLitterDied) {
       fullAgeStr = 'Litter Died';
     } else {
-      fullAgeStr = 'Age: ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
+      fullAgeStr = 'Age • ${FormatUtils.formatAge(litter.kindleDate ?? litter.dob)}';
     }
 
     return Container(
@@ -311,7 +308,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      isMissedLitter ? 'MISSED LITTER' : litter.id,
+                      isMissedLitter ? 'Missed Litter' : litter.id,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -346,63 +343,71 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _showLitterActionsMenu(context, litter),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        partnerDisplay,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF4F4F56),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Bred $bredDateStr',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF4F4F56),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                if (isMissedLitter) ...[
-                  Text(
-                    'Due $dueDateStr',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF4F4F56),
-                    ),
-                  ),
-                ] else ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '$born Born • $alive Alive',
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Column: Partner name, Born/Alive, Age/Status
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          partnerDisplay,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF4F4F56),
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        if (!isMissedLitter) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            '$born Born • $alive Alive',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF4F4F56),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (fullAgeStr.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              fullAgeStr,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF4F4F56),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Right Column: Bred date, Born/Due date (Aligned vertically on the left edge)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Born $bornDateStr',
+                        'Bred $bredDateStr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF4F4F56),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isMissedLitter ? 'Due $dueDateStr' : 'Born $bornDateStr',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -412,18 +417,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ],
                   ),
                 ],
-                if (fullAgeStr.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    fullAgeStr,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isLitterDied ? FontWeight.w700 : FontWeight.w500,
-                      color: const Color(0xFF4F4F56),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
 

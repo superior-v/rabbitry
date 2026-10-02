@@ -62,6 +62,9 @@ flutter:
     - family: CertificateSignature
       fonts:
         - asset: assets/fonts/MrsSaintDelafield-Regular.ttf
+    - family: CertificateBadgeWestern
+      fonts:
+        - asset: assets/fonts/HoltwoodOneSC-Regular.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

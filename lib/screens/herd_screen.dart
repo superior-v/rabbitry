@@ -70,6 +70,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   List<Barn> _barns = [];
   List<Map<String, dynamic>> _growOutKits = []; // Kits in grow-out phase
   List<Litter> _litters = [];
+  final Map<String, Rabbit> _rabbitCache = {};
+  final Map<String, String> _rabbitNameMap = {};
+  final Set<String> _fetchingIds = {};
   bool _isLoading = true;
   int _dataVersion = 0;
 
@@ -128,8 +131,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       await _db.syncAllNursingDoes();
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
+      final pedigreeRabbits = await _db.getRabbitsByType(RabbitType.pedigree);
       final barnsData = await _db.getAllBarns();
       final litters = await _db.getLitters();
+      final allNames = await _db.getAllRabbitDisplayNames();
+
+      _rabbitNameMap.clear();
+      _rabbitNameMap.addAll(allNames);
+
+      for (final r in rabbits) _rabbitCache[r.id] = r;
+      for (final r in archivedRabbits) _rabbitCache[r.id] = r;
+      for (final r in pedigreeRabbits) _rabbitCache[r.id] = r;
 
       // Extract grow-out kits from litters
       final growOutKits = <Map<String, dynamic>>[];
@@ -145,13 +157,13 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         }
       }
 
-      print('ðŸ“Š Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived, ${growOutKits.length} grow-out kits');
+      print('📊 Loaded ${rabbits.length} rabbits, ${archivedRabbits.length} archived, ${growOutKits.length} grow-out kits');
 
       for (var rabbit in rabbits) {
         final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
         final photoPath = hasPhoto ? rabbit.photos!.first : null;
         final exists = photoPath != null ? File(photoPath).existsSync() : false;
-        print('  ðŸ“¸ ${rabbit.name}: hasPhoto=$hasPhoto, path=$photoPath, exists=$exists');
+        print('  📸 ${rabbit.name}: hasPhoto=$hasPhoto, path=$photoPath, exists=$exists');
       }
 
       if (mounted) {
@@ -260,11 +272,20 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     if (!mounted) return;
 
     try {
-      print('ðŸ”„ Refreshing herd data...');
+      print('🔄 Refreshing herd data...');
       final rabbits = await _db.getAllRabbits();
       final archivedRabbits = await _db.getArchivedRabbits();
+      final pedigreeRabbits = await _db.getRabbitsByType(RabbitType.pedigree);
       final barnsData = await _db.getAllBarns();
       final litters = await _db.getLitters();
+      final allNames = await _db.getAllRabbitDisplayNames();
+
+      _rabbitNameMap.clear();
+      _rabbitNameMap.addAll(allNames);
+
+      for (final r in rabbits) _rabbitCache[r.id] = r;
+      for (final r in archivedRabbits) _rabbitCache[r.id] = r;
+      for (final r in pedigreeRabbits) _rabbitCache[r.id] = r;
 
       if (mounted) {
         setState(() {
@@ -318,8 +339,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     if (!mounted) return;
     final rabbits = await _db.getAllRabbits();
     final archivedRabbits = await _db.getArchivedRabbits();
+    final pedigreeRabbits = await _db.getRabbitsByType(RabbitType.pedigree);
     final barnsData = await _db.getAllBarns();
     final litters = await _db.getLitters();
+
+    for (final r in rabbits) _rabbitCache[r.id] = r;
+    for (final r in archivedRabbits) _rabbitCache[r.id] = r;
+    for (final r in pedigreeRabbits) _rabbitCache[r.id] = r;
+
     if (mounted) {
       setState(() {
         _allRabbits = rabbits;
@@ -951,10 +978,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     status.toUpperCase(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                      color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
-                      letterSpacing: 0.5,
+                      color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
@@ -1232,13 +1259,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       if (_currentFilter != 'All') {
         if (_currentFilter == 'Sold' && r.archiveReason != ArchiveReason.sold) return false;
         if (_currentFilter == 'Butchered' && r.archiveReason != ArchiveReason.butchered) return false;
-        if (_currentFilter == 'Dead' && r.archiveReason != ArchiveReason.dead) return false;
-        if (_currentFilter == 'Cull' && r.archiveReason != ArchiveReason.cull) return false;
+        if (_currentFilter == 'Dead' && r.archiveReason != ArchiveReason.dead && (r.deathCause == null || r.deathCause!.isEmpty)) return false;
+        if (_currentFilter == 'Cull' && r.archiveReason != ArchiveReason.cull && (r.cullReason == null || r.cullReason!.isEmpty)) return false;
       }
 
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        if (!r.name.toLowerCase().contains(query) && !r.id.toLowerCase().contains(query)) {
+        final fullName = r.fullName.toLowerCase();
+        if (!r.name.toLowerCase().contains(query) && !r.id.toLowerCase().contains(query) && !fullName.contains(query)) {
           return false;
         }
       }
@@ -1601,25 +1629,53 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   String _getRabbitNameById(String? id) {
-    if (id == null || id.trim().isEmpty) return '';
+    if (id == null || id.trim().isEmpty) return '-';
     final trimmed = id.trim();
+
+    if (_rabbitNameMap.containsKey(trimmed)) {
+      final name = _rabbitNameMap[trimmed]!;
+      if (name.isNotEmpty && !FormatUtils.isSystemId(name)) {
+        return name;
+      }
+    }
     for (final r in _allRabbits) {
       if (r.id == trimmed) {
-        if (r.breederPrefix != null && r.breederPrefix!.isNotEmpty) {
-          return '${r.breederPrefix} ${r.name}';
-        }
-        return r.name;
+        return r.fullName.isNotEmpty ? r.fullName : r.name;
       }
     }
     for (final r in _archivedList) {
       if (r.id == trimmed) {
-        if (r.breederPrefix != null && r.breederPrefix!.isNotEmpty) {
-          return '${r.breederPrefix} ${r.name}';
-        }
-        return r.name;
+        return r.fullName.isNotEmpty ? r.fullName : r.name;
       }
     }
+    final cached = _rabbitCache[trimmed];
+    if (cached != null) {
+      final n = cached.fullName.isNotEmpty ? cached.fullName : cached.name;
+      if (n.isNotEmpty && !FormatUtils.isSystemId(n)) return n;
+    }
+
+    if (FormatUtils.isSystemId(trimmed)) {
+      _fetchRabbitNameInBackground(trimmed);
+      return '-';
+    }
+
     return trimmed;
+  }
+
+  void _fetchRabbitNameInBackground(String id) {
+    if (_fetchingIds.contains(id)) return;
+    _fetchingIds.add(id);
+    _db.getRabbit(id).then((r) {
+      if (r != null && mounted) {
+        final displayName = r.fullName.isNotEmpty ? r.fullName : r.name;
+        setState(() {
+          _rabbitCache[id] = r;
+          if (displayName.isNotEmpty && !FormatUtils.isSystemId(displayName)) {
+            _rabbitNameMap[id] = displayName;
+          }
+        });
+      }
+    }).catchError((_) {});
   }
 
   int _getRabbitLittersCount(Rabbit rabbit) {

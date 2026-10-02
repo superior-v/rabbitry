@@ -446,7 +446,7 @@ class Rabbit {
       ),
       status: () {
         return RabbitStatus.values.firstWhere(
-          (e) => e.toString() == map['status'],
+          (e) => e.toString() == map['status'] || e.name == map['status'],
           orElse: () {
             final st = (map['status'] as String? ?? '').toLowerCase();
             if (st.contains('pregnant') || st == 'bred') return RabbitStatus.pregnant;
@@ -457,7 +457,8 @@ class Rabbit {
             if (st.contains('inactive')) return RabbitStatus.inactive;
             if (st.contains('growout') || st.contains('grow out')) return RabbitStatus.growout;
             if (st.contains('quarantine')) return RabbitStatus.quarantine;
-            if (st.contains('archived')) return RabbitStatus.archived;
+            if (st.contains('archived') || st.contains('dead') || st.contains('died') || st.contains('cull') || st.contains('sold') || st.contains('butcher')) return RabbitStatus.archived;
+            if (map['archiveDate'] != null || map['archiveReason'] != null) return RabbitStatus.archived;
             return RabbitStatus.open;
           },
         );
@@ -493,12 +494,27 @@ class Rabbit {
       quarantineStartDate: map['quarantineStartDate'] != null ? DateTime.parse(map['quarantineStartDate']) : null,
       quarantineEndDate: map['quarantineEndDate'] != null ? DateTime.parse(map['quarantineEndDate']) : null,
       quarantineReason: map['quarantineReason'],
-      archiveReason: map['archiveReason'] != null
-          ? ArchiveReason.values.firstWhere(
-              (e) => e.toString() == map['archiveReason'],
-              orElse: () => ArchiveReason.sold,
-            )
-          : null,
+      archiveReason: () {
+        if (map['archiveReason'] == null) return null;
+        final raw = map['archiveReason'].toString().trim();
+        final rawLower = raw.toLowerCase();
+        if (rawLower.contains('dead') || rawLower.contains('died') || rawLower.contains('deceased')) {
+          return ArchiveReason.dead;
+        }
+        if (rawLower.contains('cull')) {
+          return ArchiveReason.cull;
+        }
+        if (rawLower.contains('butcher') || rawLower.contains('meat')) {
+          return ArchiveReason.butchered;
+        }
+        if (rawLower.contains('sold') || rawLower.contains('sale')) {
+          return ArchiveReason.sold;
+        }
+        return ArchiveReason.values.firstWhere(
+          (e) => e.toString() == raw || e.name == raw || e.name.toLowerCase() == rawLower,
+          orElse: () => ArchiveReason.dead,
+        );
+      }(),
       archiveDate: map['archiveDate'] != null ? DateTime.parse(map['archiveDate']) : null,
       archiveNotes: map['archiveNotes'],
       salePrice: map['salePrice']?.toDouble(),

@@ -105,19 +105,20 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: kNeutral100,
+                      color: const Color(0xFFEDE5FA),
                       borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: const Color(0xFFD4C8EB)),
                     ),
-                    child: Row(
+                    child: const Row(
                       children: [
-                        Icon(Icons.add, size: 14, color: kNeutral600),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Log',
+                        Icon(Icons.add_rounded, size: 15, color: Color(0xFF7B6BA0)),
+                        SizedBox(width: 4),
+                        Text(
+                          'LOG',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: kNeutral600,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF7B6BA0),
                             letterSpacing: 0.5,
                           ),
                         ),

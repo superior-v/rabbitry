@@ -5,6 +5,7 @@ import '../services/format_utils.dart';
 import '../services/database_service.dart';
 import '../constants/app_colors.dart';
 import 'modals/health_record_modal.dart';
+import 'purple_dialog.dart';
 
 class HealthRecordsCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -63,28 +64,13 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
   }
 
   Future<void> _deleteRecord(String id) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Health Record', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text('Are you sure you want to delete this health record?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Health Record',
+      content: 'Are you sure you want to delete this health record?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -144,21 +130,22 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                 GestureDetector(
                   onTap: _showAddRecordModal,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: kNeutral100,
+                      color: const Color(0xFFEDE5FA),
                       borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: const Color(0xFFD4C8EB)),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.add, size: 14, color: kNeutral600),
+                        Icon(Icons.add_rounded, size: 15, color: Color(0xFF7B6BA0)),
                         SizedBox(width: 4),
                         Text(
                           'ADD',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: kNeutral600,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF7B6BA0),
                             letterSpacing: 0.5,
                           ),
                         ),

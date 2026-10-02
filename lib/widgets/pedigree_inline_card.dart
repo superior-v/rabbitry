@@ -613,6 +613,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         options: options,
         onSelect: onSelect,
         db: _db,
+        breed: widget.rabbit.breed,
       ),
     );
   }
@@ -697,6 +698,7 @@ class _PedigreeEntryModal extends StatefulWidget {
   final List<Rabbit> options;
   final Function(Rabbit?) onSelect;
   final DatabaseService db;
+  final String? breed;
 
   const _PedigreeEntryModal({
     required this.label,
@@ -704,6 +706,7 @@ class _PedigreeEntryModal extends StatefulWidget {
     required this.options,
     required this.onSelect,
     required this.db,
+    this.breed,
   });
 
   @override
@@ -714,6 +717,10 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   
+  // Search Controller for Herd Tab
+  final _herdSearchController = TextEditingController();
+  String _herdSearchQuery = '';
+
   // Manual Entry Controllers
   final _nameController = TextEditingController();
   final _colorController = TextEditingController();
@@ -736,12 +743,96 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _gender = widget.type;
+    if ((widget.breed ?? '').isNotEmpty) {
+      _breedController.text = widget.breed!;
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _herdSearchController.dispose();
+    _nameController.dispose();
+    _colorController.dispose();
+    _weightController.dispose();
+    _idController.dispose();
+    _regController.dispose();
+    _gcController.dispose();
+    _legsController.dispose();
+    _breedController.dispose();
+    _champController.dispose();
+    _genotypeController.dispose();
+    super.dispose();
+  }
+
+  List<Rabbit> get _filteredHerdOptions {
+    if (_herdSearchQuery.trim().isEmpty) return widget.options;
+    final q = _herdSearchQuery.trim().toLowerCase();
+    return widget.options.where((r) {
+      final name = r.name.toLowerCase();
+      final prefix = (r.breederPrefix ?? '').toLowerCase();
+      final ear = (r.earNumber ?? '').toLowerCase();
+      final breed = r.breed.toLowerCase();
+      final color = (r.color ?? '').toLowerCase();
+      final cage = (r.cage ?? '').toLowerCase();
+      return name.contains(q) ||
+          prefix.contains(q) ||
+          ear.contains(q) ||
+          breed.contains(q) ||
+          color.contains(q) ||
+          cage.contains(q);
+    }).toList();
+  }
+
+  Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
+    final isDoe = rabbit.type == RabbitType.doe || widget.type == RabbitType.doe;
+    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final prefix = (rabbit.breederPrefix ?? '').trim();
+    final name = rabbit.name.trim();
+    final ear = (rabbit.earNumber?.trim().isNotEmpty == true
+            ? rabbit.earNumber!.trim()
+            : '')
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              color: nameColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                color: Color(0xFF787774),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+      style: TextStyle(fontSize: fontSize),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       decoration: const BoxDecoration(
         color: Color(0xFFF9F7FA),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -779,41 +870,16 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
                         color: Color(0xFF4A3E6D),
                       ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            widget.onSelect(null);
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Leave Blank',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.red.shade700,
-                            ),
-                          ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.6),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
-                          ),
-                        ),
-                      ],
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                      ),
                     ),
                   ],
                 ),
@@ -848,73 +914,136 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   }
 
   Widget _buildHerdTab() {
-     return ListView.separated(
-       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-       itemCount: widget.options.length + 1,
-       separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFE5DEEC)),
-       itemBuilder: (context, index) {
-         if (index == 0) {
-           return ListTile(
-             contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-             leading: Container(
-               width: 38,
-               height: 38,
-               decoration: BoxDecoration(
-                 color: Colors.red.shade50,
-                 shape: BoxShape.circle,
-                 border: Border.all(color: Colors.red.shade200),
-               ),
-               child: Icon(Icons.block, color: Colors.red.shade700, size: 18),
-             ),
-             title: Text(
-               'None (Leave Blank)',
-               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.red.shade700),
-             ),
-             subtitle: Text(
-               'Clear ${widget.label.toLowerCase()} and leave this field blank',
-               style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
-             ),
-             trailing: const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
-             onTap: () {
-               Navigator.pop(context);
-               widget.onSelect(null);
-             },
-           );
-         }
+    final filtered = _filteredHerdOptions;
 
-         final rabbit = widget.options[index - 1];
-         final breedStr = (rabbit.breed != null && rabbit.breed!.isNotEmpty) ? rabbit.breed! : 'Dwarf Hotot';
-         final earStr = (rabbit.earNumber != null && rabbit.earNumber!.isNotEmpty) ? rabbit.earNumber! : '-';
-         final idStr = rabbit.id.length > 8 ? rabbit.id.substring(0, 8).toUpperCase() : rabbit.id.toUpperCase();
-
-         return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            title: Text(
-              rabbit.fullName,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF334155)),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                'Breed: $breedStr • Ear: $earStr • ID: $idStr',
-                style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+    return Column(
+      children: [
+        if (widget.options.length > 3)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+            child: TextField(
+              controller: _herdSearchController,
+              onChanged: (val) => setState(() => _herdSearchQuery = val),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: 'Search by name, prefix, ear #, breed...',
+                hintStyle: const TextStyle(color: Color(0xFF9E9EA7), fontSize: 13.5),
+                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF7B6BA0), size: 20),
+                suffixIcon: _herdSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                        onPressed: () {
+                          _herdSearchController.clear();
+                          setState(() => _herdSearchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: const Color(0xFFF7F2FD),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFEDE5FA)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                ),
               ),
             ),
-            trailing: const Icon(Icons.chevron_right, size: 18, color: Color(0xFF94A3B8)),
-            onTap: () {
-              Navigator.pop(context);
-              widget.onSelect(rabbit);
+          ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            itemCount: filtered.length + 1,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onSelect(null);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE5E5EA)),
+                    ),
+                    child: const Text(
+                      'Leave Blank',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF636366),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final rabbit = filtered[index - 1];
+              final details = <String>[];
+              if (rabbit.breed.isNotEmpty) details.add(rabbit.breed);
+              if ((rabbit.color ?? '').isNotEmpty) details.add(rabbit.color!);
+              if ((rabbit.cage ?? '').isNotEmpty) details.add('Cage: ${rabbit.cage}');
+
+              return InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onSelect(rabbit);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5DEEC)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRabbitNameWidget(rabbit, fontSize: 15),
+                            if (details.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                details.join(' • '),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF787774),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF94A3B8)),
+                    ],
+                  ),
+                ),
+              );
             },
-         );
-       },
-     );
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildManualTab() {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -926,42 +1055,42 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // NAME
-                _buildOutlinedField('NAME', _nameController, hint: 'e.g. Bella'),
+                // Name
+                _buildOutlinedField('Name', _nameController),
                 const SizedBox(height: 14),
 
-                // BREED
-                _buildOutlinedField('BREED', _breedController, hint: 'e.g. Dwarf Hotot'),
+                // Breed
+                _buildOutlinedField('Breed', _breedController),
                 const SizedBox(height: 14),
 
                 // Color | Weight
                 Row(
                   children: [
-                    Expanded(child: _buildOutlinedField('Color', _colorController, hint: 'e.g. Black')),
+                    Expanded(child: _buildOutlinedField('Color', _colorController)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildOutlinedField('Weight', _weightController, hint: 'e.g. 3.5', isNumber: true)),
+                    Expanded(child: _buildOutlinedField('Weight', _weightController, isNumber: true)),
                   ],
                 ),
                 const SizedBox(height: 14),
 
-                // EAR # | BORN
+                // Ear # | Born
                 Row(
                   children: [
-                    Expanded(child: _buildOutlinedField('EAR #', _idController, hint: 'e.g. L01')),
+                    Expanded(child: _buildOutlinedField('Ear #', _idController)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildDatePicker('BORN', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
+                    Expanded(child: _buildDatePicker('Born', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
                   ],
                 ),
                 const SizedBox(height: 14),
 
-                // LEGS | REG # | GC #
+                // Legs | Reg # | GC #
                 Row(
                   children: [
-                    Expanded(flex: 1, child: _buildOutlinedField('LEGS', _legsController, isNumber: true)),
-                    const SizedBox(width: 10),
-                    Expanded(flex: 2, child: _buildOutlinedField('REG #', _regController)),
-                    const SizedBox(width: 10),
-                    Expanded(flex: 2, child: _buildOutlinedField('GC #', _gcController)),
+                    Expanded(flex: 1, child: _buildOutlinedField('Legs', _legsController, isNumber: true)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 1, child: _buildOutlinedField('Reg #', _regController)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 1, child: _buildOutlinedField('GC #', _gcController)),
                   ],
                 ),
               ],
@@ -978,12 +1107,13 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
                     widget.onSelect(null);
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    side: BorderSide(color: Colors.red.shade300),
+                    foregroundColor: const Color(0xFF636366),
+                    side: const BorderSide(color: Color(0xFFDCDCE0)),
+                    backgroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Leave Blank', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  child: const Text('Leave Blank', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF636366))),
                 ),
               ),
               const SizedBox(width: 12),
@@ -992,13 +1122,13 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
                 child: ElevatedButton(
                   onPressed: _saveManual,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6B2D6D),
-                    foregroundColor: Colors.white,
+                    backgroundColor: kLilacLight,
+                    foregroundColor: kLilacText,
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
-                  child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kLilacText)),
                 ),
               ),
             ],
@@ -1046,7 +1176,7 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     widget.onSelect(newRabbit);
   }
 
-  Widget _buildOutlinedField(String label, TextEditingController controller, {String? hint, bool isNumber = false}) {
+  Widget _buildOutlinedField(String label, TextEditingController controller, {bool isNumber = false}) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
@@ -1056,8 +1186,6 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
         labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
         floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w400, fontSize: 13),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1095,11 +1223,11 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
             const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF4F4F56)),
             const SizedBox(width: 8),
             Text(
-              value != null ? FormatUtils.formatDate(value) : 'Select Date',
-              style: TextStyle(
+              value != null ? FormatUtils.formatDate(value) : '',
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: value != null ? const Color(0xFF4F4F56) : const Color(0xFF94A3B8),
+                color: Color(0xFF4F4F56),
               ),
             ),
           ],

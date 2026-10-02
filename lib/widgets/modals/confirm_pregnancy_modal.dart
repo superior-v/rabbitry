@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/format_utils.dart';
+import '../../constants/app_colors.dart';
 
 class ConfirmPregnancyModal extends StatefulWidget {
   final Rabbit doe;
@@ -19,58 +21,174 @@ class ConfirmPregnancyModal extends StatefulWidget {
 
 class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
   final DatabaseService _db = DatabaseService();
-  bool? _isPregnant = true; // Default to 'Yes, Bred' as selected in screenshot
+  bool? _isPregnant = true;
   bool _isSaving = false;
+  Rabbit? _buck;
+  String? _buckName;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.doe.lastBreedBuckId != null && widget.doe.lastBreedBuckId!.isNotEmpty) {
+      _db.getRabbit(widget.doe.lastBreedBuckId!).then((b) {
+        if (b != null && mounted) {
+          setState(() {
+            _buck = b;
+            _buckName = b.fullName.isNotEmpty ? b.fullName : b.name;
+          });
+        }
+      });
+    }
+  }
+
+  String _formatDoeHeader() {
+    final prefix = (widget.doe.breederPrefix ?? '').trim();
+    final name = widget.doe.name.trim();
+    final ear = (widget.doe.earNumber?.trim().isNotEmpty == true
+            ? widget.doe.earNumber!.trim()
+            : widget.doe.id.trim())
+        .toUpperCase();
+
+    final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
+    if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
+      return '$namePart $ear';
+    }
+    return namePart;
+  }
+
+  String _formatBuckHeader() {
+    if (_buck != null) {
+      final prefix = (_buck!.breederPrefix ?? '').trim();
+      final name = _buck!.name.trim();
+      final ear = (_buck!.earNumber?.trim().isNotEmpty == true
+              ? _buck!.earNumber!.trim()
+              : _buck!.id.trim())
+          .toUpperCase();
+      final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
+      if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
+        return '$namePart $ear';
+      }
+      return namePart;
+    }
+
+    final fallbackName = (_buckName ?? widget.doe.lastBreedBuckId ?? 'Unknown Sire').trim();
+    final buckId = (widget.doe.lastBreedBuckId ?? '').trim();
+    if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId.toUpperCase())) {
+      return '$fallbackName ${buckId.toUpperCase()}';
+    }
+    return fallbackName;
+  }
+
+  String get _formattedBredDate {
+    final date = widget.doe.lastBreedDate;
+    if (date != null) {
+      return FormatUtils.formatDate(date);
+    }
+    return FormatUtils.formatDate(DateTime.now());
+  }
 
   @override
   Widget build(BuildContext context) {
-    final doeIdentifier = widget.doe.earNumber != null && widget.doe.earNumber!.isNotEmpty
-        ? widget.doe.earNumber!
-        : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id);
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with X
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header banner (matches LogBirthModal)
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEADBEE),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    'Palpation result for ${widget.doe.name} ($doeIdentifier)',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF6E6D7A),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Log Palpation',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF4A3E6D),
+                        letterSpacing: 0.3,
+                      ),
                     ),
-                  ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 24),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 26),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatDoeHeader(),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatBuckHeader(),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 42),
+                        child: Text(
+                          _formattedBredDate,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+          ),
+          const SizedBox(height: 16),
 
-            // Purple Container holding options
-            Container(
+          // Content Box Style (matches LogBirthModal)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFD6C8EE),
-                borderRadius: BorderRadius.circular(22),
+                color: kLilacWash,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kLilacLight),
               ),
               child: Column(
                 children: [
@@ -92,19 +210,22 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 20),
 
-            // Confirm Button
-            SizedBox(
+          // Confirm Button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: SizedBox(
               width: double.infinity,
-              height: 54,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7B6BA0),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isSaving
@@ -117,17 +238,17 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                         ),
                       )
                     : const Text(
-                        'Confirm',
+                        'Confirm Palpation',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
                       ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -141,15 +262,15 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : Colors.transparent,
-            width: 2,
+            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5DEEC),
+            width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -164,7 +285,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             Icon(
               isYes ? Icons.check_circle : Icons.cancel,
               color: isYes ? const Color(0xFF7B6BA0) : const Color(0xFFD9534F),
-              size: 30,
+              size: 28,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -175,7 +296,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF2C2C2E),
                     ),
@@ -196,7 +317,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               const Icon(
                 Icons.check_circle,
                 color: Color(0xFF7B6BA0),
-                size: 24,
+                size: 22,
               ),
           ],
         ),
@@ -221,8 +342,9 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isPregnant! ? 'Bred status confirmed' : 'Marked as open'),
+            content: Text(_isPregnant! ? 'Palpation logged: Confirmed bred' : 'Palpation logged: Marked as open'),
             backgroundColor: const Color(0xFF7B6BA0),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -232,6 +354,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -242,4 +365,3 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
     }
   }
 }
-

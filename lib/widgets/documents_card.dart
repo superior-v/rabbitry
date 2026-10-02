@@ -13,6 +13,7 @@ import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import '../utils/toast_utils.dart';
+import 'purple_dialog.dart';
 
 // ─── Default folder definitions ──────────────────────────────
 class _FolderDef {
@@ -188,38 +189,36 @@ class _DocumentsCardState extends State<DocumentsCard> {
     final ctrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('New Folder', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: TextField(
+      builder: (_) => BrightPurpleDialog(
+        title: 'New Folder',
+        textAlign: TextAlign.start,
+        contentWidget: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Folder name',
             filled: true,
             fillColor: kNeutral100,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+            ),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kLilacDeep,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final name = ctrl.text.trim();
-              if (name.isNotEmpty && !_allFolderNames.contains(name)) {
-                setState(() => _customFolderNames.add(name));
-                await _saveCustomFolders();
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Create'),
-          ),
-        ],
+        cancelText: 'Cancel',
+        confirmText: 'Create',
+        onConfirm: () async {
+          final name = ctrl.text.trim();
+          if (name.isNotEmpty && !_allFolderNames.contains(name)) {
+            setState(() => _customFolderNames.add(name));
+            await _saveCustomFolders();
+          }
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -537,35 +536,37 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
     final ctrl = TextEditingController(text: _folderName);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Rename Folder', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: TextField(
+      builder: (_) => BrightPurpleDialog(
+        title: 'Rename Folder',
+        textAlign: TextAlign.start,
+        contentWidget: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'New folder name',
             filled: true,
             fillColor: kNeutral100,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+            ),
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kLilacDeep, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            onPressed: () async {
-              final newName = ctrl.text.trim();
-              Navigator.pop(context);
-              if (newName.isNotEmpty && newName != _folderName) {
-                await widget.onRenameFolder(_folderName, newName);
-                setState(() => _folderName = newName);
-                await _loadDocs();
-              }
-            },
-            child: const Text('Rename'),
-          ),
-        ],
+        cancelText: 'Cancel',
+        confirmText: 'Rename',
+        onConfirm: () async {
+          final newName = ctrl.text.trim();
+          Navigator.pop(context);
+          if (newName.isNotEmpty && newName != _folderName) {
+            await widget.onRenameFolder(_folderName, newName);
+            setState(() => _folderName = newName);
+            await _loadDocs();
+          }
+        },
       ),
     );
   }

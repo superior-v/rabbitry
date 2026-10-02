@@ -207,28 +207,49 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
   Future<void> _loadParentOptions() async {
     try {
-      final bucks = await _db.getRabbitsByType(RabbitType.buck);
-      final does = await _db.getRabbitsByType(RabbitType.doe);
+      final activeBucks = await _db.getRabbitsByType(RabbitType.buck);
+      final activeDoes = await _db.getRabbitsByType(RabbitType.doe);
+      final archivedRabbits = await _db.getArchivedRabbits();
+      final pedigreeRabbits = await _db.getRabbitsByType(RabbitType.pedigree);
+
+      final archivedBucks = archivedRabbits.where((r) => r.type == RabbitType.buck).toList();
+      final archivedDoes = archivedRabbits.where((r) => r.type == RabbitType.doe).toList();
+      final pedBucks = pedigreeRabbits.where((r) => r.type == RabbitType.buck).toList();
+      final pedDoes = pedigreeRabbits.where((r) => r.type == RabbitType.doe).toList();
+
+      final allBucksMap = <String, Rabbit>{};
+      for (final b in activeBucks) allBucksMap[b.id] = b;
+      for (final b in archivedBucks) allBucksMap[b.id] = b;
+      for (final b in pedBucks) allBucksMap[b.id] = b;
+
+      final allDoesMap = <String, Rabbit>{};
+      for (final d in activeDoes) allDoesMap[d.id] = d;
+      for (final d in archivedDoes) allDoesMap[d.id] = d;
+      for (final d in pedDoes) allDoesMap[d.id] = d;
+
+      final bucks = allBucksMap.values.toList()..sort((a, b) => a.fullName.compareTo(b.fullName));
+      final does = allDoesMap.values.toList()..sort((a, b) => a.fullName.compareTo(b.fullName));
+
       String? sireName;
       String? damName;
 
       if (_selectedSireId != null && _selectedSireId!.isNotEmpty) {
-        final sireMatches = bucks.where((b) => b.id == _selectedSireId).toList();
-        if (sireMatches.isNotEmpty) {
-          sireName = sireMatches.first.name;
+        final s = allBucksMap[_selectedSireId];
+        if (s != null) {
+          sireName = s.fullName.isNotEmpty ? s.fullName : s.name;
         } else {
           final sRabbit = await _db.getRabbit(_selectedSireId!);
-          sireName = sRabbit?.name ?? _selectedSireId;
+          sireName = sRabbit != null ? (sRabbit.fullName.isNotEmpty ? sRabbit.fullName : sRabbit.name) : null;
         }
       }
 
       if (_selectedDamId != null && _selectedDamId!.isNotEmpty) {
-        final damMatches = does.where((d) => d.id == _selectedDamId).toList();
-        if (damMatches.isNotEmpty) {
-          damName = damMatches.first.name;
+        final d = allDoesMap[_selectedDamId];
+        if (d != null) {
+          damName = d.fullName.isNotEmpty ? d.fullName : d.name;
         } else {
           final dRabbit = await _db.getRabbit(_selectedDamId!);
-          damName = dRabbit?.name ?? _selectedDamId;
+          damName = dRabbit != null ? (dRabbit.fullName.isNotEmpty ? dRabbit.fullName : dRabbit.name) : null;
         }
       }
 
@@ -1671,6 +1692,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 )
               else
                 ...options.map((rabbit) {
+                  final displayName = rabbit.fullName.isNotEmpty ? rabbit.fullName : rabbit.name;
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
@@ -1679,11 +1701,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                         style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: label == 'Dam' ? kFemaleColor : kMaleColor),
                       ),
                     ),
-                    title: Text(rabbit.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    subtitle: Text('${rabbit.breed} • ${rabbit.id}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                    title: Text(displayName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    subtitle: Text('${rabbit.breed}${rabbit.status == RabbitStatus.archived ? " • Archived" : ""} • ${rabbit.id}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
                     onTap: () {
                       Navigator.pop(context);
-                      onSelect(rabbit.id, rabbit.name);
+                      onSelect(rabbit.id, displayName);
                     },
                   );
                 }),

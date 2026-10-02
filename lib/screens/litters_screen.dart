@@ -22,6 +22,7 @@ import '../widgets/modals/wean_litter_modal.dart';
 import '../widgets/modals/rabbit_picker_modal.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
+import '../widgets/purple_dialog.dart';
 import 'dart:developer' as developer;
 
 class LittersScreen extends StatefulWidget {
@@ -637,8 +638,8 @@ class LittersScreenState extends State<LittersScreen> {
       'Nursing',
       'Weaned',
       'GrowOut',
-      'Quarantine',
-      'Archive'
+      'Archive',
+      'Quarantine'
     ];
     int currentIndex = stages.indexOf(_currentStage);
     if (currentIndex == -1) currentIndex = 0;
@@ -662,16 +663,16 @@ class LittersScreenState extends State<LittersScreen> {
       'Nursing',
       'Weaned',
       'GrowOut',
-      'Quarantine',
-      'Archive'
+      'Archive',
+      'Quarantine'
     ];
     final displayLabels = {
       'All': 'ALL',
       'Nursing': 'NURSING',
       'Weaned': 'WEANED',
       'GrowOut': 'GROW-OUT',
-      'Quarantine': 'QUARANTINE',
       'Archive': 'ARCHIVE',
+      'Quarantine': 'QUARANTINE',
     };
 
     return Container(
@@ -699,7 +700,7 @@ class LittersScreenState extends State<LittersScreen> {
                 border: Border(
                   top: BorderSide(
                     color: isActive ? Colors.white : Colors.transparent,
-                    width: 3,
+                    width: 2.5,
                   ),
                 ),
               ),
@@ -709,9 +710,9 @@ class LittersScreenState extends State<LittersScreen> {
                   displayLabels[stage] ?? stage.toUpperCase(),
                   style: TextStyle(
                     color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                    letterSpacing: 0.2,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ),
@@ -3157,189 +3158,151 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
-  void _showDeleteFromArchiveConfirmation(Litter litter) {
-    showDialog(
+  void _showDeleteFromArchiveConfirmation(Litter litter) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete from Archive?'),
-        content: Text(
+      title: 'Delete from Archive?',
+      content:
           'Litter ${litter.id} will be removed from the Archive tab in Nursery Manager, but will remain saved under Litter History.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final db = await _db.database;
-                await db.update(
-                  'litters',
-                  {
-                    'status': 'history_only',
-                    'updatedAt': DateTime.now().toIso8601String(),
-                  },
-                  where: 'id = ?',
-                  whereArgs: [litter.id],
-                );
-                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-                await _refreshLitters();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Litter ${litter.id} deleted from Archive (saved under Litter History)'),
-                      backgroundColor: const Color(0xFF7B6BA0),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Delete from Archive', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      cancelText: 'Cancel',
+      confirmText: 'Delete from Archive',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      try {
+        final db = await _db.database;
+        await db.update(
+          'litters',
+          {
+            'status': 'history_only',
+            'updatedAt': DateTime.now().toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [litter.id],
+        );
+        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+        await _refreshLitters();
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Litter ${litter.id} deleted from Archive (saved under Litter History)'),
+              backgroundColor: const Color(0xFF7B6BA0),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
-  void _markLitterAsDied(Litter litter) {
-    showDialog(
+  void _markLitterAsDied(Litter litter) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Mark Litter as Died'),
-        content: Text('Are you sure you want to mark all kits in Litter ${litter.id} as died? This will reset the doe to Open.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final updatedKits = litter.kits.map((k) {
-                  if (!k.isArchived && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
-                    return k.copyWith(status: 'Died');
-                  }
-                  return k;
-                }).toList();
-
-                final updatedLitter = litter.copyWith(
-                  kits: updatedKits,
-                  status: 'Died',
-                  aliveKits: 0,
-                  deadKits: (litter.deadKits ?? 0) + (litter.aliveKits ?? litter.kits.length),
-                );
-
-                await _db.updateLitter(updatedLitter);
-                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-                await _refreshLitters();
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Litter ${litter.id} marked as died'),
-                      backgroundColor: const Color(0xFF7B6BA0),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      title: 'Mark Litter as Died',
+      content:
+          'Are you sure you want to mark all kits in Litter ${litter.id} as died? This will reset the doe to Open.',
+      cancelText: 'Cancel',
+      confirmText: 'Confirm',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      try {
+        final updatedKits = litter.kits.map((k) {
+          if (!k.isArchived && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
+            return k.copyWith(status: 'Died');
+          }
+          return k;
+        }).toList();
+
+        final updatedLitter = litter.copyWith(
+          kits: updatedKits,
+          status: 'Died',
+          aliveKits: 0,
+          deadKits: (litter.deadKits ?? 0) + (litter.aliveKits ?? litter.kits.length),
+        );
+
+        await _db.updateLitter(updatedLitter);
+        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+        await _refreshLitters();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Litter ${litter.id} marked as died'),
+              backgroundColor: const Color(0xFF7B6BA0),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
-  void _markLitterAsCulled(Litter litter) {
-    showDialog(
+  void _markLitterAsCulled(Litter litter) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cull Litter'),
-        content: Text('Are you sure you want to cull Litter ${litter.id}? This will mark all kits in the litter as culled and reset the doe to Open.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final updatedKits = litter.kits.map((k) {
-                  if (!k.isArchived && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
-                    return k.copyWith(status: 'Cull');
-                  }
-                  return k;
-                }).toList();
-
-                final updatedLitter = litter.copyWith(
-                  kits: updatedKits,
-                  status: 'Cull',
-                  aliveKits: 0,
-                  deadKits: (litter.deadKits ?? 0) + (litter.aliveKits ?? litter.kits.length),
-                );
-
-                await _db.updateLitter(updatedLitter);
-                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-                await _refreshLitters();
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Litter ${litter.id} marked as culled'),
-                      backgroundColor: const Color(0xFF7B6BA0),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      title: 'Cull Litter',
+      content:
+          'Are you sure you want to cull Litter ${litter.id}? This will mark all kits in the litter as culled and reset the doe to Open.',
+      cancelText: 'Cancel',
+      confirmText: 'Confirm',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      try {
+        final updatedKits = litter.kits.map((k) {
+          if (!k.isArchived && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
+            return k.copyWith(status: 'Cull');
+          }
+          return k;
+        }).toList();
+
+        final updatedLitter = litter.copyWith(
+          kits: updatedKits,
+          status: 'Cull',
+          aliveKits: 0,
+          deadKits: (litter.deadKits ?? 0) + (litter.aliveKits ?? litter.kits.length),
+        );
+
+        await _db.updateLitter(updatedLitter);
+        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+        await _refreshLitters();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Litter ${litter.id} marked as culled'),
+              backgroundColor: const Color(0xFF7B6BA0),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   String _getKitDisplayTag(Litter litter, Kit kit) {
@@ -4281,9 +4244,13 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   void _showKitBirthCertificate(Litter litter, Kit kit) {
+    final String rabbitName = (kit.name != null && kit.name!.trim().isNotEmpty)
+        ? kit.name!.trim()
+        : (kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id);
+
     final kitRabbit = Rabbit(
       id: kit.id,
-      name: kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id,
+      name: rabbitName,
       breed: litter.breed,
       type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
       color: kit.color,
@@ -4338,9 +4305,13 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   void _showKitPedigree(Litter litter, Kit kit) {
+    final String rabbitName = (kit.name != null && kit.name!.trim().isNotEmpty)
+        ? kit.name!.trim()
+        : (kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id);
+
     final kitRabbit = Rabbit(
       id: kit.id,
-      name: kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id,
+      name: rabbitName,
       breed: litter.breed,
       type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
       color: kit.color,
@@ -4625,7 +4596,20 @@ class LittersScreenState extends State<LittersScreen> {
       final int ageDays = dob != null
           ? DateTime.now().difference(dob).inDays
           : litter.ageDays;
-      final String restoredStatus = ageDays >= 49 ? 'Weaned' : 'Nursing';
+      final int weanDays = SettingsService.instance.weanAge * 7;
+      final bool isWeanAgeReached = ageDays >= weanDays;
+      final String lStatus = litter.status.toLowerCase().trim();
+
+      String restoredStatus = 'Nursing';
+      if (lStatus == 'quarantine') {
+        restoredStatus = 'Quarantine';
+      } else if (lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out') {
+        restoredStatus = 'GrowOut';
+      } else if (lStatus == 'weaned' || isWeanAgeReached) {
+        restoredStatus = 'Weaned';
+      } else {
+        restoredStatus = 'Nursing';
+      }
 
       // 1. Delete matching finance transactions
       final cleanNumeric = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
@@ -4695,43 +4679,14 @@ class LittersScreenState extends State<LittersScreen> {
 
   Future<void> _showReverseKitDiedDialog(Litter litter, Kit kit) async {
     final kitTag = _getKitDisplayTag(litter, kit);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.favorite, color: Color(0xFFE04F9F), size: 24),
-            SizedBox(width: 8),
-            Text(
-              'Cancel Death',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        content: Text(
+      title: 'Bring Back to Life',
+      content:
           'Do you want to cancel death / cull for Kit $kitTag and bring it back to active status in the nursery?',
-          style: const TextStyle(fontSize: 14, color: Color(0xFF444444)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7B32),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            child: const Text(
-              'Cancel Death',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+      cancelText: 'Cancel',
+      confirmText: 'Bring Back to Life',
+      confirmColor: kLilacDeep,
     );
 
     if (confirmed == true) {
@@ -6217,25 +6172,55 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   void _logKitWeight(Litter litter, Kit kit) {
-    final TextEditingController weightController = TextEditingController(
-      text: kit.weight > 0 ? kit.weight.toString() : '',
+    int initialLbs = 0;
+    double initialOz = 0;
+    if (kit.weight > 0) {
+      initialLbs = kit.weight.floor();
+      initialOz = (kit.weight - initialLbs) * 16.0;
+    }
+    final TextEditingController lbsController = TextEditingController(
+      text: initialLbs > 0 ? initialLbs.toString() : '',
+    );
+    final TextEditingController ozController = TextEditingController(
+      text: initialOz > 0.01 ? initialOz.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '') : '',
     );
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log Weight'),
-        content: TextField(
-          controller: weightController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: FormatUtils.weightLabel(),
-            suffixText: FormatUtils.weightUnit,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: lbsController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                decoration: InputDecoration(
+                  labelText: 'Lbs',
+                  suffixText: 'lbs',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                autofocus: true,
+              ),
             ),
-          ),
-          autofocus: true,
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: ozController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Oz',
+                  suffixText: 'oz',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -6251,9 +6236,9 @@ class LittersScreenState extends State<LittersScreen> {
                 final currentLitter = litters[litterIndex];
                 List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
 
-                final double weightVal = weightController.text.trim().isNotEmpty
-                    ? (double.tryParse(weightController.text.trim()) ?? 0.0)
-                    : 0.0;
+                final double lbsVal = double.tryParse(lbsController.text.trim()) ?? 0.0;
+                final double ozVal = double.tryParse(ozController.text.trim()) ?? 0.0;
+                final double weightVal = lbsVal + (ozVal / 16.0);
                 final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                 bool updated = false;
                 final updatedKits = kitsList.map((k) {
@@ -6674,33 +6659,21 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
-  void _showDeleteKitConfirm(Litter litter, Kit kit) {
+  void _showDeleteKitConfirm(Litter litter, Kit kit) async {
     final kitTag = _getKitDisplayTag(litter, kit);
-    showDialog(
+    final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Kit'),
-        content: Text('Are you sure you want to delete kit $kitTag? This will permanently remove this kit from Litter ${litter.id}.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _deleteKit(litter, kit);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      title: 'Delete Kit',
+      content:
+          'Are you sure you want to delete kit $kitTag? This will permanently remove this kit from Litter ${litter.id}.',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
+
+    if (confirmed == true) {
+      await _deleteKit(litter, kit);
+    }
   }
 
   Future<void> _deleteKit(Litter litter, Kit kit) async {
@@ -6774,13 +6747,17 @@ class LittersScreenState extends State<LittersScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cull Kit'),
-        content: Column(
+      builder: (context) => BrightPurpleDialog(
+        title: 'Cull Kit',
+        textAlign: TextAlign.start,
+        contentWidget: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Are you sure you want to mark Kit $kitTag as culled?'),
+            Text(
+              'Are you sure you want to mark Kit $kitTag as culled?',
+              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
+            ),
             const SizedBox(height: 14),
             TextField(
               controller: reasonController,
@@ -6788,91 +6765,87 @@ class LittersScreenState extends State<LittersScreen> {
                 hintText: 'Reason for culling (optional)',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kLilacLight),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
+        cancelText: 'Cancel',
+        confirmText: 'Confirm',
+        isDestructive: true,
+        onConfirm: () async {
+          Navigator.pop(context);
 
-              final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-              if (litterIndex != -1) {
-                final currentLitter = litters[litterIndex];
-                final kitsList = _getOrGenerateLitterKits(currentLitter);
-                final targetId = kit.id.trim().toLowerCase();
-                final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-                bool updated = false;
-                final updatedKits = kitsList.map((k) {
-                  final kId = k.id.trim().toLowerCase();
-                  final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final bool isExactId = kId == targetId;
-                  final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
-                      (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
-                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-                  if ((isExactId || isNumericMatch) && !updated) {
-                    updated = true;
-                    return k.copyWith(
-                      status: 'Cull',
-                      details: reasonController.text.isNotEmpty ? reasonController.text : 'Culled',
-                    );
-                  }
-                  return k;
-                }).toList();
-
-                final int newAlive = updatedKits.where((k) {
-                  final s = k.status.toLowerCase().trim();
-                  return !k.isArchived &&
-                      s != 'dead' &&
-                      s != 'died' &&
-                      s != 'deceased' &&
-                      s != 'sold' &&
-                      s != 'butchered' &&
-                      s != 'cull' &&
-                      s != 'culled' &&
-                      s != 'fostered';
-                }).length;
-
-                final int deadCount = updatedKits.where((k) {
-                  final s = k.status.toLowerCase().trim();
-                  return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
-                }).length;
-
-                final updatedLitter = currentLitter.copyWith(
-                  kits: updatedKits,
-                  aliveKits: newAlive,
-                  deadKits: deadCount,
-                );
-
-                await _db.updateLitter(updatedLitter);
-                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-                await _refreshLitters();
-              }
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Kit $kitTag marked as culled'),
-                    backgroundColor: const Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+          final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+          if (litterIndex != -1) {
+            final currentLitter = litters[litterIndex];
+            final kitsList = _getOrGenerateLitterKits(currentLitter);
+            final targetId = kit.id.trim().toLowerCase();
+            final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+            bool updated = false;
+            final updatedKits = kitsList.map((k) {
+              final kId = k.id.trim().toLowerCase();
+              final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+              final bool isExactId = kId == targetId;
+              final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                  (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                  kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+              if ((isExactId || isNumericMatch) && !updated) {
+                updated = true;
+                return k.copyWith(
+                  status: 'Cull',
+                  details: reasonController.text.isNotEmpty ? reasonController.text : 'Culled',
                 );
               }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
+              return k;
+            }).toList();
+
+            final int newAlive = updatedKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              return !k.isArchived &&
+                  s != 'dead' &&
+                  s != 'died' &&
+                  s != 'deceased' &&
+                  s != 'sold' &&
+                  s != 'butchered' &&
+                  s != 'cull' &&
+                  s != 'culled' &&
+                  s != 'fostered';
+            }).length;
+
+            final int deadCount = updatedKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+            }).length;
+
+            final updatedLitter = currentLitter.copyWith(
+              kits: updatedKits,
+              aliveKits: newAlive,
+              deadKits: deadCount,
+            );
+
+            await _db.updateLitter(updatedLitter);
+            await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+            await _refreshLitters();
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Kit $kitTag marked as culled'),
+                backgroundColor: const Color(0xFF7B6BA0),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -6883,13 +6856,17 @@ class LittersScreenState extends State<LittersScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mark as Died'),
-        content: Column(
+      builder: (context) => BrightPurpleDialog(
+        title: 'Mark as Died',
+        textAlign: TextAlign.start,
+        contentWidget: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Record cause of death for Kit $kitTag (optional):'),
+            Text(
+              'Record cause of death for Kit $kitTag (optional):',
+              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
+            ),
             const SizedBox(height: 14),
             TextField(
               controller: reasonController,
@@ -6897,91 +6874,87 @@ class LittersScreenState extends State<LittersScreen> {
                 hintText: 'e.g., Runt, illness',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kLilacLight),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
+        cancelText: 'Cancel',
+        confirmText: 'Confirm',
+        isDestructive: true,
+        onConfirm: () async {
+          Navigator.pop(context);
 
-              final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-              if (litterIndex != -1) {
-                final currentLitter = litters[litterIndex];
-                final kitsList = _getOrGenerateLitterKits(currentLitter);
-                final targetId = kit.id.trim().toLowerCase();
-                final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-                bool updated = false;
-                final updatedKits = kitsList.map((k) {
-                  final kId = k.id.trim().toLowerCase();
-                  final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final bool isExactId = kId == targetId;
-                  final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
-                      (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
-                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-                  if ((isExactId || isNumericMatch) && !updated) {
-                    updated = true;
-                    return k.copyWith(
-                      status: 'Dead',
-                      details: reasonController.text.isNotEmpty ? reasonController.text : 'Deceased',
-                    );
-                  }
-                  return k;
-                }).toList();
-
-                final int newAlive = updatedKits.where((k) {
-                  final s = k.status.toLowerCase().trim();
-                  return !k.isArchived &&
-                      s != 'dead' &&
-                      s != 'died' &&
-                      s != 'deceased' &&
-                      s != 'sold' &&
-                      s != 'butchered' &&
-                      s != 'cull' &&
-                      s != 'culled' &&
-                      s != 'fostered';
-                }).length;
-
-                final int deadCount = updatedKits.where((k) {
-                  final s = k.status.toLowerCase().trim();
-                  return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
-                }).length;
-
-                final updatedLitter = currentLitter.copyWith(
-                  kits: updatedKits,
-                  aliveKits: newAlive,
-                  deadKits: deadCount,
-                );
-
-                await _db.updateLitter(updatedLitter);
-                await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-                await _refreshLitters();
-              }
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Kit $kitTag marked as died'),
-                    backgroundColor: const Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+          final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+          if (litterIndex != -1) {
+            final currentLitter = litters[litterIndex];
+            final kitsList = _getOrGenerateLitterKits(currentLitter);
+            final targetId = kit.id.trim().toLowerCase();
+            final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+            bool updated = false;
+            final updatedKits = kitsList.map((k) {
+              final kId = k.id.trim().toLowerCase();
+              final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+              final bool isExactId = kId == targetId;
+              final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                  (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                  kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+              if ((isExactId || isNumericMatch) && !updated) {
+                updated = true;
+                return k.copyWith(
+                  status: 'Dead',
+                  details: reasonController.text.isNotEmpty ? reasonController.text : 'Deceased',
                 );
               }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          ),
-        ],
+              return k;
+            }).toList();
+
+            final int newAlive = updatedKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              return !k.isArchived &&
+                  s != 'dead' &&
+                  s != 'died' &&
+                  s != 'deceased' &&
+                  s != 'sold' &&
+                  s != 'butchered' &&
+                  s != 'cull' &&
+                  s != 'culled' &&
+                  s != 'fostered';
+            }).length;
+
+            final int deadCount = updatedKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+            }).length;
+
+            final updatedLitter = currentLitter.copyWith(
+              kits: updatedKits,
+              aliveKits: newAlive,
+              deadKits: deadCount,
+            );
+
+            await _db.updateLitter(updatedLitter);
+            await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+            await _refreshLitters();
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Kit $kitTag marked as died'),
+                backgroundColor: const Color(0xFF7B6BA0),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -10638,8 +10611,10 @@ class EditKitDetailsScreen extends StatefulWidget {
 class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
   late String _selectedSex;
   String? _localImagePath;
+  late TextEditingController _nameController;
   late TextEditingController _colorController;
-  late TextEditingController _weightController;
+  late TextEditingController _lbsController;
+  late TextEditingController _ozController;
   late TextEditingController _notesController;
   bool _isSaving = false;
 
@@ -10648,6 +10623,8 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
     super.initState();
     _selectedSex = widget.kit.sex;
     _localImagePath = widget.kit.imagePath;
+
+    _nameController = TextEditingController(text: widget.kit.name ?? '');
 
     final String rawColor = widget.kit.color.trim();
     // 1. Color field shows Broken...REMOVE it. It should be blank.
@@ -10659,16 +10636,27 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
         : rawColor;
 
     _colorController = TextEditingController(text: initialColor);
-    _weightController = TextEditingController(
-      text: widget.kit.weight > 0 ? widget.kit.weight.toString() : '',
-    );
+
+    if (widget.kit.weight > 0) {
+      final int lbs = widget.kit.weight.floor();
+      final double oz = (widget.kit.weight - lbs) * 16.0;
+      _lbsController = TextEditingController(text: lbs > 0 ? lbs.toString() : '');
+      _ozController = TextEditingController(
+        text: oz > 0.01 ? oz.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '') : '',
+      );
+    } else {
+      _lbsController = TextEditingController();
+      _ozController = TextEditingController();
+    }
     _notesController = TextEditingController(text: widget.kit.details ?? '');
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _colorController.dispose();
-    _weightController.dispose();
+    _lbsController.dispose();
+    _ozController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -10846,9 +10834,12 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
           }
         }
 
-        final double weightVal = _weightController.text.trim().isNotEmpty
-            ? (double.tryParse(_weightController.text.trim()) ?? 0.0)
-            : 0.0;
+        final double lbsVal = double.tryParse(_lbsController.text.trim()) ?? 0.0;
+        final double ozVal = double.tryParse(_ozController.text.trim()) ?? 0.0;
+        final double weightVal = lbsVal + (ozVal / 16.0);
+        final String? nameVal = _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : null;
         final String colorVal = _colorController.text.trim().isNotEmpty
             ? _colorController.text.trim()
             : 'Unknown';
@@ -10869,6 +10860,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
           if ((isExactId || isNumericMatch) && !updated) {
             updated = true;
             return k.copyWith(
+              name: nameVal,
               sex: _selectedSex,
               color: colorVal,
               weight: weightVal,
@@ -10881,6 +10873,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
 
         if (!updated) {
           updatedKits.add(widget.kit.copyWith(
+            name: nameVal,
             sex: _selectedSex,
             color: colorVal,
             weight: weightVal,
@@ -11070,26 +11063,36 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                       ],
                     ),
                   ),
-                  if (_localImagePath != null && _localImagePath!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _showImagePickerOptions,
-                      child: Text(
-                        'Change Photo',
-                        style: TextStyle(
-                          color: saveColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _showImagePickerOptions,
+                    child: Text(
+                      _localImagePath != null && _localImagePath!.isNotEmpty ? 'Change Photo' : 'Add Photo',
+                      style: TextStyle(
+                        color: saveColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
                       ),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // 3. Color Autocomplete (Box with text in top left corner)
+            // 3. Name field (Box with text in top left corner) for Birth Certificate / Pedigree
+            TextField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 17),
+              decoration: _buildInputDecoration('Name').copyWith(
+                hintText: 'Enter name for Birth Certificate / Pedigree',
+                hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCBC8)),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 4. Color Autocomplete (Box with text in top left corner)
             Autocomplete<String>(
               optionsBuilder: (TextEditingValue textEditingValue) {
                 final colors = SettingsService.instance.colors;
@@ -11115,16 +11118,37 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 4. Weight field (Box with text in top left corner)
-            TextField(
-              controller: _weightController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 17),
-              decoration: _buildInputDecoration('Weight'),
+            // 5. Weight field (2 boxes: lbs and oz)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _lbsController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                    style: const TextStyle(fontSize: 17),
+                    decoration: _buildInputDecoration('Weight (lbs)').copyWith(
+                      suffixText: 'lbs',
+                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFF8F8A90), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _ozController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(fontSize: 17),
+                    decoration: _buildInputDecoration('Weight (oz)').copyWith(
+                      suffixText: 'oz',
+                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFF8F8A90), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
-            // 5. Notes field (Box with text in top left corner)
+            // 6. Notes field (Box with text in top left corner)
             TextField(
               controller: _notesController,
               maxLines: 4,

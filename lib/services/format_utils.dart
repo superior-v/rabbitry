@@ -49,6 +49,26 @@ class FormatUtils {
     return '—';
   }
 
+  /// Formats date specifically for Certificate of Birth v2 in zero-padded 'MMM dd, yyyy' format (e.g. 'Feb 02, 2025').
+  static String formatCertificateDatePadded(dynamic date) {
+    if (date == null) return '—';
+    if (date is DateTime) {
+      return DateFormat('MMM dd, yyyy', 'en_US').format(date);
+    }
+    if (date is String) {
+      final trimmed = date.trim();
+      if (trimmed.isEmpty || trimmed == 'N/A' || trimmed == '-') return '—';
+      try {
+        final parsed = DateTime.tryParse(trimmed);
+        if (parsed != null) {
+          return DateFormat('MMM dd, yyyy', 'en_US').format(parsed);
+        }
+      } catch (_) {}
+      return trimmed;
+    }
+    return '—';
+  }
+
   /// Age formatted in at most 3 units (e.g., "2y 3m 2w", "3y 2w 5d", "9m 4w 5d", "3w 2d", "5d")
   static String formatAge(DateTime? dob, {DateTime? targetDate}) {
     if (dob == null) return 'Unknown';
@@ -128,9 +148,33 @@ class FormatUtils {
   /// Returns the current weight unit string (e.g., "lbs" or "kg")
   static String get weightUnit => _settings.weightUnit;
 
-  /// Format a weight value with unit (e.g., "4.5 lbs" or "2.0 kg")
+  /// Format a weight value with unit (e.g., "4lb 5oz" or "2.0 kg")
   static String formatWeight(double weight, {int decimals = 1}) {
+    if (_settings.weightUnit == 'lbs') {
+      final int lbs = weight.floor();
+      final int oz = ((weight - lbs) * 16).round();
+      if (oz > 0) {
+        return '${lbs}lb ${oz}oz';
+      }
+      return '${lbs}lb';
+    }
     return '${weight.toStringAsFixed(decimals)} ${_settings.weightUnit}';
+  }
+
+  /// Returns true if a string looks like a system ID, UUID, timestamp, or DB key rather than a user name
+  static bool isSystemId(String? text) {
+    if (text == null || text.trim().isEmpty) return false;
+    final t = text.trim();
+    return RegExp(r'^(R-|PED-|ped_|K-|F-|kit_|litter_|rabbit_|sire_|dam_|buck_|doe_|temp_|health_|weight_|\d+|[0-9a-fA-F-]{8,})', caseSensitive: false).hasMatch(t) ||
+           RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}').hasMatch(t);
+  }
+
+  /// Clean display name for parent/ancestor. If it's a system ID and unresolvable, returns '-'
+  static String cleanParentName(String? nameOrId) {
+    if (nameOrId == null || nameOrId.trim().isEmpty) return '-';
+    final t = nameOrId.trim();
+    if (isSystemId(t)) return '-';
+    return t;
   }
 
   /// Weight label for input fields (e.g., "Weight (lbs)" or "Weight (kg)")

@@ -5,7 +5,6 @@ import 'package:printing/printing.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
-import '../services/settings_service.dart';
 import '../services/certificate_pdf_service.dart';
 import '../constants/app_colors.dart';
 import 'certificate_layout.dart';
@@ -20,11 +19,11 @@ class CertificateCard extends StatefulWidget {
 
 class _CertificateCardState extends State<CertificateCard> {
   final DatabaseService _db = DatabaseService();
-  final SettingsService _settings = SettingsService.instance;
 
   Rabbit? _sire;
   Rabbit? _dam;
   bool _isLoadingParents = true;
+  bool _includePhoto = true;
 
   @override
   void initState() {
@@ -56,20 +55,6 @@ class _CertificateCardState extends State<CertificateCard> {
     }
   }
 
-  String _formatWeight(double? weight) {
-    if (weight == null || weight <= 0) return '—';
-    if (_settings.weightUnit == 'lbs') {
-      final int lbs = weight.floor();
-      final int oz = ((weight - lbs) * 16).round();
-      if (oz > 0) {
-        return '${lbs}lbs ${oz}oz';
-      } else {
-        return '${lbs}lbs';
-      }
-    }
-    return FormatUtils.formatWeight(weight);
-  }
-
   String _fallbackDash(String? value) {
     if (value == null || value.trim().isEmpty || value.trim() == 'N/A') return '—';
     return value.trim();
@@ -77,52 +62,28 @@ class _CertificateCardState extends State<CertificateCard> {
 
   CertificateData _buildCertificateData(bool includePhoto) {
     final rabbit = widget.rabbit;
-    final sex = rabbit.type == RabbitType.doe ? 'Female' : 'Male';
-    final dob = FormatUtils.formatCertificateDate(rabbit.dateOfBirth);
+    final sex = rabbit.type == RabbitType.buck ? 'Buck' : 'Doe';
+    final dob = FormatUtils.formatCertificateDatePadded(rabbit.dateOfBirth);
 
     final sireName = _sire?.name.trim().isNotEmpty == true
         ? _sire!.name.trim()
         : (rabbit.sireId?.trim().isNotEmpty == true ? rabbit.sireId!.trim() : 'Unknown');
-    final sireBreed = _fallbackDash(_sire?.breed);
-    final sireColor = _fallbackDash(_sire?.color);
-    final sireDob = FormatUtils.formatCertificateDate(_sire?.dateOfBirth);
-    final sireWeight = _formatWeight(_sire?.weight);
-    final sirePhoto = _sire?.photos?.isNotEmpty == true ? _sire!.photos!.first : null;
 
     final damName = _dam?.name.trim().isNotEmpty == true
         ? _dam!.name.trim()
         : (rabbit.damId?.trim().isNotEmpty == true ? rabbit.damId!.trim() : 'Unknown');
-    final damBreed = _fallbackDash(_dam?.breed);
-    final damColor = _fallbackDash(_dam?.color);
-    final damDob = FormatUtils.formatCertificateDate(_dam?.dateOfBirth);
-    final damWeight = _formatWeight(_dam?.weight);
-    final damPhoto = _dam?.photos?.isNotEmpty == true ? _dam!.photos!.first : null;
 
-    final kitPhoto = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
+    final photo = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
 
     return CertificateData(
-      farmName: _settings.farmName.trim().isNotEmpty ? _settings.farmName.trim() : 'Dynasty',
-      ownerName: _settings.ownerName.trim(),
-      farmAddress: _settings.farmAddress.trim(),
-      farmEmail: _settings.farmEmail.trim(),
-      kitName: rabbit.name.trim().isNotEmpty ? rabbit.name.trim() : '—',
-      kitBreed: _fallbackDash(rabbit.breed),
-      kitColor: _fallbackDash(rabbit.color),
-      kitDob: dob,
-      kitSex: sex,
-      kitPhotoPath: kitPhoto,
-      sireName: sireName,
-      sireBreed: sireBreed,
-      sireColor: sireColor,
-      sireDob: sireDob,
-      sireWeight: sireWeight,
-      sirePhotoPath: sirePhoto,
+      name: rabbit.name.trim().isNotEmpty ? rabbit.name.trim() : '—',
+      breed: _fallbackDash(rabbit.breed),
+      color: _fallbackDash(rabbit.color),
+      dob: dob,
+      sex: sex,
       damName: damName,
-      damBreed: damBreed,
-      damColor: damColor,
-      damDob: damDob,
-      damWeight: damWeight,
-      damPhotoPath: damPhoto,
+      sireName: sireName,
+      photoPath: photo,
       includePhoto: includePhoto,
     );
   }
@@ -200,6 +161,26 @@ class _CertificateCardState extends State<CertificateCard> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Toggle option
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Include Photo',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    Switch(
+                      value: _includePhoto,
+                      onChanged: (val) => setState(() => _includePhoto = val),
+                      activeColor: const Color(0xFF7B6BA0),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -209,53 +190,31 @@ class _CertificateCardState extends State<CertificateCard> {
   }
 
   void _showPreviewModal(BuildContext context) {
+    final certData = _buildCertificateData(_includePhoto);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _CertificatePreviewSheet(
-        dataBuilder: _buildCertificateData,
-        onDownload: (data) => _generateAndShare(ctx, data),
+      builder: (ctx) => _CertificatePreviewModal(
+        data: certData,
+        rabbitName: widget.rabbit.name,
       ),
     );
   }
-
-  Future<void> _generateAndShare(BuildContext sheetContext, CertificateData data) async {
-    Navigator.of(sheetContext).pop();
-    try {
-      final bytes = await CertificatePdfService.generatePdf(data);
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename: 'BirthCertificate_${data.kitName.replaceAll(' ', '_')}.pdf',
-      );
-    } catch (e) {
-      debugPrint('Certificate generation error: $e');
-    }
-  }
 }
 
-// ─── Preview Sheet ────────────────────────────────────────────────────────────
+class _CertificatePreviewModal extends StatelessWidget {
+  final CertificateData data;
+  final String rabbitName;
 
-class _CertificatePreviewSheet extends StatefulWidget {
-  final CertificateData Function(bool includePhoto) dataBuilder;
-  final Function(CertificateData data) onDownload;
-
-  const _CertificatePreviewSheet({
-    required this.dataBuilder,
-    required this.onDownload,
+  const _CertificatePreviewModal({
+    required this.data,
+    required this.rabbitName,
   });
 
   @override
-  State<_CertificatePreviewSheet> createState() => _CertificatePreviewSheetState();
-}
-
-class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
-  bool _includePhoto = true;
-
-  @override
   Widget build(BuildContext context) {
-    final certificateData = widget.dataBuilder(_includePhoto);
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -282,7 +241,7 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Birth Certificate Preview',
+                  'Certificate Preview',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -301,19 +260,25 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // WYSIWYG 1:1 Preview Box
-                  CertificatePreviewWidget(data: certificateData),
-                  const SizedBox(height: 24),
-                  _buildToggle(
-                    'Include Photos',
-                    _includePhoto,
-                    (v) => setState(() => _includePhoto = v),
-                  ),
+                  CertificatePreviewWidget(data: data),
                   const SizedBox(height: 28),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => widget.onDownload(certificateData),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          final pdfBytes = await CertificatePdfService.generatePdf(data);
+                          final safeName = (rabbitName.trim().isNotEmpty ? rabbitName.trim() : 'Rabbit')
+                              .replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+                          await Printing.sharePdf(
+                            bytes: pdfBytes,
+                            filename: 'BirthCertificate_$safeName.pdf',
+                          );
+                        } catch (e) {
+                          debugPrint('Error sharing Certificate PDF: $e');
+                        }
+                      },
                       icon: const Icon(Icons.download_rounded, size: 20),
                       label: const Text(
                         'Download & Share PDF',
@@ -339,22 +304,9 @@ class _CertificatePreviewSheetState extends State<_CertificatePreviewSheet> {
       ),
     );
   }
-
-  Widget _buildToggle(String label, bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          Switch(value: value, onChanged: onChanged, activeColor: kPinkDeep),
-        ],
-      ),
-    );
-  }
 }
 
-// ─── WYSIWYG Preview Widget ───────────────────────────────────────────────────
+// ─── WYSIWYG PREVIEW WIDGET ───────────────────────────────────────────────────
 
 class CertificatePreviewWidget extends StatelessWidget {
   final CertificateData data;
@@ -367,11 +319,12 @@ class CertificatePreviewWidget extends StatelessWidget {
       aspectRatio: CertificateLayout.aspectRatio,
       child: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kNeutral300),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -383,21 +336,49 @@ class CertificatePreviewWidget extends StatelessWidget {
             final double W = constraints.maxWidth;
             final double H = constraints.maxHeight;
 
-            final hasKitPhoto = data.includePhoto &&
-                data.kitPhotoPath != null &&
-                File(data.kitPhotoPath!).existsSync();
+            final hasPhoto = data.includePhoto &&
+                data.photoPath != null &&
+                data.photoPath!.isNotEmpty &&
+                File(data.photoPath!).existsSync();
 
-            final hasSirePhoto = data.includePhoto &&
-                data.sirePhotoPath != null &&
-                File(data.sirePhotoPath!).existsSync();
+            final double badgeFontSize = W * CertificateLayout.fontRatioBadge;
 
-            final hasDamPhoto = data.includePhoto &&
-                data.damPhotoPath != null &&
-                File(data.damPhotoPath!).existsSync();
+            final List<_PreviewRowDef> rows = [
+              _PreviewRowDef(
+                fullText: 'Name: ${data.name.isNotEmpty ? data.name : "—"}',
+                iconTop: CertificateLayout.iconTopName,
+                rowCenterY: CertificateLayout.rowNameCenterY,
+              ),
+              _PreviewRowDef(
+                fullText: 'Breed: ${data.breed.isNotEmpty ? data.breed : "—"}',
+                iconTop: CertificateLayout.iconTopBreed,
+                rowCenterY: CertificateLayout.rowBreedCenterY,
+              ),
+              _PreviewRowDef(
+                fullText: 'Color: ${data.color.isNotEmpty ? data.color : "—"}',
+                iconTop: CertificateLayout.iconTopColor,
+                rowCenterY: CertificateLayout.rowColorCenterY,
+              ),
+              _PreviewRowDef(
+                fullText: 'DOB: ${data.dob.isNotEmpty ? data.dob : "—"}',
+                iconTop: CertificateLayout.iconTopDob,
+                rowCenterY: CertificateLayout.rowDobCenterY,
+              ),
+              _PreviewRowDef(
+                fullText: 'Sex: ${data.sex.isNotEmpty ? data.sex : "—"}',
+                iconTop: CertificateLayout.iconTopSex,
+                rowCenterY: CertificateLayout.rowSexCenterY,
+              ),
+              _PreviewRowDef(
+                fullText: 'Dam ${data.damName.isNotEmpty ? data.damName : "Unknown"} X Sire ${data.sireName.isNotEmpty ? data.sireName : "Unknown"}',
+                iconTop: CertificateLayout.iconTopParents,
+                rowCenterY: CertificateLayout.rowParentsCenterY,
+              ),
+            ];
 
             return Stack(
               children: [
-                // Layer 1: Background Template Image (Full Bleed)
+                // Layer 1: Background Watercolor
                 Positioned.fill(
                   child: Image.asset(
                     CertificateLayout.backgroundAsset,
@@ -405,298 +386,171 @@ class CertificatePreviewWidget extends StatelessWidget {
                   ),
                 ),
 
-                // Layer 2: Farm Name (Title) with auto-scaling to avoid overflow/collision
+                // Layer 2: Outer Border
                 Positioned(
-                  left: W * (0.5000 - CertificateLayout.titleMaxWidth / 2),
-                  top: H * CertificateLayout.titleCenterY - (H * CertificateLayout.titleBoxHeight / 2),
-                  width: W * CertificateLayout.titleMaxWidth,
-                  height: H * CertificateLayout.titleBoxHeight,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        data.farmName,
-                        style: TextStyle(
-                          fontFamily: CertificateLayout.fontFamilyTitle,
-                          fontSize: W * CertificateLayout.fontRatioTitle,
-                          color: CertificateLayout.colorTitle,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
+                  left: W * CertificateLayout.outerBorderLeft,
+                  top: H * CertificateLayout.outerBorderTop,
+                  child: Container(
+                    width: W * CertificateLayout.outerBorderWidth,
+                    height: H * CertificateLayout.outerBorderHeight,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: CertificateLayout.colorBorderOuter,
+                        width: CertificateLayout.outerBorderStrokePt * (W / 792.0),
                       ),
                     ),
                   ),
                 ),
 
-                // Layer 2: "Birth Certificate" Badge
+                // Layer 3: Inner Border
+                Positioned(
+                  left: W * CertificateLayout.innerBorderLeft,
+                  top: H * CertificateLayout.innerBorderTop,
+                  child: Container(
+                    width: W * CertificateLayout.innerBorderWidth,
+                    height: H * CertificateLayout.innerBorderHeight,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: CertificateLayout.colorBorderInner,
+                        width: CertificateLayout.innerBorderStrokePt * (W / 792.0),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 4: Top Badge
                 Positioned(
                   left: W * CertificateLayout.badgeLeft,
                   top: H * CertificateLayout.badgeTop,
-                  width: W * CertificateLayout.badgeWidth,
-                  height: H * CertificateLayout.badgeHeight,
                   child: Container(
+                    width: W * CertificateLayout.badgeWidth,
+                    height: H * CertificateLayout.badgeHeight,
                     decoration: BoxDecoration(
                       color: CertificateLayout.colorBadgeBg,
+                      border: Border.all(
+                        color: CertificateLayout.colorBadgeStroke,
+                        width: CertificateLayout.badgeStrokePt * (W / 792.0),
+                      ),
                       borderRadius: BorderRadius.circular(W * CertificateLayout.badgeRadius),
                     ),
                     child: Center(
-                      child: Text(
-                        'Birth Certificate',
-                        style: TextStyle(
-                          fontFamily: CertificateLayout.fontFamilyBadge,
-                          fontSize: W * CertificateLayout.fontRatioBadge,
-                          color: CertificateLayout.colorBadgeText,
-                          letterSpacing: 0.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Layer 2: Kit Photo (Left Column)
-                Positioned(
-                  left: W * CertificateLayout.kitPhotoLeft,
-                  top: H * CertificateLayout.kitPhotoTop,
-                  width: W * CertificateLayout.kitPhotoWidth,
-                  height: H * CertificateLayout.kitPhotoHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(W * CertificateLayout.kitPhotoRadius),
-                      color: hasKitPhoto ? null : Colors.black.withValues(alpha: 0.06),
-                    ),
-                    child: hasKitPhoto
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(W * CertificateLayout.kitPhotoRadius),
-                            child: Image.file(
-                              File(data.kitPhotoPath!),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : const Center(
-                            child: Text(
-                              'No Photo',
-                              style: TextStyle(
-                                fontFamily: CertificateLayout.fontFamilyDetails,
-                                fontSize: 11,
-                                color: Color(0xFF999999),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-
-                // Layer 2: Kit Detail Rows (Center)
-                ..._buildKitRow(W, H, CertificateLayout.kitNameCenterY, 'Name: ${data.kitName}'),
-                ..._buildKitRow(W, H, CertificateLayout.kitBreedCenterY, 'Breed: ${data.kitBreed}'),
-                ..._buildKitRow(W, H, CertificateLayout.kitColorCenterY, 'Color: ${data.kitColor}'),
-                ..._buildKitRow(W, H, CertificateLayout.kitDobCenterY, 'DOB: ${data.kitDob}'),
-                ..._buildKitRow(W, H, CertificateLayout.kitSexCenterY, 'Sex: ${data.kitSex}'),
-
-                // Layer 2: Sire Photo (Right Column Top)
-                Positioned(
-                  left: W * CertificateLayout.sirePhotoLeft,
-                  top: H * CertificateLayout.sirePhotoTop,
-                  width: W * CertificateLayout.sirePhotoWidth,
-                  height: H * CertificateLayout.sirePhotoHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(W * CertificateLayout.sirePhotoRadius),
-                      color: hasSirePhoto ? null : Colors.black.withValues(alpha: 0.06),
-                    ),
-                    child: hasSirePhoto
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(W * CertificateLayout.sirePhotoRadius),
-                            child: Image.file(
-                              File(data.sirePhotoPath!),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : const Center(
-                            child: Text(
-                              'Sire Photo',
-                              style: TextStyle(
-                                fontFamily: CertificateLayout.fontFamilyDetails,
-                                fontSize: 9,
-                                color: Color(0xFF999999),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-
-                // Layer 2: Sire Card
-                Positioned(
-                  left: W * CertificateLayout.sireCardLeft,
-                  top: H * CertificateLayout.sireCardTop,
-                  width: W * CertificateLayout.sireCardWidth,
-                  height: H * CertificateLayout.sireCardHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: CertificateLayout.colorSireCardBg,
-                      borderRadius: BorderRadius.circular(W * CertificateLayout.sireCardRadius),
-                    ),
-                  ),
-                ),
-                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[0], 'Sire: ${data.sireName}'),
-                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[1], 'Breed: ${data.sireBreed}'),
-                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[2], 'Color: ${data.sireColor}'),
-                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[3], 'DOB: ${data.sireDob}'),
-                ..._buildCardRow(W, H, CertificateLayout.sireRowsCenterY[4], 'Wt: ${data.sireWeight}'),
-
-                // Layer 2: Dam Photo (Right Column Bottom with White Frame)
-                Positioned(
-                  left: W * CertificateLayout.damPhotoLeft,
-                  top: H * CertificateLayout.damPhotoTop,
-                  width: W * CertificateLayout.damPhotoWidth,
-                  height: H * CertificateLayout.damPhotoHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius),
-                    ),
-                    padding: const EdgeInsets.all(2.5),
-                    child: hasDamPhoto
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius * 0.8),
-                            child: Image.file(
-                              File(data.damPhotoPath!),
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(W * CertificateLayout.damPhotoRadius * 0.8),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Dam Photo',
+                      child: SizedBox(
+                        width: W * CertificateLayout.badgeTextMaxWidth,
+                        height: H * CertificateLayout.badgeHeight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // White outline behind text
+                              Text(
+                                CertificateLayout.badgeText,
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontFamily: CertificateLayout.fontFamilyDetails,
-                                  fontSize: 9,
-                                  color: Color(0xFF999999),
+                                  fontFamily: CertificateLayout.fontFamilyBadgeWestern,
+                                  fontSize: badgeFontSize,
+                                  foreground: Paint()
+                                    ..style = PaintingStyle.stroke
+                                    ..strokeWidth = 2.0 * (W / 792.0)
+                                    ..color = Colors.white,
                                 ),
                               ),
+                              // Grey text fill
+                              Text(
+                                CertificateLayout.badgeText,
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: CertificateLayout.fontFamilyBadgeWestern,
+                                  fontSize: badgeFontSize,
+                                  color: CertificateLayout.colorBadgeText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 5: Photo Frame
+                Positioned(
+                  left: W * CertificateLayout.photoLeft,
+                  top: H * CertificateLayout.photoTop,
+                  child: Container(
+                    width: W * CertificateLayout.photoWidth,
+                    height: H * CertificateLayout.photoHeight,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(W * CertificateLayout.photoRadius),
+                      color: hasPhoto ? null : CertificateLayout.colorPlaceholderBg,
+                    ),
+                    child: Stack(
+                      children: [
+                        if (hasPhoto)
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(W * CertificateLayout.photoRadius),
+                              child: Image.file(
+                                File(data.photoPath!),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(W * CertificateLayout.photoRadius),
+                              border: Border.all(
+                                color: CertificateLayout.colorPhotoBorder,
+                                width: CertificateLayout.photoBorderWidthPt * (W / 792.0),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-                // Layer 2: Dam Card
-                Positioned(
-                  left: W * CertificateLayout.damCardLeft,
-                  top: H * CertificateLayout.damCardTop,
-                  width: W * CertificateLayout.damCardWidth,
-                  height: H * CertificateLayout.damCardHeight,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: CertificateLayout.colorDamCardBg,
-                      borderRadius: BorderRadius.circular(W * CertificateLayout.damCardRadius),
+                // Layer 6: Right Detail Rows
+                for (final r in rows) ...[
+                  // Icon
+                  Positioned(
+                    left: W * CertificateLayout.iconLeft,
+                    top: H * r.iconTop,
+                    child: SizedBox(
+                      width: W * CertificateLayout.iconWidth,
+                      height: H * CertificateLayout.iconHeight,
+                      child: Image.asset(
+                        CertificateLayout.rabbitIconAsset,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                ),
-                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[0], 'Dam: ${data.damName}'),
-                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[1], 'Breed: ${data.damBreed}'),
-                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[2], 'Color: ${data.damColor}'),
-                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[3], 'DOB: ${data.damDob}'),
-                ..._buildCardRow(W, H, CertificateLayout.damRowsCenterY[4], 'Wt: ${data.damWeight}'),
 
-                // Layer 2: Footer / Certification (Bottom Left)
-                Positioned(
-                  left: W * CertificateLayout.footerTextLeft,
-                  top: H * CertificateLayout.certifyLine1CenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
-                  width: W * CertificateLayout.footerTextMaxWidth,
-                  height: H * CertificateLayout.footerRowBoxHeight,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'I hereby certify this certificate is true',
-                      style: TextStyle(
-                        fontFamily: CertificateLayout.fontFamilyDetails,
-                        fontSize: W * CertificateLayout.fontRatioCertify,
-                        color: CertificateLayout.colorCertifyText,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: W * CertificateLayout.footerTextLeft,
-                  top: H * CertificateLayout.certifyLine2CenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
-                  width: W * CertificateLayout.footerTextMaxWidth,
-                  height: H * CertificateLayout.footerRowBoxHeight,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'to the best of my knowledge',
-                      style: TextStyle(
-                        fontFamily: CertificateLayout.fontFamilyDetails,
-                        fontSize: W * CertificateLayout.fontRatioCertify,
-                        color: CertificateLayout.colorCertifyText,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-                if (data.ownerName.trim().isNotEmpty)
+                  // Text
                   Positioned(
-                    left: W * CertificateLayout.signatureLeft,
-                    top: H * CertificateLayout.signatureCenterY - (H * CertificateLayout.signatureBoxHeight / 2),
-                    width: W * CertificateLayout.footerTextMaxWidth,
-                    height: H * CertificateLayout.signatureBoxHeight,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        data.ownerName.trim(),
-                        style: TextStyle(
-                          fontFamily: CertificateLayout.fontFamilySignature,
-                          fontSize: W * CertificateLayout.fontRatioSignature,
-                          color: CertificateLayout.colorSignatureText,
+                    left: W * CertificateLayout.textLeft,
+                    top: H * r.rowCenterY - (H * CertificateLayout.textRowHeight / 2),
+                    child: SizedBox(
+                      width: W * CertificateLayout.textMaxWidth,
+                      height: H * CertificateLayout.textRowHeight,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildAutoShrinkText(
+                          text: r.fullText,
+                          baseSize: W * CertificateLayout.fontRatioDetails,
+                          minSize: W * CertificateLayout.fontRatioDetailsMin,
                         ),
-                        maxLines: 1,
                       ),
                     ),
                   ),
-                if (data.farmAddress.trim().isNotEmpty)
-                  Positioned(
-                    left: W * CertificateLayout.addressLeft,
-                    top: H * CertificateLayout.addressCenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
-                    width: W * CertificateLayout.footerTextMaxWidth,
-                    height: H * CertificateLayout.footerRowBoxHeight,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        data.farmAddress.trim(),
-                        style: TextStyle(
-                          fontFamily: CertificateLayout.fontFamilyDetails,
-                          fontSize: W * CertificateLayout.fontRatioContact,
-                          color: CertificateLayout.colorContactText,
-                        ),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                if (data.farmEmail.trim().isNotEmpty)
-                  Positioned(
-                    left: W * CertificateLayout.emailLeft,
-                    top: H * CertificateLayout.emailCenterY - (H * CertificateLayout.footerRowBoxHeight / 2),
-                    width: W * CertificateLayout.footerTextMaxWidth,
-                    height: H * CertificateLayout.footerRowBoxHeight,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        data.farmEmail.trim(),
-                        style: TextStyle(
-                          fontFamily: CertificateLayout.fontFamilyDetails,
-                          fontSize: W * CertificateLayout.fontRatioContact,
-                          color: CertificateLayout.colorContactText,
-                        ),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
+                ],
               ],
             );
           },
@@ -705,63 +559,37 @@ class CertificatePreviewWidget extends StatelessWidget {
     );
   }
 
-  static List<Widget> _buildKitRow(double W, double H, double centerY, String text) {
-    final rowHeight = H * CertificateLayout.kitRowBoxHeight;
-    final iconHeight = H * CertificateLayout.kitIconHeight;
-    final iconWidth = W * CertificateLayout.kitIconWidth;
+  Widget _buildAutoShrinkText({
+    required String text,
+    required double baseSize,
+    required double minSize,
+  }) {
+    double size = baseSize;
+    if (text.length > 22) {
+      size = (baseSize * 22 / text.length).clamp(minSize, baseSize);
+    }
 
-    return [
-      Positioned(
-        left: W * CertificateLayout.kitIconLeft,
-        top: H * centerY - (iconHeight / 2),
-        width: iconWidth,
-        height: iconHeight,
-        child: Image.asset(CertificateLayout.rabbitIconAsset, fit: BoxFit.contain),
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: CertificateLayout.fontFamilyDetails,
+        fontSize: size,
+        color: CertificateLayout.colorDetailsText,
       ),
-      Positioned(
-        left: W * CertificateLayout.kitTextLeft,
-        top: H * centerY - (rowHeight / 2),
-        width: W * CertificateLayout.kitTextMaxWidth,
-        height: rowHeight,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            text,
-            style: TextStyle(
-              fontFamily: CertificateLayout.fontFamilyDetails,
-              fontSize: W * CertificateLayout.fontRatioKitRows,
-              color: CertificateLayout.colorKitText,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-    ];
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
+}
 
-  static List<Widget> _buildCardRow(double W, double H, double centerY, String text) {
-    final rowHeight = H * CertificateLayout.cardRowBoxHeight;
-    return [
-      Positioned(
-        left: W * CertificateLayout.cardTextLeft,
-        top: H * centerY - (rowHeight / 2),
-        width: W * CertificateLayout.cardTextMaxWidth,
-        height: rowHeight,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            text,
-            style: TextStyle(
-              fontFamily: CertificateLayout.fontFamilyDetails,
-              fontSize: W * CertificateLayout.fontRatioCardRows,
-              color: CertificateLayout.colorCardText,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-    ];
-  }
+class _PreviewRowDef {
+  final String fullText;
+  final double iconTop;
+  final double rowCenterY;
+
+  const _PreviewRowDef({
+    required this.fullText,
+    required this.iconTop,
+    required this.rowCenterY,
+  });
 }
