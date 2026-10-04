@@ -23,7 +23,9 @@ class _TasksCardState extends State<TasksCard> {
   List<Map<String, dynamic>> upcomingTasks = [];
   List<Map<String, dynamic>> completedTasks = [];
   bool _isLoading = true;
-  String? _selectedFilterCategory;
+  bool _showToday = true;
+  bool _showUpcoming = false;
+  bool _showCompleted = true;
 
   @override
   void initState() {
@@ -87,7 +89,6 @@ class _TasksCardState extends State<TasksCard> {
         });
       }
     } catch (e) {
-      print('Error loading tasks for rabbit: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -106,107 +107,51 @@ class _TasksCardState extends State<TasksCard> {
       );
     }
 
-    // Filter tasks if category is selected
-    List<Map<String, dynamic>> todayToShow = todayTasks;
-    List<Map<String, dynamic>> upcomingToShow = upcomingTasks;
-    List<Map<String, dynamic>> completedToShow = completedTasks;
-
-    if (_selectedFilterCategory != null) {
-      final catFilter = _selectedFilterCategory!.toUpperCase();
-      todayToShow = todayTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
-      upcomingToShow = upcomingTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
-      completedToShow = completedTasks.where((t) => (t['category'] ?? 'General').toString().toUpperCase().contains(catFilter)).toList();
-    }
+    final todayToShow = todayTasks;
+    final upcomingToShow = upcomingTasks;
+    final completedToShow = completedTasks;
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
+        color: const Color(0xFFF6EEFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kNeutral200),
+        border: Border.all(color: const Color(0xFFE4D7F5)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+          // Header Bar
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
+            color: Colors.white,
             child: Row(
               children: [
+                Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 20),
+                const SizedBox(width: 8),
                 const Text(
                   'TASKS',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
-                    letterSpacing: 0.8,
+                    color: Color(0xFF2C2C2E),
+                    letterSpacing: 0.6,
                   ),
                 ),
                 const Spacer(),
-                PopupMenuButton<String>(
-                  padding: EdgeInsets.zero,
-                  offset: const Offset(0, 40),
-                  onSelected: (String category) {
-                    setState(() {
-                      _selectedFilterCategory = category == 'ALL' ? null : category;
-                    });
-                  },
-                  itemBuilder: (BuildContext context) {
-                    final categories = ['ALL', 'BREEDING', 'HEALTH', 'OPERATIONS'];
-                    return categories.map((cat) {
-                      final isSelected = (_selectedFilterCategory == null && cat == 'ALL') ||
-                          (_selectedFilterCategory == cat);
-                      return PopupMenuItem<String>(
-                        value: cat,
-                        child: Row(
-                          children: [
-                            Icon(
-                              isSelected ? Icons.check : null, 
-                              size: 16, 
-                              color: const Color(0xFF8B5CF6)
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF374151),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList();
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3E8FF),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      PhosphorIcons.funnel(PhosphorIconsStyle.regular),
-                      size: 16,
-                      color: const Color(0xFF8B5CF6),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _showNewScheduleDialog,
                   child: Container(
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3E8FF),
+                      color: const Color(0xFFE6BEFE),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.add,
                       size: 18,
-                      color: Color(0xFF8B5CF6),
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -214,70 +159,180 @@ class _TasksCardState extends State<TasksCard> {
             ),
           ),
 
-          // Task Sections
-          _buildTaskHeader('TODAY & OVERDUE', todayToShow.length, isOverdue: true),
-          if (todayToShow.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text('No tasks due today', style: TextStyle(fontSize: 13, color: kNeutral400)),
-            )
-          else
-            ...todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)),
+          const SizedBox(height: 12),
 
-          const SizedBox(height: 4),
-          _buildTaskHeader('UPCOMING', upcomingToShow.length, isOverdue: false),
-          if (upcomingToShow.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text('No upcoming tasks', style: TextStyle(fontSize: 13, color: kNeutral400)),
-            )
-          else
-            ...upcomingToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)),
+          // TODAY & OVERDUE Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _buildSectionCard(
+              header: _buildSectionHeader(
+                title: 'TODAY & OVERDUE',
+                count: todayToShow.length,
+                tagBgColor: const Color(0xFFDCFCE7),
+                tagTextColor: const Color(0xFF15803D),
+                countBgColor: const Color(0xFFDCFCE7),
+                countTextColor: const Color(0xFF15803D),
+                isExpanded: _showToday,
+                onToggle: () => setState(() => _showToday = !_showToday),
+              ),
+              tasks: todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
+              isExpanded: _showToday,
+              isEmpty: todayToShow.isEmpty,
+              emptyText: 'No tasks due currently',
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // UPCOMING Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _buildSectionCard(
+              header: _buildSectionHeader(
+                title: 'UPCOMING',
+                count: upcomingToShow.length,
+                tagBgColor: const Color(0xFFBAE6FD),
+                tagTextColor: const Color(0xFF0284C7),
+                countBgColor: const Color(0xFFBAE6FD),
+                countTextColor: const Color(0xFF0284C7),
+                isExpanded: _showUpcoming,
+                onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
+              ),
+              tasks: upcomingToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
+              isExpanded: _showUpcoming,
+              isEmpty: upcomingToShow.isEmpty,
+              emptyText: 'No upcoming tasks',
+            ),
+          ),
 
           if (completedToShow.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            _buildTaskHeader('COMPLETED', completedToShow.length, isOverdue: false),
-            ...completedToShow.take(3).toList().asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)),
+            const SizedBox(height: 12),
+            // COMPLETED Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: _buildSectionCard(
+                header: _buildSectionHeader(
+                  title: 'COMPLETED',
+                  count: completedToShow.length,
+                  tagBgColor: const Color(0xFFF3E8FF),
+                  tagTextColor: const Color(0xFF4A3E6D),
+                  countBgColor: const Color(0xFFE9D5FF),
+                  countTextColor: const Color(0xFF4A3E6D),
+                  isExpanded: _showCompleted,
+                  onToggle: () => setState(() => _showCompleted = !_showCompleted),
+                ),
+                tasks: completedToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)).toList(),
+                isExpanded: _showCompleted,
+                isEmpty: completedToShow.isEmpty,
+                emptyText: 'No completed tasks',
+              ),
+            ),
           ],
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
         ],
       ),
     );
   }
 
-  Widget _buildTaskHeader(String title, int count, {bool isOverdue = false}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+  Widget _buildSectionCard({
+    required Widget header,
+    required List<Widget> tasks,
+    required bool isExpanded,
+    required bool isEmpty,
+    required String emptyText,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        if (isExpanded) ...[
+          const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3E8FF),
-              borderRadius: BorderRadius.circular(6),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E5EA)),
             ),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF4B5563),
-                letterSpacing: 0.6,
-              ),
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Text(emptyText, style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: tasks,
+                  ),
           ),
-          if (count > 0)
-            Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF333333),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required int count,
+    required Color tagBgColor,
+    required Color tagTextColor,
+    required Color countBgColor,
+    required Color countTextColor,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+  }) {
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: tagBgColor,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w900,
+                  color: tagTextColor,
+                  letterSpacing: 0.8,
+                ),
               ),
             ),
-        ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: countBgColor,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: countTextColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: const Color(0xFF787880),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,20 +370,17 @@ class _TasksCardState extends State<TasksCard> {
     final bunnyName = widget.rabbit.name.isNotEmpty ? widget.rabbit.name.toUpperCase() : '';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       decoration: BoxDecoration(
         color: rowBg,
-        borderRadius: BorderRadius.circular(8),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Front circle checkbox with comfortable touch target
+              // Circle checkbox with comfortable touch target (matching Home tasks)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -415,7 +467,7 @@ class _TasksCardState extends State<TasksCard> {
               if (timeLabel.isNotEmpty)
                 Text(timeLabel, style: timeLabelStyle),
               const SizedBox(width: 4),
-              // More options button (three dots)
+              // Three dots options button
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showTaskOptions(task),
@@ -582,12 +634,17 @@ class _TasksCardState extends State<TasksCard> {
   }
 
   void _showNewScheduleDialog() async {
-    String selectedCategory = 'Operations';
+    String selectedCategory = 'Health';
     String? selectedTask;
     String selectedFrequency = 'Select date';
-    bool isCustomTask = false;
+    bool isEnteringCustomName = false;
     DateTime? selectedCustomDate = DateTime.now();
     final TextEditingController customTaskController = TextEditingController();
+
+    List<Map<String, dynamic>> directoryItems = [];
+    try {
+      directoryItems = await _db.getAllTaskDirectoryItems();
+    } catch (e) {}
 
     showDialog(
       context: context,
@@ -596,18 +653,16 @@ class _TasksCardState extends State<TasksCard> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             Widget buildCategoryRadio(String label, String value) {
-              final bool isSelected = (value == 'Custom' && isCustomTask) ||
-                  (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
+              final bool isSelected = selectedCategory.toLowerCase() == value.toLowerCase();
               return GestureDetector(
                 onTap: () {
                   setDialogState(() {
+                    selectedCategory = value;
                     if (value == 'Custom') {
-                      selectedCategory = 'Custom';
-                      isCustomTask = true;
+                      isEnteringCustomName = true;
                       selectedTask = null;
                     } else {
-                      selectedCategory = value;
-                      isCustomTask = false;
+                      isEnteringCustomName = false;
                       selectedTask = null;
                     }
                   });
@@ -644,40 +699,72 @@ class _TasksCardState extends State<TasksCard> {
 
             final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
 
-            List<String> currentTaskOptions;
-            if (selectedCategory == 'Health') {
-              currentTaskOptions = [
+            List<String> defaultTasks;
+            List<String> customDirTasks = [];
+            final catLower = selectedCategory.toLowerCase();
+
+            if (catLower == 'health') {
+              defaultTasks = [
                 'Nail Trim',
                 'Deworm',
                 'Coccidiosis Med',
                 'Teeth Check',
                 'Weight Check',
-                '+ Custom...',
               ];
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'health')
+                  .map((t) => t['name'] as String)
+                  .toList();
             } else if (isBreeding) {
-              currentTaskOptions = [
+              defaultTasks = [
                 'Palpation',
                 'Add Nest Box',
                 'Check for Kindle',
-                '+ Custom...',
               ];
-            } else if (selectedCategory == 'Operations') {
-              currentTaskOptions = [
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'breeding')
+                  .map((t) => t['name'] as String)
+                  .toList();
+            } else if (catLower == 'operations') {
+              defaultTasks = [
                 'Clean Trays',
                 'Top Off Feed',
                 'Check Water',
                 'Deep Clean',
                 'Cage Maintenance',
-                '+ Custom...',
               ];
+              customDirTasks = directoryItems
+                  .where((t) {
+                    final c = (t['category'] as String?)?.toLowerCase();
+                    return c == 'operations' || c == 'husbandry' || c == 'maintenance';
+                  })
+                  .map((t) => t['name'] as String)
+                  .toList();
             } else {
-              currentTaskOptions = [
+              defaultTasks = [
                 'Clean Trays',
                 'Nail Trim',
                 'Health Check',
-                '+ Custom...',
               ];
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'custom')
+                  .map((t) => t['name'] as String)
+                  .toList();
             }
+
+            final Set<String> combinedSet = {};
+            for (final t in defaultTasks) {
+              combinedSet.add(t);
+            }
+            for (final t in customDirTasks) {
+              if (t.trim().isNotEmpty) {
+                combinedSet.add(t.trim());
+              }
+            }
+            final List<String> currentTaskOptions = [
+              ...combinedSet,
+              '+ Custom',
+            ];
 
             Future<void> pickDate() async {
               final picked = await showDatePicker(
@@ -725,44 +812,70 @@ class _TasksCardState extends State<TasksCard> {
                       _buildDialogLabel('Category'),
                       Row(
                         children: [
-                          Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                          Expanded(child: buildCategoryRadio('Health', 'Health')),
                           Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(child: buildCategoryRadio('Health', 'Health')),
+                          Expanded(child: buildCategoryRadio('Operations', 'Operations')),
                           Expanded(child: buildCategoryRadio('Custom', 'Custom')),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      if (!isCustomTask) ...[
+                      if (!isEnteringCustomName) ...[
                         _buildDialogLabel('Task'),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: _inputBoxDecoration(),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
-                              value: (selectedTask == '+ Custom...') ? null : selectedTask,
-                              hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: kNeutral400)),
+                              value: (selectedTask == '+ Custom' || !currentTaskOptions.contains(selectedTask)) ? null : selectedTask,
+                              hint: const Text('Select a task', style: TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400)),
                               isExpanded: true,
                               icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
-                              items: currentTaskOptions.map((e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(
-                                  e,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
-                                    color: e == '+ Custom...' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                              selectedItemBuilder: (BuildContext context) {
+                                return currentTaskOptions.map((e) => Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    e,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                      color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                    ),
                                   ),
-                                ),
-                              )).toList(),
+                                )).toList();
+                              },
+                              items: currentTaskOptions.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final e = entry.value;
+                                final isAlt = idx % 2 == 1;
+                                return DropdownMenuItem(
+                                  value: e,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      e,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                        color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                               onChanged: (val) {
-                                if (val == '+ Custom...') {
+                                if (val == '+ Custom') {
                                   setDialogState(() {
-                                    isCustomTask = true;
+                                    isEnteringCustomName = true;
                                     selectedTask = null;
                                   });
                                 } else {
@@ -775,12 +888,37 @@ class _TasksCardState extends State<TasksCard> {
                           ),
                         ),
                       ] else ...[
-                        _buildDialogLabel('Custom Task Name'),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildDialogLabel('Task Name'),
+                            if (selectedCategory != 'Custom')
+                              GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    isEnteringCustomName = false;
+                                    customTaskController.clear();
+                                  });
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.only(bottom: 6),
+                                  child: Text(
+                                    'Choose from list',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF8B5CF6),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                         TextField(
                           controller: customTaskController,
                           decoration: InputDecoration(
-                            hintText: 'Enter custom task name...',
-                            hintStyle: const TextStyle(fontSize: 14, color: kNeutral400),
+                            hintText: 'Enter task name',
+                            hintStyle: const TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF8B5CF6))),
@@ -799,6 +937,30 @@ class _TasksCardState extends State<TasksCard> {
                               value: selectedFrequency,
                               isExpanded: true,
                               icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
+                              selectedItemBuilder: (BuildContext context) {
+                                return [
+                                  'Select date',
+                                  'Daily',
+                                  'Weekly Starting',
+                                  'Fortnightly Starting',
+                                  'Monthly Starting',
+                                  '2 Months starting',
+                                  '3 Months starting',
+                                  '4 Months starting',
+                                  '6 Months starting',
+                                  'Annually'
+                                ].map((e) => Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    e,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                      color: e == 'Select date' ? kNeutral400 : const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                )).toList();
+                              },
                               items: [
                                 'Select date',
                                 'Daily',
@@ -810,7 +972,30 @@ class _TasksCardState extends State<TasksCard> {
                                 '4 Months starting',
                                 '6 Months starting',
                                 'Annually'
-                              ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+                              ].asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final e = entry.value;
+                                final isAlt = idx % 2 == 1;
+                                return DropdownMenuItem(
+                                  value: e,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      e,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                        color: e == 'Select date' ? kNeutral400 : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                               onChanged: (val) {
                                 setDialogState(() => selectedFrequency = val!);
                                 if (val != 'Daily') {
@@ -836,10 +1021,11 @@ class _TasksCardState extends State<TasksCard> {
                               children: [
                                 Text(
                                   selectedCustomDate == null
-                                      ? 'Choose date...'
+                                      ? 'Select date'
                                       : FormatUtils.formatDate(selectedCustomDate!),
                                   style: TextStyle(
                                     fontSize: 14,
+                                    fontWeight: selectedCustomDate == null ? FontWeight.w400 : FontWeight.w600,
                                     color: selectedCustomDate == null ? kNeutral400 : const Color(0xFF1F2937),
                                   ),
                                 ),
@@ -856,7 +1042,7 @@ class _TasksCardState extends State<TasksCard> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            String finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
+                            String finalTaskName = isEnteringCustomName ? customTaskController.text.trim() : (selectedTask ?? '');
                             if (finalTaskName.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
@@ -886,12 +1072,14 @@ class _TasksCardState extends State<TasksCard> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
+                            backgroundColor: const Color(0xFFD4B3EE),
+                            disabledBackgroundColor: const Color(0xFFEAE3F2),
+                            foregroundColor: const Color(0xFF5C4A70),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             elevation: 0,
                           ),
-                          child: const Text('Save Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                          child: const Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF5C4A70), letterSpacing: 0.5)),
                         ),
                       ),
                     ],
@@ -1092,8 +1280,15 @@ class _TasksCardState extends State<TasksCard> {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)));
                             }
                           },
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4B3EE),
+                            disabledBackgroundColor: const Color(0xFFEAE3F2),
+                            foregroundColor: const Color(0xFF5C4A70),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                          ),
+                          child: const Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF5C4A70), letterSpacing: 0.5)),
                         )),
                     const SizedBox(height: 8),
                     SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),

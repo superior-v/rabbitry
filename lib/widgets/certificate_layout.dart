@@ -95,23 +95,23 @@ class CertificateLayout {
   static const double iconWidth = 0.0250;
   static const double iconHeight = 0.0385;
 
-  static const double iconTopName = 0.3054;
-  static const double iconTopBreed = 0.3890;
-  static const double iconTopColor = 0.4773;
-  static const double iconTopDob = 0.5703;
-  static const double iconTopSex = 0.6633;
-  static const double iconTopParents = 0.7564;
+  static const double iconTopName = 0.3150;
+  static const double iconTopBreed = 0.4000;
+  static const double iconTopColor = 0.4850;
+  static const double iconTopDob = 0.5700;
+  static const double iconTopSex = 0.6550;
+  static const double iconTopParents = 0.7450;
 
   static const double textLeft = 0.6722;
   static const double textMaxWidth = 0.3000;
-  static const double textRowHeight = 0.0400; // H fraction
+  static const double textRowHeight = 0.0450; // H fraction
 
-  static const double rowNameCenterY = 0.3389;
-  static const double rowBreedCenterY = 0.4215;
-  static const double rowColorCenterY = 0.5081;
-  static const double rowDobCenterY = 0.6024;
-  static const double rowSexCenterY = 0.6967;
-  static const double rowParentsCenterY = 0.7885;
+  static const double rowNameCenterY = 0.3350;
+  static const double rowBreedCenterY = 0.4200;
+  static const double rowColorCenterY = 0.5050;
+  static const double rowDobCenterY = 0.5900;
+  static const double rowSexCenterY = 0.6750;
+  static const double rowParentsCenterY = 0.7650;
 }
 
 /// Data holder model for populating a Certificate of Birth v2

@@ -724,7 +724,8 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   // Manual Entry Controllers
   final _nameController = TextEditingController();
   final _colorController = TextEditingController();
-  final _weightController = TextEditingController();
+  final _lbsController = TextEditingController();
+  final _ozController = TextEditingController();
   final _idController = TextEditingController();
   final _regController = TextEditingController();
   final _gcController = TextEditingController();
@@ -754,7 +755,8 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     _herdSearchController.dispose();
     _nameController.dispose();
     _colorController.dispose();
-    _weightController.dispose();
+    _lbsController.dispose();
+    _ozController.dispose();
     _idController.dispose();
     _regController.dispose();
     _gcController.dispose();
@@ -1063,22 +1065,40 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
                 _buildOutlinedField('Breed', _breedController),
                 const SizedBox(height: 14),
 
-                // Color | Weight
+                // Color
+                _buildOutlinedField('Color', _colorController),
+                const SizedBox(height: 14),
+
+                // Weight (divided into 2 boxes: Pounds & Ounces with light grey hint text)
                 Row(
                   children: [
-                    Expanded(child: _buildOutlinedField('Color', _colorController)),
+                    Expanded(
+                      child: _buildOutlinedField(
+                        'Pounds',
+                        _lbsController,
+                        hintText: 'lbs',
+                        isNumber: true,
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildOutlinedField('Weight', _weightController, isNumber: true)),
+                    Expanded(
+                      child: _buildOutlinedField(
+                        'Ounces',
+                        _ozController,
+                        hintText: 'oz',
+                        isNumber: true,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
 
-                // Ear # | Born
+                // Ear # | Date of Birth
                 Row(
                   children: [
                     Expanded(child: _buildOutlinedField('Ear #', _idController)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildDatePicker('Born', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
+                    Expanded(child: _buildDatePicker('Date of Birth', _dateOfBirth, (d) => setState(() => _dateOfBirth = d))),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -1149,7 +1169,9 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     
     final earNo = _idController.text.trim();
     final id = 'PED-${DateTime.now().millisecondsSinceEpoch}';
-    final weight = double.tryParse(_weightController.text);
+    final lbs = double.tryParse(_lbsController.text.trim()) ?? 0.0;
+    final oz = double.tryParse(_ozController.text.trim()) ?? 0.0;
+    final double? weight = (lbs > 0 || oz > 0) ? (lbs + (oz / 16.0)) : null;
 
     final newRabbit = Rabbit(
       id: id,
@@ -1176,7 +1198,12 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
     widget.onSelect(newRabbit);
   }
 
-  Widget _buildOutlinedField(String label, TextEditingController controller, {bool isNumber = false}) {
+  Widget _buildOutlinedField(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+    String? hintText,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
@@ -1186,6 +1213,8 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
         labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
         floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
         floatingLabelBehavior: FloatingLabelBehavior.always,
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

@@ -140,19 +140,19 @@ class _CertificateCardState extends State<CertificateCard> {
                     icon: Icon(
                       PhosphorIcons.fileText(PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: const Color(0xFF4F4F56),
+                      color: const Color(0xFF5C4A70),
                     ),
                     label: const Text(
                       'Preview Certificate',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: Color(0xFF5C4A70),
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF4EBFE),
-                      foregroundColor: const Color(0xFF4F4F56),
+                      backgroundColor: const Color(0xFFD4B3EE),
+                      foregroundColor: const Color(0xFF5C4A70),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -518,39 +518,39 @@ class CertificatePreviewWidget extends StatelessWidget {
                 ),
 
                 // Layer 6: Right Detail Rows
-                for (final r in rows) ...[
-                  // Icon
+                for (final r in rows)
                   Positioned(
                     left: W * CertificateLayout.iconLeft,
-                    top: H * r.iconTop,
-                    child: SizedBox(
-                      width: W * CertificateLayout.iconWidth,
-                      height: H * CertificateLayout.iconHeight,
-                      child: Image.asset(
-                        CertificateLayout.rabbitIconAsset,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-
-                  // Text
-                  Positioned(
-                    left: W * CertificateLayout.textLeft,
                     top: H * r.rowCenterY - (H * CertificateLayout.textRowHeight / 2),
                     child: SizedBox(
-                      width: W * CertificateLayout.textMaxWidth,
+                      width: W * (CertificateLayout.textLeft - CertificateLayout.iconLeft + CertificateLayout.textMaxWidth),
                       height: H * CertificateLayout.textRowHeight,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _buildAutoShrinkText(
-                          text: r.fullText,
-                          baseSize: W * CertificateLayout.fontRatioDetails,
-                          minSize: W * CertificateLayout.fontRatioDetailsMin,
-                        ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: W * CertificateLayout.iconWidth,
+                            height: H * CertificateLayout.iconHeight,
+                            child: Image.asset(
+                              CertificateLayout.rabbitIconAsset,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          SizedBox(width: W * 0.015),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _buildAutoShrinkText(
+                                text: r.fullText,
+                                baseSize: W * CertificateLayout.fontRatioDetails,
+                                minSize: W * CertificateLayout.fontRatioDetailsMin,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
               ],
             );
           },

@@ -78,13 +78,26 @@ class _StatsCardsState extends State<StatsCards> {
       litters.sort((a, b) => (b.kindleDate ?? b.breedDate).compareTo(a.kindleDate ?? a.breedDate));
 
       final weightHistory = await _db.getWeightHistory(widget.rabbit.id);
-      final transactions = await _db.getTransactionsByRabbit(widget.rabbit.id);
+      final rabbitTxns = await _db.getTransactionsByRabbit(widget.rabbit.id);
+      final litterTxns = <finance_model.Transaction>[];
+      for (var l in litters) {
+        final txns = await _db.getTransactionsByLitter(l.id);
+        litterTxns.addAll(txns);
+      }
+      final seenTxnIds = <String>{};
+      final allTransactions = <finance_model.Transaction>[];
+      for (var t in [...rabbitTxns, ...litterTxns]) {
+        if (!seenTxnIds.contains(t.id)) {
+          seenTxnIds.add(t.id);
+          allTransactions.add(t);
+        }
+      }
 
       if (mounted) {
         setState(() {
           _litters = litters;
           _weightHistory = weightHistory;
-          _transactions = transactions;
+          _transactions = allTransactions;
           _isLoading = false;
         });
       }
@@ -249,9 +262,15 @@ class _StatsCardsState extends State<StatsCards> {
   // ==========================================
   Widget _buildQuickStatsGrid6() {
     int soldKitsCount = 0;
+    double kitSalesSum = 0;
     for (var l in _litters) {
       for (var k in l.kits) {
-        if (k.status == 'Sold') soldKitsCount++;
+        if (k.status.trim().toLowerCase() == 'sold') {
+          soldKitsCount++;
+          if (k.price != null && k.price! > 0) {
+            kitSalesSum += k.price!;
+          }
+        }
       }
     }
 
@@ -264,12 +283,14 @@ class _StatsCardsState extends State<StatsCards> {
       avgGest = '31d';
     }
 
-    double totalSales = 0;
+    double transactionIncome = 0;
     for (var t in _transactions) {
       if (t.type == finance_model.TransactionType.income) {
-        totalSales += t.amount;
+        transactionIncome += t.amount;
       }
     }
+
+    final double totalSales = (transactionIncome > kitSalesSum) ? transactionIncome : kitSalesSum;
 
     String avgLitter = '0.0';
     if (_litters.isNotEmpty) {
@@ -283,7 +304,7 @@ class _StatsCardsState extends State<StatsCards> {
     final int littersCount = _litters.length;
     final int soldKits = soldKitsCount;
     final int missedLitters = _litters.where((l) => l.status == 'Not Taken' || (l.notes != null && l.notes!.toLowerCase().contains('missed'))).length;
-    final String salesDisplay = '\$${totalSales.toInt()}';
+    final String salesDisplay = '\$${totalSales % 1 == 0 ? totalSales.toInt() : totalSales.toStringAsFixed(2)}';
 
     return Container(
       padding: const EdgeInsets.all(12),

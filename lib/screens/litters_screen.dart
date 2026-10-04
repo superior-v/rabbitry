@@ -9646,7 +9646,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                 child: selectedRabbit != null
                     ? _buildRabbitNameWidget(selectedRabbit, fontSize: 14.5)
                     : Text(
-                        'Select $label',
+                        label.startsWith('Select ') ? label : 'Select $label',
                         style: const TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w400,

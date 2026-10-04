@@ -38,7 +38,22 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
       final buck = await _db.getRabbit(widget.rabbit.lastBreedBuckId!);
       if (mounted) {
         setState(() {
-          _buckName = buck?.name ?? widget.rabbit.lastBreedBuckId;
+          if (buck != null) {
+            final prefix = (buck.breederPrefix ?? '').trim();
+            final name = buck.name.trim();
+            final ear = (buck.earNumber?.trim().isNotEmpty == true
+                    ? buck.earNumber!.trim()
+                    : buck.id.trim())
+                .toUpperCase();
+            final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
+            if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
+              _buckName = '$namePart $ear';
+            } else {
+              _buckName = namePart;
+            }
+          } else {
+            _buckName = widget.rabbit.lastBreedBuckId;
+          }
         });
       }
     }

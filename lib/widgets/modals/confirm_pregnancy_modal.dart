@@ -140,9 +140,9 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                           Text(
                             _formatDoeHeader(),
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A3E6D),
+                              color: Color(0xFF55555C),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -150,9 +150,9 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                           Text(
                             _formatBuckHeader(),
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A3E6D),
+                              color: Color(0xFF55555C),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -184,7 +184,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: kLilacWash,
                 borderRadius: BorderRadius.circular(16),
@@ -269,7 +269,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5DEEC),
+            color: isSelected ? const Color(0xFF7B6BA0) : kLilacLight,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [

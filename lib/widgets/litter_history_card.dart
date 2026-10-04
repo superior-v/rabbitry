@@ -256,11 +256,32 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         (lStatus == 'died' || lStatus == 'dead' || allKitsDead);
 
     final partnerRabbit = _rabbitMap[partnerId];
-    final partnerName = (partner.isNotEmpty
-            ? partner
-            : (partnerRabbit?.name ?? (isDam ? litter.sire : litter.dam)))
-        .trim();
-    final String partnerDisplay = partnerName.isNotEmpty ? partnerName : 'Unknown';
+    String partnerDisplay;
+    if (partnerRabbit != null) {
+      final prefix = (partnerRabbit.breederPrefix ?? '').trim();
+      final name = partnerRabbit.name.trim();
+      final ear = (partnerRabbit.earNumber?.trim().isNotEmpty == true
+              ? partnerRabbit.earNumber!.trim()
+              : partnerRabbit.id.trim())
+          .toUpperCase();
+      final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
+      if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
+        partnerDisplay = '$namePart $ear';
+      } else {
+        partnerDisplay = namePart.isNotEmpty ? namePart : 'Unknown';
+      }
+    } else {
+      final rawName = (partner.isNotEmpty
+              ? partner
+              : (isDam ? litter.sire : litter.dam))
+          .trim();
+      final rawId = (partnerId ?? '').trim().toUpperCase();
+      if (rawName.isNotEmpty && rawId.isNotEmpty && !rawName.toUpperCase().contains(rawId) && !FormatUtils.isSystemId(rawId)) {
+        partnerDisplay = '$rawName $rawId';
+      } else {
+        partnerDisplay = rawName.isNotEmpty ? rawName : 'Unknown';
+      }
+    }
 
     String fullAgeStr = '';
     if (isMissedLitter) {

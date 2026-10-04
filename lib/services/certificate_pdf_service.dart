@@ -253,47 +253,48 @@ class CertificatePdfService {
     _DetailRowDef rowDef,
   ) {
     final double rowHeight = H * CertificateLayout.textRowHeight;
-    final double maxTextWidth = W * CertificateLayout.textMaxWidth;
+    final double totalRowWidth = W * (CertificateLayout.textLeft - CertificateLayout.iconLeft + CertificateLayout.textMaxWidth);
 
     // Auto-shrink text font size if text is long
     final String fullText = '${rowDef.label}${rowDef.value}';
     double fontSize = W * CertificateLayout.fontRatioDetails;
     final double minFontSize = W * CertificateLayout.fontRatioDetailsMin;
 
-    if (fullText.length > 22) {
-      fontSize = (fontSize * 22 / fullText.length).clamp(minFontSize, fontSize);
+    if (fullText.length > 25) {
+      fontSize = (fontSize * 25 / fullText.length).clamp(minFontSize, fontSize);
     }
 
     return [
-      // Icon
       pw.Positioned(
         left: W * CertificateLayout.iconLeft,
-        top: H * rowDef.iconTop,
-        child: pw.SizedBox(
-          width: W * CertificateLayout.iconWidth,
-          height: H * CertificateLayout.iconHeight,
-          child: pw.Image(rabbitIcon, fit: pw.BoxFit.contain),
-        ),
-      ),
-
-      // Text
-      pw.Positioned(
-        left: W * CertificateLayout.textLeft,
         top: H * rowDef.rowCenterY - (rowHeight / 2),
-        child: pw.SizedBox(
-          width: maxTextWidth,
+        child: pw.Container(
+          width: totalRowWidth,
           height: rowHeight,
-          child: pw.Align(
-            alignment: pw.Alignment.centerLeft,
-            child: pw.Text(
-              fullText,
-              style: pw.TextStyle(
-                font: font,
-                fontSize: fontSize,
-                color: CertificateLayout.pdfColorDetailsText,
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.SizedBox(
+                width: W * CertificateLayout.iconWidth,
+                height: H * CertificateLayout.iconHeight,
+                child: pw.Image(rabbitIcon, fit: pw.BoxFit.contain),
               ),
-              maxLines: 1,
-            ),
+              pw.SizedBox(width: W * 0.015),
+              pw.Expanded(
+                child: pw.Align(
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text(
+                    fullText,
+                    style: pw.TextStyle(
+                      font: font,
+                      fontSize: fontSize,
+                      color: CertificateLayout.pdfColorDetailsText,
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

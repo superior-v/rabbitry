@@ -25,6 +25,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
   final _treatmentController = TextEditingController();
   final _notesController = TextEditingController();
   final _costController = TextEditingController();
+  final _cageController = TextEditingController();
   final DatabaseService _db = DatabaseService();
 
   DateTime _selectedDate = DateTime.now();
@@ -32,14 +33,29 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
   bool _isLoading = false;
   bool _addToQuarantine = false;
   int _quarantineDays = 14;
-  String? _selectedCage;
   List<String> _locations = [];
   String? _selectedLocation;
+  Rabbit? _buck;
+  String? _buckName;
 
   @override
   void initState() {
     super.initState();
     _loadBarns();
+    _loadBuck();
+  }
+
+  void _loadBuck() {
+    if (widget.rabbit.lastBreedBuckId != null && widget.rabbit.lastBreedBuckId!.isNotEmpty) {
+      _db.getRabbit(widget.rabbit.lastBreedBuckId!).then((buck) {
+        if (buck != null && mounted) {
+          setState(() {
+            _buck = buck;
+            _buckName = buck.fullName.isNotEmpty ? buck.fullName : buck.name;
+          });
+        }
+      });
+    }
   }
 
   Future<void> _loadBarns() async {
@@ -88,6 +104,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
     _treatmentController.dispose();
     _notesController.dispose();
     _costController.dispose();
+    _cageController.dispose();
     super.dispose();
   }
 
@@ -104,6 +121,29 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       return '$namePart $ear';
     }
     return namePart;
+  }
+
+  String _formatBuckHeader() {
+    if (_buck != null) {
+      final prefix = (_buck!.breederPrefix ?? '').trim();
+      final name = _buck!.name.trim();
+      final ear = (_buck!.earNumber?.trim().isNotEmpty == true
+              ? _buck!.earNumber!.trim()
+              : _buck!.id.trim())
+          .toUpperCase();
+      final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
+      if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
+        return '$namePart $ear';
+      }
+      return namePart;
+    }
+
+    final fallbackName = (_buckName ?? widget.rabbit.lastBreedBuckId ?? '').trim();
+    final buckId = (widget.rabbit.lastBreedBuckId ?? '').trim();
+    if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId.toUpperCase())) {
+      return '$fallbackName ${buckId.toUpperCase()}';
+    }
+    return fallbackName;
   }
 
   Future<void> _selectDate() async {
@@ -155,8 +195,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
           cost,
         );
 
-        if (_selectedCage != null && _selectedCage!.isNotEmpty) {
-          await _db.moveCage(widget.rabbit.id, _selectedLocation ?? '', _selectedCage!);
+        if (_cageController.text.isNotEmpty || _selectedLocation != null) {
+          await _db.moveCage(widget.rabbit.id, _selectedLocation ?? '', _cageController.text);
         }
       }
 
@@ -185,8 +225,81 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
     }
   }
 
+  Widget _buildOutlinedField({
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    IconData? prefixIcon,
+    String? prefixText,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    Function(String)? onChanged,
+    String? Function(String?)? validator,
+    Color textColor = const Color(0xFF3A3A3C),
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      validator: validator,
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        hintText: hint,
+        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
+        prefixText: prefixText,
+        prefixStyle: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7B6BA0)),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDatePickerField({
+    required String label,
+    required DateTime value,
+    required VoidCallback onTap,
+    Color textColor = const Color(0xFF3A3A3C),
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            const SizedBox(width: 8),
+            Text(
+              FormatUtils.formatDate(value),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasBreedingBuck = widget.rabbit.lastBreedBuckId != null && widget.rabbit.lastBreedBuckId!.isNotEmpty;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -201,7 +314,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
           children: [
             // Top Lilac Header Banner (matches LogBirthModal)
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: const BoxDecoration(
                 color: Color(0xFFEADBEE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -216,7 +329,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       const Text(
                         'Log Health',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF4A3E6D),
                           letterSpacing: 0.3,
@@ -224,33 +337,54 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       ),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 22),
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 24),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Text(
-                          _formatRabbitHeader(),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A3E6D),
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatRabbitHeader(),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF4A3E6D),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (hasBreedingBuck) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatBuckHeader(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        FormatUtils.formatDate(_selectedDate),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF4A3E6D),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 42),
+                          child: Text(
+                            FormatUtils.formatDate(_selectedDate),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -258,89 +392,66 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
-            // Inner Lilac Wash Box (compact format)
+            // Inner Lilac Wash Box
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
                         color: kLilacWash,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: kLilacLight),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Row 1: Record Type & Date Picker
+                          // Row 1: Record Type Dropdown & Date Picker
                           Row(
                             children: [
                               Expanded(
                                 flex: 5,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFE5DEEC)),
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedType,
+                                  decoration: InputDecoration(
+                                    labelText: 'Type',
+                                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                    filled: true,
+                                    fillColor: Colors.white,
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedType,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Type',
-                                      labelStyle: TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w600, fontSize: 12),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 6),
-                                    ),
-                                    items: _healthTypes.map((type) {
-                                      return DropdownMenuItem(value: type, child: Text(type, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)));
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      if (value != null) setState(() => _selectedType = value);
-                                    },
-                                  ),
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
+                                  items: _healthTypes.map((type) {
+                                    return DropdownMenuItem(value: type, child: Text(type));
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    if (value != null) setState(() => _selectedType = value);
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Expanded(
-                                flex: 4,
-                                child: InkWell(
+                                flex: 5,
+                                child: _buildDatePickerField(
+                                  label: 'Date',
+                                  value: _selectedDate,
                                   onTap: _selectDate,
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: const Color(0xFFE5DEEC)),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.calendar_today, size: 14, color: Color(0xFF7B6BA0)),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            FormatUtils.formatDate(_selectedDate),
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E)),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
 
-                          // Condition / Issue input (compact)
+                          // Condition / Issue input with autocomplete
                           Autocomplete<String>(
                             optionsBuilder: (textEditingValue) {
                               final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
@@ -357,25 +468,23 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                               return TextFormField(
                                 controller: textController,
                                 focusNode: focusNode,
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
                                 decoration: InputDecoration(
                                   labelText: 'Condition / Treatment',
-                                  labelStyle: const TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w600, fontSize: 12),
+                                  labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                                  floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                                   hintText: 'e.g. Snuffles, Nail Trim...',
-                                  hintStyle: const TextStyle(fontSize: 12),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+                                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   filled: true,
                                   fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
-                                  ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: kLilacLight),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
                                   ),
                                 ),
@@ -395,7 +504,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                 alignment: Alignment.topLeft,
                                 child: Material(
                                   elevation: 4,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(12),
                                   child: ConstrainedBox(
                                     constraints: BoxConstraints(maxHeight: 180, maxWidth: MediaQuery.of(context).size.width - 60),
                                     child: ListView.builder(
@@ -410,12 +519,12 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                         return InkWell(
                                           onTap: () => onSelected(option),
                                           child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(option, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                                if (treatment.isNotEmpty) Text(treatment, style: const TextStyle(fontSize: 11, color: Color(0xFF787774))),
+                                                Text(option, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E))),
+                                                if (treatment.isNotEmpty) Text(treatment, style: const TextStyle(fontSize: 12, color: Color(0xFF787774))),
                                               ],
                                             ),
                                           ),
@@ -427,84 +536,42 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                               );
                             },
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
 
-                          // Row 3: Cost and Notes in side-by-side or compact layout
+                          // Row 3: Cost and Notes
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Cost input
                               Expanded(
-                                flex: 3,
-                                child: TextFormField(
+                                flex: 4,
+                                child: _buildOutlinedField(
+                                  label: 'Cost',
                                   controller: _costController,
+                                  hint: '0.00',
+                                  prefixText: FormatUtils.currencyPrefix,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    labelText: 'Cost',
-                                    labelStyle: const TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w600, fontSize: 12),
-                                    hintText: '0.00',
-                                    prefixText: FormatUtils.currencyPrefix,
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                                    ),
-                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-
-                              // Notes input
+                              const SizedBox(width: 12),
                               Expanded(
-                                flex: 5,
-                                child: TextFormField(
+                                flex: 6,
+                                child: _buildOutlinedField(
+                                  label: 'Notes (optional)',
                                   controller: _notesController,
-                                  maxLines: 1,
-                                  decoration: InputDecoration(
-                                    labelText: 'Notes (optional)',
-                                    labelStyle: const TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w600, fontSize: 12),
-                                    hintText: 'Optional details...',
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFFE5DEEC)),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                                    ),
-                                  ),
+                                  hint: 'Details...',
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
 
-                          // Quarantine toggle card (compact)
+                          // Quarantine toggle card
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(color: _addToQuarantine ? const Color(0xFFFFB300) : const Color(0xFFE5DEEC)),
-                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _addToQuarantine ? const Color(0xFF7B6BA0) : kLilacLight),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,37 +583,47 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       width: 24,
                                       child: Checkbox(
                                         value: _addToQuarantine,
-                                        activeColor: const Color(0xFFFF9800),
+                                        activeColor: const Color(0xFF7B6BA0),
                                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        onChanged: widget.rabbit.status != RabbitStatus.quarantine ? (value) => setState(() => _addToQuarantine = value ?? false) : null,
+                                        onChanged: widget.rabbit.status != RabbitStatus.quarantine
+                                            ? (value) => setState(() => _addToQuarantine = value ?? false)
+                                            : null,
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 8),
                                     const Expanded(
                                       child: Text(
                                         'Move to Quarantine',
                                         style: TextStyle(
-                                          fontSize: 13,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: Color(0xFF2C2C2E),
                                         ),
                                       ),
                                     ),
                                     if (_addToQuarantine)
-                                      Text(
-                                        '$_quarantineDays days',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFF9800)),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF7B6BA0),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '$_quarantineDays days',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                                        ),
                                       ),
                                   ],
                                 ),
                                 if (_addToQuarantine) ...[
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Slider(
                                     value: _quarantineDays.toDouble(),
                                     min: 1,
                                     max: 30,
                                     divisions: 29,
-                                    activeColor: const Color(0xFFFF9800),
+                                    activeColor: const Color(0xFF7B6BA0),
+                                    inactiveColor: kLilacLight,
                                     onChanged: (value) => setState(() => _quarantineDays = value.toInt()),
                                   ),
                                   Row(
@@ -557,14 +634,18 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                             value: _selectedLocation,
                                             decoration: InputDecoration(
                                               labelText: 'Location',
-                                              isDense: true,
+                                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                              floatingLabelBehavior: FloatingLabelBehavior.always,
                                               filled: true,
                                               fillColor: kLilacWash,
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
+                                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                             ),
                                             items: _locations.map((location) {
-                                              return DropdownMenuItem(value: location, child: Text(location, style: const TextStyle(fontSize: 12)));
+                                              return DropdownMenuItem(value: location, child: Text(location, style: const TextStyle(fontSize: 13)));
                                             }).toList(),
                                             onChanged: (value) => setState(() => _selectedLocation = value),
                                           ),
@@ -572,17 +653,21 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       if (_locations.isNotEmpty) const SizedBox(width: 8),
                                       Expanded(
                                         child: TextFormField(
-                                          initialValue: _selectedCage,
+                                          controller: _cageController,
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
                                           decoration: InputDecoration(
                                             labelText: 'Cage ID',
+                                            labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                            floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                            floatingLabelBehavior: FloatingLabelBehavior.always,
                                             hintText: 'Quarantine-1',
-                                            isDense: true,
                                             filled: true,
                                             fillColor: kLilacWash,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                           ),
-                                          onChanged: (value) => _selectedCage = value,
                                         ),
                                       ),
                                     ],
@@ -594,12 +679,12 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
 
-                    // Full Width Purple Save Button (prominent & visible)
+                    // Full Width Purple Save Button
                     SizedBox(
                       width: double.infinity,
-                      height: 46,
+                      height: 50,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveRecord,
                         style: ElevatedButton.styleFrom(
@@ -611,8 +696,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
+                                height: 22,
+                                width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
                                   color: Colors.white,
@@ -621,14 +706,14 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                             : const Text(
                                 'Save Health Record',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),
                               ),
                       ),
                     ),
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
                   ],
                 ),
               ),

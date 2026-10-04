@@ -615,7 +615,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
         child: selectedRabbit != null
             ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
             : Text(
-                'Select $label',
+                label.startsWith('Select ') ? label : 'Select $label',
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
               ),
       ),

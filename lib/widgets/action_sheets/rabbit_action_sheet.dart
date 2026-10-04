@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../screens/rabbit_detail_screen.dart';
@@ -28,6 +27,9 @@ class RabbitActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDoe = rabbit.type == RabbitType.doe;
+    final earNum = rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim();
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -37,102 +39,68 @@ class RabbitActionSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE5FA),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            // Top Purple Header Banner (matches Home Log Breeding style)
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEADBEE),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: FutureBuilder<Rabbit?>(
-                future: rabbit.lastBreedBuckId != null && rabbit.lastBreedBuckId!.isNotEmpty
-                    ? DatabaseService().getRabbit(rabbit.lastBreedBuckId!)
-                    : Future.value(null),
-                builder: (context, snapshot) {
-                  final buck = snapshot.data;
-                  final isDoe = rabbit.type == RabbitType.doe;
-                  final hasBreedingBuck = buck != null || (rabbit.lastBreedBuckId != null && rabbit.lastBreedBuckId!.isNotEmpty);
-                  final buckName = buck != null ? (buck.fullName.isNotEmpty ? buck.fullName : buck.name) : (rabbit.lastBreedBuckId ?? '');
-                  final earNum = rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim();
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 5,
-                          runSpacing: 2,
-                          children: [
-                            if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
-                              Text(
-                                rabbit.breederPrefix!.trim(),
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF787774),
-                                ),
-                              ),
-                            Text(
-                              isDoe ? rabbit.name : (hasBreedingBuck ? rabbit.name : rabbit.name),
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
-                              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      runSpacing: 2,
+                      children: [
+                        if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
+                          Text(
+                            rabbit.breederPrefix!.trim(),
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF787774),
                             ),
-                            if (hasBreedingBuck) ...[
-                              const Text(
-                                'X',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF787774),
-                                ),
-                              ),
-                              Text(
-                                buckName,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF2196F3),
-                                ),
-                              ),
-                            ],
-                            if (earNum.isNotEmpty)
-                              Text(
-                                earNum,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF787774),
-                                ),
-                              ),
-                          ],
+                          ),
+                        Text(
+                          rabbit.name.trim(),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  );
-                },
+                        if (earNum.isNotEmpty)
+                          Text(
+                            earNum,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF787774),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4.0),
+                      child: Icon(Icons.close_rounded, size: 22, color: Color(0xFF4A3E6D)),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F0FA),
+                  color: const Color(0xFFEADBEE),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -209,20 +177,12 @@ class RabbitActionSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE5FA),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEADBEE),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
                     Expanded(
@@ -231,26 +191,30 @@ class RabbitActionSheet extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF1C1C1E),
+                          color: Color(0xFF4A3E6D),
                           letterSpacing: -0.5,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
-                      onPressed: () => Navigator.pop(moveCtx),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(moveCtx),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(Icons.close_rounded, size: 22, color: Color(0xFF4A3E6D)),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF4F0FA),
+                    color: const Color(0xFFEADBEE),
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Column(

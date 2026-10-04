@@ -57,13 +57,14 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    int rowIndex = 0;
     // Rows in display order — isEven drives alternating bg
     final rows = [
       _buildInfoRow(context, 'ID:',
           _currentRabbit.id.length > 8
               ? _currentRabbit.id.substring(0, 8).toUpperCase()
               : _currentRabbit.id.toUpperCase(),
-          rowIndex: 0),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Cage No.:',
           [
             if (_currentRabbit.location != null && _currentRabbit.location!.isNotEmpty) _currentRabbit.location!,
@@ -74,25 +75,29 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                   if (_currentRabbit.cage != null && _currentRabbit.cage!.isNotEmpty) _currentRabbit.cage!,
                 ].join(' • ')
               : '-',
-          rowIndex: 1),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Ear No.:',
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
-          rowIndex: 2),
+          rowIndex: rowIndex++),
+      if (_currentRabbit.acquiredDate != null)
+        _buildInfoRow(context, 'Date Acquired:',
+            DateFormat('MMM dd, yyyy').format(_currentRabbit.acquiredDate!),
+            rowIndex: rowIndex++),
       _buildInfoRow(context, 'Date of Birth:',
           _currentRabbit.dateOfBirth != null ? DateFormat('MMM dd, yyyy').format(_currentRabbit.dateOfBirth!) : '-',
-          rowIndex: 3),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Age:',
           _calculateAge(),
-          rowIndex: 4),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Weight:',
           _currentRabbit.weight != null ? FormatUtils.formatWeight(_currentRabbit.weight!) : '-',
-          rowIndex: 5),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Markers:',
           _getMarkersDisplay(),
-          rowIndex: 6),
+          rowIndex: rowIndex++),
       _buildInfoRow(context, 'Notes:',
           _currentRabbit.notes?.isNotEmpty == true ? _currentRabbit.notes! : '-',
-          isLast: true, rowIndex: 7),
+          isLast: true, rowIndex: rowIndex++),
     ];
 
     return Container(
@@ -1253,7 +1258,7 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Weight History',
+                    'Log Weight',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,

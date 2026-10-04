@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+export 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'settings_service.dart';
 
@@ -148,15 +150,15 @@ class FormatUtils {
   /// Returns the current weight unit string (e.g., "lbs" or "kg")
   static String get weightUnit => _settings.weightUnit;
 
-  /// Format a weight value with unit (e.g., "4lb 5oz" or "2.0 kg")
+  /// Format a weight value with unit (e.g., "4lbs 5oz" or "2.0 kg")
   static String formatWeight(double weight, {int decimals = 1}) {
     if (_settings.weightUnit == 'lbs') {
       final int lbs = weight.floor();
       final int oz = ((weight - lbs) * 16).round();
       if (oz > 0) {
-        return '${lbs}lb ${oz}oz';
+        return '${lbs}lbs ${oz}oz';
       }
-      return '${lbs}lb';
+      return '${lbs}lbs';
     }
     return '${weight.toStringAsFixed(decimals)} ${_settings.weightUnit}';
   }
@@ -235,4 +237,74 @@ class FormatUtils {
 
   /// Currency hint for input fields (e.g., "$0.00")
   static String get currencyHint => '${currencySymbol}0.00';
+
+  // ==================== PHONE NUMBER FORMATTING ====================
+
+  /// Format phone number based on country/currency (e.g. "xxx-xxx-xxxx" for US/Canada)
+  static String formatPhoneNumber(String? raw, {String? countryCode}) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    final text = raw.trim();
+    if (text.startsWith('+')) return text;
+
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return text;
+
+    final currency = (countryCode ?? _settings.currency).toLowerCase();
+
+    if (currency == 'inr') {
+      final maxDigits = digits.length > 10 ? digits.substring(0, 10) : digits;
+      if (maxDigits.length <= 5) return maxDigits;
+      return '${maxDigits.substring(0, 5)}-${maxDigits.substring(5)}';
+    } else if (currency == 'gbp') {
+      final maxDigits = digits.length > 11 ? digits.substring(0, 11) : digits;
+      if (maxDigits.length <= 5) return maxDigits;
+      return '${maxDigits.substring(0, 5)}-${maxDigits.substring(5)}';
+    } else {
+      // Default: US & Canada (NANP) -> xxx-xxx-xxxx
+      String d = digits;
+      if (d.startsWith('1') && d.length > 10) {
+        d = d.substring(1);
+      }
+      final maxDigits = d.length > 10 ? d.substring(0, 10) : d;
+      if (maxDigits.length <= 3) {
+        return maxDigits;
+      } else if (maxDigits.length <= 6) {
+        return '${maxDigits.substring(0, 3)}-${maxDigits.substring(3)}';
+      } else {
+        return '${maxDigits.substring(0, 3)}-${maxDigits.substring(3, 6)}-${maxDigits.substring(6)}';
+      }
+    }
+  }
+}
+
+/// Formats phone numbers as the user types (e.g. auto-inserting dashes for xxx-xxx-xxxx)
+class PhoneNumberFormatter extends TextInputFormatter {
+  final String? countryCode;
+
+  PhoneNumberFormatter({this.countryCode});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) {
+      return newValue;
+    }
+
+    if (text.startsWith('+')) {
+      final cleaned = '+${text.substring(1).replaceAll(RegExp(r'[^\d\s\-]'), '')}';
+      return TextEditingValue(
+        text: cleaned,
+        selection: TextSelection.collapsed(offset: cleaned.length),
+      );
+    }
+
+    final formatted = FormatUtils.formatPhoneNumber(text, countryCode: countryCode);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }

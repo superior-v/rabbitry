@@ -79,6 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   List<String> colorDirectory = [];
   List<Map<String, String>> husbandryTasks = [];
   List<Map<String, String>> healthTasks = [];
+  List<Map<String, String>> breedingTasks = [];
   List<Map<String, String>> maintenanceTasks = [];
 
   // Task Directory (DB-backed)
@@ -318,21 +319,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     setState(() {
       taskDirectoryItems = items;
       husbandryTasks = items
-          .where((t) => t['category'] == 'Husbandry')
+          .where((t) {
+            final cat = (t['category'] as String?)?.toLowerCase();
+            return cat == 'operations' || cat == 'husbandry';
+          })
           .map((t) => {
                 'name': t['name'] as String,
                 'id': t['id'].toString()
               })
           .toList();
       healthTasks = items
-          .where((t) => t['category'] == 'Health')
+          .where((t) => (t['category'] as String?)?.toLowerCase() == 'health')
+          .map((t) => {
+                'name': t['name'] as String,
+                'id': t['id'].toString()
+              })
+          .toList();
+      breedingTasks = items
+          .where((t) => (t['category'] as String?)?.toLowerCase() == 'breeding')
           .map((t) => {
                 'name': t['name'] as String,
                 'id': t['id'].toString()
               })
           .toList();
       maintenanceTasks = items
-          .where((t) => t['category'] == 'Maintenance')
+          .where((t) => (t['category'] as String?)?.toLowerCase() == 'maintenance')
           .map((t) => {
                 'name': t['name'] as String,
                 'id': t['id'].toString()
@@ -1650,6 +1661,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             _buildSubsectionHeader('HEALTH'),
             ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Health')),
+            _buildSubsectionHeader('BREEDING'),
+            ...breedingTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            _buildAddListItem(() => _showAddTaskDirectoryDialog('Breeding')),
             _buildSubsectionHeader('MAINTENANCE'),
             ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Maintenance')),
@@ -3519,11 +3533,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   void _deleteTask(String category, int index) {
     setState(() {
-      if (category == 'husbandry') {
+      final cat = category.toLowerCase();
+      if (cat == 'husbandry' || cat == 'operations') {
         husbandryTasks.removeAt(index);
-      } else if (category == 'health') {
+      } else if (cat == 'health') {
         healthTasks.removeAt(index);
-      } else if (category == 'maintenance') {
+      } else if (cat == 'breeding') {
+        breedingTasks.removeAt(index);
+      } else if (cat == 'maintenance') {
         maintenanceTasks.removeAt(index);
       }
     });

@@ -786,7 +786,7 @@ class PedigreePreviewWidget extends StatelessWidget {
     if (parsed != null && parsed > 0) {
       final int lbs = parsed.floor();
       final int oz = ((parsed - lbs) * 16).round();
-      if (oz > 0) return '${lbs}lb ${oz}oz';
+      if (oz > 0) return '${lbs}lbs ${oz}oz';
       return '${lbs}lbs';
     }
     return wtStr.trim();

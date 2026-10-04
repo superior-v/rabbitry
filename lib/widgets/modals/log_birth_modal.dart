@@ -279,13 +279,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
                         children: [
                           Text(
                             _formatDoeHeader(),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF55555C)),
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             _formatBuckHeader(),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF55555C)),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -333,6 +333,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
       if (_isMissedLitter) {
         _totalBornController.text = '0';
         _aliveBornController.text = '0';
+      } else {
+        if (_totalBornController.text == '0') {
+          _totalBornController.text = '';
+        }
+        if (_aliveBornController.text == '0') {
+          _aliveBornController.text = '';
+        }
       }
     });
   }

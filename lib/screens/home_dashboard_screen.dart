@@ -285,24 +285,10 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       _kitsWeanedCount = kitsWeaned;
 
       final transactions = await _db.getAllTransactions();
-      _monthlySales = transactions.where((t) => t.type == finance.TransactionType.income && !t.date.isBefore(monthStart)).fold(0.0, (sum, t) => sum + t.amount);
-
-      if (_monthlySales == 0) {
-        double kitsTotal = 0.0;
-        for (var l in litters) {
-          for (var k in l.kits) {
-            if (k.status == 'Sold' && k.price != null) {
-              kitsTotal += k.price!;
-            }
-          }
-        }
-        double rabbitsTotal = 0.0;
-        try {
-          final archivedRabbits = await _db.getArchivedRabbits();
-          rabbitsTotal = archivedRabbits.where((r) => r.archiveReason == ArchiveReason.sold && r.salePrice != null && r.archiveDate != null && !r.archiveDate!.isBefore(monthStart)).fold(0.0, (sum, r) => sum + (r.salePrice ?? 0.0));
-        } catch (_) {}
-        _monthlySales = kitsTotal + rabbitsTotal;
-      }
+      final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+      _monthlySales = transactions
+          .where((t) => t.type == finance.TransactionType.income && !t.date.isBefore(monthStart) && t.date.isBefore(nextMonthStart))
+          .fold(0.0, (sum, t) => sum + t.amount);
 
       try {
         final todayTasks = await _db.getTasksDueToday();

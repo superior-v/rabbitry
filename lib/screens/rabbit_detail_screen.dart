@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -450,6 +450,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                     : null,
               ),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
                   if (!hasPhoto || photoPath == null || !File(photoPath).existsSync())
                     Center(
@@ -460,14 +461,12 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       ),
                     ),
                   if (_currentRabbit.salePrice != null)
-                    Positioned(
-                      bottom: -2,
-                      right: -2,
-                      child: Image.asset(
-                        'assets/images/tag_for_sale.png',
-                        width: 38,
-                        height: 38,
-                        fit: BoxFit.contain,
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CustomPaint(
+                          painter: _SaleRibbonPainter(),
+                        ),
                       ),
                     ),
                 ],
@@ -1139,6 +1138,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
   // ✅ Action Methods
   void _openActionSheet() {
+    final isDoe = _currentRabbit.type == RabbitType.doe;
+    final earNum = _currentRabbit.earNumber?.trim().isNotEmpty == true ? _currentRabbit.earNumber!.trim() : _currentRabbit.id.trim();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1151,102 +1153,68 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE5FA),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              // Top Purple Header Banner (matches Log Birth style)
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEADBEE),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: FutureBuilder<Rabbit?>(
-                  future: _currentRabbit.lastBreedBuckId != null && _currentRabbit.lastBreedBuckId!.isNotEmpty
-                      ? DatabaseService().getRabbit(_currentRabbit.lastBreedBuckId!)
-                      : Future.value(null),
-                  builder: (ctx2, snapshot) {
-                    final buck = snapshot.data;
-                    final isDoe = _currentRabbit.type == RabbitType.doe;
-                    final hasBreedingBuck = buck != null || (_currentRabbit.lastBreedBuckId != null && _currentRabbit.lastBreedBuckId!.isNotEmpty);
-                    final buckName = buck != null ? (buck.fullName.isNotEmpty ? buck.fullName : buck.name) : (_currentRabbit.lastBreedBuckId ?? '');
-                    final earNum = _currentRabbit.earNumber?.trim().isNotEmpty == true ? _currentRabbit.earNumber!.trim() : _currentRabbit.id.trim();
-
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 5,
-                            runSpacing: 2,
-                            children: [
-                              if ((_currentRabbit.breederPrefix ?? '').trim().isNotEmpty)
-                                Text(
-                                  _currentRabbit.breederPrefix!.trim(),
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF787774),
-                                  ),
-                                ),
-                              Text(
-                                _currentRabbit.name,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
-                                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 2,
+                        children: [
+                          if ((_currentRabbit.breederPrefix ?? '').trim().isNotEmpty)
+                            Text(
+                              _currentRabbit.breederPrefix!.trim(),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF787774),
                               ),
-                              if (hasBreedingBuck) ...[
-                                const Text(
-                                  'X',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF787774),
-                                  ),
-                                ),
-                                Text(
-                                  buckName,
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF2196F3),
-                                  ),
-                                ),
-                              ],
-                              if (earNum.isNotEmpty)
-                                Text(
-                                  earNum,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF787774),
-                                  ),
-                                ),
-                            ],
+                            ),
+                          Text(
+                            _currentRabbit.name.trim(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF8E8E93)),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    );
-                  },
+                          if (earNum.isNotEmpty)
+                            Text(
+                              earNum,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF787774),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(Icons.close_rounded, size: 22, color: Color(0xFF4A3E6D)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF4F0FA),
+                    color: const Color(0xFFEADBEE),
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -1468,15 +1436,21 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   Future<void> _removeTagForSale() async {
-    final updated = _currentRabbit.copyWith(
-      salePrice: null,
+    // Directly update salePrice to null in DB — copyWith can't set nullable
+    // fields to null because it uses `salePrice ?? this.salePrice`.
+    final db = await _db.database;
+    await db.update(
+      'rabbits',
+      {'salePrice': null, 'updatedAt': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [_currentRabbit.id],
     );
-    await _db.updateRabbit(updated);
+    notifyDataChanged();
     await _refreshRabbitData();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${_currentRabbit.name} removed from sale tag'),
+          content: Text('${_currentRabbit.name} removed from sale'),
           backgroundColor: const Color(0xFF7B6BA0),
           behavior: SnackBarBehavior.floating,
         ),
@@ -1694,3 +1668,95 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_TabBarDelegate oldDelegate) => showShadow != oldDelegate.showShadow || tabBar != oldDelegate.tabBar;
 }
 
+/// Draws a crisp orange "FOR SALE" corner ribbon in the bottom-right corner of the profile picture.
+class _SaleRibbonPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final ribbonExtent = w * 0.68;
+    final bandThickness = w * 0.28;
+
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+
+    final shadowPath = Path()
+      ..moveTo(w - ribbonExtent - 1, h + 1)
+      ..lineTo(w + 1, h - ribbonExtent - 1)
+      ..lineTo(w + 1, h - (ribbonExtent - bandThickness) + 1)
+      ..lineTo(w - (ribbonExtent - bandThickness) - 1, h + 1)
+      ..close();
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    final ribbonPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.bottomLeft,
+        end: Alignment.topRight,
+        colors: [Color(0xFFE65100), Color(0xFFFF9100), Color(0xFFFFB300)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h))
+      ..style = PaintingStyle.fill;
+
+    final ribbonPath = Path()
+      ..moveTo(w - ribbonExtent, h)
+      ..lineTo(w, h - ribbonExtent)
+      ..lineTo(w, h - (ribbonExtent - bandThickness))
+      ..lineTo(w - (ribbonExtent - bandThickness), h)
+      ..close();
+    canvas.drawPath(ribbonPath, ribbonPaint);
+
+    // Subtle edge borders for crisp definition
+    final borderPaint = Paint()
+      ..color = Colors.white.withOpacity(0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.75;
+    canvas.drawLine(
+      Offset(w - ribbonExtent, h),
+      Offset(w, h - ribbonExtent),
+      borderPaint,
+    );
+    canvas.drawLine(
+      Offset(w - (ribbonExtent - bandThickness), h),
+      Offset(w, h - (ribbonExtent - bandThickness)),
+      borderPaint,
+    );
+
+    // Center of the diagonal band
+    final midDist = (ribbonExtent - bandThickness / 2) / 2;
+    final centerX = w - midDist;
+    final centerY = h - midDist;
+
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'FOR SALE',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 8.5,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.6,
+          shadows: [
+            Shadow(
+              color: Color(0x66000000),
+              offset: Offset(0, 1),
+              blurRadius: 1,
+            ),
+          ],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    canvas.save();
+    canvas.translate(centerX, centerY);
+    canvas.rotate(-3.14159265 / 4);
+    textPainter.paint(
+      canvas,
+      Offset(-textPainter.width / 2, -textPainter.height / 2),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

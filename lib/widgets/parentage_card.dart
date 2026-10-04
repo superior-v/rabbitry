@@ -121,9 +121,9 @@ class _ParentageCardState extends State<ParentageCard> {
               const Text(
                 '-',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Color(0xFF55555C),
                 ),
               )
             else
@@ -134,9 +134,9 @@ class _ParentageCardState extends State<ParentageCard> {
                       TextSpan(
                         text: '${rabbit!.breederPrefix} ',
                         style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF2C2C2E),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF787774),
                         ),
                       ),
                     ],
@@ -145,9 +145,9 @@ class _ParentageCardState extends State<ParentageCard> {
                           ? rabbit.name
                           : FormatUtils.cleanParentName(fallbackId),
                       style: const TextStyle(
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2C2C2E),
+                        color: Color(0xFF55555C),
                       ),
                     ),
                   ],

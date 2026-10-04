@@ -59,6 +59,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final TextEditingController _weightPoundsController = TextEditingController();
   final TextEditingController _weightOuncesController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _acquiredDateController = TextEditingController();
   final TextEditingController _sireController = TextEditingController();
   final TextEditingController _damController = TextEditingController();
 
@@ -67,6 +68,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   String? _selectedLocation;
   String? _selectedCage;
   DateTime? _dateOfBirth;
+  DateTime? _acquiredDate;
   String? _profileImagePath;
   bool _photoRemoved = false;
   bool _isSaving = false;
@@ -135,6 +137,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _dateOfBirth = r.dateOfBirth;
     if (r.dateOfBirth != null) {
       _dobController.text = FormatUtils.formatDate(r.dateOfBirth!);
+    }
+    _acquiredDate = r.acquiredDate;
+    if (r.acquiredDate != null) {
+      _acquiredDateController.text = FormatUtils.formatDate(r.acquiredDate!);
     }
     _autoGenetics = r.genetics;
     _parseGeneticsToMap(r.genetics);
@@ -514,7 +520,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 10. Date of Birth
+            // 10. Date Acquired (ABOVE Date of Birth BELOW Ear Number)
+            _buildAcquiredDateField(),
+            const SizedBox(height: 12),
+
+            // 11. Date of Birth
             _buildDateField(),
             const SizedBox(height: 12),
 
@@ -1403,6 +1413,70 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
+  Widget _buildAcquiredDateField() {
+    return Stack(
+      alignment: Alignment.centerRight,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            final date = await showDatePicker(
+              context: context,
+              initialDate: _acquiredDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now(),
+            );
+            if (date != null) {
+              setState(() {
+                _acquiredDate = date;
+                _acquiredDateController.text = FormatUtils.formatDate(date);
+              });
+            }
+          },
+          child: AbsorbPointer(
+            child: TextField(
+              controller: _acquiredDateController,
+              style: const TextStyle(fontSize: 17),
+              decoration: InputDecoration(
+                labelText: 'Date Acquired',
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
+                filled: true,
+                fillColor: Colors.white,
+                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (_acquiredDate != null)
+          Positioned(
+            right: 4,
+            child: IconButton(
+              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
+              onPressed: () {
+                setState(() {
+                  _acquiredDate = null;
+                  _acquiredDateController.clear();
+                });
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildDateField() {
     return Stack(
       alignment: Alignment.centerRight,
@@ -1805,6 +1879,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           location: _selectedLocation,
           cage: _selectedCage,
           dateOfBirth: _dateOfBirth,
+          acquiredDate: _acquiredDate,
           color: _colorController.text.isEmpty ? null : _colorController.text,
           weight: computedWeight,
           genetics: _autoGenetics,
@@ -1826,6 +1901,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         );
 
         // Ensure null-clearable fields are explicitly set because copyWith uses ?? internally
+        updated.acquiredDate = _acquiredDate;
         updated.breederPrefix = _breederPrefixController.text.isEmpty ? null : _breederPrefixController.text;
         updated.earNumber = _earNumberController.text.isEmpty ? null : _earNumberController.text;
         updated.otherBreed = _otherBreedController.text.isEmpty ? null : _otherBreedController.text;
@@ -1872,6 +1948,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           location: _selectedLocation,
           cage: _selectedCage,
           dateOfBirth: _dateOfBirth,
+          acquiredDate: _acquiredDate,
           color: _colorController.text.isEmpty ? null : _colorController.text,
           weight: computedWeight,
           genetics: _autoGenetics,

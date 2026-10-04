@@ -91,7 +91,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    'WEIGHT HISTORY',
+                    'LOG WEIGHT',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,

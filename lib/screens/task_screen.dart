@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:io';
 import '../services/database_service.dart';
@@ -57,7 +58,9 @@ class TaskScreenState extends State<TaskScreen> {
   Set<String> _expandedGroups = {};
   bool _isLoading = true;
   bool _hasLoadedOnce = false;
-  bool _showUpcoming = false; // #7: Hidden by default
+  bool _showToday = true;
+  bool _showUpcoming = false;
+  bool _showArchive = true;
 
   List<Map<String, dynamic>> _todayTasks = [];
   List<Map<String, dynamic>> _upcomingTasks = [];
@@ -892,6 +895,7 @@ class TaskScreenState extends State<TaskScreen> {
   Widget _buildSectionCard({
     required Widget header,
     required List<Widget> tasks,
+    required bool isExpanded,
     required bool isEmpty,
     required String emptyText,
   }) {
@@ -902,110 +906,94 @@ class TaskScreenState extends State<TaskScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: header,
         ),
-        const SizedBox(height: 6),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F7),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE5E5EA)),
+        if (isExpanded) ...[
+          const SizedBox(height: 6),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E5EA)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: tasks,
+                  ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
-                )
-              else
-                ...tasks,
-            ],
-          ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildTaskList() {
-    if (_selectedCategory == 'Breeding Plan') {
-      return _buildBreedingPlanView();
-    }
-    if (_selectedCategory == 'Contacts') {
-      return _buildContactsView();
-    }
-
-    final todayTasks = _getFilteredTodayTasks();
-    final upcomingTasks = _getFilteredUpcomingTasks();
-    final archivedTasks = _getFilteredArchivedTasks();
-
-    return Container(
-      color: const Color(0xFFEEDAFE),
-      child: ListView(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
-        children: [
-          // DUE SECTION
-          _buildSectionCard(
-            header: _buildSectionTitle('TODAY & OVERDUE', _getFilteredTodayTasksCount()),
-            tasks: todayTasks,
-            isEmpty: todayTasks.isEmpty && !_isLoading,
-            emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently',
-          ),
-
-          const SizedBox(height: 16),
-
-          // UPCOMING SECTION
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildUpcomingSectionHeader(),
+  Widget _buildSectionHeader({
+    required String title,
+    required int count,
+    required Color tagBgColor,
+    required Color tagTextColor,
+    required Color countBgColor,
+    required Color countTextColor,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+  }) {
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: tagBgColor,
+                borderRadius: BorderRadius.circular(6),
               ),
-              if (_showUpcoming) ...[
-                const SizedBox(height: 6),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: tagTextColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F7),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE5E5EA)),
+                    color: countBgColor,
+                    borderRadius: BorderRadius.circular(100),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (upcomingTasks.isEmpty && !_isLoading)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          child: Text(
-                            _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
-                            style: TextStyle(fontSize: 13, color: kNeutral500),
-                          ),
-                        )
-                      else
-                        ...upcomingTasks,
-                    ],
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: countTextColor,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 6),
+                Icon(
+                  isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
+                  size: 16,
+                  color: kNeutral500,
+                ),
               ],
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // ARCHIVE SECTION
-          _buildSectionCard(
-            header: _buildSectionTitle('ARCHIVE', _getFilteredArchivedTasksCount()),
-            tasks: archivedTasks,
-            isEmpty: archivedTasks.isEmpty && !_isLoading,
-            emptyText: _isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks',
-          ),
-
-          const SizedBox(height: 100),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1053,61 +1041,84 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
-  Widget _buildUpcomingSectionHeader() {
-    final count = _getFilteredUpcomingTasksCount();
-    return GestureDetector(
-      onTap: () => setState(() => _showUpcoming = !_showUpcoming),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3E8FF),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'UPCOMING',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF4A3E6D),
-                  letterSpacing: 0.8,
-                ),
-              ),
+  Widget _buildTaskList() {
+    if (_selectedCategory == 'Breeding Plan') {
+      return _buildBreedingPlanView();
+    }
+    if (_selectedCategory == 'Contacts') {
+      return _buildContactsView();
+    }
+
+    final todayTasks = _getFilteredTodayTasks();
+    final upcomingTasks = _getFilteredUpcomingTasks();
+    final archivedTasks = _getFilteredArchivedTasks();
+
+    return Container(
+      color: const Color(0xFFEEDAFE),
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+        children: [
+          // DUE SECTION
+          _buildSectionCard(
+            header: _buildSectionHeader(
+              title: 'TODAY & OVERDUE',
+              count: _getFilteredTodayTasksCount(),
+              tagBgColor: const Color(0xFFDCFCE7),
+              tagTextColor: const Color(0xFF15803D),
+              countBgColor: const Color(0xFFDCFCE7),
+              countTextColor: const Color(0xFF15803D),
+              isExpanded: _showToday,
+              onToggle: () => setState(() => _showToday = !_showToday),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE9D5FF),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF4A3E6D),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  _showUpcoming ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
-                  size: 16,
-                  color: kNeutral500,
-                ),
-              ],
+            tasks: todayTasks,
+            isExpanded: _showToday,
+            isEmpty: todayTasks.isEmpty && !_isLoading,
+            emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently',
+          ),
+
+          const SizedBox(height: 16),
+
+          // UPCOMING SECTION
+          _buildSectionCard(
+            header: _buildSectionHeader(
+              title: 'UPCOMING',
+              count: _getFilteredUpcomingTasksCount(),
+              tagBgColor: const Color(0xFFBAE6FD),
+              tagTextColor: const Color(0xFF0284C7),
+              countBgColor: const Color(0xFFBAE6FD),
+              countTextColor: const Color(0xFF0284C7),
+              isExpanded: _showUpcoming,
+              onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
             ),
-          ],
-        ),
+            tasks: upcomingTasks,
+            isExpanded: _showUpcoming,
+            isEmpty: upcomingTasks.isEmpty && !_isLoading,
+            emptyText: _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
+          ),
+
+          const SizedBox(height: 16),
+
+          // ARCHIVE SECTION
+          _buildSectionCard(
+            header: _buildSectionHeader(
+              title: 'ARCHIVE',
+              count: _getFilteredArchivedTasksCount(),
+              tagBgColor: const Color(0xFFFFD1E8),
+              tagTextColor: const Color(0xFFDB2777),
+              countBgColor: const Color(0xFFFFD1E8),
+              countTextColor: const Color(0xFFDB2777),
+              isExpanded: _showArchive,
+              onToggle: () => setState(() => _showArchive = !_showArchive),
+            ),
+            tasks: archivedTasks,
+            isExpanded: _showArchive,
+            isEmpty: archivedTasks.isEmpty && !_isLoading,
+            emptyText: _isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks',
+          ),
+
+          const SizedBox(height: 100),
+        ],
       ),
     );
   }
@@ -1278,14 +1289,12 @@ class TaskScreenState extends State<TaskScreen> {
     Color backgroundColor = Colors.white,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -1445,16 +1454,14 @@ class TaskScreenState extends State<TaskScreen> {
     final isToday = date == 'Today';
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -2088,7 +2095,7 @@ class TaskScreenState extends State<TaskScreen> {
                     children: [
                       Icon(PhosphorIcons.phone(), size: 12, color: kNeutral400),
                       const SizedBox(width: 4),
-                      Text(contact['phone'], style: const TextStyle(fontSize: 12, color: kNeutral500)),
+                      Text(FormatUtils.formatPhoneNumber(contact['phone']), style: const TextStyle(fontSize: 12, color: kNeutral500)),
                     ],
                   ),
               ],
@@ -2401,12 +2408,18 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   void _showNewScheduleDialog(BuildContext context, {String? initialCategory}) async {
-    String selectedCategory = (initialCategory == 'Breeding' || initialCategory == 'Health' || initialCategory == 'Operations')
+    final bool isCategoryLocked = initialCategory != null &&
+        initialCategory != 'All' &&
+        (initialCategory == 'Health' || initialCategory == 'Breeding' || initialCategory == 'Operations');
+
+    String selectedCategory = isCategoryLocked
         ? initialCategory!
-        : 'Operations';
+        : (initialCategory == 'Breeding' || initialCategory == 'Operations'
+            ? initialCategory!
+            : 'Health');
     String? selectedTask;
     String selectedFrequency = 'Select date';
-    bool isCustomTask = false;
+    bool isEnteringCustomName = false;
     DateTime? selectedCustomDate = DateTime.now();
     List<Rabbit> selectedRabbitsForLink = [];
     final customTaskController = TextEditingController();
@@ -2414,6 +2427,7 @@ class TaskScreenState extends State<TaskScreen> {
     bool isSaving = false;
 
     List<Rabbit> allRabbitsList = [];
+    List<Map<String, dynamic>> directoryItems = [];
     try {
       final fetchedRabbits = await _db2.getAllRabbits();
       allRabbitsList = fetchedRabbits.where((r) => r.status != RabbitStatus.archived).toList();
@@ -2428,6 +2442,7 @@ class TaskScreenState extends State<TaskScreen> {
         final earB = (b.earNumber ?? b.id).trim().toLowerCase();
         return earA.compareTo(earB);
       });
+      directoryItems = await _db2.getAllTaskDirectoryItems();
     } catch (e) {}
 
     showModalBottomSheet(
@@ -2438,18 +2453,16 @@ class TaskScreenState extends State<TaskScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             Widget buildCategoryRadio(String label, String value) {
-              final bool isSelected = (value == 'Custom' && isCustomTask) ||
-                  (!isCustomTask && selectedCategory.toLowerCase() == value.toLowerCase());
+              final bool isSelected = selectedCategory.toLowerCase() == value.toLowerCase();
               return GestureDetector(
                 onTap: () {
                   setSheetState(() {
+                    selectedCategory = value;
                     if (value == 'Custom') {
-                      selectedCategory = 'Custom';
-                      isCustomTask = true;
+                      isEnteringCustomName = true;
                       selectedTask = null;
                     } else {
-                      selectedCategory = value;
-                      isCustomTask = false;
+                      isEnteringCustomName = false;
                       selectedTask = null;
                       if (selectedCategory == 'Breeding') {
                         selectedRabbitsForLink = selectedRabbitsForLink.where((r) => r.type == RabbitType.doe).take(1).toList();
@@ -2487,40 +2500,72 @@ class TaskScreenState extends State<TaskScreen> {
               );
             }
 
-            List<String> currentTaskOptions;
-            if (selectedCategory == 'Health') {
-              currentTaskOptions = [
+            List<String> defaultTasks;
+            List<String> customDirTasks = [];
+            final catLower = selectedCategory.toLowerCase();
+
+            if (catLower == 'health') {
+              defaultTasks = [
                 'Nail Trim',
                 'Deworm',
                 'Coccidiosis Med',
                 'Teeth Check',
                 'Weight Check',
-                '+ Custom...',
               ];
-            } else if (selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy') {
-              currentTaskOptions = [
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'health')
+                  .map((t) => t['name'] as String)
+                  .toList();
+            } else if (catLower == 'breeding' || catLower == 'pregnancy') {
+              defaultTasks = [
                 'Palpation',
                 'Add Nest Box',
                 'Check for Kindle',
-                '+ Custom...',
               ];
-            } else if (selectedCategory == 'Operations') {
-              currentTaskOptions = [
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'breeding')
+                  .map((t) => t['name'] as String)
+                  .toList();
+            } else if (catLower == 'operations') {
+              defaultTasks = [
                 'Clean Trays',
                 'Top Off Feed',
                 'Check Water',
                 'Deep Clean',
                 'Cage Maintenance',
-                '+ Custom...',
               ];
+              customDirTasks = directoryItems
+                  .where((t) {
+                    final c = (t['category'] as String?)?.toLowerCase();
+                    return c == 'operations' || c == 'husbandry' || c == 'maintenance';
+                  })
+                  .map((t) => t['name'] as String)
+                  .toList();
             } else {
-              currentTaskOptions = [
+              defaultTasks = [
                 'Clean Trays',
                 'Nail Trim',
                 'Health Check',
-                '+ Custom...',
               ];
+              customDirTasks = directoryItems
+                  .where((t) => (t['category'] as String?)?.toLowerCase() == 'custom')
+                  .map((t) => t['name'] as String)
+                  .toList();
             }
+
+            final Set<String> combinedSet = {};
+            for (final t in defaultTasks) {
+              combinedSet.add(t);
+            }
+            for (final t in customDirTasks) {
+              if (t.trim().isNotEmpty) {
+                combinedSet.add(t.trim());
+              }
+            }
+            final List<String> currentTaskOptions = [
+              ...combinedSet,
+              '+ Custom',
+            ];
 
             final isBreeding = selectedCategory == 'Breeding' || selectedCategory == 'Pregnancy';
             final availableRabbits = isBreeding
@@ -2552,47 +2597,46 @@ class TaskScreenState extends State<TaskScreen> {
             }
 
             return Container(
+              height: MediaQuery.of(context).size.height * 0.88,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.9,
               ),
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildModalHeader(context, 'New Task'),
-                  Flexible(
+                  _buildModalHeader(context, isCategoryLocked ? 'New $selectedCategory Task' : 'New Task'),
+                  Expanded(
                     child: SingleChildScrollView(
                       physics: const ClampingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'CATEGORY',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(child: buildCategoryRadio('Operations', 'Operations')),
-                              Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: buildCategoryRadio('Health', 'Health')),
-                              Expanded(child: buildCategoryRadio('Custom', 'Custom')),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          if (!isCustomTask) ...[
+                          if (!isCategoryLocked) ...[
+                            const Text(
+                              'CATEGORY',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(child: buildCategoryRadio('Health', 'Health')),
+                                Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                                Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                          if (!isEnteringCustomName) ...[
                             InputDecorator(
                               decoration: InputDecoration(
                                 labelText: 'Task',
@@ -2607,26 +2651,53 @@ class TaskScreenState extends State<TaskScreen> {
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
-                                  value: (selectedTask == '+ Custom...') ? null : selectedTask,
-                                  hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: kNeutral400)),
+                                  value: (selectedTask == '+ Custom' || !currentTaskOptions.contains(selectedTask)) ? null : selectedTask,
+                                  hint: const Text('Select a task', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
                                   isExpanded: true,
                                   icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-                                  items: currentTaskOptions.map((e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(
-                                      e,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: e == '+ Custom...' ? FontWeight.w600 : FontWeight.normal,
-                                        fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
-                                        color: e == '+ Custom...' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                  selectedItemBuilder: (BuildContext context) {
+                                    return currentTaskOptions.map((e) => Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        e,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                          color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                        ),
                                       ),
-                                    ),
-                                  )).toList(),
+                                    )).toList();
+                                  },
+                                  items: currentTaskOptions.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final e = entry.value;
+                                    final isAlt = idx % 2 == 1;
+                                    return DropdownMenuItem(
+                                      value: e,
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          e,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                            color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                   onChanged: (val) {
-                                    if (val == '+ Custom...') {
+                                    if (val == '+ Custom') {
                                       setSheetState(() {
-                                        isCustomTask = true;
+                                        isEnteringCustomName = true;
                                         selectedTask = null;
                                       });
                                     } else {
@@ -2639,16 +2710,42 @@ class TaskScreenState extends State<TaskScreen> {
                               ),
                             ),
                           ] else ...[
+                            if (selectedCategory != 'Custom') ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      setSheetState(() {
+                                        isEnteringCustomName = false;
+                                        customTaskController.clear();
+                                      });
+                                    },
+                                    child: const Padding(
+                                      padding: EdgeInsets.only(bottom: 6),
+                                      child: Text(
+                                        'Choose from list',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF8B5CF6),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             _buildModalOutlinedField(
-                              label: 'Custom Task Name',
+                              label: 'Task',
                               controller: customTaskController,
-                              hintText: 'Enter task name...',
+                              hintText: 'Enter task name',
                             ),
                           ],
                           const SizedBox(height: 16),
                           _buildModalRabbitSelectorField(
-                            label: isBreeding ? 'Link to Doe (Required)' : 'Link to Bunny (Optional)',
-                            hint: isBreeding ? 'Select a Doe...' : 'None (Unlinked)',
+                            label: isBreeding ? 'Link to Doe' : 'Link to Bunny',
+                            hint: isBreeding ? 'Select Doe' : 'Select Bunny',
                             selectedRabbits: selectedRabbitsForLink,
                             onTap: pickRabbit,
                             onClear: isBreeding ? null : () => setSheetState(() => selectedRabbitsForLink = []),
@@ -2674,6 +2771,30 @@ class TaskScreenState extends State<TaskScreen> {
                                   value: selectedFrequency,
                                   isExpanded: true,
                                   icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                  selectedItemBuilder: (BuildContext context) {
+                                    return [
+                                      'Select date',
+                                      'Daily',
+                                      'Weekly',
+                                      'Bi-Weekly',
+                                      'Monthly',
+                                      '2 Months starting',
+                                      '3 Months starting',
+                                      '4 Months starting',
+                                      '6 Months starting',
+                                      'Annually',
+                                    ].map((e) => Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        e,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                          color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
+                                        ),
+                                      ),
+                                    )).toList();
+                                  },
                                   items: [
                                     'Select date',
                                     'Daily',
@@ -2684,8 +2805,31 @@ class TaskScreenState extends State<TaskScreen> {
                                     '3 Months starting',
                                     '4 Months starting',
                                     '6 Months starting',
-                                    'Once'
-                                  ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
+                                    'Annually',
+                                  ].asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final e = entry.value;
+                                    final isAlt = idx % 2 == 1;
+                                    return DropdownMenuItem(
+                                      value: e,
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          e,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                            color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                   onChanged: (val) {
                                     if (val != null) {
                                       setSheetState(() => selectedFrequency = val);
@@ -2703,91 +2847,94 @@ class TaskScreenState extends State<TaskScreen> {
                               value: selectedCustomDate,
                               onDateSelected: (picked) => setSheetState(() => selectedCustomDate = picked),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                           ] else ...[
                             const SizedBox(height: 8),
                           ],
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: isSaving
-                                  ? null
-                                  : () async {
-                                      final finalTaskName = isCustomTask ? customTaskController.text.trim() : (selectedTask ?? '');
-                                      if (finalTaskName.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
-                                        );
-                                        return;
-                                      }
-                                      if (isBreeding && selectedRabbitsForLink.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)),
-                                        );
-                                        return;
-                                      }
-                                      final isDaily = !isBreeding && selectedFrequency == 'Daily';
-                                      final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
-                                      final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                final finalTaskName = isEnteringCustomName ? customTaskController.text.trim() : (selectedTask ?? '');
+                                if (finalTaskName.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                  );
+                                  return;
+                                }
+                                if (isBreeding && selectedRabbitsForLink.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)),
+                                  );
+                                  return;
+                                }
+                                final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                                final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
+                                final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
 
-                                      List<Map<String, String>> entitiesToSave = selectedRabbitsForLink.map((r) => {
-                                        'id': r.id,
-                                        'name': r.name,
-                                        'code': r.cage ?? r.location ?? 'No cage',
-                                      }).toList();
+                                List<Map<String, String>> entitiesToSave = selectedRabbitsForLink.map((r) => {
+                                  'id': r.id,
+                                  'name': r.name,
+                                  'code': r.cage ?? r.location ?? 'No cage',
+                                }).toList();
 
-                                      setSheetState(() => isSaving = true);
-                                      try {
-                                        await DatabaseService().insertScheduledTask({
-                                          'name': finalTaskName,
-                                          'category': selectedCategory,
-                                          'frequency': freqToSave,
-                                          'linkType': selectedRabbitsForLink.isNotEmpty ? 'rabbit' : 'unlinked',
-                                          'linkedEntities': entitiesToSave,
-                                          'dueDate': dueDate.toIso8601String(),
-                                        });
-                                        Navigator.pop(sheetContext);
-                                        await _loadScheduledTasks();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary),
-                                        );
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)),
-                                        );
-                                      } finally {
-                                        if (mounted) setSheetState(() => isSaving = false);
-                                      }
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE6BEFE),
-                                foregroundColor: const Color(0xFF4A3E6D),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                setSheetState(() => isSaving = true);
+                                try {
+                                  await DatabaseService().insertScheduledTask({
+                                    'name': finalTaskName,
+                                    'category': selectedCategory,
+                                    'frequency': freqToSave,
+                                    'linkType': selectedRabbitsForLink.isNotEmpty ? 'rabbit' : 'unlinked',
+                                    'linkedEntities': entitiesToSave,
+                                    'dueDate': dueDate.toIso8601String(),
+                                  });
+                                  Navigator.pop(sheetContext);
+                                  await _loadScheduledTasks();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                  );
+                                } finally {
+                                  if (mounted) setSheetState(() => isSaving = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE6BEFE),
+                          foregroundColor: const Color(0xFF4A3E6D),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                ),
+                              )
+                            : const Text(
+                                'Save Task',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
                                 ),
                               ),
-                              child: isSaving
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Save Task',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4A3E6D),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -2803,7 +2950,7 @@ class TaskScreenState extends State<TaskScreen> {
   Future<void> _showAddContactDialog({Map<String, dynamic>? existing}) async {
     final nameController = TextEditingController(text: existing?['name'] ?? '');
     final farmController = TextEditingController(text: existing?['farmName'] ?? '');
-    final phoneController = TextEditingController(text: existing?['phone'] ?? '');
+    final phoneController = TextEditingController(text: FormatUtils.formatPhoneNumber(existing?['phone'] ?? ''));
     final emailController = TextEditingController(text: existing?['email'] ?? '');
     final notesController = TextEditingController(text: existing?['notes'] ?? '');
     bool isSaving = false;
@@ -2838,34 +2985,30 @@ class TaskScreenState extends State<TaskScreen> {
                       _buildModalOutlinedField(
                         label: 'Name *',
                         controller: nameController,
-                        hintText: 'Contact name',
                       ),
                       const SizedBox(height: 16),
                       _buildModalOutlinedField(
                         label: 'Farm Name',
                         controller: farmController,
-                        hintText: 'Farm / Rabbitry name',
                       ),
                       const SizedBox(height: 16),
                       _buildModalOutlinedField(
                         label: 'Phone',
                         controller: phoneController,
                         keyboardType: TextInputType.phone,
-                        hintText: 'Phone number',
+                        inputFormatters: [PhoneNumberFormatter()],
                       ),
                       const SizedBox(height: 16),
                       _buildModalOutlinedField(
                         label: 'Email',
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        hintText: 'Email address',
                       ),
                       const SizedBox(height: 16),
                       _buildModalOutlinedField(
                         label: 'Notes',
                         controller: notesController,
                         maxLines: 3,
-                        hintText: 'Additional contact notes...',
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
@@ -3223,11 +3366,13 @@ class TaskScreenState extends State<TaskScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
     String? hintText,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
@@ -3421,9 +3566,9 @@ class TaskScreenState extends State<TaskScreen> {
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (ear.isNotEmpty)
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
-              text: ' ($ear)',
+              text: ' $ear',
               style: const TextStyle(
                 color: Color(0xFF787774),
                 fontWeight: FontWeight.w700,
