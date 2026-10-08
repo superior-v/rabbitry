@@ -17,6 +17,7 @@ import 'package:share_plus/share_plus.dart';
 import '../services/notification_service.dart'; // ✅ Add this
 import 'dart:convert';
 import '../utils/toast_utils.dart';
+import '../widgets/purple_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -1656,16 +1657,32 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           PhosphorIconsDuotone.sparkle,
           [
             _buildSubsectionHeader('OPERATIONS'),
-            ...husbandryTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            ...husbandryTasks.map((t) => _buildSimpleTaskItem(
+              t['name'] as String,
+              () => _deleteTaskDirectoryItem(int.parse(t['id']!)),
+              onEdit: () => _showEditTaskDirectoryDialog(int.parse(t['id']!), t['name'] as String, 'Operations'),
+            )),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Operations')),
             _buildSubsectionHeader('HEALTH'),
-            ...healthTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            ...healthTasks.map((t) => _buildSimpleTaskItem(
+              t['name'] as String,
+              () => _deleteTaskDirectoryItem(int.parse(t['id']!)),
+              onEdit: () => _showEditTaskDirectoryDialog(int.parse(t['id']!), t['name'] as String, 'Health'),
+            )),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Health')),
             _buildSubsectionHeader('BREEDING'),
-            ...breedingTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            ...breedingTasks.map((t) => _buildSimpleTaskItem(
+              t['name'] as String,
+              () => _deleteTaskDirectoryItem(int.parse(t['id']!)),
+              onEdit: () => _showEditTaskDirectoryDialog(int.parse(t['id']!), t['name'] as String, 'Breeding'),
+            )),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Breeding')),
             _buildSubsectionHeader('MAINTENANCE'),
-            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(t['name'] as String, () => _deleteTaskDirectoryItem(int.parse(t['id']!)))),
+            ...maintenanceTasks.map((t) => _buildSimpleTaskItem(
+              t['name'] as String,
+              () => _deleteTaskDirectoryItem(int.parse(t['id']!)),
+              onEdit: () => _showEditTaskDirectoryDialog(int.parse(t['id']!), t['name'] as String, 'Maintenance'),
+            )),
             _buildAddListItem(() => _showAddTaskDirectoryDialog('Maintenance')),
           ],
         ),
@@ -2662,9 +2679,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildSimpleTaskItem(String title, VoidCallback onDelete, {VoidCallback? onTap}) {
+  Widget _buildSimpleTaskItem(String title, VoidCallback onDelete, {VoidCallback? onEdit, VoidCallback? onTap}) {
+    final handleTap = onEdit ?? onTap;
     return InkWell(
-      onTap: onTap,
+      onTap: handleTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: const BoxDecoration(
@@ -2672,20 +2690,28 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           color: Colors.white,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4F4F56),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4F4F56),
+                ),
               ),
             ),
+            if (onEdit != null)
+              IconButton(
+                icon: const Icon(PhosphorIconsBold.pencilSimple, size: 15, color: Color(0xFF8E8E93)),
+                onPressed: onEdit,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                constraints: const BoxConstraints(),
+              ),
             IconButton(
               icon: const Icon(PhosphorIconsBold.trash, size: 15, color: Color(0xFF8E8E93)),
               onPressed: onDelete,
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               constraints: const BoxConstraints(),
             ),
           ],
@@ -4844,13 +4870,82 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   // ==================== AUTOMATION METHODS ====================
 
   void _deleteTaskDirectoryItem(int id) async {
-    await _db.deleteTaskDirectoryItem(id);
-    await _loadTaskDirectory();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task removed'), backgroundColor: kLilacDeep),
-      );
+    final confirm = await showBrightPurpleDialog<bool>(
+      context: context,
+      title: 'Delete Task?',
+      content: 'Are you sure you want to remove this task from the directory?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
+    );
+    if (confirm == true) {
+      await _db.deleteTaskDirectoryItem(id);
+      await _loadTaskDirectory();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task removed from directory'), backgroundColor: kLilacDeep),
+        );
+      }
     }
+  }
+
+  void _showEditTaskDirectoryDialog(int id, String currentName, String category) {
+    final controller = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Edit $category Task', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF4A3E6D))),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Enter task name',
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+            ),
+          ),
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                await _db.updateTaskDirectoryItem(id, newName, category);
+                await _loadTaskDirectory();
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Task updated in $category directory'),
+                      backgroundColor: kLilacDeep,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddTaskDirectoryDialog(String category) {

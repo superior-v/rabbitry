@@ -9,8 +9,9 @@ import 'purple_dialog.dart';
 
 class HealthRecordsCard extends StatefulWidget {
   final Rabbit rabbit;
+  final VoidCallback? onUpdate;
 
-  const HealthRecordsCard({Key? key, required this.rabbit}) : super(key: key);
+  const HealthRecordsCard({super.key, required this.rabbit, this.onUpdate});
 
   @override
   State<HealthRecordsCard> createState() => _HealthRecordsCardState();
@@ -58,6 +59,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
         rabbit: widget.rabbit,
         onComplete: () {
           _loadRecords();
+          widget.onUpdate?.call();
         },
       ),
     );
@@ -76,6 +78,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
     if (confirmed == true) {
       await _db.deleteHealthRecord(id);
       await _loadRecords();
+      widget.onUpdate?.call();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Health record deleted'), backgroundColor: kPrimary),
@@ -86,10 +89,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
 
   IconData _getRecordIcon(String type, String treatment) {
     final combined = '$type $treatment'.toLowerCase();
-    if (combined.contains('nail') || combined.contains('trim') || combined.contains('groom')) {
-      return PhosphorIcons.scissors(PhosphorIconsStyle.duotone);
-    }
-    if (combined.contains('deworm') || combined.contains('vaccin') || combined.contains('inject')) {
+    if (combined.contains('deworm') || combined.contains('vaccin') || combined.contains('inject') || combined.contains('med')) {
       return PhosphorIcons.syringe(PhosphorIconsStyle.duotone);
     }
     if (combined.contains('quarantine')) {
@@ -130,26 +130,16 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                 GestureDetector(
                   onTap: _showAddRecordModal,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEDE5FA),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: const Color(0xFFD4C8EB)),
+                      color: const Color(0xFFE6BEFE),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.add_rounded, size: 15, color: Color(0xFF7B6BA0)),
-                        SizedBox(width: 4),
-                        Text(
-                          'ADD',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF7B6BA0),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+                    child: const Icon(
+                      Icons.add,
+                      size: 18,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -295,7 +285,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18),
+                      Icon(Icons.delete, color: Color(0xFFEF4444), size: 18),
                       SizedBox(width: 8),
                       Text('Delete', style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w600)),
                     ],

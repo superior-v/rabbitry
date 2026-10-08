@@ -99,22 +99,33 @@ class _LogBirthModalState extends State<LogBirthModal> {
       _bucksProducedController.text = l.maleCount.toString();
       _doesProducedController.text = l.femaleCount.toString();
       
-      // Only include non-archived kits in the editable detail list
-      final activeKits = l.kits.where((k) => !k.isArchived).toList();
-      // Calculate weight avg from active kits
-      if (activeKits.isNotEmpty) {
-        double totalW = activeKits.fold(0.0, (sum, k) => sum + k.weight);
-        _weightAvgController.text = (totalW / activeKits.length).toStringAsFixed(1);
+      // Populate kit details for step 2 from existing litter kits
+      final existingKits = l.kits;
+      if (existingKits.isNotEmpty) {
+        double totalW = existingKits.fold(0.0, (sum, k) => sum + k.weight);
+        _weightAvgController.text = (totalW / existingKits.length).toStringAsFixed(1);
         
-        // Populate kit details for step 2 (only active kits)
-        _kitDetails = activeKits.map((k) => {
+        _kitDetails = existingKits.map((k) => {
           'id': k.id,
           'sex': k.sex,
           'color': k.color,
           'weight': k.weight,
           'status': k.status,
           'imagePath': k.imagePath,
+          'details': k.details,
+          'notes': k.details,
         }).toList();
+      } else if (aliveCount > 0) {
+        _kitDetails = List.generate(
+          aliveCount,
+          (index) => {
+            'id': 'K-${index + 1}',
+            'sex': 'U',
+            'color': 'Unknown',
+            'weight': 0.0,
+            'status': 'Nursing',
+          },
+        );
       }
     } else {
       _loadNextLitterId();
@@ -206,16 +217,12 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   void _adjustKitDetailsToMatchAliveBorn() {
-    final aliveBorn = int.tryParse(_aliveBornController.text) ?? 0;
+    final aliveBorn = int.tryParse(_aliveBornController.text) ?? int.tryParse(_totalBornController.text) ?? 0;
     final avgWeight = double.tryParse(_weightAvgController.text) ?? 0.0;
-
-    final archivedCount = widget.existingLitter != null
-        ? widget.existingLitter!.kits.where((k) => k.isArchived).length
-        : 0;
-    final targetActiveCount = (aliveBorn - archivedCount).clamp(0, aliveBorn);
+    final targetActiveCount = aliveBorn;
 
     if (_kitDetails.length < targetActiveCount) {
-      final startCount = _kitDetails.length + archivedCount;
+      final startCount = _kitDetails.length;
       final newKits = List.generate(
         targetActiveCount - _kitDetails.length,
         (index) => {
@@ -465,7 +472,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 _buildOutlinedField(
                   label: 'Notes',
                   controller: _notesController,
-                  maxLines: 2,
+                  maxLines: 3,
+                  minLines: 2,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
                 ),
               ],
             ),
@@ -554,7 +564,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
             label: 'Notes',
             controller: _notesController,
             hint: 'Notes on missed breeding...',
-            maxLines: 2,
+            maxLines: 3,
+            minLines: 2,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
           ),
         ],
         const SizedBox(height: 12),
@@ -569,14 +582,19 @@ class _LogBirthModalState extends State<LogBirthModal> {
     String? hint,
     IconData? prefixIcon,
     TextInputType? keyboardType,
-    int maxLines = 1,
+    int? maxLines = 1,
+    int? minLines,
+    TextInputAction? textInputAction,
     Function(String)? onChanged,
     Color textColor = const Color(0xFF3A3A3C),
   }) {
+    final bool isMulti = (maxLines != null && maxLines > 1) || maxLines == null;
     return TextField(
       controller: controller,
-      keyboardType: keyboardType,
+      keyboardType: keyboardType ?? (isMulti ? TextInputType.multiline : TextInputType.text),
+      textInputAction: textInputAction ?? (isMulti ? TextInputAction.newline : null),
       maxLines: maxLines,
+      minLines: minLines ?? (isMulti ? 2 : null),
       onChanged: onChanged,
       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
       decoration: InputDecoration(
@@ -630,6 +648,20 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   Widget _buildStep2() {
+    if (_kitDetails.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        alignment: Alignment.center,
+        child: const Text(
+          'No kit details to display.',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF787774),
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -857,15 +889,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kLilacLight,
-                foregroundColor: kLilacText,
+                backgroundColor: const Color(0xFFE6BEFE),
+                foregroundColor: const Color(0xFF2C2C2E),
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: _isSaving
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: kLilacText))
-                  : const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5, color: kLilacText)),
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
+                  : const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5, color: Color(0xFF2C2C2E))),
             ),
           ),
         ],
@@ -881,7 +913,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 child: const Text(
@@ -899,16 +931,16 @@ class _LogBirthModalState extends State<LogBirthModal> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveBirth,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEDE8F5),
-                  foregroundColor: const Color(0xFF6B2D6D),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: const Color(0xFFE6BEFE),
+                  foregroundColor: const Color(0xFF2C2C2E),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6B2D6D)))
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
                     : const Text(
                         'LOG BIRTH',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5, color: Color(0xFF6B2D6D)),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.5, color: Color(0xFF2C2C2E)),
                       ),
               ),
             ),
@@ -974,33 +1006,25 @@ class _LogBirthModalState extends State<LogBirthModal> {
       _adjustKitDetailsToMatchAliveBorn();
 
       if (widget.existingLitter != null) {
-        // Build updated active kits from the detail form
-        final updatedActiveKits = _kitDetails.map((k) => Kit(
+        // Build updated kits from the detail form
+        final updatedKits = _kitDetails.map((k) => Kit(
           id: k['id'] ?? '',
           sex: k['sex'] ?? 'U',
           color: k['color'] ?? 'Unknown',
           weight: (k['weight'] as num?)?.toDouble() ?? 0.0,
           status: k['status'] ?? 'Nursing',
           imagePath: k['imagePath'] as String?,
+          details: k['details'] ?? k['notes'],
         )).toList();
-
-        // Preserve archived kits (sold, butchered, dead) that were filtered out
-        final archivedKits = widget.existingLitter!.kits
-            .where((k) => k.isArchived)
-            .toList();
-
-        // Combine: updated active kits + archived kits preserved (deduplicated by ID)
-        final activeIds = updatedActiveKits.map((k) => k.id).toSet();
-        final uniqueArchived = archivedKits.where((k) => !activeIds.contains(k.id)).toList();
-        final allKits = [...updatedActiveKits, ...uniqueArchived];
 
         // Prepare updated litter object
         final updatedLitter = widget.existingLitter!.copyWith(
           dob: _kindleDate,
+          kindleDate: _kindleDate,
           notes: _notesController.text,
           totalKits: int.tryParse(_totalBornController.text) ?? 0,
           aliveKits: int.tryParse(_aliveBornController.text) ?? 0,
-          kits: allKits,
+          kits: updatedKits,
           colorsProduced: _colorsProducedController.text,
           patternsProduced: _patternsProducedController.text,
           bucksProduced: int.tryParse(_bucksProducedController.text) ?? 0,

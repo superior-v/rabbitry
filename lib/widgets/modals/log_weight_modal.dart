@@ -30,8 +30,6 @@ class _LogWeightModalState extends State<LogWeightModal> {
   bool _isLoading = false;
   bool _loadingHistory = true;
   List<Map<String, dynamic>> _weightHistory = [];
-  Rabbit? _buck;
-  String? _buckName;
 
   @override
   void initState() {
@@ -46,20 +44,6 @@ class _LogWeightModalState extends State<LogWeightModal> {
     }
     _initWeightInputs();
     _loadHistory();
-    _loadBuck();
-  }
-
-  void _loadBuck() {
-    if (widget.rabbit.lastBreedBuckId != null && widget.rabbit.lastBreedBuckId!.isNotEmpty) {
-      _db.getRabbit(widget.rabbit.lastBreedBuckId!).then((buck) {
-        if (buck != null && mounted) {
-          setState(() {
-            _buck = buck;
-            _buckName = buck.fullName.isNotEmpty ? buck.fullName : buck.name;
-          });
-        }
-      });
-    }
   }
 
   Future<void> _initWeightInputs() async {
@@ -115,29 +99,6 @@ class _LogWeightModalState extends State<LogWeightModal> {
       return '$namePart $ear';
     }
     return namePart;
-  }
-
-  String _formatBuckHeader() {
-    if (_buck != null) {
-      final prefix = (_buck!.breederPrefix ?? '').trim();
-      final name = _buck!.name.trim();
-      final ear = (_buck!.earNumber?.trim().isNotEmpty == true
-              ? _buck!.earNumber!.trim()
-              : _buck!.id.trim())
-          .toUpperCase();
-      final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-      if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-        return '$namePart $ear';
-      }
-      return namePart;
-    }
-
-    final fallbackName = (_buckName ?? widget.rabbit.lastBreedBuckId ?? '').trim();
-    final buckId = (widget.rabbit.lastBreedBuckId ?? '').trim();
-    if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId.toUpperCase())) {
-      return '$fallbackName ${buckId.toUpperCase()}';
-    }
-    return fallbackName;
   }
 
   String _formatLbsOz(dynamic weightVal) {
@@ -310,8 +271,6 @@ class _LogWeightModalState extends State<LogWeightModal> {
 
   @override
   Widget build(BuildContext context) {
-    final hasBreedingBuck = widget.rabbit.lastBreedBuckId != null && widget.rabbit.lastBreedBuckId!.isNotEmpty;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -324,11 +283,11 @@ class _LogWeightModalState extends State<LogWeightModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Top Lilac Header Banner (matches LogBirthModal)
+            // Top Lilac Header Banner (matches consistency.jpg)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: const BoxDecoration(
-                color: Color(0xFFEADBEE),
+                color: Color(0xFFEEDAFE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
@@ -336,20 +295,28 @@ class _LogWeightModalState extends State<LogWeightModal> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
                         'Log Weight',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
+                          color: Color(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 24),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
+                        ),
                       ),
                     ],
                   ),
@@ -358,31 +325,14 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _formatRabbitHeader(),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF4A3E6D),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (hasBreedingBuck) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatBuckHeader(),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF4A3E6D),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
+                        child: Text(
+                          _formatRabbitHeader(),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -491,9 +441,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                           // Notes Input field
                           _buildOutlinedField(
                             label: 'Notes',
-                            labelColor: const Color(0xFF8E8E93),
                             controller: _notesController,
-                            hint: 'Add any notes...',
                             maxLines: 2,
                           ),
                         ],
@@ -646,7 +594,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                       ),
                                       if (recordId != null)
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF8E8E93)),
+                                          icon: const Icon(Icons.delete, size: 18, color: Color(0xFF8E8E93)),
                                           visualDensity: VisualDensity.compact,
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
@@ -662,14 +610,14 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Full Width Purple Save Button
+                    // Full Width Light Purple Save Button (matches consistency.jpg)
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveWeight,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7B6BA0),
+                          backgroundColor: const Color(0xFFE6BEFE),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -681,7 +629,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                 width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  color: Colors.white,
+                                  color: Color(0xFF2C2C2E),
                                 ),
                               )
                             : const Text(
@@ -689,7 +637,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: Color(0xFF2C2C2E),
                                 ),
                               ),
                       ),

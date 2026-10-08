@@ -9,6 +9,7 @@ import '../models/rabbit_document.dart';
 import '../models/transaction.dart' as finance_model;
 import '../models/pedigree.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_service.dart';
 import 'app_event_service.dart';
 
@@ -2020,6 +2021,33 @@ class DatabaseService {
             db.update('litters', cleanedLitter.toMap(), where: 'id = ?', whereArgs: [cleanedLitter.id]).ignore();
           }
 
+          // Auto-heal archived litters where kits were incorrectly marked 'Cull' instead of 'Archived'
+          if (litter.status.toLowerCase() == 'archived' || litter.status.toLowerCase() == 'history_only') {
+            if (litter.kits.any((k) => k.status.toLowerCase() == 'cull' || k.status.toLowerCase() == 'culled')) {
+              final healedKits = litter.kits.map((k) {
+                final st = k.status.toLowerCase().trim();
+                if (st == 'cull' || st == 'culled') {
+                  return k.copyWith(status: 'Archived');
+                }
+                return k;
+              }).toList();
+              final aliveCount = healedKits.where((k) {
+                final s = k.status.toLowerCase().trim();
+                return s != 'dead' && s != 'died' && s != 'deceased';
+              }).length;
+              cleanedLitter = cleanedLitter.copyWith(
+                kits: healedKits,
+                aliveKits: (litter.aliveKits != null && litter.aliveKits! > 0) ? litter.aliveKits : aliveCount,
+              );
+              db.update('litters', {
+                'kits': jsonEncode(healedKits.map((k) => k.toMap()).toList()),
+                'currentAlive': aliveCount,
+                'aliveBorn': (litter.aliveKits != null && litter.aliveKits! > 0) ? litter.aliveKits : aliveCount,
+                'updatedAt': DateTime.now().toIso8601String(),
+              }, where: 'id = ?', whereArgs: [litter.id]).ignore();
+            }
+          }
+
           litters.add(await _resolveLitterPhotos(cleanedLitter));
         } catch (e) {
           print('  ❌ Error parsing litter ${map['id']}: $e');
@@ -2356,8 +2384,12 @@ class DatabaseService {
       final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
       if (doeMap.isEmpty) return;
       final currentDoeStatus = (doeMap.first['status'] as String? ?? '').toLowerCase();
-      // If the doe is quarantine or archived, do not reset her status
-      if (currentDoeStatus.contains('quarantine') || currentDoeStatus.contains('archived')) {
+      // If the doe is quarantine, archived, pregnant, palpateDue, or resting, do not reset her status
+      if (currentDoeStatus.contains('quarantine') ||
+          currentDoeStatus.contains('archived') ||
+          currentDoeStatus.contains('pregnant') ||
+          currentDoeStatus.contains('palpatedue') ||
+          currentDoeStatus.contains('resting')) {
         return;
       }
 
@@ -2421,10 +2453,11 @@ class DatabaseService {
           }
         }
 
-        final bool isNewlyBred = lastBreed != null &&
+        final bool isNewlyBred = (dueDate != null && (lastBreed == null || DateTime.now().difference(lastBreed).inDays <= 35)) ||
+                                (lastBreed != null &&
                                 (latestKindle == null || lastBreed.isAfter(latestKindle)) &&
                                 dueDate != null &&
-                                DateTime.now().difference(lastBreed).inDays <= 35;
+                                DateTime.now().difference(lastBreed).inDays <= 35);
 
         final newStatus = isNewlyBred ? RabbitStatus.pregnant.toString() : RabbitStatus.open.toString();
 
@@ -2443,14 +2476,14 @@ class DatabaseService {
           whereArgs: [doeId],
         );
 
-        // Only mark litters as 'Died' if all kits are explicitly deceased/culled
+        // Only mark litters as 'Died' if all kits are explicitly deceased
         for (final litter in doeLitters) {
           final lSt = litter.status.toLowerCase();
-          if (lSt == 'history_only' || lSt == 'deleted_archive' || lSt == 'fostered') continue;
+          if (lSt == 'history_only' || lSt == 'deleted_archive' || lSt == 'fostered' || lSt == 'archived') continue;
 
           final allDied = litter.kits.isNotEmpty && litter.kits.every((k) {
             final s = k.status.toLowerCase();
-            return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+            return s == 'dead' || s == 'died' || s == 'deceased';
           });
 
           if (allDied) {
@@ -3171,14 +3204,25 @@ class DatabaseService {
       'notes': notes,
     });
 
+    final latestRecords = await db.query(
+      'weight_records',
+      where: 'rabbitId = ?',
+      whereArgs: [rabbitId],
+      orderBy: 'date DESC, id DESC',
+      limit: 1,
+    );
+    final latestWeight = latestRecords.isNotEmpty
+        ? (latestRecords.first['weight'] as num?)?.toDouble() ?? weight
+        : weight;
+
     await db.update(
       'rabbits',
-      {'weight': weight, 'updatedAt': DateTime.now().toIso8601String()},
+      {'weight': latestWeight, 'updatedAt': DateTime.now().toIso8601String()},
       where: 'id = ?',
       whereArgs: [rabbitId],
     );
 
-    print('✅ Inserted weight record for $rabbitId: $weight');
+    print('✅ Inserted weight record for $rabbitId: $weight (rabbit weight synced to $latestWeight)');
   }
 
   Future<void> logWeight(
@@ -3199,9 +3243,37 @@ class DatabaseService {
   // Delete a specific weight record
   Future<void> deleteWeightRecord(String weightRecordId) async {
     final db = await database;
-    await db
-        .delete('weight_records', where: 'id = ?', whereArgs: [weightRecordId]);
+    final records = await db.query(
+      'weight_records',
+      where: 'id = ?',
+      whereArgs: [weightRecordId],
+    );
+    String? rabbitId;
+    if (records.isNotEmpty) {
+      rabbitId = records.first['rabbitId'] as String?;
+    }
+
+    await db.delete('weight_records', where: 'id = ?', whereArgs: [weightRecordId]);
     print('✅ Deleted weight record: $weightRecordId');
+
+    if (rabbitId != null) {
+      final remaining = await db.query(
+        'weight_records',
+        where: 'rabbitId = ?',
+        whereArgs: [rabbitId],
+        orderBy: 'date DESC, id DESC',
+        limit: 1,
+      );
+      final double? latestWeight = remaining.isNotEmpty
+          ? (remaining.first['weight'] as num?)?.toDouble()
+          : null;
+      await db.update(
+        'rabbits',
+        {'weight': latestWeight, 'updatedAt': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [rabbitId],
+      );
+    }
   }
 
   // ==================== BARNS/LOCATIONS ====================
@@ -4537,23 +4609,86 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getAllTaskDirectoryItems() async {
     await _ensureTaskDirectoryTable();
+    await seedDefaultTaskDirectoryIfEmpty();
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'task_directory',
-      orderBy: 'category ASC, name ASC',
+      orderBy: 'category ASC, id ASC',
     );
     return maps;
+  }
+
+  Future<void> seedDefaultTaskDirectoryIfEmpty() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final alreadySeeded = prefs.getBool('task_directory_seeded_defaults_v2') ?? false;
+      if (alreadySeeded) return;
+
+      final db = await database;
+      final existing = await db.query('task_directory');
+      final existingNames = existing
+          .map((e) => '${(e['name'] as String).trim().toLowerCase()}_${(e['category'] as String).trim().toLowerCase()}')
+          .toSet();
+
+      final defaults = [
+        {'name': 'Clean Trays', 'category': 'Operations'},
+        {'name': 'Top Off Feed', 'category': 'Operations'},
+        {'name': 'Check Water', 'category': 'Operations'},
+        {'name': 'Deep Clean', 'category': 'Operations'},
+        {'name': 'Cage Maintenance', 'category': 'Operations'},
+        {'name': 'Nail Trim', 'category': 'Health'},
+        {'name': 'Deworm', 'category': 'Health'},
+        {'name': 'Coccidiosis Med', 'category': 'Health'},
+        {'name': 'Teeth Check', 'category': 'Health'},
+        {'name': 'Weight Check', 'category': 'Health'},
+        {'name': 'Palpation', 'category': 'Breeding'},
+        {'name': 'Add Nest Box', 'category': 'Breeding'},
+        {'name': 'Check for Kindle', 'category': 'Breeding'},
+      ];
+
+      for (final item in defaults) {
+        final key = '${item['name']!.trim().toLowerCase()}_${item['category']!.trim().toLowerCase()}';
+        if (!existingNames.contains(key)) {
+          await db.insert('task_directory', {
+            'name': item['name'],
+            'category': item['category'],
+            'createdAt': DateTime.now().toIso8601String(),
+          });
+        }
+      }
+
+      await prefs.setBool('task_directory_seeded_defaults_v2', true);
+      print('✅ Seeded default task directory items');
+    } catch (e) {
+      print('Error seeding default task directory: $e');
+    }
+  }
+
+  Future<void> updateTaskDirectoryItem(int id, String name, String category) async {
+    await _ensureTaskDirectoryTable();
+    final db = await database;
+    await db.update(
+      'task_directory',
+      {
+        'name': name,
+        'category': category,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    print('✅ Updated task directory item: $name ($category) with id: $id');
   }
 
   Future<List<Map<String, dynamic>>> getTaskDirectoryByCategory(
       String category) async {
     await _ensureTaskDirectoryTable();
+    await seedDefaultTaskDirectoryIfEmpty();
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'task_directory',
       where: 'category = ?',
       whereArgs: [category],
-      orderBy: 'name ASC',
+      orderBy: 'id ASC',
     );
     return maps;
   }
@@ -4675,8 +4810,10 @@ class DatabaseService {
   // ==================== PEDIGREE ====================
 
   Future<PedigreeRabbit> buildPedigreeTree(String rabbitId,
-      {int maxGenerations = 5, int currentGen = 0}) async {
-    final rabbit = await getRabbit(rabbitId);
+      {int maxGenerations = 5, int currentGen = 0, Rabbit? initialRabbit}) async {
+    final rabbit = (currentGen == 0 && initialRabbit != null)
+        ? initialRabbit
+        : await getRabbit(rabbitId);
 
     if (rabbit == null) {
       return PedigreeRabbit(

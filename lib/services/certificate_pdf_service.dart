@@ -52,37 +52,37 @@ class CertificatePdfService {
           // Detail rows definitions
           final List<_DetailRowDef> rows = [
             _DetailRowDef(
-              label: 'Name: ',
+              label: 'Name:',
               value: data.name.isNotEmpty ? data.name : '—',
               iconTop: CertificateLayout.iconTopName,
               rowCenterY: CertificateLayout.rowNameCenterY,
             ),
             _DetailRowDef(
-              label: 'Breed: ',
+              label: 'Breed:',
               value: data.breed.isNotEmpty ? data.breed : '—',
               iconTop: CertificateLayout.iconTopBreed,
               rowCenterY: CertificateLayout.rowBreedCenterY,
             ),
             _DetailRowDef(
-              label: 'Color: ',
+              label: 'Color:',
               value: data.color.isNotEmpty ? data.color : '—',
               iconTop: CertificateLayout.iconTopColor,
               rowCenterY: CertificateLayout.rowColorCenterY,
             ),
             _DetailRowDef(
-              label: 'DOB: ',
+              label: 'DOB:',
               value: data.dob.isNotEmpty ? data.dob : '—',
               iconTop: CertificateLayout.iconTopDob,
               rowCenterY: CertificateLayout.rowDobCenterY,
             ),
             _DetailRowDef(
-              label: 'Sex: ',
+              label: 'Sex:',
               value: data.sex.isNotEmpty ? data.sex : '—',
               iconTop: CertificateLayout.iconTopSex,
               rowCenterY: CertificateLayout.rowSexCenterY,
             ),
             _DetailRowDef(
-              label: '',
+              label: 'Parents:',
               value: 'Dam ${data.damName.isNotEmpty ? data.damName : "Unknown"} X Sire ${data.sireName.isNotEmpty ? data.sireName : "Unknown"}',
               iconTop: CertificateLayout.iconTopParents,
               rowCenterY: CertificateLayout.rowParentsCenterY,
@@ -255,14 +255,14 @@ class CertificatePdfService {
     final double rowHeight = H * CertificateLayout.textRowHeight;
     final double totalRowWidth = W * (CertificateLayout.textLeft - CertificateLayout.iconLeft + CertificateLayout.textMaxWidth);
 
-    // Auto-shrink text font size if text is long
-    final String fullText = '${rowDef.label}${rowDef.value}';
-    double fontSize = W * CertificateLayout.fontRatioDetails;
+    double valueFontSize = W * CertificateLayout.fontRatioDetails;
     final double minFontSize = W * CertificateLayout.fontRatioDetailsMin;
 
-    if (fullText.length > 25) {
-      fontSize = (fontSize * 25 / fullText.length).clamp(minFontSize, fontSize);
+    if (rowDef.value.length > 20) {
+      valueFontSize = (valueFontSize * 20 / rowDef.value.length).clamp(minFontSize, valueFontSize);
     }
+
+    final double labelFontSize = W * CertificateLayout.fontRatioDetails;
 
     return [
       pw.Positioned(
@@ -279,15 +279,29 @@ class CertificatePdfService {
                 height: H * CertificateLayout.iconHeight,
                 child: pw.Image(rabbitIcon, fit: pw.BoxFit.contain),
               ),
-              pw.SizedBox(width: W * 0.015),
+              pw.SizedBox(width: W * 0.012),
+              pw.SizedBox(
+                width: W * CertificateLayout.labelWidth,
+                child: pw.Text(
+                  rowDef.label,
+                  style: pw.TextStyle(
+                    font: fontBold,
+                    fontSize: labelFontSize,
+                    color: CertificateLayout.pdfColorDetailsText,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                ),
+              ),
+              pw.SizedBox(width: W * CertificateLayout.labelGap),
               pw.Expanded(
                 child: pw.Align(
                   alignment: pw.Alignment.centerLeft,
                   child: pw.Text(
-                    fullText,
+                    rowDef.value,
                     style: pw.TextStyle(
                       font: font,
-                      fontSize: fontSize,
+                      fontSize: valueFontSize,
                       color: CertificateLayout.pdfColorDetailsText,
                     ),
                     maxLines: 1,

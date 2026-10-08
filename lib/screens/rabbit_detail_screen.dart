@@ -38,6 +38,7 @@ import 'finance_screen.dart';
 import 'home_dashboard_screen.dart' show HomeDashboardScreen;
 import '../constants/app_colors.dart';
 import '../widgets/purple_dialog.dart';
+import '../widgets/sale_ribbon_painter.dart';
 
 class RabbitDetailScreen extends StatefulWidget {
   final Rabbit rabbit;
@@ -85,8 +86,30 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     super.initState();
     _currentRabbit = widget.rabbit;
     _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController.addListener(_handleTabChange);
     _scrollController.addListener(_handleScroll);
     _loadBreedingStats();
+  }
+
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) {
+      _refreshRabbitData();
+    }
+  }
+
+  Future<void> _refreshRabbitData() async {
+    try {
+      final updated = await _db.getRabbit(_currentRabbit.id);
+      if (updated != null && mounted) {
+        setState(() {
+          _currentRabbit = updated;
+          _refreshCounter++;
+        });
+      }
+      await _loadBreedingStats();
+    } catch (e) {
+      print('Error refreshing rabbit data: $e');
+    }
   }
 
   Future<void> _loadBreedingStats() async {
@@ -465,7 +488,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: CustomPaint(
-                          painter: _SaleRibbonPainter(),
+                          painter: SaleRibbonPainter(),
                         ),
                       ),
                     ),
@@ -617,7 +640,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         children: [
           _buildSectionHeader('PROFILE'),
           QuickInfoCard(
-            key: ValueKey('${_currentRabbit.id}_$_refreshCounter'),
+            key: ValueKey('${_currentRabbit.id}_${_currentRabbit.weight}_$_refreshCounter'),
             rabbit: _currentRabbit,
             isEditing: false,
           ),
@@ -790,9 +813,15 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         children: [
           TasksCard(rabbit: _currentRabbit),
           const SizedBox(height: 24),
-          HealthRecordsCard(rabbit: _currentRabbit),
+          HealthRecordsCard(
+            rabbit: _currentRabbit,
+            onUpdate: _refreshRabbitData,
+          ),
           const SizedBox(height: 24),
-          WeightHistoryCard(rabbit: _currentRabbit),
+          WeightHistoryCard(
+            rabbit: _currentRabbit,
+            onUpdate: _refreshRabbitData,
+          ),
         ],
       ),
     );
@@ -1243,7 +1272,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         })
                       else
                         _buildMenuItem('Tag for Sale', () {
-                          _showTagForSaleDialog();
+                          _tagForSale();
                         }),
                       _buildMenuItem('Sell', () {
                         _showArchiveModalWithReason(ArchiveReason.sold);
@@ -1354,85 +1383,22 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
-  void _showTagForSaleDialog() {
-    final priceController = TextEditingController(
-        text: (_currentRabbit.salePrice != null && _currentRabbit.salePrice! > 0)
-            ? _currentRabbit.salePrice.toString()
-            : '');
-    final notesController =
-        TextEditingController(text: _currentRabbit.notes ?? '');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Tag for Sale'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tag ${_currentRabbit.name} for sale:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Price (\$) (optional)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.attach_money),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notesController,
-              decoration: const InputDecoration(
-                labelText: 'Sale Notes (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final price = double.tryParse(priceController.text.trim()) ?? 0.0;
-              final updated = _currentRabbit.copyWith(
-                salePrice: price,
-                notes: notesController.text.trim().isNotEmpty
-                    ? notesController.text.trim()
-                    : _currentRabbit.notes,
-              );
-              await _db.updateRabbit(updated);
-              await _refreshRabbitData();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        '${_currentRabbit.name} tagged for sale${price > 0 ? " (\$${price.toStringAsFixed(2)})" : ""}'),
-                    backgroundColor: const Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Tag for Sale'),
-          ),
-        ],
-      ),
+  Future<void> _tagForSale() async {
+    final updated = _currentRabbit.copyWith(
+      salePrice: 0.0,
     );
+    await _db.updateRabbit(updated);
+    notifyDataChanged();
+    await _refreshRabbitData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_currentRabbit.name} tagged for sale'),
+          backgroundColor: const Color(0xFF7B6BA0),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _removeTagForSale() async {
@@ -1502,17 +1468,6 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         },
       ),
     );
-  }
-
-  Future<void> _refreshRabbitData() async {
-    final updated = await _db.getRabbit(_currentRabbit.id);
-    if (updated != null && mounted) {
-      setState(() {
-        _currentRabbit = updated;
-        _refreshCounter++;
-      });
-    }
-    _loadBreedingStats();
   }
 
   void _confirmDeleteRabbit() async {
@@ -1666,97 +1621,4 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_TabBarDelegate oldDelegate) => showShadow != oldDelegate.showShadow || tabBar != oldDelegate.tabBar;
-}
-
-/// Draws a crisp orange "FOR SALE" corner ribbon in the bottom-right corner of the profile picture.
-class _SaleRibbonPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final ribbonExtent = w * 0.68;
-    final bandThickness = w * 0.28;
-
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-
-    final shadowPath = Path()
-      ..moveTo(w - ribbonExtent - 1, h + 1)
-      ..lineTo(w + 1, h - ribbonExtent - 1)
-      ..lineTo(w + 1, h - (ribbonExtent - bandThickness) + 1)
-      ..lineTo(w - (ribbonExtent - bandThickness) - 1, h + 1)
-      ..close();
-    canvas.drawPath(shadowPath, shadowPaint);
-
-    final ribbonPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.bottomLeft,
-        end: Alignment.topRight,
-        colors: [Color(0xFFE65100), Color(0xFFFF9100), Color(0xFFFFB300)],
-      ).createShader(Rect.fromLTWH(0, 0, w, h))
-      ..style = PaintingStyle.fill;
-
-    final ribbonPath = Path()
-      ..moveTo(w - ribbonExtent, h)
-      ..lineTo(w, h - ribbonExtent)
-      ..lineTo(w, h - (ribbonExtent - bandThickness))
-      ..lineTo(w - (ribbonExtent - bandThickness), h)
-      ..close();
-    canvas.drawPath(ribbonPath, ribbonPaint);
-
-    // Subtle edge borders for crisp definition
-    final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.75;
-    canvas.drawLine(
-      Offset(w - ribbonExtent, h),
-      Offset(w, h - ribbonExtent),
-      borderPaint,
-    );
-    canvas.drawLine(
-      Offset(w - (ribbonExtent - bandThickness), h),
-      Offset(w, h - (ribbonExtent - bandThickness)),
-      borderPaint,
-    );
-
-    // Center of the diagonal band
-    final midDist = (ribbonExtent - bandThickness / 2) / 2;
-    final centerX = w - midDist;
-    final centerY = h - midDist;
-
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        text: 'FOR SALE',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 8.5,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.6,
-          shadows: [
-            Shadow(
-              color: Color(0x66000000),
-              offset: Offset(0, 1),
-              blurRadius: 1,
-            ),
-          ],
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    );
-    textPainter.layout();
-
-    canvas.save();
-    canvas.translate(centerX, centerY);
-    canvas.rotate(-3.14159265 / 4);
-    textPainter.paint(
-      canvas,
-      Offset(-textPainter.width / 2, -textPainter.height / 2),
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

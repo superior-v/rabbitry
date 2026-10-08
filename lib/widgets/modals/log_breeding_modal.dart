@@ -322,17 +322,17 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
               child: ElevatedButton(
                 onPressed: ((widget.doe != null || _selectedDoe != null) && _selectedBuck != null && !_isSaving) ? _saveBreeding : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kLilacLight,
-                  foregroundColor: kLilacText,
+                  backgroundColor: const Color(0xFFE6BEFE),
+                  foregroundColor: const Color(0xFF2C2C2E),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: kLilacText))
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
                     : const Text(
                         'SAVE',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5, color: kLilacText),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5, color: Color(0xFF2C2C2E)),
                       ),
               ),
             ),

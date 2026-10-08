@@ -8,7 +8,8 @@ import 'modals/log_weight_modal.dart';
 
 class WeightHistoryCard extends StatefulWidget {
   final Rabbit rabbit;
-  const WeightHistoryCard({Key? key, required this.rabbit}) : super(key: key);
+  final VoidCallback? onUpdate;
+  const WeightHistoryCard({super.key, required this.rabbit, this.onUpdate});
 
   @override
   State<WeightHistoryCard> createState() => _WeightHistoryCardState();
@@ -23,6 +24,14 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
   void initState() {
     super.initState();
     _loadWeightHistory();
+  }
+
+  @override
+  void didUpdateWidget(covariant WeightHistoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.rabbit.id != oldWidget.rabbit.id || widget.rabbit.weight != oldWidget.rabbit.weight) {
+      _loadWeightHistory();
+    }
   }
 
   Future<void> _loadWeightHistory() async {
@@ -61,7 +70,10 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
       backgroundColor: Colors.transparent,
       builder: (_) => LogWeightModal(
         rabbit: widget.rabbit,
-        onComplete: _loadWeightHistory,
+        onComplete: () {
+          _loadWeightHistory();
+          widget.onUpdate?.call();
+        },
       ),
     );
   }
@@ -69,6 +81,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
   Future<void> _deleteWeightLog(String id) async {
     await _db.deleteWeightRecord(id);
     _loadWeightHistory();
+    widget.onUpdate?.call();
   }
 
   @override
@@ -84,45 +97,32 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.monitor_weight_outlined, size: 18, color: kNeutral500),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'LOG WEIGHT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: kNeutral500,
-                      letterSpacing: 0.6,
-                    ),
+                const Text(
+                  'LOG WEIGHT',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: 0.8,
                   ),
                 ),
                 GestureDetector(
                   onTap: _showLogWeightModal,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEDE5FA),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: const Color(0xFFD4C8EB)),
+                      color: const Color(0xFFE6BEFE),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.add_rounded, size: 15, color: Color(0xFF7B6BA0)),
-                        SizedBox(width: 4),
-                        Text(
-                          'LOG',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF7B6BA0),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+                    child: const Icon(
+                      Icons.add,
+                      size: 18,
+                      color: Colors.white,
                     ),
                   ),
                 ),

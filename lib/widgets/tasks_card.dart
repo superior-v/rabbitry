@@ -169,16 +169,16 @@ class _TasksCardState extends State<TasksCard> {
                 title: 'TODAY & OVERDUE',
                 count: todayToShow.length,
                 tagBgColor: const Color(0xFFDCFCE7),
-                tagTextColor: const Color(0xFF15803D),
+                tagTextColor: const Color(0xFF3A3A3C),
                 countBgColor: const Color(0xFFDCFCE7),
-                countTextColor: const Color(0xFF15803D),
+                countTextColor: const Color(0xFF3A3A3C),
                 isExpanded: _showToday,
                 onToggle: () => setState(() => _showToday = !_showToday),
               ),
               tasks: todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
               isExpanded: _showToday,
               isEmpty: todayToShow.isEmpty,
-              emptyText: 'No tasks due currently',
+              emptyText: 'No Task due',
             ),
           ),
 
@@ -192,9 +192,9 @@ class _TasksCardState extends State<TasksCard> {
                 title: 'UPCOMING',
                 count: upcomingToShow.length,
                 tagBgColor: const Color(0xFFBAE6FD),
-                tagTextColor: const Color(0xFF0284C7),
+                tagTextColor: const Color(0xFF3A3A3C),
                 countBgColor: const Color(0xFFBAE6FD),
-                countTextColor: const Color(0xFF0284C7),
+                countTextColor: const Color(0xFF3A3A3C),
                 isExpanded: _showUpcoming,
                 onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
               ),
@@ -207,24 +207,24 @@ class _TasksCardState extends State<TasksCard> {
 
           if (completedToShow.isNotEmpty) ...[
             const SizedBox(height: 12),
-            // COMPLETED Section
+            // ARCHIVE Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: _buildSectionCard(
                 header: _buildSectionHeader(
-                  title: 'COMPLETED',
+                  title: 'ARCHIVE',
                   count: completedToShow.length,
-                  tagBgColor: const Color(0xFFF3E8FF),
-                  tagTextColor: const Color(0xFF4A3E6D),
-                  countBgColor: const Color(0xFFE9D5FF),
-                  countTextColor: const Color(0xFF4A3E6D),
+                  tagBgColor: const Color(0xFFFFD1E8),
+                  tagTextColor: const Color(0xFF3A3A3C),
+                  countBgColor: const Color(0xFFFFD1E8),
+                  countTextColor: const Color(0xFF3A3A3C),
                   isExpanded: _showCompleted,
                   onToggle: () => setState(() => _showCompleted = !_showCompleted),
                 ),
                 tasks: completedToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)).toList(),
                 isExpanded: _showCompleted,
                 isEmpty: completedToShow.isEmpty,
-                emptyText: 'No completed tasks',
+                emptyText: 'No archived tasks',
               ),
             ),
           ],
@@ -258,7 +258,14 @@ class _TasksCardState extends State<TasksCard> {
             child: isEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Text(emptyText, style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
+                    child: Text(
+                      emptyText,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF636366),
+                      ),
+                    ),
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +305,7 @@ class _TasksCardState extends State<TasksCard> {
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                   color: tagTextColor,
                   letterSpacing: 0.8,
@@ -309,15 +316,15 @@ class _TasksCardState extends State<TasksCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: countBgColor,
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '$count',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: countTextColor,
                     ),
@@ -325,8 +332,8 @@ class _TasksCardState extends State<TasksCard> {
                 ),
                 const SizedBox(width: 6),
                 Icon(
-                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  size: 18,
+                  isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
+                  size: 16,
                   color: const Color(0xFF787880),
                 ),
               ],
@@ -752,17 +759,11 @@ class _TasksCardState extends State<TasksCard> {
                   .toList();
             }
 
-            final Set<String> combinedSet = {};
-            for (final t in defaultTasks) {
-              combinedSet.add(t);
-            }
-            for (final t in customDirTasks) {
-              if (t.trim().isNotEmpty) {
-                combinedSet.add(t.trim());
-              }
-            }
             final List<String> currentTaskOptions = [
-              ...combinedSet,
+              if (customDirTasks.isNotEmpty)
+                ...customDirTasks.where((t) => t.trim().isNotEmpty)
+              else
+                ...defaultTasks,
               '+ Custom',
             ];
 

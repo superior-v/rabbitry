@@ -346,7 +346,7 @@ class Litter {
       status: map['status'] as String? ?? 'nursing', // ✅ Handle null
       sire: map['sire'] as String? ?? (map['buckName'] as String? ?? 'Unknown'), // ✅ Fallback to buckName
       dam: map['dam'] as String? ?? (map['doeName'] as String? ?? 'Unknown'), // ✅ Fallback to doeName
-      missedLitter: map['missedLitter'] == 1,
+      missedLitter: map['missedLitter'] == 1 || map['missedLitter'] == true || map['missedLitter'] == '1',
       colorsProduced: map['colorsProduced'] as String?,
       patternsProduced: map['patternsProduced'] as String?,
       bucksProduced: map['bucksProduced'] as int?,

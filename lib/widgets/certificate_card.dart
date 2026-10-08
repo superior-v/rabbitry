@@ -345,32 +345,38 @@ class CertificatePreviewWidget extends StatelessWidget {
 
             final List<_PreviewRowDef> rows = [
               _PreviewRowDef(
-                fullText: 'Name: ${data.name.isNotEmpty ? data.name : "—"}',
+                label: 'Name:',
+                value: data.name.isNotEmpty ? data.name : "—",
                 iconTop: CertificateLayout.iconTopName,
                 rowCenterY: CertificateLayout.rowNameCenterY,
               ),
               _PreviewRowDef(
-                fullText: 'Breed: ${data.breed.isNotEmpty ? data.breed : "—"}',
+                label: 'Breed:',
+                value: data.breed.isNotEmpty ? data.breed : "—",
                 iconTop: CertificateLayout.iconTopBreed,
                 rowCenterY: CertificateLayout.rowBreedCenterY,
               ),
               _PreviewRowDef(
-                fullText: 'Color: ${data.color.isNotEmpty ? data.color : "—"}',
+                label: 'Color:',
+                value: data.color.isNotEmpty ? data.color : "—",
                 iconTop: CertificateLayout.iconTopColor,
                 rowCenterY: CertificateLayout.rowColorCenterY,
               ),
               _PreviewRowDef(
-                fullText: 'DOB: ${data.dob.isNotEmpty ? data.dob : "—"}',
+                label: 'DOB:',
+                value: data.dob.isNotEmpty ? data.dob : "—",
                 iconTop: CertificateLayout.iconTopDob,
                 rowCenterY: CertificateLayout.rowDobCenterY,
               ),
               _PreviewRowDef(
-                fullText: 'Sex: ${data.sex.isNotEmpty ? data.sex : "—"}',
+                label: 'Sex:',
+                value: data.sex.isNotEmpty ? data.sex : "—",
                 iconTop: CertificateLayout.iconTopSex,
                 rowCenterY: CertificateLayout.rowSexCenterY,
               ),
               _PreviewRowDef(
-                fullText: 'Dam ${data.damName.isNotEmpty ? data.damName : "Unknown"} X Sire ${data.sireName.isNotEmpty ? data.sireName : "Unknown"}',
+                label: 'Parents:',
+                value: 'Dam ${data.damName.isNotEmpty ? data.damName : "Unknown"} X Sire ${data.sireName.isNotEmpty ? data.sireName : "Unknown"}',
                 iconTop: CertificateLayout.iconTopParents,
                 rowCenterY: CertificateLayout.rowParentsCenterY,
               ),
@@ -517,7 +523,7 @@ class CertificatePreviewWidget extends StatelessWidget {
                   ),
                 ),
 
-                // Layer 6: Right Detail Rows
+                // Layer 6: Right Detail Rows (Aligned Label + Value Columns)
                 for (final r in rows)
                   Positioned(
                     left: W * CertificateLayout.iconLeft,
@@ -536,12 +542,26 @@ class CertificatePreviewWidget extends StatelessWidget {
                               fit: BoxFit.contain,
                             ),
                           ),
-                          SizedBox(width: W * 0.015),
+                          SizedBox(width: W * 0.012),
+                          SizedBox(
+                            width: W * CertificateLayout.labelWidth,
+                            child: Text(
+                              r.label,
+                              style: TextStyle(
+                                fontFamily: CertificateLayout.fontFamilyDetails,
+                                fontSize: W * CertificateLayout.fontRatioDetails,
+                                fontWeight: FontWeight.w700,
+                                color: CertificateLayout.colorDetailsText,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ),
+                          SizedBox(width: W * CertificateLayout.labelGap),
                           Expanded(
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: _buildAutoShrinkText(
-                                text: r.fullText,
+                                text: r.value,
                                 baseSize: W * CertificateLayout.fontRatioDetails,
                                 minSize: W * CertificateLayout.fontRatioDetailsMin,
                               ),
@@ -565,8 +585,8 @@ class CertificatePreviewWidget extends StatelessWidget {
     required double minSize,
   }) {
     double size = baseSize;
-    if (text.length > 22) {
-      size = (baseSize * 22 / text.length).clamp(minSize, baseSize);
+    if (text.length > 20) {
+      size = (baseSize * 20 / text.length).clamp(minSize, baseSize);
     }
 
     return Text(
@@ -583,12 +603,14 @@ class CertificatePreviewWidget extends StatelessWidget {
 }
 
 class _PreviewRowDef {
-  final String fullText;
+  final String label;
+  final String value;
   final double iconTop;
   final double rowCenterY;
 
   const _PreviewRowDef({
-    required this.fullText,
+    required this.label,
+    required this.value,
     required this.iconTop,
     required this.rowCenterY,
   });

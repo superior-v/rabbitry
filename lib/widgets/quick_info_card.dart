@@ -31,13 +31,15 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
   void initState() {
     super.initState();
     _currentRabbit = widget.rabbit;
+    _refreshRabbitData();
   }
 
   @override
   void didUpdateWidget(covariant QuickInfoCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.rabbit != oldWidget.rabbit) {
+    if (widget.rabbit != oldWidget.rabbit || widget.rabbit.weight != oldWidget.rabbit.weight) {
       _currentRabbit = widget.rabbit;
+      _refreshRabbitData();
     }
   }
 

@@ -253,7 +253,8 @@ class PedigreeData {
     final database = db ?? DatabaseService();
     final appSettings = settings ?? SettingsService.instance;
 
-    final tree = await database.buildPedigreeTree(rabbit.id, maxGenerations: 4);
+    final tree = await database.buildPedigreeTree(rabbit.id,
+        maxGenerations: 4, initialRabbit: rabbit);
 
     final sex = rabbit.type == RabbitType.doe ? 'Doe' : 'Buck';
     final dob = rabbit.dateOfBirth != null

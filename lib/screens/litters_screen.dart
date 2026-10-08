@@ -296,37 +296,75 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Widget _buildTopMetricCards() {
-    final activeLitters = litters.where((litter) => !_isLitterArchived(litter)).length;
-
     int nursingKits = 0;
     int weanedKitsCount = 0;
+    final Set<String> nursingDoes = {};
+    int fallbackNursingLitters = 0;
 
     for (final litter in litters) {
       if (_isLitterArchived(litter)) continue;
       final lStatus = litter.status.toLowerCase().trim();
+      if (lStatus == 'history_only' || lStatus == 'deleted_archive') continue;
+
+      final doe = _rabbitMap[litter.doeId];
+      final int weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
+      final int weanDays = weanWeeks * 7;
+      final bool isWeanAgeReached = litter.ageDays >= weanDays;
+
+      bool isWeanedTile = false;
+      bool isNursingTile = false;
+
+      final hasWeanedKits = litter.kits.any((kit) {
+        final st = kit.status.toLowerCase().trim();
+        if (kit.isArchived || st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') return false;
+        return st == 'weaned' || st == 'growout' || st == 'grow out' || st == 'grow-out';
+      });
+
+      final hasNursingKits = litter.kits.any((kit) {
+        final st = kit.status.toLowerCase().trim();
+        if (kit.isArchived || st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') return false;
+        return st == 'nursing' || st == 'active' || st == '';
+      });
+
+      if (hasWeanedKits || lStatus == 'weaned' || (isWeanAgeReached && (lStatus == 'nursing' || lStatus == '' || lStatus == 'active'))) {
+        isWeanedTile = true;
+      }
+      if (!isWeanedTile) {
+        if (hasNursingKits || lStatus == 'nursing' || lStatus == '' || lStatus == 'active') {
+          isNursingTile = true;
+        }
+      }
+
+      if (isNursingTile) {
+        fallbackNursingLitters++;
+        final doeKey = litter.doeId.isNotEmpty ? litter.doeId : litter.doeName.trim().toLowerCase();
+        if (doeKey.isNotEmpty) {
+          nursingDoes.add(doeKey);
+        }
+      }
 
       if (litter.kits.isNotEmpty) {
         for (final kit in litter.kits) {
           if (kit.isArchived) continue;
           final st = kit.status.toLowerCase().trim();
           if (st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') continue;
-          if (st == 'weaned' || st == 'growout' || st == 'grow out' || st == 'grow-out' || lStatus == 'weaned') {
+          if (st == 'weaned' || st == 'growout' || st == 'grow out' || st == 'grow-out' || (isWeanedTile && st != 'nursing')) {
             weanedKitsCount++;
-          } else {
+          } else if (st == 'nursing' || isNursingTile) {
             nursingKits++;
           }
         }
       } else {
         final count = litter.aliveKits ?? litter.totalKits ?? 0;
-        if (lStatus == 'weaned') {
+        if (isWeanedTile) {
           weanedKitsCount += count;
-        } else {
+        } else if (isNursingTile) {
           nursingKits += count;
         }
       }
     }
 
-    final weanedDisplay = '$weanedKitsCount';
+    final doesInNursingCount = nursingDoes.isNotEmpty ? nursingDoes.length : fallbackNursingLitters;
 
     return Container(
       width: double.infinity,
@@ -349,7 +387,7 @@ class LittersScreenState extends State<LittersScreen> {
             childAspectRatio: 1.42,
             children: [
               _buildMetricCard(
-                count: '$activeLitters',
+                count: '$doesInNursingCount',
                 label: 'Litters',
               ),
               _buildMetricCard(
@@ -357,7 +395,7 @@ class LittersScreenState extends State<LittersScreen> {
                 label: 'Nursing',
               ),
               _buildMetricCard(
-                count: weanedDisplay,
+                count: '$weanedKitsCount',
                 label: 'Weaned',
               ),
             ],
@@ -746,14 +784,16 @@ class LittersScreenState extends State<LittersScreen> {
 
         final isArchived = _isLitterArchived(litter);
 
-        // Archive stage: Missed litters, Litter died, all-sold/died litters, and archived litters
+        // Archive stage: Missed litters, Litter died, all-sold/died litters, and litters with archived kits
         if (cStage == 'archive') {
-          return isArchived;
+          final hasArchivedKits = litter.kits.any((kit) => _kitMatchesStage(kit, litter));
+          return isArchived || hasArchivedKits;
         }
 
-        // Active stages must NEVER include archived / missed / died / all-sold litters
+        // Active stages: if the entire litter is archived, only show if it has active kits matching this stage
         if (isArchived) {
-          return false;
+          final hasActiveMatchingKit = litter.kits.any((kit) => _kitMatchesStage(kit, litter));
+          if (!hasActiveMatchingKit) return false;
         }
 
         // Age filter
@@ -765,24 +805,21 @@ class LittersScreenState extends State<LittersScreen> {
           return true;
         }
 
-        final int weanDays = SettingsService.instance.weanAge * 7;
-        final bool isWeanAgeReached = litter.ageDays >= weanDays;
-
+        final kits = _getOrGenerateLitterKits(litter);
         if (cStage == 'growout' || cStage == 'grow out' || cStage == 'grow-out') {
-          final hasGrowoutKits = litter.kits.any((kit) => _kitMatchesStage(kit, litter));
-          return hasGrowoutKits || lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out';
-        }
-        if (cStage == 'weaned') {
-          final hasWeanedKits = litter.kits.any((kit) => _kitMatchesStage(kit, litter));
-          return hasWeanedKits || lStatus == 'weaned' || (isWeanAgeReached && (lStatus == 'nursing' || lStatus == '' || lStatus == 'active'));
-        }
-        if (cStage == 'nursing') {
-          if (lStatus == 'weaned' || isWeanAgeReached) return false;
-          final hasNursingKits = litter.kits.any((kit) => _kitMatchesStage(kit, litter));
-          return hasNursingKits || lStatus == 'nursing' || lStatus == '' || lStatus == 'active';
+          return kits.any((kit) => _kitMatchesStage(kit, litter));
         }
         if (cStage == 'quarantine') {
-          return lStatus == 'quarantine';
+          return kits.any((kit) => _kitMatchesStage(kit, litter));
+        }
+        if (cStage == 'weaned') {
+          return kits.any((kit) => _kitMatchesStage(kit, litter));
+        }
+        if (cStage == 'nursing') {
+          return kits.any((kit) => _kitMatchesStage(kit, litter));
+        }
+        if (cStage == 'archive') {
+          return kits.any((kit) => _kitMatchesStage(kit, litter)) || lStatus == 'archived' || lStatus == 'sold' || lStatus == 'cull' || lStatus == 'died' || lStatus == 'history_only';
         }
 
         return lStatus == cStage;
@@ -950,6 +987,9 @@ class LittersScreenState extends State<LittersScreen> {
       days = now.difference(dob).inDays;
     }
     if (days <= 0) return '0d';
+    if (days >= 84 && dob != null) {
+      return FormatUtils.formatAge(dob);
+    }
     final int weeks = days ~/ 7;
     final int remDays = days % 7;
     if (weeks == 0) return '${remDays}d';
@@ -964,6 +1004,9 @@ class LittersScreenState extends State<LittersScreen> {
       days = now.difference(dob).inDays;
     }
     if (days <= 0) return '0d';
+    if (days >= 84 && dob != null) {
+      return FormatUtils.formatAge(dob);
+    }
     final int weeks = days ~/ 7;
     final int remDays = days % 7;
     if (weeks == 0) return '${remDays}d';
@@ -2231,39 +2274,30 @@ class LittersScreenState extends State<LittersScreen> {
   bool _kitMatchesStage(Kit kit, [Litter? litter]) {
     final status = kit.status.trim().toLowerCase();
     final stage = _currentStage.trim().toLowerCase();
-    final isArchiveStatus = kit.isArchived;
+    final bool isArchiveStatus = kit.isArchived ||
+        status == 'sold' ||
+        status == 'dead' ||
+        status == 'died' ||
+        status == 'deceased' ||
+        status == 'cull' ||
+        status == 'culled' ||
+        status == 'butchered';
 
     if (stage == 'all') return true;
     if (stage == 'archive') return isArchiveStatus;
 
-    if (isArchiveStatus || status == 'sold' || status == 'dead' || status == 'died' || status == 'cull') {
-      if (litter != null) {
-        final lStatus = litter.status.toLowerCase().trim();
-        final doe = _rabbitMap[litter.doeId];
-        final int weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
-        final int weanDays = weanWeeks * 7;
-        final bool isWeanPassed = litter.ageDays >= weanDays || lStatus == 'weaned';
-        if (stage == 'nursing') {
-          return !isWeanPassed && lStatus != 'weaned' && lStatus != 'growout' && lStatus != 'grow out' && lStatus != 'grow-out' && lStatus != 'quarantine';
-        }
-        if (stage == 'weaned') {
-          return (isWeanPassed || lStatus == 'weaned') && lStatus != 'growout' && lStatus != 'grow out' && lStatus != 'grow-out' && lStatus != 'quarantine';
-        }
-        if (stage == 'growout' || stage == 'grow out' || stage == 'grow-out') {
-          return lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out';
-        }
-        if (stage == 'quarantine') {
-          return lStatus == 'quarantine';
-        }
-      }
-      return true;
-    }
+    // Archived kits must NEVER appear in active stages
+    if (isArchiveStatus) return false;
 
+    // Kit explicitly assigned to a stage
     if (status == 'quarantine') return stage == 'quarantine';
     if (status == 'growout' || status == 'grow out' || status == 'grow-out') {
       return stage == 'growout' || stage == 'grow out' || stage == 'grow-out';
     }
+    if (status == 'weaned') return stage == 'weaned';
+    if (status == 'nursing' || status == 'fostered') return stage == 'nursing';
 
+    // If kit status is not explicitly set or is default/active, determine from litter status & wean age
     if (litter != null) {
       final lStatus = litter.status.toLowerCase().trim();
       final doe = _rabbitMap[litter.doeId];
@@ -2455,7 +2489,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         const SizedBox(height: 10),
         _buildLitterActionPill(
-          label: 'Cull',
+          label: 'Cull Litter',
           isDestructive: true,
           onTap: () {
             Navigator.pop(context);
@@ -2473,7 +2507,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ];
     } else if (effectiveStage == 'weaned') {
-      // Weaned: Edit Birth Info, Move to Nursing, Move to Grow-Out, Move to Cage No., Sell Litter, Move to Quarantine, Move to Archive, Litter Died, Cull, Delete Litter
+      // Weaned: Edit Birth Info, Move to Nursing, Move to Grow-Out, Move to Cage No., Sell Litter, Move to Quarantine, Move to Archive, Litter Died, Cull Litter, Delete Litter
       actionPills = [
         _buildLitterActionPill(
           label: 'Edit Birth Info',
@@ -2554,7 +2588,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         const SizedBox(height: 10),
         _buildLitterActionPill(
-          label: 'Cull',
+          label: 'Cull Litter',
           isDestructive: true,
           onTap: () {
             Navigator.pop(context);
@@ -2572,7 +2606,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ];
     } else if (effectiveStage == 'growout') {
-      // Grow out: Edit Birth Info, Move to Nursing, Move to Weaned, Move to Cage No., Sell Litter, Move to Quarantine, Move to Archive, Litter Died, Cull, Delete Litter
+      // Grow out: Edit Birth Info, Move to Nursing, Move to Weaned, Move to Cage No., Sell Litter, Move to Quarantine, Move to Archive, Litter Died, Cull Litter, Delete Litter
       actionPills = [
         _buildLitterActionPill(
           label: 'Edit Birth Info',
@@ -2653,7 +2687,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         const SizedBox(height: 10),
         _buildLitterActionPill(
-          label: 'Cull',
+          label: 'Cull Litter',
           isDestructive: true,
           onTap: () {
             Navigator.pop(context);
@@ -2671,7 +2705,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ];
     } else if (effectiveStage == 'quarantine') {
-      // Quarantine: Edit Birth Info, Move to Nursing, Move to Weaned, Move to Grow-Out, Move to Cage No., Sell Litter, Move to Archive, Litter Died, Cull, Delete Litter
+      // Quarantine: Edit Birth Info, Move to Nursing, Move to Weaned, Move to Grow-Out, Move to Cage No., Sell Litter, Move to Archive, Litter Died, Cull Litter, Delete Litter
       actionPills = [
         _buildLitterActionPill(
           label: 'Edit Birth Info',
@@ -2752,7 +2786,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         const SizedBox(height: 10),
         _buildLitterActionPill(
-          label: 'Cull',
+          label: 'Cull Litter',
           isDestructive: true,
           onTap: () {
             Navigator.pop(context);
@@ -2810,7 +2844,7 @@ class LittersScreenState extends State<LittersScreen> {
         ),
         const SizedBox(height: 10),
         _buildLitterActionPill(
-          label: 'Cull',
+          label: 'Cull Litter',
           isDestructive: true,
           onTap: () {
             Navigator.pop(context);
@@ -3051,7 +3085,7 @@ class LittersScreenState extends State<LittersScreen> {
       final List<Kit> updatedKits = litters[index].kits.map<Kit>((k) {
         if (!k.isArchived && k.status.toLowerCase() != 'dead' && k.status.toLowerCase() != 'died' && k.status.toLowerCase() != 'sold' && k.status.toLowerCase() != 'butchered') {
           return k.copyWith(
-            status: targetStage == 'Archived' ? 'Cull' : targetStage,
+            status: targetStage == 'Archived' ? 'Archived' : targetStage,
           );
         }
         return k;
@@ -3379,6 +3413,16 @@ class LittersScreenState extends State<LittersScreen> {
     final List<Widget> actions = [];
 
     if (isSold) {
+      // 0. View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // 1. Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -3419,6 +3463,16 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ));
     } else if (isDeadOrCulled) {
+      // 0. View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // 1. Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -3441,6 +3495,16 @@ class LittersScreenState extends State<LittersScreen> {
       ));
     } else if (kitStage == 'nursing') {
       // 1. Nursing
+      // - View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // - Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -3554,9 +3618,9 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ));
 
-      // - Cull
+      // - Cull Kit
       actions.add(_buildCompactActionTile(
-        label: 'Cull',
+        label: 'Cull Kit',
         color: const Color(0xFFD44C47),
         textColor: const Color(0xFFD44C47),
         onTap: () {
@@ -3589,6 +3653,16 @@ class LittersScreenState extends State<LittersScreen> {
       }
     } else if (kitStage == 'weaned') {
       // 2. Weaned
+      // - View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // - Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -3701,9 +3775,9 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ));
 
-      // - Cull
+      // - Cull Kit
       actions.add(_buildCompactActionTile(
-        label: 'Cull',
+        label: 'Cull Kit',
         color: const Color(0xFFD44C47),
         textColor: const Color(0xFFD44C47),
         onTap: () {
@@ -3736,6 +3810,16 @@ class LittersScreenState extends State<LittersScreen> {
       }
     } else if (kitStage == 'growout') {
       // 3. Grow-Out
+      // - View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // - Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -3859,9 +3943,9 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ));
 
-      // - Cull
+      // - Cull Kit
       actions.add(_buildCompactActionTile(
-        label: 'Cull',
+        label: 'Cull Kit',
         color: const Color(0xFFD44C47),
         textColor: const Color(0xFFD44C47),
         onTap: () {
@@ -3894,6 +3978,16 @@ class LittersScreenState extends State<LittersScreen> {
       }
     } else if (kitStage == 'quarantine') {
       // 4. Quarantine
+      // - View Kit Profile
+      actions.add(_buildCompactActionTile(
+        label: 'View Kit Profile',
+        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _openKitProfile(litter, kit);
+        },
+      ));
+
       // - Edit Kit info
       actions.add(_buildCompactActionTile(
         label: 'Edit Kit info',
@@ -4017,9 +4111,9 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ));
 
-      // - Cull
+      // - Cull Kit
       actions.add(_buildCompactActionTile(
-        label: 'Cull',
+        label: 'Cull Kit',
         color: const Color(0xFFD44C47),
         textColor: const Color(0xFFD44C47),
         onTap: () {
@@ -4175,7 +4269,7 @@ class LittersScreenState extends State<LittersScreen> {
             kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
         if ((isExactId || isNumericMatch) && !updated) {
           updated = true;
-          return k.copyWith(status: targetStage == 'Archived' ? 'Cull' : targetStage);
+          return k.copyWith(status: targetStage == 'Archived' ? 'Sold' : targetStage);
         }
         return k;
       }).toList();
@@ -4328,6 +4422,46 @@ class LittersScreenState extends State<LittersScreen> {
         builder: (context) => PedigreeScreen(
           rabbitId: kitRabbit.id,
           initialRabbit: kitRabbit,
+        ),
+      ),
+    );
+  }
+
+  void _openKitProfile(Litter litter, Kit kit) {
+    final String rabbitName = (kit.name != null && kit.name!.trim().isNotEmpty)
+        ? kit.name!.trim()
+        : (kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id);
+
+    final kitRabbit = Rabbit(
+      id: kit.id,
+      name: rabbitName,
+      breed: litter.breed,
+      type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
+      color: kit.color,
+      dateOfBirth: litter.dob ?? litter.kindleDate,
+      weight: kit.weight > 0 ? kit.weight : null,
+      sireId: litter.buckId,
+      damId: litter.doeId,
+      status: (kit.status.toLowerCase() == 'sold' ||
+              kit.status.toLowerCase() == 'dead' ||
+              kit.status.toLowerCase() == 'died' ||
+              kit.status.toLowerCase() == 'culled')
+          ? RabbitStatus.archived
+          : RabbitStatus.active,
+      archiveReason: kit.status.toLowerCase() == 'sold'
+          ? ArchiveReason.sold
+          : (kit.status.toLowerCase() == 'culled'
+              ? ArchiveReason.cull
+              : ((kit.status.toLowerCase() == 'dead' || kit.status.toLowerCase() == 'died')
+                  ? ArchiveReason.dead
+                  : null)),
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RabbitDetailScreen(
+          rabbit: kitRabbit,
         ),
       ),
     );
@@ -4590,6 +4724,17 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Future<void> _cancelKitSale(Litter litter, Kit kit) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
+      context: context,
+      title: 'Cancel Sale',
+      content: 'Are you sure, you want to cancel the sale?',
+      cancelText: 'Cancel',
+      confirmText: 'OK',
+      confirmColor: kLilacDeep,
+    );
+
+    if (confirmed != true) return;
+
     try {
       final db = await _db.database;
       final dob = litter.kindleDate ?? litter.dob;
@@ -5523,423 +5668,189 @@ class LittersScreenState extends State<LittersScreen> {
   void _showSellKitDialog(Litter litter, Kit kit) {
     final TextEditingController priceController = TextEditingController();
     final TextEditingController buyerController = TextEditingController();
+    DateTime soldDate = DateTime.now();
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header matching Log Birth purple theme
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEADBEE),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Column(
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4A3E6D).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Sell Kit',
-                          style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF4A3E6D),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header matching Log Birth purple theme
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE6BEFE),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F2FA),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE8DFFA)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Kit ${_getKitDisplayTag(litter, kit)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF4A3E6D),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
                       const Text(
-                        'SALE PRICE',
+                        'Sell Kit',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6B2D6D),
-                          letterSpacing: 0.5,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2C2C2E),
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
-                          hintText: '0.00',
-                          prefixText: '${FormatUtils.currencySymbol} ',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE0D8ED), width: 1.5),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.6),
+                            shape: BoxShape.circle,
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7B6BA0),
-                              width: 2,
-                            ),
-                          ),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'BUYER NAME',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6B2D6D),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _db.getContacts(),
-                        builder: (context, snapshot) {
-                          final contacts = snapshot.data ?? [];
-                          return Autocomplete<String>(
-                            initialValue: TextEditingValue(text: buyerController.text),
-                            optionsBuilder: (TextEditingValue textEditingValue) {
-                              if (textEditingValue.text.isEmpty) {
-                                return const Iterable<String>.empty();
-                              }
-                              return contacts
-                                  .map((c) => c['name'] as String)
-                                  .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                            },
-                            onSelected: (String selection) {
-                              buyerController.text = selection;
-                            },
-                            fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
-                              fieldController.addListener(() {
-                                buyerController.text = fieldController.text;
-                              });
-                              return TextField(
-                                controller: fieldController,
-                                focusNode: focusNode,
-                                onSubmitted: (value) => onFieldSubmitted(),
-                                decoration: InputDecoration(
-                                  hintText: 'Select or enter buyer',
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFE0D8ED), width: 1.5),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF7B6BA0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
                       ),
                     ],
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-
-                      final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-                      if (litterIndex != -1) {
-                        final currentLitter = litters[litterIndex];
-                        List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
-
-                        final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-                        bool updated = false;
-                        final updatedKits = kitsList.map((k) {
-                          final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                          final bool isExactId = k.id == kit.id;
-                          final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
-                              (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
-                              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-                          if ((isExactId || isNumericMatch) && !updated) {
-                            updated = true;
-                            return k.copyWith(
-                              status: 'Sold',
-                              details: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold',
-                              price: double.tryParse(priceController.text),
-                            );
-                          }
-                          return k;
-                        }).toList();
-
-                        final int liveCount = updatedKits.where((k) {
-                          final s = k.status.toLowerCase().trim();
-                          return s != 'dead' && s != 'died' && s != 'deceased';
-                        }).length;
-
-                        final updatedLitter = currentLitter.copyWith(
-                          kits: updatedKits,
-                          aliveKits: liveCount,
-                        );
-                        await _db.updateLitter(updatedLitter);
-                        await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
-
-                        // Create or update finance transaction for kit sale
-                        final salePrice = double.tryParse(priceController.text);
-                        if (salePrice != null && salePrice > 0) {
-                          final existingTxn = await _db.getTransactionForKit(litter.id, kit.id.toString());
-                          if (existingTxn != null) {
-                            final updatedTxn = existingTxn.copyWith(
-                              amount: salePrice,
-                              date: DateTime.now(),
-                              notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
-                              buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
-                              kitColor: kit.color,
-                              kitSex: kit.sex,
-                            );
-                            await _db.updateTransaction(updatedTxn);
-                          } else {
-                            final transaction = finance.Transaction(
-                              id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
-                              type: finance.TransactionType.income,
-                              category: finance.TransactionCategory.soldKit,
-                              amount: salePrice,
-                              date: DateTime.now(),
-                              description: 'Sold Kit ${litter.id}-${kit.id}',
-                              notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
-                              linkType: finance.LinkType.litter,
-                              litterId: litter.id,
-                              kitId: kit.id.toString(),
-                              kitColor: kit.color,
-                              kitSex: kit.sex,
-                              buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
-                            );
-                            await _db.insertTransaction(transaction);
-                          }
-                        }
-
-                        notifyDataChanged();
-                        await _refreshLitters();
-                      }
-
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Kit marked as sold'),
-                            backgroundColor: Color(0xFF6B2D6D),
-                            behavior: SnackBarBehavior.floating,
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F2FA),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE8DFFA)),
                           ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEDE8F5),
-                      foregroundColor: const Color(0xFF6B2D6D),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Record Sale',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                        color: Color(0xFF6B2D6D),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showKitHealthRecord(Litter litter, Kit kit) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Health Record - Kit ${kit.id}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TYPE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
-                            width: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Kit ${_getKitDisplayTag(litter, kit)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF787774),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'vaccination', child: Text('Vaccination')),
-                        DropdownMenuItem(value: 'treatment', child: Text('Treatment')),
-                        DropdownMenuItem(value: 'checkup', child: Text('Check-up')),
-                        DropdownMenuItem(value: 'injury', child: Text('Injury')),
-                        DropdownMenuItem(value: 'other', child: Text('Other')),
-                      ],
-                      onChanged: (value) {},
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'CONDITION / ISSUE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Autocomplete<String>(
-                      optionsBuilder: (textEditingValue) {
-                        final issues = SettingsService.instance.healthIssues.map((i) => i['name'] ?? '').where((n) => n.isNotEmpty).toList();
-                        if (textEditingValue.text.isEmpty) return issues;
-                        return issues.where((i) => i.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                      },
-                      fieldViewBuilder: (ctx2, textController, focusNode, onSubmitted) {
-                        return TextField(
-                          controller: textController,
-                          focusNode: focusNode,
-                          decoration: InputDecoration(
-                            hintText: 'e.g. Snuffles, Sore Hocks...',
-                            border: OutlineInputBorder(
+                        const SizedBox(height: 20),
+
+                        // Date Sold Calendar Picker
+                        const Text(
+                          'DATE SOLD',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: soldDate,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF7B6BA0),
+                                      onPrimary: Colors.white,
+                                      surface: Colors.white,
+                                      onSurface: Color(0xFF2C2C2E),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setModalState(() => soldDate = picked);
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  FormatUtils.formatDate(soldDate),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF2C2C2E),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 20,
+                                  color: Color(0xFF7B6BA0),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        const Text(
+                          'SALE PRICE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: priceController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            hintText: '0.00',
+                            prefixText: '${FormatUtils.currencySymbol} ',
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -5949,74 +5860,503 @@ class LittersScreenState extends State<LittersScreen> {
                               ),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'BUYER NAME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _db.getContacts(),
+                          builder: (context, snapshot) {
+                            final contacts = snapshot.data ?? [];
+                            return Autocomplete<String>(
+                              initialValue: TextEditingValue(text: buyerController.text),
+                              optionsBuilder: (TextEditingValue textEditingValue) {
+                                if (textEditingValue.text.isEmpty) {
+                                  return const Iterable<String>.empty();
+                                }
+                                return contacts
+                                    .map((c) => c['name'] as String)
+                                    .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                              },
+                              onSelected: (String selection) {
+                                buyerController.text = selection;
+                              },
+                              fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+                                fieldController.addListener(() {
+                                  buyerController.text = fieldController.text;
+                                });
+                                return TextField(
+                                  controller: fieldController,
+                                  focusNode: focusNode,
+                                  onSubmitted: (value) => onFieldSubmitted(),
+                                  decoration: InputDecoration(
+                                    hintText: 'Select or enter buyer',
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF7B6BA0),
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+
+                        final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+                        if (litterIndex != -1) {
+                          final currentLitter = litters[litterIndex];
+                          List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
+
+                          final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                          bool updated = false;
+                          final updatedKits = kitsList.map((k) {
+                            final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                            final bool isExactId = k.id == kit.id;
+                            final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                                (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                                kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                            if ((isExactId || isNumericMatch) && !updated) {
+                              updated = true;
+                              return k.copyWith(
+                                status: 'Sold',
+                                details: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold',
+                                price: double.tryParse(priceController.text),
+                              );
+                            }
+                            return k;
+                          }).toList();
+
+                          final int liveCount = updatedKits.where((k) {
+                            final s = k.status.toLowerCase().trim();
+                            return s != 'dead' && s != 'died' && s != 'deceased';
+                          }).length;
+
+                          final updatedLitter = currentLitter.copyWith(
+                            kits: updatedKits,
+                            aliveKits: liveCount,
+                          );
+                          await _db.updateLitter(updatedLitter);
+                          await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
+
+                          // Create or update finance transaction for kit sale with selected date
+                          final salePrice = double.tryParse(priceController.text);
+                          if (salePrice != null && salePrice > 0) {
+                            final existingTxn = await _db.getTransactionForKit(litter.id, kit.id.toString());
+                            if (existingTxn != null) {
+                              final updatedTxn = existingTxn.copyWith(
+                                amount: salePrice,
+                                date: soldDate,
+                                notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
+                                buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
+                                kitColor: kit.color,
+                                kitSex: kit.sex,
+                              );
+                              await _db.updateTransaction(updatedTxn);
+                            } else {
+                              final transaction = finance.Transaction(
+                                id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+                                type: finance.TransactionType.income,
+                                category: finance.TransactionCategory.soldKit,
+                                amount: salePrice,
+                                date: soldDate,
+                                description: 'Sold Kit ${litter.id}-${kit.id}',
+                                notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
+                                linkType: finance.LinkType.litter,
+                                litterId: litter.id,
+                                kitId: kit.id.toString(),
+                                kitColor: kit.color,
+                                kitSex: kit.sex,
+                                buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
+                              );
+                              await _db.insertTransaction(transaction);
+                            }
+                          }
+
+                          notifyDataChanged();
+                          await _refreshLitters();
+                        }
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Kit marked as sold'),
+                              backgroundColor: Color(0xFF6B2D6D),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE6BEFE),
+                        foregroundColor: const Color(0xFF2C2C2E),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Record Sale',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showKitHealthRecord(Litter litter, Kit kit) {
+    DateTime selectedDate = DateTime.now();
+    String selectedType = 'treatment';
+    final conditionController = TextEditingController();
+    final notesController = TextEditingController();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Top Lilac Header Banner (matches Delete Breeding Plan & Task Tab style)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE6BEFE),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     const Text(
-                      'NOTES',
+                      'Record Health',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2C2C2E),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, size: 22, color: Color(0xFF2C2C2E)),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Form Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date of Entry with Calendar Picker
+                    const Text(
+                      'DATE OF ENTRY',
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      maxLines: 5,
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: Color(0xFF7B6BA0),
+                                  onPrimary: Colors.white,
+                                  surface: Colors.white,
+                                  onSurface: Color(0xFF2C2C2E),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          setModalState(() => selectedDate = picked);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFC7C7CC)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              FormatUtils.formatDate(selectedDate),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF2C2C2E),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 20,
+                              color: Color(0xFF7B6BA0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Type
+                    const Text(
+                      'TYPE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
                       decoration: InputDecoration(
-                        hintText: 'Enter health notes...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
                             color: Color(0xFF7B6BA0),
-                            width: 2,
+                            width: 1.5,
                           ),
                         ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'treatment', child: Text('Treatment')),
+                        DropdownMenuItem(value: 'vaccination', child: Text('Vaccination')),
+                        DropdownMenuItem(value: 'deworm', child: Text('Deworm')),
+                        DropdownMenuItem(value: 'checkup', child: Text('Check-up')),
+                        DropdownMenuItem(value: 'injury', child: Text('Injury')),
+                        DropdownMenuItem(value: 'other', child: Text('Other')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setModalState(() => selectedType = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Condition / Issue (No placeholder grey text)
+                    const Text(
+                      'CONDITION / ISSUE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: conditionController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF7B6BA0),
+                            width: 1.5,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Notes (No placeholder grey text)
+                    const Text(
+                      'NOTES',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: notesController,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF7B6BA0),
+                            width: 1.5,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Full Width Light Purple Save Button (matches Consistency.jpg & Task modals)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setModalState(() => isSaving = true);
+                                final cond = conditionController.text.trim();
+                                final notes = notesController.text.trim();
+                                final treatment = cond.isNotEmpty ? cond : selectedType;
+                                final rabbitId = kit.id.isNotEmpty ? kit.id : '${litter.id}_kit';
+
+                                try {
+                                  await _db.addHealthRecord(
+                                    rabbitId,
+                                    selectedType,
+                                    selectedDate,
+                                    treatment,
+                                    null,
+                                    notes.isNotEmpty ? notes : null,
+                                  );
+                                } catch (_) {}
+
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Health record added'),
+                                      backgroundColor: Color(0xFF7B6BA0),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE6BEFE),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF2C2C2E),
+                                ),
+                              )
+                            : const Text(
+                                'Save Record',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF2C2C2E),
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Health record added'),
-                        backgroundColor: Color(0xFF7B6BA0),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B6BA0),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Save Record',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -6184,97 +6524,292 @@ class LittersScreenState extends State<LittersScreen> {
     final TextEditingController ozController = TextEditingController(
       text: initialOz > 0.01 ? initialOz.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '') : '',
     );
+    DateTime selectedDate = DateTime.now();
+    bool isSaving = false;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Log Weight'),
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: lbsController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: false),
-                decoration: InputDecoration(
-                  labelText: 'Lbs',
-                  suffixText: 'lbs',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Lilac Header Banner (matches DELETE BREEDING PLAN & Task Tab style)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE6BEFE),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                autofocus: true,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: ozController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Oz',
-                  suffixText: 'oz',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Log Weight - ${_getKitDisplayTag(litter, kit)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2C2C2E),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, size: 22, color: Color(0xFF2C2C2E)),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+
+              // 2. Form Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date of Entry with Calendar Picker
+                    const Text(
+                      'DATE OF ENTRY',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: Color(0xFF7B6BA0),
+                                  onPrimary: Colors.white,
+                                  surface: Colors.white,
+                                  onSurface: Color(0xFF2C2C2E),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked != null) {
+                          setModalState(() => selectedDate = picked);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFC7C7CC)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              FormatUtils.formatDate(selectedDate),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF2C2C2E),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 20,
+                              color: Color(0xFF7B6BA0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Weight Label
+                    const Text(
+                      'WEIGHT',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Side-by-side lbs and oz fields
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: lbsController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              suffixText: 'lbs',
+                              suffixStyle: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF8E8E93),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF7B6BA0),
+                                  width: 1.5,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: ozController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              suffixText: 'oz',
+                              suffixStyle: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF8E8E93),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF7B6BA0),
+                                  width: 1.5,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Full-width Soft Lilac Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setModalState(() => isSaving = true);
+                                final double lbsVal = double.tryParse(lbsController.text.trim()) ?? 0.0;
+                                final double ozVal = double.tryParse(ozController.text.trim()) ?? 0.0;
+                                final double weightVal = lbsVal + (ozVal / 16.0);
+
+                                final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+                                if (litterIndex != -1) {
+                                  final currentLitter = litters[litterIndex];
+                                  List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
+
+                                  final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                                  bool updated = false;
+                                  final updatedKits = kitsList.map((k) {
+                                    final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                                    final bool isExactId = k.id == kit.id;
+                                    final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                                        (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                                        kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                                    if ((isExactId || isNumericMatch) && !updated) {
+                                      updated = true;
+                                      return k.copyWith(
+                                        weight: weightVal,
+                                      );
+                                    }
+                                    return k;
+                                  }).toList();
+
+                                  final updatedLitter = currentLitter.copyWith(kits: updatedKits);
+                                  await _db.updateLitter(updatedLitter);
+                                  await _refreshLitters();
+                                }
+
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Weight updated'),
+                                      backgroundColor: Color(0xFF7B6BA0),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE6BEFE),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF2C2C2E),
+                                ),
+                              )
+                            : const Text(
+                                'Save Weight',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF2C2C2E),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-              if (litterIndex != -1) {
-                final currentLitter = litters[litterIndex];
-                List<Kit> kitsList = _getOrGenerateLitterKits(currentLitter);
-
-                final double lbsVal = double.tryParse(lbsController.text.trim()) ?? 0.0;
-                final double ozVal = double.tryParse(ozController.text.trim()) ?? 0.0;
-                final double weightVal = lbsVal + (ozVal / 16.0);
-                final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-                bool updated = false;
-                final updatedKits = kitsList.map((k) {
-                  final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-                  final bool isExactId = k.id == kit.id;
-                  final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
-                      (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
-                      kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-                  if ((isExactId || isNumericMatch) && !updated) {
-                    updated = true;
-                    return k.copyWith(
-                      weight: weightVal,
-                    );
-                  }
-                  return k;
-                }).toList();
-
-                final updatedLitter = currentLitter.copyWith(kits: updatedKits);
-                await _db.updateLitter(updatedLitter);
-                await _refreshLitters();
-              }
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Weight updated'),
-                    backgroundColor: Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF7B6BA0)),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -9675,14 +10210,19 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     String? hint,
     IconData? prefixIcon,
     TextInputType? keyboardType,
-    int maxLines = 1,
+    int? maxLines = 1,
+    int? minLines,
+    TextInputAction? textInputAction,
     Function(String)? onChanged,
     String? Function(String?)? validator,
   }) {
+    final bool isMulti = (maxLines != null && maxLines > 1) || maxLines == null;
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
+      keyboardType: keyboardType ?? (isMulti ? TextInputType.multiline : TextInputType.text),
+      textInputAction: textInputAction ?? (isMulti ? TextInputAction.newline : null),
       maxLines: maxLines,
+      minLines: minLines ?? (isMulti ? 2 : null),
       onChanged: onChanged,
       validator: validator,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
@@ -10153,7 +10693,6 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         _buildOutlinedField(
                           label: 'Notes',
                           controller: _notesController,
-                          hint: 'Enter notes about this litter...',
                           maxLines: 2,
                         ),
                         const SizedBox(height: 14),
@@ -10166,10 +10705,11 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                           decoration: BoxDecoration(
-                            color: _isMissedLitter ? const Color(0xFFFFF3CD) : kLilacWash,
+                            color: _isMissedLitter ? const Color(0xFFE0F2FE) : kLilacWash,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isMissedLitter ? const Color(0xFFFFE58F) : kLilacLight,
+                              color: _isMissedLitter ? const Color(0xFF86DAFF) : kLilacLight,
+                              width: 1.2,
                             ),
                           ),
                           child: Row(
@@ -10183,7 +10723,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      color: _isMissedLitter ? const Color(0xFF856404) : kLilacText,
+                                      color: _isMissedLitter ? const Color(0xFF0369A1) : kLilacText,
                                     ),
                                   ),
                                   if (_isMissedLitter)
@@ -10191,7 +10731,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                       padding: EdgeInsets.only(top: 2),
                                       child: Text(
                                         'Doe did not conceive. Status will reset to Open.',
-                                        style: TextStyle(fontSize: 11, color: Color(0xFF856404), fontWeight: FontWeight.w500),
+                                        style: TextStyle(fontSize: 11, color: Color(0xFF0284C7), fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                 ],
@@ -10201,10 +10741,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                 width: 44,
                                 height: 24,
                                 decoration: BoxDecoration(
-                                  color: _isMissedLitter ? const Color(0xFF7B6BA0) : Colors.white,
+                                  color: _isMissedLitter ? const Color(0xFF0284C7) : Colors.white,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: _isMissedLitter ? const Color(0xFF7B6BA0) : const Color(0xFFC7C7CC),
+                                    color: _isMissedLitter ? const Color(0xFF0284C7) : const Color(0xFFC7C7CC),
                                     width: 1.5,
                                   ),
                                 ),
@@ -10241,7 +10781,6 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         _buildOutlinedField(
                           label: 'Notes',
                           controller: _notesController,
-                          hint: 'Notes on missed breeding...',
                           maxLines: 2,
                         ),
                         const SizedBox(height: 14),
@@ -10322,8 +10861,6 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                       labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                       floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                       floatingLabelBehavior: FloatingLabelBehavior.always,
-                                      hintText: 'e.g., A-1',
-                                      hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 14),
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
                                       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
@@ -10365,7 +10902,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(kLilacText),
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C2C2E)),
                         ),
                       )
                     : Text(
@@ -10373,7 +10910,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: kLilacText,
+                          color: Color(0xFF2C2C2E),
                         ),
                       ),
               ),
@@ -10499,19 +11036,29 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       // Update doe status accordingly
       final db = await _db.database;
       if (_isMissedLitter || isWeaned || aliveKits == 0) {
-        await db.update(
-          'rabbits',
-          {
-            'status': RabbitStatus.open.toString(),
-            'kindleDate': null,
-            'currentLitterSize': 0,
-            'weanDate': null,
-            'dueDate': null,
-            'updatedAt': DateTime.now().toIso8601String(),
-          },
-          where: 'id = ?',
-          whereArgs: [doe.id],
+        final freshDoe = await _db.getRabbit(doe.id);
+        final bool isDoeActiveBred = freshDoe != null && (
+          freshDoe.status == RabbitStatus.pregnant ||
+          freshDoe.status == RabbitStatus.palpateDue ||
+          freshDoe.status == RabbitStatus.resting ||
+          (freshDoe.dueDate != null && freshDoe.dueDate!.isAfter(DateTime.now().subtract(const Duration(days: 35))))
         );
+
+        // Only reset doe to open if she was nursing and is not currently pregnant or bred
+        if (!isDoeActiveBred && freshDoe?.status == RabbitStatus.nursing) {
+          await db.update(
+            'rabbits',
+            {
+              'status': RabbitStatus.open.toString(),
+              'kindleDate': null,
+              'currentLitterSize': 0,
+              'weanDate': null,
+              'updatedAt': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [doe.id],
+          );
+        }
       } else {
         final weanDate = _dob!.add(Duration(days: weanDays));
         await db.update(
@@ -10761,7 +11308,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
     );
   }
 
-  InputDecoration _buildInputDecoration(String label) {
+  InputDecoration _buildInputDecoration([String? label]) {
     return InputDecoration(
       labelText: label,
       floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -11039,7 +11586,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                                       : (_selectedSex == 'M' ? Icons.male : Icons.pets),
                                   size: 50,
                                   color: saveColor,
-                                )
+                                 )
                               : null,
                         ),
                         Positioned(
@@ -11092,7 +11639,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 4. Color Autocomplete (Box with text in top left corner)
+            // 4. Color Autocomplete (Box with text in top left corner + X clear button)
             Autocomplete<String>(
               optionsBuilder: (TextEditingValue textEditingValue) {
                 final colors = SettingsService.instance.colors;
@@ -11104,12 +11651,29 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                 controller.addListener(() {
                   _colorController.text = controller.text;
                 });
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(fontSize: 17),
-                  decoration: _buildInputDecoration('Color'),
+                return AnimatedBuilder(
+                  animation: controller,
+                  builder: (context, _) {
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textCapitalization: TextCapitalization.words,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: _buildInputDecoration('Color').copyWith(
+                        suffixIcon: controller.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close, size: 18, color: Color(0xFF8E8E93)),
+                                splashRadius: 18,
+                                onPressed: () {
+                                  controller.clear();
+                                  _colorController.clear();
+                                  focusNode.unfocus();
+                                },
+                              )
+                            : null,
+                      ),
+                    );
+                  },
                 );
               },
               onSelected: (String color) {
@@ -11118,7 +11682,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 5. Weight field (2 boxes: lbs and oz)
+            // 5. Weight field (2 boxes: lbs and oz with clean labels and very light grey unit suffixes)
             Row(
               children: [
                 Expanded(
@@ -11126,9 +11690,9 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                     controller: _lbsController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: false),
                     style: const TextStyle(fontSize: 17),
-                    decoration: _buildInputDecoration('Weight (lbs)').copyWith(
+                    decoration: _buildInputDecoration('Weight').copyWith(
                       suffixText: 'lbs',
-                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFF8F8A90), fontWeight: FontWeight.w600),
+                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFFC7C7CC), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
@@ -11138,9 +11702,9 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                     controller: _ozController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: const TextStyle(fontSize: 17),
-                    decoration: _buildInputDecoration('Weight (oz)').copyWith(
+                    decoration: _buildInputDecoration(null).copyWith(
                       suffixText: 'oz',
-                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFF8F8A90), fontWeight: FontWeight.w600),
+                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFFC7C7CC), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
@@ -11148,16 +11712,13 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 6. Notes field (Box with text in top left corner)
+            // 6. Notes field (Box with text in top left corner, no inner hint text)
             TextField(
               controller: _notesController,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(fontSize: 17),
-              decoration: _buildInputDecoration('Notes').copyWith(
-                hintText: 'Add any notes...',
-                hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCBC8)),
-              ),
+              decoration: _buildInputDecoration('Notes'),
             ),
           ],
         ),

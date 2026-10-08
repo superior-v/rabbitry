@@ -337,11 +337,11 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
               child: ElevatedButton(
                 onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kLilacLight,
-                  foregroundColor: kLilacText,
+                  backgroundColor: const Color(0xFFE6BEFE),
+                  foregroundColor: const Color(0xFF2C2C2E),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
                 ),
@@ -351,15 +351,15 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: kLilacText,
+                          color: Color(0xFF2C2C2E),
                         ),
                       )
                     : const Text(
                         'SAVE',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: kLilacText,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2C2C2E),
                         ),
                       ),
               ),

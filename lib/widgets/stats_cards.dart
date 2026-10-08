@@ -129,12 +129,41 @@ class _StatsCardsState extends State<StatsCards> {
     );
   }
 
+  bool _isMissedLitter(Litter l) {
+    if (l.missedLitter == true) return true;
+    final String s = l.status.toLowerCase().trim();
+    if (s == 'missed' || s == 'missed litter' || s == 'missed_litter' || s == 'not taken') {
+      return true;
+    }
+    final int born = (l.totalKits != null && l.totalKits! > 0)
+        ? l.totalKits!
+        : (l.kits.isNotEmpty ? l.kits.length : 0);
+    final int alive = l.kits.isNotEmpty
+        ? l.kits.where((k) {
+            final st = k.status.trim().toLowerCase();
+            return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+          }).length
+        : (l.aliveKits ?? born);
+
+    if (born == 0 && alive == 0 && l.kits.isEmpty) {
+      return true;
+    }
+
+    final notes = l.notes?.toLowerCase() ?? '';
+    if ((notes.contains('missed') || notes.contains('not taken')) && born == 0 && l.kits.isEmpty) {
+      return true;
+    }
+
+    return false;
+  }
+
   // ==========================================
   // CARD 1: KIT OUTCOMES
   // ==========================================
   Widget _buildKitOutcomesCard() {
     int sold = 0, breeder = 0, cull = 0, died = 0, total = 0;
     for (var l in _litters) {
+      if (_isMissedLitter(l)) continue;
       final int deadBorn = l.deadKits ?? 0;
       died += deadBorn;
 
@@ -274,12 +303,16 @@ class _StatsCardsState extends State<StatsCards> {
       }
     }
 
+    final actualLitters = _litters.where((l) => !_isMissedLitter(l)).toList();
+    final int littersCount = actualLitters.length;
+    final int missedLitters = _litters.where(_isMissedLitter).length;
+
     String avgGest = '-';
-    final littersWithKindle = _litters.where((l) => l.kindleDate != null).toList();
+    final littersWithKindle = actualLitters.where((l) => l.kindleDate != null).toList();
     if (littersWithKindle.isNotEmpty) {
       final totalDays = littersWithKindle.fold<int>(0, (sum, l) => sum + l.kindleDate!.difference(l.breedDate).inDays);
       avgGest = '${(totalDays / littersWithKindle.length).round()}d';
-    } else if (_litters.isNotEmpty) {
+    } else if (actualLitters.isNotEmpty) {
       avgGest = '31d';
     }
 
@@ -293,17 +326,15 @@ class _StatsCardsState extends State<StatsCards> {
     final double totalSales = (transactionIncome > kitSalesSum) ? transactionIncome : kitSalesSum;
 
     String avgLitter = '0.0';
-    if (_litters.isNotEmpty) {
-      final littersWithKits = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
+    if (actualLitters.isNotEmpty) {
+      final littersWithKits = actualLitters.where((l) => (l.totalKits ?? 0) > 0).toList();
       if (littersWithKits.isNotEmpty) {
         final total = littersWithKits.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
         avgLitter = (total / littersWithKits.length).toStringAsFixed(1);
       }
     }
 
-    final int littersCount = _litters.length;
     final int soldKits = soldKitsCount;
-    final int missedLitters = _litters.where((l) => l.status == 'Not Taken' || (l.notes != null && l.notes!.toLowerCase().contains('missed'))).length;
     final String salesDisplay = '\$${totalSales % 1 == 0 ? totalSales.toInt() : totalSales.toStringAsFixed(2)}';
 
     return Container(
@@ -396,7 +427,7 @@ class _StatsCardsState extends State<StatsCards> {
   // CARD 3: LITTER SIZES
   // ==========================================
   Widget _buildLitterSizesCard() {
-    final validLitters = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
+    final validLitters = _litters.where((l) => !_isMissedLitter(l) && (l.totalKits ?? 0) > 0).toList();
     List<double> litterData = validLitters.map((l) => (l.totalKits ?? 0).toDouble()).toList();
     if (litterData.isEmpty) {
       litterData = [0];

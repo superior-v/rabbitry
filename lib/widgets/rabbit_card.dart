@@ -4,6 +4,7 @@ import '../models/rabbit.dart';
 import '../services/format_utils.dart';
 import '../services/database_service.dart';
 import '../constants/app_colors.dart';
+import 'sale_ribbon_painter.dart';
 
 class RabbitCard extends StatelessWidget {
   final Rabbit rabbit;
@@ -69,18 +70,29 @@ class RabbitCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: isPhotoValid
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.file(
-                        File(photoPath!),
-                        fit: BoxFit.cover,
-                        key: ValueKey('${rabbit.id}_${photoPath}_${File(photoPath).lastModifiedSync().millisecondsSinceEpoch}'),
-                        errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(),
-                        cacheWidth: 200,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          isPhotoValid
+                              ? Image.file(
+                                  File(photoPath),
+                                  fit: BoxFit.cover,
+                                  key: ValueKey('${rabbit.id}_${photoPath}_${File(photoPath).lastModifiedSync().millisecondsSinceEpoch}'),
+                                  errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(),
+                                  cacheWidth: 200,
+                                )
+                              : _buildDefaultIcon(),
+                          if (rabbit.salePrice != null)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: SaleRibbonPainter(),
+                              ),
+                            ),
+                        ],
                       ),
-                    )
-                        : _buildDefaultIcon(),
+                    ),
                   ),
                   const SizedBox(width: 12),
 

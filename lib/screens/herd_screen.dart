@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import '../widgets/action_sheets/rabbit_action_sheet.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
+import '../widgets/sale_ribbon_painter.dart';
 
 // Re-defining for local scope consistency or using imported ones
 const kDoeTheme = Color(0xFFB5567A);
@@ -1756,13 +1757,24 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: isPhotoValid
-                            ? Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center)
-                            : Container(
-                                color: Colors.white,
-                                alignment: Alignment.center,
-                                child: Image.asset('assets/images/profilelogo.png', fit: BoxFit.contain, alignment: Alignment.center),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            isPhotoValid
+                                ? Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center)
+                                : Container(
+                                    color: Colors.white,
+                                    alignment: Alignment.center,
+                                    child: Image.asset('assets/images/profilelogo.png', fit: BoxFit.contain, alignment: Alignment.center),
+                                  ),
+                            if (rabbit.salePrice != null)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: SaleRibbonPainter(),
+                                ),
                               ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

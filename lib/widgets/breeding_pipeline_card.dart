@@ -25,7 +25,9 @@ class BreedingPipelineCard extends StatefulWidget {
 class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   final _settings = SettingsService.instance;
   final _db = DatabaseService();
+  String? _buckPrefix;
   String? _buckName;
+  String? _buckEar;
 
   @override
   void initState() {
@@ -39,20 +41,21 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
       if (mounted) {
         setState(() {
           if (buck != null) {
-            final prefix = (buck.breederPrefix ?? '').trim();
-            final name = buck.name.trim();
+            _buckPrefix = (buck.breederPrefix ?? '').trim();
+            _buckName = buck.name.trim();
             final ear = (buck.earNumber?.trim().isNotEmpty == true
                     ? buck.earNumber!.trim()
                     : buck.id.trim())
                 .toUpperCase();
-            final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-            if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-              _buckName = '$namePart $ear';
+            if (ear.isNotEmpty && !_buckName!.toUpperCase().endsWith(ear)) {
+              _buckEar = ear;
             } else {
-              _buckName = namePart;
+              _buckEar = null;
             }
           } else {
+            _buckPrefix = null;
             _buckName = widget.rabbit.lastBreedBuckId;
+            _buckEar = null;
           }
         });
       }
@@ -147,11 +150,24 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   text: TextSpan(
                     style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56)),
                     children: [
+                      if (_buckPrefix != null && _buckPrefix!.isNotEmpty)
+                        TextSpan(
+                          text: '$_buckPrefix ',
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF787774)),
+                        ),
                       TextSpan(
                         text: _buckName ?? widget.rabbit.lastBreedBuckId ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF2196F3)),
                       ),
-                      const TextSpan(text: ' • '),
+                      if (_buckEar != null && _buckEar!.isNotEmpty)
+                        TextSpan(
+                          text: ' $_buckEar',
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF787774)),
+                        ),
+                      const TextSpan(
+                        text: ' • ',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                      ),
                       TextSpan(
                         text: 'Day $_daysSinceBred of ${_settings.gestationDays}',
                         style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
@@ -208,7 +224,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                     Text(
                       widget.rabbit.lastBreedDate != null ? 'Bred ${_formatDate(widget.rabbit.lastBreedDate!)}' : 'Bred -',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Color(0xFF4F4F56),
                         fontWeight: FontWeight.w600,
                       ),
@@ -216,7 +232,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                     Text(
                       widget.rabbit.dueDate != null ? 'Due ${_formatDate(widget.rabbit.dueDate!)}' : 'Due -',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Color(0xFF4F4F56),
                         fontWeight: FontWeight.w600,
                       ),
@@ -481,14 +497,14 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
       children: [
         Icon(
           icon,
-          size: 14,
+          size: 15,
           color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF8E8E93),
         ),
         const SizedBox(height: 4),
         Text(
           title,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w700,
             color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
           ),
@@ -497,7 +513,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         Text(
           date,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
           ),

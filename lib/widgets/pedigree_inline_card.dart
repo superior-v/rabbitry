@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
-import '../models/pedigree.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
-import '../screens/add_rabbit_screen.dart';
 import 'pedigree_layout.dart';
 import 'pedigree_preview_modal.dart';
 
 class PedigreeInlineCard extends StatefulWidget {
   final Rabbit rabbit;
   final VoidCallback? onUpdated;
-  const PedigreeInlineCard({Key? key, required this.rabbit, this.onUpdated}) : super(key: key);
+  const PedigreeInlineCard({super.key, required this.rabbit, this.onUpdated});
 
   @override
   State<PedigreeInlineCard> createState() => _PedigreeInlineCardState();
@@ -20,9 +18,8 @@ class PedigreeInlineCard extends StatefulWidget {
 
 class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   final DatabaseService _db = DatabaseService();
-  int selectedGenerations = 3;
+  int selectedGenerations = 4;
   bool _isLoading = true;
-  PedigreeRabbit? _tree;
   Rabbit? _sire; 
   Rabbit? _dam;
   Rabbit? _ss, _sd, _ds, _dd;
@@ -39,7 +36,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       if (!mounted) return;
       setState(() => _isLoading = true);
       
-      final tree = await _db.buildPedigreeTree(widget.rabbit.id, maxGenerations: selectedGenerations);
+      final tree = await _db.buildPedigreeTree(widget.rabbit.id, maxGenerations: selectedGenerations, initialRabbit: widget.rabbit);
       
       Rabbit? sire, dam, ss, sd, ds, dd;
       Rabbit? sss, ssd, sds, sdd, dss, dsd, dds, ddd;
@@ -47,14 +44,16 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       if (tree.sire != null) sire = await _db.getRabbit(tree.sire!.id);
       if (tree.dam != null) dam = await _db.getRabbit(tree.dam!.id);
       
-      // 2 generations always loads grandparents (ss, sd, ds, dd)
-      if (tree.sire?.sire != null) ss = await _db.getRabbit(tree.sire!.sire!.id);
-      if (tree.sire?.dam != null) sd = await _db.getRabbit(tree.sire!.dam!.id);
-      if (tree.dam?.sire != null) ds = await _db.getRabbit(tree.dam!.sire!.id);
-      if (tree.dam?.dam != null) dd = await _db.getRabbit(tree.dam!.dam!.id);
-
-      // 3 generations also loads great grandparents
+      // 3 generations loads grandparents (ss, sd, ds, dd)
       if (selectedGenerations >= 3) {
+        if (tree.sire?.sire != null) ss = await _db.getRabbit(tree.sire!.sire!.id);
+        if (tree.sire?.dam != null) sd = await _db.getRabbit(tree.sire!.dam!.id);
+        if (tree.dam?.sire != null) ds = await _db.getRabbit(tree.dam!.sire!.id);
+        if (tree.dam?.dam != null) dd = await _db.getRabbit(tree.dam!.dam!.id);
+      }
+
+      // 4 generations loads great grandparents
+      if (selectedGenerations >= 4) {
         if (tree.sire?.sire?.sire != null) sss = await _db.getRabbit(tree.sire!.sire!.sire!.id);
         if (tree.sire?.sire?.dam != null) ssd = await _db.getRabbit(tree.sire!.sire!.dam!.id);
         if (tree.sire?.dam?.sire != null) sds = await _db.getRabbit(tree.sire!.dam!.sire!.id);
@@ -67,7 +66,6 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       
       if (mounted) {
         setState(() {
-          _tree = tree;
           _sire = sire; _dam = dam;
           _ss = ss; _sd = sd; _ds = ds; _dd = dd;
           _sss = sss; _ssd = ssd; _sds = sds; _sdd = sdd;
@@ -90,9 +88,6 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       debugPrint('Error preparing pedigree export: $e');
     }
   }
-
-  Color get _primaryColor => widget.rabbit.type == RabbitType.buck ? kBlueDeep : kPinkDeep;
-  Color get _washColor => widget.rabbit.type == RabbitType.buck ? kBlueWash : kPinkWash;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +128,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       _loadPedigree();
                     });
                   },
-                  itemBuilder: (context) => [2, 3].map((g) => PopupMenuItem(
+                  itemBuilder: (context) => [2, 3, 4].map((g) => PopupMenuItem(
                     value: g,
                     child: Text('$g Generations', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   )).toList(),
@@ -181,89 +176,93 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
               children: [
                  _buildSubjectCard(),
 
-                 const SizedBox(height: 20),
-                 _buildLabel('PARENTS'),
-                 Row(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     Expanded(
-                       child: _buildParentCard(
-                         label: 'SIRE',
-                         rabbit: _sire,
-                         isMale: true,
-                         onTap: () => _updateParent(RabbitType.buck, true),
+                 if (selectedGenerations >= 2) ...[
+                   const SizedBox(height: 20),
+                   _buildLabel('PARENTS'),
+                   Row(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       Expanded(
+                         child: _buildParentCard(
+                           label: 'SIRE',
+                           rabbit: _sire,
+                           isMale: true,
+                           onTap: () => _updateParent(RabbitType.buck, true),
+                         ),
                        ),
-                     ),
-                     const SizedBox(width: 12),
-                     Expanded(
-                       child: _buildParentCard(
-                         label: 'DAM',
-                         rabbit: _dam,
-                         isMale: false,
-                         onTap: () => _updateParent(RabbitType.doe, true),
+                       const SizedBox(width: 12),
+                       Expanded(
+                         child: _buildParentCard(
+                           label: 'DAM',
+                           rabbit: _dam,
+                           isMale: false,
+                           onTap: () => _updateParent(RabbitType.doe, true),
+                         ),
                        ),
-                     ),
-                   ],
-                 ),
-
-                 const SizedBox(height: 20),
-                 _buildLabel('GRANDPARENTS'),
-                 Row(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     // Sire's Parents
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
-                           _buildBaseCard(
-                             name: _ss?.name ?? 'Sire\'s Sire',
-                             id: _ss?.id ?? '--',
-                             borderColor: kBlueDeep,
-                             isSmall: true,
-                             onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
-                           ),
-                           const SizedBox(height: 8),
-                           _buildBaseCard(
-                             name: _sd?.name ?? 'Sire\'s Dam',
-                             id: _sd?.id ?? '--',
-                             borderColor: kPinkDeep,
-                             isSmall: true,
-                             onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
-                           ),
-                         ],
-                       ),
-                     ),
-                     const SizedBox(width: 12),
-                     // Dam's Parents
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
-                           _buildBaseCard(
-                             name: _ds?.name ?? 'Dam\'s Sire',
-                             id: _ds?.id ?? '--',
-                             borderColor: kBlueDeep,
-                             isSmall: true,
-                             onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
-                           ),
-                           const SizedBox(height: 8),
-                           _buildBaseCard(
-                             name: _dd?.name ?? 'Dam\'s Dam',
-                             id: _dd?.id ?? '--',
-                             borderColor: kPinkDeep,
-                             isSmall: true,
-                             onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
-                           ),
-                         ],
-                       ),
-                     ),
-                   ],
-                 ),
+                     ],
+                   ),
+                 ],
 
                  if (selectedGenerations >= 3) ...[
+                   const SizedBox(height: 20),
+                   _buildLabel('GRANDPARENTS'),
+                   Row(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       // Sire's Parents
+                       Expanded(
+                         child: Column(
+                           crossAxisAlignment: CrossAxisAlignment.start,
+                           children: [
+                             _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
+                             _buildBaseCard(
+                               name: _ss?.name ?? 'Sire\'s Sire',
+                               id: _ss?.id ?? '--',
+                               borderColor: kBlueDeep,
+                               isSmall: true,
+                               onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
+                             ),
+                             const SizedBox(height: 8),
+                             _buildBaseCard(
+                               name: _sd?.name ?? 'Sire\'s Dam',
+                               id: _sd?.id ?? '--',
+                               borderColor: kPinkDeep,
+                               isSmall: true,
+                               onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
+                             ),
+                           ],
+                         ),
+                       ),
+                       const SizedBox(width: 12),
+                       // Dam's Parents
+                       Expanded(
+                         child: Column(
+                           crossAxisAlignment: CrossAxisAlignment.start,
+                           children: [
+                             _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
+                             _buildBaseCard(
+                               name: _ds?.name ?? 'Dam\'s Sire',
+                               id: _ds?.id ?? '--',
+                               borderColor: kBlueDeep,
+                               isSmall: true,
+                               onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
+                             ),
+                             const SizedBox(height: 8),
+                             _buildBaseCard(
+                               name: _dd?.name ?? 'Dam\'s Dam',
+                               id: _dd?.id ?? '--',
+                               borderColor: kPinkDeep,
+                               isSmall: true,
+                               onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
+                             ),
+                           ],
+                         ),
+                       ),
+                     ],
+                   ),
+                 ],
+
+                 if (selectedGenerations >= 4) ...[
                     const SizedBox(height: 20),
                     _buildLabel('GREAT-GRANDPARENTS'),
                     Row(
@@ -607,7 +606,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _PedigreeEntryModal(
+      builder: (context) => PedigreeEntryModal(
         label: label,
         type: type,
         options: options,
@@ -692,7 +691,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   }
 }
 
-class _PedigreeEntryModal extends StatefulWidget {
+class PedigreeEntryModal extends StatefulWidget {
   final String label;
   final RabbitType type;
   final List<Rabbit> options;
@@ -700,7 +699,8 @@ class _PedigreeEntryModal extends StatefulWidget {
   final DatabaseService db;
   final String? breed;
 
-  const _PedigreeEntryModal({
+  const PedigreeEntryModal({
+    super.key,
     required this.label,
     required this.type,
     required this.options,
@@ -710,10 +710,10 @@ class _PedigreeEntryModal extends StatefulWidget {
   });
 
   @override
-  State<_PedigreeEntryModal> createState() => _PedigreeEntryModalState();
+  State<PedigreeEntryModal> createState() => _PedigreeEntryModalState();
 }
 
-class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTickerProviderStateMixin {
+class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   
@@ -736,14 +736,12 @@ class _PedigreeEntryModalState extends State<_PedigreeEntryModal> with SingleTic
   
   DateTime? _dateOfBirth;
   DateTime? _acquiredDate;
-  late RabbitType _gender;
   bool _isBroken = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _gender = widget.type;
     if ((widget.breed ?? '').isNotEmpty) {
       _breedController.text = widget.breed!;
     }

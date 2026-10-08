@@ -105,6 +105,8 @@ class CertificateLayout {
   static const double textLeft = 0.6722;
   static const double textMaxWidth = 0.3000;
   static const double textRowHeight = 0.0450; // H fraction
+  static const double labelWidth = 0.0820; // W fraction for label column
+  static const double labelGap = 0.0080;   // W fraction gap between label & value
 
   static const double rowNameCenterY = 0.3350;
   static const double rowBreedCenterY = 0.4200;

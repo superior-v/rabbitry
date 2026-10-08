@@ -756,26 +756,30 @@ class TaskScreenState extends State<TaskScreen> {
         ],
       ),
       actions: [
-        IconButton(
-          onPressed: () => _showFilterModal(),
-          icon: Stack(
-            children: [
-              Icon(PhosphorIcons.funnel(PhosphorIconsStyle.duotone), color: const Color(0xFF3A3A3C)),
-              if (_breedFilter != 'All')
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: kNeutral700,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kTaskHeaderPurple, width: 1.5),
-                    ),
-                  ),
-                ),
-            ],
+        PopupMenuButton<String>(
+          onSelected: (v) => setState(() => _breedFilter = v),
+          offset: const Offset(0, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 4,
+          itemBuilder: (ctx) => _getUniqueBreeds().map((f) => _buildPopupItem(
+            f,
+            f,
+            _breedFilter == f,
+          )).toList(),
+          child: Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            decoration: BoxDecoration(
+              color: _breedFilter != 'All' ? kLilacWash : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _breedFilter != 'All' ? kLilacLight : kNeutral300),
+            ),
+            child: Icon(
+              PhosphorIcons.funnel(PhosphorIconsStyle.bold),
+              size: 18,
+              color: _breedFilter != 'All' ? kLilacDeep : kNeutral500,
+            ),
           ),
         ),
         IconButton(
@@ -908,24 +912,32 @@ class TaskScreenState extends State<TaskScreen> {
         ),
         if (isExpanded) ...[
           const SizedBox(height: 6),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
+          if (isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Text(
+                emptyText,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF636366),
+                ),
+              ),
+            )
+          else
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E5EA)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: tasks,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Text(emptyText, style: TextStyle(fontSize: 13, color: kNeutral500)),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: tasks,
-                  ),
-          ),
         ],
       ],
     );
@@ -970,10 +982,10 @@ class TaskScreenState extends State<TaskScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: countBgColor,
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '$count',
@@ -1022,10 +1034,10 @@ class TaskScreenState extends State<TaskScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: const Color(0xFFE9D5FF),
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               '$count',
@@ -1065,16 +1077,16 @@ class TaskScreenState extends State<TaskScreen> {
               title: 'TODAY & OVERDUE',
               count: _getFilteredTodayTasksCount(),
               tagBgColor: const Color(0xFFDCFCE7),
-              tagTextColor: const Color(0xFF15803D),
+              tagTextColor: const Color(0xFF3A3A3C),
               countBgColor: const Color(0xFFDCFCE7),
-              countTextColor: const Color(0xFF15803D),
+              countTextColor: const Color(0xFF3A3A3C),
               isExpanded: _showToday,
               onToggle: () => setState(() => _showToday = !_showToday),
             ),
             tasks: todayTasks,
             isExpanded: _showToday,
             isEmpty: todayTasks.isEmpty && !_isLoading,
-            emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No tasks due currently',
+            emptyText: _isFilterActive() ? 'No tasks match your filter' : 'No Task due',
           ),
 
           const SizedBox(height: 16),
@@ -1085,9 +1097,9 @@ class TaskScreenState extends State<TaskScreen> {
               title: 'UPCOMING',
               count: _getFilteredUpcomingTasksCount(),
               tagBgColor: const Color(0xFFBAE6FD),
-              tagTextColor: const Color(0xFF0284C7),
+              tagTextColor: const Color(0xFF3A3A3C),
               countBgColor: const Color(0xFFBAE6FD),
-              countTextColor: const Color(0xFF0284C7),
+              countTextColor: const Color(0xFF3A3A3C),
               isExpanded: _showUpcoming,
               onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
             ),
@@ -1105,9 +1117,9 @@ class TaskScreenState extends State<TaskScreen> {
               title: 'ARCHIVE',
               count: _getFilteredArchivedTasksCount(),
               tagBgColor: const Color(0xFFFFD1E8),
-              tagTextColor: const Color(0xFFDB2777),
+              tagTextColor: const Color(0xFF3A3A3C),
               countBgColor: const Color(0xFFFFD1E8),
-              countTextColor: const Color(0xFFDB2777),
+              countTextColor: const Color(0xFF3A3A3C),
               isExpanded: _showArchive,
               onToggle: () => setState(() => _showArchive = !_showArchive),
             ),
@@ -2349,62 +2361,44 @@ class TaskScreenState extends State<TaskScreen> {
             ));
   }
 
-  void _showFilterModal() {
-    final allBreeds = [
+  List<String> _getUniqueBreeds() {
+    final breeds = _availableBreeds
+        .where((b) => b.trim().isNotEmpty)
+        .map((b) => b.trim())
+        .toSet()
+        .toList();
+    breeds.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return [
       'All',
-      ..._availableBreeds
+      ...breeds,
     ];
-    showDialog(
-        context: context,
-        builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 32),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                child: Material(
-                    color: Colors.transparent,
-                    child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('Filter by Breed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                        if (_breedFilter != 'All')
-                          TextButton(
-                              onPressed: () {
-                                setState(() => _breedFilter = 'All');
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Clear', style: TextStyle(color: kPrimary, fontWeight: FontWeight.w600)))
-                        else
-                          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                      ]),
-                      const SizedBox(height: 8),
-                      if (_availableBreeds.isEmpty)
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Center(child: Text('No breeds found.\nAdd breeds to your rabbits first.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF9B9A97)))))
-                      else
-                        ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 400),
-                            child: SingleChildScrollView(
-                                child: Column(
-                                    children: allBreeds.map((breed) {
-                              final isSelected = _breedFilter == breed;
-                              return InkWell(
-                                  onTap: () {
-                                    setState(() => _breedFilter = breed);
-                                    Navigator.pop(context);
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                      margin: const EdgeInsets.only(bottom: 4),
-                                      decoration: BoxDecoration(color: isSelected ? kPrimary.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: isSelected ? Border.all(color: kPrimary) : null),
-                                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                        Text(breed, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, color: isSelected ? kPrimary : Colors.black87)),
-                                        if (isSelected) const Icon(Icons.check, size: 18, color: kPrimary),
-                                      ])));
-                            }).toList()))),
-                    ])),
+  }
+
+  PopupMenuItem<String> _buildPopupItem(
+    String label,
+    String value,
+    bool isSelected,
+  ) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: const Color(0xFF3B3B43),
+                fontSize: 14,
               ),
-            ));
+            ),
+          ),
+          if (isSelected) ...[
+            const Icon(Icons.check, size: 16, color: kLilacDeep),
+          ],
+        ],
+      ),
+    );
   }
 
   void _showNewScheduleDialog(BuildContext context, {String? initialCategory}) async {
@@ -2553,17 +2547,11 @@ class TaskScreenState extends State<TaskScreen> {
                   .toList();
             }
 
-            final Set<String> combinedSet = {};
-            for (final t in defaultTasks) {
-              combinedSet.add(t);
-            }
-            for (final t in customDirTasks) {
-              if (t.trim().isNotEmpty) {
-                combinedSet.add(t.trim());
-              }
-            }
             final List<String> currentTaskOptions = [
-              ...combinedSet,
+              if (customDirTasks.isNotEmpty)
+                ...customDirTasks.where((t) => t.trim().isNotEmpty)
+              else
+                ...defaultTasks,
               '+ Custom',
             ];
 
@@ -2983,7 +2971,7 @@ class TaskScreenState extends State<TaskScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildModalOutlinedField(
-                        label: 'Name *',
+                        label: 'Name',
                         controller: nameController,
                       ),
                       const SizedBox(height: 16),
@@ -3018,12 +3006,34 @@ class TaskScreenState extends State<TaskScreen> {
                           onPressed: isSaving
                               ? null
                               : () async {
-                                  if (nameController.text.trim().isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please enter a contact name'),
-                                        backgroundColor: Color(0xFFD44C47),
-                                      ),
+                                  final name = nameController.text.trim();
+                                  final phone = phoneController.text.trim();
+                                  final email = emailController.text.trim();
+
+                                  if (name.isEmpty && phone.isEmpty && email.isEmpty) {
+                                    await showBrightPurpleDialog<bool>(
+                                      context: context,
+                                      title: 'Required Information',
+                                      content: 'Please enter Name and Phone or Email address.',
+                                      confirmText: 'OK',
+                                    );
+                                    return;
+                                  }
+                                  if (name.isEmpty) {
+                                    await showBrightPurpleDialog<bool>(
+                                      context: context,
+                                      title: 'Required Information',
+                                      content: 'Please enter a contact name.',
+                                      confirmText: 'OK',
+                                    );
+                                    return;
+                                  }
+                                  if (phone.isEmpty && email.isEmpty) {
+                                    await showBrightPurpleDialog<bool>(
+                                      context: context,
+                                      title: 'Required Information',
+                                      content: 'Please enter a phone number or email address.',
+                                      confirmText: 'OK',
                                     );
                                     return;
                                   }
@@ -3031,10 +3041,10 @@ class TaskScreenState extends State<TaskScreen> {
                                   try {
                                     final contact = {
                                       'id': existing?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                                      'name': nameController.text.trim(),
+                                      'name': name,
                                       'farmName': farmController.text.trim(),
-                                      'phone': phoneController.text.trim(),
-                                      'email': emailController.text.trim(),
+                                      'phone': phone,
+                                      'email': email,
                                       'notes': notesController.text.trim(),
                                       'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
                                     };
@@ -3376,7 +3386,7 @@ class TaskScreenState extends State<TaskScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
-        hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
+        hintStyle: const TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
         labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         floatingLabelBehavior: FloatingLabelBehavior.always,
