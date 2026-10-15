@@ -135,24 +135,58 @@ class RabbitActionSheet extends StatelessWidget {
                       'Log Health',
                       () => _showHealthRecordModal(context),
                     ),
-                    // 4. Move - For a Bred Doe REPLACE with Quarantine
-                    if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue)
+                    // Options below Log Health
+                    if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue) ...[
                       _buildOption(
                         'Quarantine',
                         () => _showQuarantineModal(context),
-                      )
-                    else
-                      _buildOption(
-                        'Move',
-                        () => _showMoveOptions(context),
                       ),
-                    // 5. Cancel Breeding (if Bred)
-                    if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue)
+                      _buildOption(
+                        'Archive',
+                        () => _showArchiveModal(context),
+                      ),
                       _buildOption(
                         'Cancel Breeding',
                         () => _showCancelPregnancyDialog(context),
                         isDangerous: true,
                       ),
+                    ] else if (rabbit.status == RabbitStatus.resting) ...[
+                      _buildOption(
+                        rabbit.type == RabbitType.buck ? 'Move to Active' : 'Move to Open',
+                        () => _moveToOpen(context),
+                      ),
+                      _buildOption(
+                        'Quarantine',
+                        () => _showQuarantineModal(context),
+                      ),
+                      _buildOption(
+                        'Archive',
+                        () => _showArchiveModal(context),
+                      ),
+                    ] else if (rabbit.status == RabbitStatus.quarantine) ...[
+                      _buildOption(
+                        rabbit.type == RabbitType.buck ? 'Move to Active' : 'Move to Open',
+                        () => _moveToOpen(context),
+                      ),
+                      _buildOption(
+                        'Archive',
+                        () => _showArchiveModal(context),
+                      ),
+                    ] else ...[
+                      // OPEN, NURSING, Active Bucks, etc.
+                      _buildOption(
+                        'Move to Resting',
+                        () => _moveToResting(context),
+                      ),
+                      _buildOption(
+                        'Quarantine',
+                        () => _showQuarantineModal(context),
+                      ),
+                      _buildOption(
+                        'Archive',
+                        () => _showArchiveModal(context),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -186,15 +220,47 @@ class RabbitActionSheet extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'Move ${rabbit.name}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
-                          letterSpacing: -0.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 2,
+                        children: [
+                          const Text(
+                            'Move',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF4A3E6D),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
+                            Text(
+                              rabbit.breederPrefix!.trim(),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF787774),
+                              ),
+                            ),
+                          Text(
+                            rabbit.name.trim(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: rabbit.type == RabbitType.doe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                            ),
+                          ),
+                          if ((rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim()).isNotEmpty)
+                            Text(
+                              (rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim()),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF787774),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     GestureDetector(
@@ -268,6 +334,8 @@ class RabbitActionSheet extends StatelessWidget {
   }
 
   Future<void> _moveToOpen(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
     try {
       final db = DatabaseService();
       final newStatus = rabbit.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
@@ -279,14 +347,14 @@ class RabbitActionSheet extends StatelessWidget {
       );
       await db.updateRabbit(updated);
       onActionComplete();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('${rabbit.name} moved to OPEN'),
           backgroundColor: const Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error moving rabbit: $e'),
           backgroundColor: const Color(0xFFE63946),
@@ -296,19 +364,21 @@ class RabbitActionSheet extends StatelessWidget {
   }
 
   Future<void> _moveToResting(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
     try {
       final db = DatabaseService();
       final updated = rabbit.copyWith(status: RabbitStatus.resting);
       await db.updateRabbit(updated);
       onActionComplete();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('${rabbit.name} moved to RESTING'),
           backgroundColor: const Color(0xFF7B6BA0),
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error moving rabbit: $e'),
           backgroundColor: const Color(0xFFE63946),
@@ -462,9 +532,14 @@ class RabbitActionSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => QuarantineModal(
+      builder: (modalCtx) => QuarantineModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: () {
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+          onActionComplete();
+        },
       ),
     );
   }
@@ -513,9 +588,14 @@ class RabbitActionSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ArchiveModal(
+      builder: (modalCtx) => ArchiveModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: () {
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+          onActionComplete();
+        },
       ),
     );
   }
@@ -571,10 +651,10 @@ class RabbitActionSheet extends StatelessWidget {
     }
   }
 
-  void _showCancelPregnancyDialog(BuildContext context) {
+  void _showCancelPregnancyDialog(BuildContext actionSheetContext) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: actionSheetContext,
+      builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Cancel Bred Status'),
         content: Column(
@@ -610,24 +690,27 @@ class RabbitActionSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('Keep Status', style: TextStyle(color: Color(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogCtx);
+              if (actionSheetContext.mounted) {
+                Navigator.pop(actionSheetContext);
+              }
               try {
                 final db = DatabaseService();
                 await db.cancelPregnancy(rabbit.id);
                 onActionComplete();
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(actionSheetContext).showSnackBar(
                   SnackBar(
                     content: Text('Bred status cancelled for ${rabbit.name}'),
                     backgroundColor: const Color(0xFF7B6BA0),
                   ),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(actionSheetContext).showSnackBar(
                   SnackBar(
                     content: Text('Error: $e'),
                     backgroundColor: const Color(0xFFE63946),

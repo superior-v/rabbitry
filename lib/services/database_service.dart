@@ -52,6 +52,18 @@ class DatabaseService {
             await db.execute('ALTER TABLE rabbits ADD COLUMN acquiredDate TEXT');
             print('🔨 Fixed: Added missing acquiredDate column via onOpen hotpatch');
           }
+          if (!hasColumn('seller')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN seller TEXT');
+          }
+          if (!hasColumn('purchaseRabbitry')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN purchaseRabbitry TEXT');
+          }
+          if (!hasColumn('purchaseCost')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN purchaseCost REAL');
+          }
+          if (!hasColumn('purchaseDate')) {
+            await db.execute('ALTER TABLE rabbits ADD COLUMN purchaseDate TEXT');
+          }
         } catch (e) {
           print('❌ Error in onOpen hotpatch: $e');
         }
@@ -85,6 +97,24 @@ class DatabaseService {
           await db.rawUpdate(
             "UPDATE rabbits SET type = 'RabbitType.pedigree', status = 'RabbitStatus.archived' WHERE id LIKE 'PED-%' OR id LIKE 'ped_%'",
           );
+        } catch (_) {}
+
+        // Ensure waitlist table exists
+        try {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS waitlist(
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              phone TEXT,
+              email TEXT,
+              userName TEXT,
+              breed TEXT,
+              gender TEXT,
+              colorPreferred TEXT,
+              specialNotes TEXT,
+              createdAt TEXT NOT NULL
+            )
+          ''');
         } catch (_) {}
       },
     );
@@ -151,7 +181,11 @@ class DatabaseService {
         activeInRabbitry INTEGER DEFAULT 1,
         fallOffs INTEGER,
         breedingNotes TEXT,
-        acquiredDate TEXT
+        acquiredDate TEXT,
+        seller TEXT,
+        purchaseRabbitry TEXT,
+        purchaseCost REAL,
+        purchaseDate TEXT
       )
     ''');
 
@@ -339,6 +373,22 @@ class DatabaseService {
         buckId TEXT NOT NULL,
         plannedDate TEXT NOT NULL,
         notes TEXT,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Waitlist table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS waitlist(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        userName TEXT,
+        breed TEXT,
+        gender TEXT,
+        colorPreferred TEXT,
+        specialNotes TEXT,
         createdAt TEXT NOT NULL
       )
     ''');
@@ -1068,14 +1118,78 @@ class DatabaseService {
   }
 
   Future<List<Rabbit>> getAvailableBucks() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'rabbits',
-      where: 'type = ? AND status != ?',
-      whereArgs: ['RabbitType.buck', 'RabbitStatus.archived'],
-      orderBy: 'name ASC',
-    );
-    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final activeRabbits = await getAllRabbits();
+    final archivedRabbits = await getArchivedRabbits();
+
+    final activeBucks = activeRabbits.where((r) => r.type == RabbitType.buck && !r.isArchived).toList();
+    final archivedBucks = archivedRabbits.where((r) => r.type == RabbitType.buck).toList();
+
+    final seenIds = <String>{};
+    final list = <Rabbit>[];
+    for (final r in [...activeBucks, ...archivedBucks]) {
+      if (seenIds.add(r.id)) {
+        list.add(r);
+      }
+    }
+
+    // Non-archived first, then archived bucks at the very bottom
+    list.sort((a, b) {
+      final aArchived = a.isArchived;
+      final bArchived = b.isArchived;
+      if (aArchived != bArchived) {
+        return aArchived ? 1 : -1;
+      }
+      final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      if (nameCompare != 0) return nameCompare;
+      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+      if (breedCompare != 0) return breedCompare;
+      final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+      if (prefixCompare != 0) return prefixCompare;
+      final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+      final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+      return earA.compareTo(earB);
+    });
+
+    final resolved = <Rabbit>[];
+    for (final r in list) {
+      resolved.add(await _resolveRabbitPhotos(r));
+    }
+    return resolved;
+  }
+
+  Future<List<Rabbit>> getAvailableDoes() async {
+    final activeRabbits = await getAllRabbits();
+    final archivedRabbits = await getArchivedRabbits();
+
+    final activeDoes = activeRabbits.where((r) => r.type == RabbitType.doe && !r.isArchived).toList();
+    final archivedDoes = archivedRabbits.where((r) => r.type == RabbitType.doe).toList();
+
+    final seenIds = <String>{};
+    final list = <Rabbit>[];
+    for (final r in [...activeDoes, ...archivedDoes]) {
+      if (seenIds.add(r.id)) {
+        list.add(r);
+      }
+    }
+
+    // Non-archived first, then archived does at the very bottom
+    list.sort((a, b) {
+      final aArchived = a.isArchived;
+      final bArchived = b.isArchived;
+      if (aArchived != bArchived) {
+        return aArchived ? 1 : -1;
+      }
+      final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      if (nameCompare != 0) return nameCompare;
+      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+      if (breedCompare != 0) return breedCompare;
+      final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+      if (prefixCompare != 0) return prefixCompare;
+      final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+      final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+      return earA.compareTo(earB);
+    });
+
     final resolved = <Rabbit>[];
     for (final r in list) {
       resolved.add(await _resolveRabbitPhotos(r));
@@ -1084,16 +1198,83 @@ class DatabaseService {
   }
 
   Future<List<Rabbit>> getOpenDoes() async {
+    await SettingsService.instance.init();
+    await checkAndUpdateRebreedStatuses();
+
+    final allRabbits = await getAllRabbits();
+    final does = allRabbits.where((r) => r.type == RabbitType.doe && r.status != RabbitStatus.archived).toList();
+    final litters = await getLitters();
+    final rebreedDays = SettingsService.instance.rebreedDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'rabbits',
-      where: 'type = ? AND status = ?',
-      whereArgs: ['RabbitType.doe', 'RabbitStatus.open'],
-      orderBy: 'name ASC',
-    );
-    final list = List.generate(maps.length, (i) => Rabbit.fromMap(maps[i]));
+    final eligibleDoes = <Rabbit>[];
+
+    for (final doe in does) {
+      if (doe.status == RabbitStatus.open) {
+        eligibleDoes.add(doe);
+      } else if (doe.status == RabbitStatus.nursing) {
+        // Check if active nursing litter / kindle date is >= rebreedDays
+        final activeLitter = litters.where((l) => l.doeId == doe.id && (l.status.toLowerCase() == 'nursing' || l.status.toLowerCase() == 'active')).firstOrNull;
+        final litterDate = activeLitter?.kindleDate ?? activeLitter?.dob ?? doe.kindleDate;
+        if (litterDate != null) {
+          final kindleDay = DateTime(litterDate.year, litterDate.month, litterDate.day);
+          final daysSinceKindle = today.difference(kindleDay).inDays;
+          if (daysSinceKindle >= rebreedDays) {
+            eligibleDoes.add(doe);
+          }
+        } else if (doe.updatedAt != null) {
+          final updateDay = DateTime(doe.updatedAt!.year, doe.updatedAt!.month, doe.updatedAt!.day);
+          final daysSinceUpdate = today.difference(updateDay).inDays;
+          if (daysSinceUpdate >= rebreedDays) {
+            eligibleDoes.add(doe);
+          }
+        } else {
+          eligibleDoes.add(doe);
+        }
+      } else if (doe.status == RabbitStatus.resting) {
+        final openTasks = await db.query('tasks', where: 'rabbitId = ?', whereArgs: [doe.id]);
+        final openBreedTask = openTasks.where((t) => (t['taskType'] == 'open_breeding' || t['taskType'] == 'resting') && t['completed'] != 1).firstOrNull;
+        if (openBreedTask != null && openBreedTask['dueDate'] != null) {
+          final d = DateTime.tryParse(openBreedTask['dueDate'].toString());
+          if (d != null) {
+            final dueDay = DateTime(d.year, d.month, d.day);
+            if (!today.isBefore(dueDay)) {
+              eligibleDoes.add(doe);
+            }
+          } else {
+            eligibleDoes.add(doe);
+          }
+        } else {
+          final refDate = doe.updatedAt ?? doe.kindleDate;
+          if (refDate != null) {
+            final refDay = DateTime(refDate.year, refDate.month, refDate.day);
+            final daysSinceRef = today.difference(refDay).inDays;
+            if (daysSinceRef >= rebreedDays) {
+              eligibleDoes.add(doe);
+            }
+          } else {
+            eligibleDoes.add(doe);
+          }
+        }
+      }
+    }
+
+    eligibleDoes.sort((a, b) {
+      final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
+      if (breedCompare != 0) return breedCompare;
+      final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      if (nameCompare != 0) return nameCompare;
+      final prefixCompare = (a.breederPrefix ?? '').trim().toLowerCase().compareTo((b.breederPrefix ?? '').trim().toLowerCase());
+      if (prefixCompare != 0) return prefixCompare;
+      final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+      final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+      return earA.compareTo(earB);
+    });
+
     final resolved = <Rabbit>[];
-    for (final r in list) {
+    for (final r in eligibleDoes) {
       resolved.add(await _resolveRabbitPhotos(r));
     }
     return resolved;
@@ -1612,6 +1793,16 @@ class DatabaseService {
       'rabbits',
       {
         'status': RabbitStatus.open.toString(),
+        'archiveDate': null,
+        'archiveReason': null,
+        'archiveNotes': null,
+        'salePrice': null,
+        'buyerInfo': null,
+        'butcherYield': null,
+        'butcherCost': null,
+        'deathCause': null,
+        'cullReason': null,
+        'activeInRabbitry': 1,
         'lastBreedDate': null,
         'lastBreedBuckId': null,
         'palpationDate': null,
@@ -1765,8 +1956,9 @@ class DatabaseService {
     double? butcherYield,
     double? butcherCost,
     String? deathCause,
-    String? cullReason,
-  ) async {
+    String? cullReason, {
+    DateTime? archiveDate,
+  }) async {
     final db = await database;
 
     await db.update(
@@ -1774,7 +1966,7 @@ class DatabaseService {
       {
         'status': RabbitStatus.archived.toString(),
         'archiveReason': reason.toString(),
-        'archiveDate': DateTime.now().toIso8601String(),
+        'archiveDate': (archiveDate ?? DateTime.now()).toIso8601String(),
         'archiveNotes': notes,
         'salePrice': salePrice,
         'buyerInfo': buyerInfo,
@@ -1788,7 +1980,147 @@ class DatabaseService {
       whereArgs: [rabbitId],
     );
 
+    // Cancel / complete any pending tasks for this rabbit
+    await db.update(
+      'tasks',
+      {
+        'completed': 1,
+        'completedAt': (archiveDate ?? DateTime.now()).toIso8601String(),
+      },
+      where: 'rabbitId = ? AND completed = 0',
+      whereArgs: [rabbitId],
+    );
+
+    notifyDataChanged();
     print('✅ Archived rabbit $rabbitId: $reason');
+  }
+
+  Future<void> restoreRabbit(String rabbitId) async {
+    final db = await database;
+    final r = await getRabbit(rabbitId);
+    if (r == null) return;
+
+    final hasBreedingCycle = r.lastBreedDate != null && (r.dueDate != null || r.kindleDate != null);
+    final isNursing = (r.currentLitterSize != null && r.currentLitterSize! > 0) && r.weanDate != null;
+
+    RabbitStatus targetStatus;
+    if (r.type == RabbitType.buck) {
+      targetStatus = RabbitStatus.active;
+    } else if (hasBreedingCycle) {
+      if (r.palpationResult == true) {
+        targetStatus = RabbitStatus.pregnant;
+      } else if (SettingsService.instance.palpationEnabled) {
+        targetStatus = RabbitStatus.palpateDue;
+      } else {
+        targetStatus = RabbitStatus.pregnant;
+      }
+    } else if (isNursing) {
+      targetStatus = RabbitStatus.nursing;
+    } else {
+      targetStatus = RabbitStatus.open;
+    }
+
+    final updateData = <String, dynamic>{
+      'status': targetStatus.toString(),
+      'archiveDate': null,
+      'archiveReason': null,
+      'archiveNotes': null,
+      'salePrice': null,
+      'buyerInfo': null,
+      'butcherYield': null,
+      'butcherCost': null,
+      'deathCause': null,
+      'cullReason': null,
+      'activeInRabbitry': 1,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+
+    if (!hasBreedingCycle && !isNursing) {
+      updateData['lastBreedDate'] = null;
+      updateData['lastBreedBuckId'] = null;
+      updateData['palpationDate'] = null;
+      updateData['palpationResult'] = null;
+      updateData['dueDate'] = null;
+      updateData['kindleDate'] = null;
+      updateData['currentLitterSize'] = null;
+      updateData['weanDate'] = null;
+    }
+
+    await db.update(
+      'rabbits',
+      updateData,
+      where: 'id = ?',
+      whereArgs: [rabbitId],
+    );
+
+    // If restoring a bred doe, restore her tasks
+    if (hasBreedingCycle) {
+      final existingTasks = await db.query(
+        'tasks',
+        where: 'rabbitId = ? AND taskType IN (?, ?, ?)',
+        whereArgs: [rabbitId, 'palpation', 'nestbox', 'kindle'],
+      );
+
+      if (existingTasks.isNotEmpty) {
+        await db.update(
+          'tasks',
+          {
+            'completed': 0,
+            'completedAt': null,
+          },
+          where: 'rabbitId = ? AND taskType IN (?, ?, ?)',
+          whereArgs: [rabbitId, 'palpation', 'nestbox', 'kindle'],
+        );
+      } else {
+        final settings = SettingsService.instance;
+        final dueDate = r.dueDate ?? r.kindleDate;
+        if (dueDate != null) {
+          final breedDate = r.lastBreedDate ?? dueDate.subtract(Duration(days: settings.gestationDays));
+          final palpDate = breedDate.add(Duration(days: settings.palpationDays));
+          final nestDate = dueDate.subtract(const Duration(days: 3));
+
+          if (settings.palpationEnabled && settings.palpationAutoTask && (r.palpationResult != true)) {
+            await insertTask({
+              'id': 'task_palp_${DateTime.now().millisecondsSinceEpoch}',
+              'rabbitId': rabbitId,
+              'title': 'Palpation Check',
+              'description': 'Pregnancy check',
+              'taskType': 'palpation',
+              'dueDate': palpDate.toIso8601String(),
+              'completed': 0,
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+          if (settings.nestBoxEnabled && settings.nestBoxAutoTask) {
+            await insertTask({
+              'id': 'task_nest_${DateTime.now().millisecondsSinceEpoch}',
+              'rabbitId': rabbitId,
+              'title': 'Add Nest Box',
+              'description': 'Prepare for kindling',
+              'taskType': 'nestbox',
+              'dueDate': nestDate.toIso8601String(),
+              'completed': 0,
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+          if (settings.kindleAutoTask) {
+            await insertTask({
+              'id': 'task_kindle_${DateTime.now().millisecondsSinceEpoch + 1}',
+              'rabbitId': rabbitId,
+              'title': 'Expected Kindle',
+              'description': 'Due date for birth',
+              'taskType': 'kindle',
+              'dueDate': dueDate.toIso8601String(),
+              'completed': 0,
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+        }
+      }
+    }
+
+    notifyDataChanged();
+    print('✅ Restored rabbit $rabbitId to active ($targetStatus)');
   }
 
   // ==================== GROWOUT ====================
@@ -2006,7 +2338,7 @@ class DatabaseService {
           Litter cleanedLitter = litter;
 
           // If the litter is >= 49 days old (7 weeks old), automatically transition nursing kits and litter to 'Weaned'
-          if (ageDays >= 49 && (litter.status.toLowerCase() == 'nursing' || litter.kits.any((k) => k.status.toLowerCase() == 'nursing' || k.status.isEmpty || k.status.toLowerCase() == 'active'))) {
+          if (ageDays >= 49 && (litter.weanDate == null || litter.weanDate!.isBefore(DateTime.now())) && (litter.status.toLowerCase() == 'nursing' || litter.kits.any((k) => k.status.toLowerCase() == 'nursing' || k.status.isEmpty || k.status.toLowerCase() == 'active'))) {
             final weanedKits = litter.kits.map((k) {
               final st = k.status.toLowerCase().trim();
               if (st == 'nursing' || st.isEmpty || st == 'active') {
@@ -2589,6 +2921,7 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getAllPipelineTasks() async {
     final db = await database;
     await _ensureTasksIgnoredColumn(db);
+    await cleanupStalePipelineTasks(db);
     final tasks = await db.query(
       'tasks',
       where: 'completed = 0 AND (ignored = 0 OR ignored IS NULL)',
@@ -2639,11 +2972,52 @@ class DatabaseService {
         }
       }
 
-      // If task is nestbox, ensure dueDate aligns with rabbit's due date / breed date
-      String taskDueDate = task['dueDate']?.toString() ?? '';
-      if (taskType == 'nestbox' && rabbitId.isNotEmpty) {
+      // If task is kindle: verify rabbit exists and is currently bred/pregnant
+      if (taskType == 'kindle') {
+        if (rabbitId.isEmpty) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
         final rabbit = await getRabbit(rabbitId);
-        if (rabbit != null && rabbit.dueDate != null) {
+        if (rabbit == null) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+        final status = rabbit.status.toString().toLowerCase();
+        final isBredOrPregnant = status.contains('pregnant') ||
+            status.contains('palpatedue') ||
+            (rabbit.lastBreedDate != null &&
+                rabbit.dueDate != null &&
+                rabbit.dueDate!.isAfter(DateTime.now().subtract(const Duration(days: 7))));
+        if (!isBredOrPregnant) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+      }
+
+      // If task is nestbox, ensure rabbit exists & is bred/pregnant, and dueDate aligns
+      String taskDueDate = task['dueDate']?.toString() ?? '';
+      if (taskType == 'nestbox') {
+        if (rabbitId.isEmpty) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+        final rabbit = await getRabbit(rabbitId);
+        if (rabbit == null) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+        final status = rabbit.status.toString().toLowerCase();
+        final isBredOrPregnant = status.contains('pregnant') ||
+            status.contains('palpatedue') ||
+            (rabbit.lastBreedDate != null &&
+                rabbit.dueDate != null &&
+                rabbit.dueDate!.isAfter(DateTime.now().subtract(const Duration(days: 7))));
+        if (!isBredOrPregnant) {
+          await db.delete('tasks', where: 'id = ?', whereArgs: [task['id']]);
+          continue;
+        }
+        if (rabbit.dueDate != null) {
           final settings = SettingsService.instance;
           final nestDays = rabbit.customNestBoxDay ?? settings.nestBoxDays;
           final correctNestDate = rabbit.lastBreedDate != null
@@ -3479,6 +3853,104 @@ class DatabaseService {
 
   // ==================== TRANSACTIONS (FINANCE) ====================
 
+  /// Clean up obsolete/stale pipeline tasks:
+  /// - Deletes orphan pipeline tasks whose rabbitId doesn't exist
+  /// - Deletes kindle/nestbox tasks if the rabbit is not pregnant/bred
+  /// - Deletes wean tasks for litters that are weaned or non-existent
+  /// - Deduplicates remaining pipeline tasks
+  Future<int> cleanupStalePipelineTasks([Database? db]) async {
+    final database = db ?? await this.database;
+    await _ensureTasksIgnoredColumn(database);
+    int removed = 0;
+
+    // 1. Delete orphan tasks where rabbitId is not in rabbits table (and not litter linked)
+    final orphanRabbits = await database.rawQuery('''
+      SELECT id FROM tasks 
+      WHERE (rabbitId IS NOT NULL AND rabbitId != '')
+        AND (litterId IS NULL OR litterId = '')
+        AND rabbitId NOT IN (SELECT id FROM rabbits)
+    ''');
+    for (final r in orphanRabbits) {
+      await database.delete('tasks', where: 'id = ?', whereArgs: [r['id']]);
+      removed++;
+    }
+
+    // 2. Delete orphan tasks with neither rabbitId nor litterId
+    final orphanEmpty = await database.rawQuery('''
+      SELECT id FROM tasks 
+      WHERE (rabbitId IS NULL OR rabbitId = '')
+        AND (litterId IS NULL OR litterId = '')
+    ''');
+    for (final r in orphanEmpty) {
+      await database.delete('tasks', where: 'id = ?', whereArgs: [r['id']]);
+      removed++;
+    }
+
+    // 3. Delete kindle / nestbox tasks for does that are no longer pregnant or bred
+    final kindleNestTasks = await database.rawQuery('''
+      SELECT t.id, t.rabbitId, r.status, r.lastBreedDate, r.dueDate
+      FROM tasks t
+      JOIN rabbits r ON t.rabbitId = r.id
+      WHERE t.taskType IN ('kindle', 'nestbox') AND t.completed = 0
+    ''');
+    for (final row in kindleNestTasks) {
+      final status = (row['status']?.toString() ?? '').toLowerCase();
+      final lastBreedDate = row['lastBreedDate']?.toString();
+      final isPregnantOrBred = status.contains('pregnant') ||
+          status.contains('palpatedue') ||
+          lastBreedDate != null;
+      if (!isPregnantOrBred) {
+        await database.delete('tasks', where: 'id = ?', whereArgs: [row['id']]);
+        removed++;
+      }
+    }
+
+    // 4. Delete palpation tasks for does that are no longer palpateDue or bred
+    final palpTasks = await database.rawQuery('''
+      SELECT t.id, t.rabbitId, r.status, r.lastBreedDate
+      FROM tasks t
+      JOIN rabbits r ON t.rabbitId = r.id
+      WHERE t.taskType = 'palpation' AND t.completed = 0
+    ''');
+    for (final row in palpTasks) {
+      final status = (row['status']?.toString() ?? '').toLowerCase();
+      final lastBreedDate = row['lastBreedDate']?.toString();
+      if (!status.contains('palpatedue') && lastBreedDate == null) {
+        await database.delete('tasks', where: 'id = ?', whereArgs: [row['id']]);
+        removed++;
+      }
+    }
+
+    // 5. Delete wean tasks for litters that do not exist or are already weaned / archived
+    final weanTasks = await database.rawQuery('''
+      SELECT t.id, t.litterId
+      FROM tasks t
+      WHERE t.taskType = 'wean' AND (t.litterId IS NOT NULL AND t.litterId != '') AND t.completed = 0
+    ''');
+    for (final row in weanTasks) {
+      final litterId = row['litterId']?.toString() ?? '';
+      final litterRows = await database.query('litters', where: 'id = ?', whereArgs: [litterId]);
+      if (litterRows.isEmpty) {
+        await database.delete('tasks', where: 'id = ?', whereArgs: [row['id']]);
+        removed++;
+      } else {
+        final status = (litterRows.first['status']?.toString() ?? '').toLowerCase();
+        if (status == 'weaned' || status == 'archived') {
+          await database.delete('tasks', where: 'id = ?', whereArgs: [row['id']]);
+          removed++;
+        }
+      }
+    }
+
+    // 6. Deduplicate remaining pipeline tasks
+    await _deduplicatePipelineTasks(database);
+
+    if (removed > 0) {
+      print('🧹 Cleaned up $removed obsolete pipeline tasks');
+    }
+    return removed;
+  }
+
   /// Remove duplicate pipeline tasks — keeps only one task per litter+taskType or rabbit+taskType
   Future<void> _deduplicatePipelineTasks(Database db) async {
     int removed = 0;
@@ -3529,8 +4001,8 @@ class DatabaseService {
     final db = await database;
     int created = 0;
 
-    // Clean up duplicate pipeline tasks (keep only one per litter/rabbit+taskType)
-    await _deduplicatePipelineTasks(db);
+    // Clean up obsolete & duplicate pipeline tasks
+    await cleanupStalePipelineTasks(db);
 
     // 1. Nursing litters without a wean task
     final litters = await db.query('litters');
@@ -3941,7 +4413,7 @@ class DatabaseService {
       final rabbitMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
       if (rabbitMap.isNotEmpty) {
         final rStatus = rabbitMap.first['status']?.toString() ?? '';
-        if (rStatus.toLowerCase().contains('open')) {
+        if (!rStatus.toLowerCase().contains('archived')) {
           await db.update(
             'rabbits',
             {
@@ -4351,9 +4823,55 @@ class DatabaseService {
     return dueDate.toIso8601String();
   }
 
+  /// Deduplicate scheduled tasks with identical name, frequency, linkType, and linkedEntities
+  Future<int> cleanupDuplicateScheduledTasks([Database? db]) async {
+    final database = db ?? await this.database;
+    await _ensureScheduledTasksTable(database);
+
+    final tasks = await database.query('scheduled_tasks', orderBy: 'id ASC');
+    final seen = <String, int>{};
+    final toDelete = <int>[];
+
+    for (final task in tasks) {
+      final id = task['id'] as int;
+      final name = (task['name']?.toString() ?? task['task']?.toString() ?? '').trim().toLowerCase();
+      final frequency = (task['frequency']?.toString() ?? '').trim().toLowerCase();
+      final linkType = (task['linkType']?.toString() ?? '').trim().toLowerCase();
+
+      String entityKey = '';
+      try {
+        final rawEntities = task['linkedEntities'];
+        if (rawEntities != null && rawEntities.toString().isNotEmpty) {
+          final decoded = rawEntities is String ? json.decode(rawEntities) : rawEntities;
+          if (decoded is List) {
+            final ids = decoded.map((e) => e is Map ? (e['id']?.toString() ?? '') : e.toString()).toList()..sort();
+            entityKey = ids.join(',');
+          }
+        }
+      } catch (_) {}
+
+      final signature = '$name|$frequency|$linkType|$entityKey';
+      if (seen.containsKey(signature)) {
+        toDelete.add(id);
+      } else {
+        seen[signature] = id;
+      }
+    }
+
+    for (final id in toDelete) {
+      await database.delete('scheduled_tasks', where: 'id = ?', whereArgs: [id]);
+    }
+
+    if (toDelete.isNotEmpty) {
+      print('🧹 Cleaned up ${toDelete.length} duplicate scheduled tasks');
+    }
+    return toDelete.length;
+  }
+
   Future<List<Map<String, dynamic>>> getAllScheduledTasks() async {
     final db = await database;
     await _ensureScheduledTasksTable(db);
+    await cleanupDuplicateScheduledTasks(db);
 
     final List<Map<String, dynamic>> maps = await db.query(
       'scheduled_tasks',
@@ -4917,5 +5435,32 @@ class DatabaseService {
     final db = await database;
     await db.delete('breeding_plans', where: 'id = ?', whereArgs: [id]);
     print('✅ Deleted breeding plan with id: $id');
+  }
+
+  // ==================== WAITLIST CRUD ====================
+
+  Future<void> insertWaitlistEntry(Map<String, dynamic> entry) async {
+    final db = await database;
+    await db.insert('waitlist', entry,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    print('✅ Inserted waitlist entry for: ${entry['name']}');
+  }
+
+  Future<void> updateWaitlistEntry(Map<String, dynamic> entry) async {
+    final db = await database;
+    await db.update('waitlist', entry,
+        where: 'id = ?', whereArgs: [entry['id']]);
+    print('✅ Updated waitlist entry: ${entry['name']}');
+  }
+
+  Future<List<Map<String, dynamic>>> getAllWaitlist() async {
+    final db = await database;
+    return await db.query('waitlist', orderBy: 'createdAt DESC');
+  }
+
+  Future<void> deleteWaitlistEntry(String id) async {
+    final db = await database;
+    await db.delete('waitlist', where: 'id = ?', whereArgs: [id]);
+    print('✅ Deleted waitlist entry with id: $id');
   }
 }

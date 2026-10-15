@@ -62,7 +62,31 @@ class SettingsService {
   String get farmName => _prefs?.getString('farmName') ?? 'Dynasty';
   String get ownerName => _prefs?.getString('ownerName') ?? '';
   String? get farmLogo => _prefs?.getString('farmLogo');
-  String get farmAddress => _prefs?.getString('farmAddress') ?? '';
+  String get farmAddressLine1 => _prefs?.getString('farmAddressLine1') ?? '';
+  String get farmAddressLine2 => _prefs?.getString('farmAddressLine2') ?? '';
+  String get farmStreetName => _prefs?.getString('farmStreetName') ?? '';
+  String get farmCity => _prefs?.getString('farmCity') ?? '';
+  String get farmState => _prefs?.getString('farmState') ?? '';
+  String get farmZip => _prefs?.getString('farmZip') ?? '';
+
+  String get farmAddress {
+    final parts = <String>[];
+    if (farmAddressLine1.isNotEmpty) parts.add(farmAddressLine1);
+    if (farmAddressLine2.isNotEmpty) parts.add(farmAddressLine2);
+    if (farmCity.isNotEmpty) parts.add(farmCity);
+    if (farmState.isNotEmpty && farmZip.isNotEmpty) {
+      parts.add('$farmState $farmZip');
+    } else if (farmState.isNotEmpty) {
+      parts.add(farmState);
+    } else if (farmZip.isNotEmpty) {
+      parts.add(farmZip);
+    }
+    if (parts.isNotEmpty) {
+      return parts.join(', ');
+    }
+    return _prefs?.getString('farmAddress') ?? '';
+  }
+
   String get farmPhone => _prefs?.getString('farmPhone') ?? '';
   String get farmEmail => _prefs?.getString('farmEmail') ?? '';
 
@@ -437,12 +461,43 @@ class SettingsService {
     await _prefs?.setString('farmAddress', address);
   }
 
+  Future<void> setFarmAddressLine1(String addressLine1) async {
+    await _prefs?.setString('farmAddressLine1', addressLine1);
+  }
+
+  Future<void> setFarmAddressLine2(String addressLine2) async {
+    await _prefs?.setString('farmAddressLine2', addressLine2);
+  }
+
+  Future<void> setFarmStreetName(String streetName) async {
+    await _prefs?.setString('farmStreetName', streetName);
+  }
+
+  Future<void> setFarmCity(String city) async {
+    await _prefs?.setString('farmCity', city);
+  }
+
+  Future<void> setFarmState(String state) async {
+    await _prefs?.setString('farmState', state);
+  }
+
+  Future<void> setFarmZip(String zip) async {
+    await _prefs?.setString('farmZip', zip);
+  }
+
   Future<void> setFarmPhone(String phone) async {
     await _prefs?.setString('farmPhone', phone);
   }
 
   Future<void> setFarmEmail(String email) async {
     await _prefs?.setString('farmEmail', email);
+  }
+
+  // Task Screen Notepad Notes
+  String get taskNotes => _prefs?.getString('task_notes') ?? '';
+
+  Future<void> setTaskNotes(String notes) async {
+    await _prefs?.setString('task_notes', notes);
   }
 
   // Reset to defaults
@@ -491,6 +546,12 @@ class SettingsService {
       'ownerName': ownerName,
       'farmLogo': farmLogo,
       'farmAddress': farmAddress,
+      'farmAddressLine1': farmAddressLine1,
+      'farmAddressLine2': farmAddressLine2,
+      'farmStreetName': farmStreetName,
+      'farmCity': farmCity,
+      'farmState': farmState,
+      'farmZip': farmZip,
       'farmPhone': farmPhone,
       'farmEmail': farmEmail,
     };
@@ -522,6 +583,12 @@ class SettingsService {
     if (settings['ownerName'] != null) await setOwnerName(settings['ownerName']);
     if (settings['farmLogo'] != null) await setFarmLogo(settings['farmLogo']);
     if (settings['farmAddress'] != null) await setFarmAddress(settings['farmAddress']);
+    if (settings['farmAddressLine1'] != null) await setFarmAddressLine1(settings['farmAddressLine1']);
+    if (settings['farmAddressLine2'] != null) await setFarmAddressLine2(settings['farmAddressLine2']);
+    if (settings['farmStreetName'] != null) await setFarmStreetName(settings['farmStreetName']);
+    if (settings['farmCity'] != null) await setFarmCity(settings['farmCity']);
+    if (settings['farmState'] != null) await setFarmState(settings['farmState']);
+    if (settings['farmZip'] != null) await setFarmZip(settings['farmZip']);
     if (settings['farmPhone'] != null) await setFarmPhone(settings['farmPhone']);
     if (settings['farmEmail'] != null) await setFarmEmail(settings['farmEmail']);
   }

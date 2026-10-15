@@ -149,62 +149,80 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
               ),
             )
           else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _weightLogs.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: kNeutral100),
-              itemBuilder: (context, index) {
-                final log = _weightLogs[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0E8F7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.monitor_weight_outlined, size: 18, color: Color(0xFF7B6BA0)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _formatWeight(log['weight']),
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF2E2E35)),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _formatDate(log['date']),
-                              style: const TextStyle(fontSize: 12, color: kNeutral400, fontWeight: FontWeight.w500),
-                            ),
-                            if ((log['notes'] ?? '').toString().isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                log['notes'].toString(),
-                                style: const TextStyle(fontSize: 12, color: kNeutral400),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => _showDeleteConfirm(log),
-                        child: const Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                children: _weightLogs.map((log) => _buildWeightItem(log)).toList(),
+              ),
             ),
-          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeightItem(Map<String, dynamic> log) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7B6BA0).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.monitor_weight_outlined, size: 18, color: Color(0xFF7B6BA0)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatWeight(log['weight']),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatDate(log['date']),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                if ((log['notes'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    log['notes'].toString(),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF94A3B8),
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _showDeleteConfirm(log),
+            child: const Icon(Icons.more_horiz, size: 20, color: Color(0xFF787774)),
+          ),
         ],
       ),
     );
@@ -225,8 +243,8 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
               decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Color(0xFFC47070)),
-              title: const Text('Delete Entry', style: TextStyle(color: Color(0xFFC47070), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
+              title: const Text('Delete Entry', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
               subtitle: Text('${_formatWeight(log['weight'])} on ${_formatDate(log['date'])}'),
               onTap: () {
                 Navigator.pop(ctx);

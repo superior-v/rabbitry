@@ -701,38 +701,54 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   Widget _buildBreedingStats() {
-    // Litters count
-    final litterCount = _litters.length;
+    final actualLitters = _litters.where((l) {
+      if (l.missedLitter == true) return false;
+      final String s = l.status.toLowerCase().trim();
+      if (s == 'missed' || s == 'missed litter' || s == 'missed_litter' || s == 'not taken') return false;
+      final int born = (l.totalKits != null && l.totalKits! > 0) ? l.totalKits! : (l.kits.isNotEmpty ? l.kits.length : 0);
+      final int alive = l.kits.isNotEmpty
+          ? l.kits.where((k) {
+              final st = k.status.trim().toLowerCase();
+              return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+            }).length
+          : (l.aliveKits ?? born);
+      if (born == 0 && alive == 0 && l.kits.isEmpty) return false;
+      return true;
+    }).toList();
 
-    // Avg litter size (totalKits)
-    String avgSize = '--';
-    if (_litters.isNotEmpty) {
-      final littersWithKits = _litters.where((l) => (l.totalKits ?? 0) > 0).toList();
-      if (littersWithKits.isNotEmpty) {
-        final total = littersWithKits.fold<int>(0, (sum, l) => sum + (l.totalKits ?? 0));
-        avgSize = (total / littersWithKits.length).toStringAsFixed(1);
+    final litterCount = actualLitters.length;
+
+    int totalBorn = 0;
+    int totalAlive = 0;
+    for (var l in actualLitters) {
+      final int litterTotal = (l.totalKits != null && l.totalKits! > 0)
+          ? l.totalKits!
+          : (l.kits.length + (l.deadKits ?? 0));
+      totalBorn += litterTotal;
+
+      if (l.kits.isNotEmpty) {
+        final int aliveInLitter = l.kits.where((k) {
+          final st = k.status.trim().toLowerCase();
+          return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+        }).length;
+        totalAlive += aliveInLitter;
+      } else {
+        final int deadBorn = l.deadKits ?? 0;
+        final int aliveInLitter = l.aliveKits ?? (litterTotal - deadBorn).clamp(0, litterTotal);
+        totalAlive += aliveInLitter;
       }
     }
 
-    // Survival rate (alive / total across all litters)
+    // Avg litter size
+    String avgSize = '--';
+    if (actualLitters.isNotEmpty) {
+      avgSize = (totalBorn / actualLitters.length).toStringAsFixed(1);
+    }
+
+    // Survival rate
     String survival = '--';
-    if (_litters.isNotEmpty) {
-      final totalBorn = _litters.fold<int>(0, (sum, l) {
-        if (l.totalKits != null && l.totalKits! > 0) return sum + l.totalKits!;
-        return sum + l.kits.length;
-      });
-      final totalAlive = _litters.fold<int>(0, (sum, l) {
-        if (l.kits.isNotEmpty) {
-          return sum + l.kits.where((k) {
-            final st = k.status.trim().toLowerCase();
-            return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
-          }).length;
-        }
-        return sum + (l.aliveKits ?? l.totalKits ?? 0);
-      });
-      if (totalBorn > 0) {
-        survival = '${((totalAlive / totalBorn) * 100).round()}%';
-      }
+    if (totalBorn > 0) {
+      survival = '${((totalAlive / totalBorn) * 100).round()}%';
     }
 
     // Avg gestation (days between breedDate and kindleDate)

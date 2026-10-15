@@ -68,17 +68,21 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
 
   int get _daysSinceBred {
     if (widget.rabbit.lastBreedDate == null) return 0;
-    return DateTime.now().difference(widget.rabbit.lastBreedDate!).inDays;
+    final DateTime endDate = (widget.rabbit.status == RabbitStatus.archived && widget.rabbit.archiveDate != null)
+        ? widget.rabbit.archiveDate!
+        : DateTime.now();
+    return endDate.difference(widget.rabbit.lastBreedDate!).inDays;
   }
 
   double get _progressFraction {
     if (widget.rabbit.lastBreedDate == null || widget.rabbit.dueDate == null) return 0;
     final totalDays = widget.rabbit.dueDate!.difference(widget.rabbit.lastBreedDate!).inDays;
-    if (totalDays == 0) return 0;
+    if (totalDays <= 0) return 0;
     return (_daysSinceBred / totalDays).clamp(0.0, 1.0);
   }
 
   bool get _isPalpationDue {
+    if (widget.rabbit.status == RabbitStatus.archived) return false;
     if (widget.rabbit.palpationDate == null) return false;
     final today = DateTime.now();
     return widget.rabbit.palpationDate!.isBefore(today.add(const Duration(days: 1))) && widget.rabbit.palpationDate!.isAfter(today.subtract(const Duration(days: 1)));
@@ -89,6 +93,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   bool get _hasActiveBreedingCycle {
+    if (widget.rabbit.status == RabbitStatus.archived) {
+      return widget.rabbit.lastBreedDate != null && (widget.rabbit.dueDate != null || widget.rabbit.kindleDate != null);
+    }
     return widget.rabbit.lastBreedDate != null && (widget.rabbit.status == RabbitStatus.palpateDue || widget.rabbit.status == RabbitStatus.pregnant);
   }
 
@@ -134,10 +141,11 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                     letterSpacing: 0.4,
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => _showCurrentBreedingMenu(context),
-                  child: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
-                ),
+                if (widget.rabbit.status != RabbitStatus.archived)
+                  GestureDetector(
+                    onTap: () => _showCurrentBreedingMenu(context),
+                    child: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
+                  ),
               ],
             ),
           ),
@@ -282,6 +290,52 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    if (widget.rabbit.status == RabbitStatus.archived) {
+      final archiveDate = widget.rabbit.archiveDate ?? DateTime.now();
+      final dateStr = DateFormat('MMM d, yyyy').format(archiveDate);
+      String label;
+      switch (widget.rabbit.archiveReason) {
+        case ArchiveReason.sold:
+          label = 'Sold on $dateStr';
+          break;
+        case ArchiveReason.cull:
+          label = 'Culled on $dateStr';
+          break;
+        case ArchiveReason.dead:
+          label = 'Died on $dateStr';
+          break;
+        case ArchiveReason.butchered:
+          label = 'Butchered on $dateStr';
+          break;
+        case ArchiveReason.stud:
+          label = 'Stud on $dateStr';
+          break;
+        default:
+          label = 'Archived on $dateStr';
+          break;
+      }
+
+      return SizedBox(
+        width: double.infinity,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFD4B3EE),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF5C4A70),
+            ),
+          ),
+        ),
+      );
+    }
+
     final isPalpateReady = widget.rabbit.status == RabbitStatus.palpateDue;
     final canLogBirth = widget.rabbit.status == RabbitStatus.pregnant || widget.rabbit.status == RabbitStatus.palpateDue;
 

@@ -275,6 +275,56 @@ class FormatUtils {
       }
     }
   }
+
+  /// Formats kit details for UI card display.
+  /// If the kit is reserved, only the purchaser name is displayed (e.g. "Reserved: John Doe" or preserved fostered prefix).
+  static String formatDisplayKitDetails(String? details) {
+    if (details == null || details.trim().isEmpty) return '';
+    final trimmed = details.trim();
+    if (!trimmed.toLowerCase().contains('reserved:')) {
+      return trimmed;
+    }
+    // Extract fostered prefix if any
+    String fosteredPrefix = '';
+    if (trimmed.toLowerCase().contains('fostered')) {
+      final fosterParts = trimmed.split('•').where((p) => p.toLowerCase().contains('fostered')).toList();
+      if (fosterParts.isNotEmpty) {
+        fosteredPrefix = '${fosterParts.first.trim()} • ';
+      }
+    }
+
+    final resIdx = trimmed.toLowerCase().indexOf('reserved:');
+    final afterRes = trimmed.substring(resIdx + 'reserved:'.length).trim();
+    final parts = afterRes.split('•').map((p) => p.trim()).toList();
+
+    // Find purchaser name (first non-empty part that isn't Tel, @, Deposit, Pickup)
+    String purchaser = '';
+    for (final p in parts) {
+      final pLower = p.toLowerCase();
+      if (!pLower.startsWith('tel:') &&
+          !p.startsWith('@') &&
+          !pLower.startsWith('deposit:') &&
+          !pLower.startsWith('pickup:') &&
+          p.isNotEmpty) {
+        purchaser = p;
+        break;
+      }
+    }
+    if (purchaser.isEmpty && parts.isNotEmpty) {
+      purchaser = parts.first;
+    }
+
+    // Extract grow-out suffix if any
+    String growOutSuffix = '';
+    if (trimmed.toLowerCase().contains('grow-out') || trimmed.toLowerCase().contains('grow out')) {
+      growOutSuffix = ' • Grow-out';
+    }
+
+    if (purchaser.isEmpty) {
+      return '${fosteredPrefix}Reserved$growOutSuffix';
+    }
+    return '${fosteredPrefix}Reserved: $purchaser$growOutSuffix';
+  }
 }
 
 /// Formats phone numbers as the user types (e.g. auto-inserting dashes for xxx-xxx-xxxx)
@@ -301,7 +351,13 @@ class PhoneNumberFormatter extends TextInputFormatter {
       );
     }
 
-    final formatted = FormatUtils.formatPhoneNumber(text, countryCode: countryCode);
+    final oldDigits = oldValue.text.replaceAll(RegExp(r'\D'), '');
+    var newDigits = text.replaceAll(RegExp(r'\D'), '');
+    if (oldValue.text.length > text.length && oldDigits == newDigits && newDigits.isNotEmpty) {
+      newDigits = newDigits.substring(0, newDigits.length - 1);
+    }
+
+    final formatted = FormatUtils.formatPhoneNumber(newDigits, countryCode: countryCode);
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),

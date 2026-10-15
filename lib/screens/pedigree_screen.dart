@@ -22,6 +22,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
   bool _isLoading = true;
   final DatabaseService _db = DatabaseService();
   int _generations = 4; // Default to 4 generations
+  PedigreeOrientation _orientation = PedigreeOrientation.landscape;
 
   Rabbit? _sire;
   Rabbit? _dam;
@@ -94,16 +95,63 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
 
   Future<void> _exportPedigree() async {
     try {
-      final data = await PedigreeData.fromRabbit(_baseRabbit, db: _db);
+      final data = await PedigreeData.fromRabbit(
+        _baseRabbit,
+        db: _db,
+        orientation: _orientation,
+      );
       if (mounted) {
-        PedigreePreviewSheet.show(context, data);
+        PedigreePreviewSheet.show(
+          context,
+          data,
+          onOrientationChanged: (opt) => setState(() => _orientation = opt),
+        );
       }
     } catch (e) {
-      debugPrint('Error preparing pedigree export: $e');
+      debugPrint('Error preparing pedigree export: ');
     }
   }
 
-  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect) async {
+  Widget _buildOrientationToggle(String label, PedigreeOrientation opt) {
+    final isSelected = _orientation == opt;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _orientation = opt),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                height: 1.15,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit}) async {
     final options = await _db.getRabbitsByType(type);
     if (!mounted) return;
 
@@ -118,12 +166,20 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         onSelect: onSelect,
         db: _db,
         breed: _baseRabbit.breed,
+        currentRabbit: currentRabbit,
       ),
     );
   }
 
   Future<void> _updateParent(RabbitType gender, bool isPrimary) async {
     final label = gender == RabbitType.buck ? 'Sire' : 'Dam';
+    Rabbit? current = gender == RabbitType.buck ? _sire : _dam;
+    if (current == null) {
+      final parentId = gender == RabbitType.buck ? _baseRabbit.sireId : _baseRabbit.damId;
+      if (parentId != null && parentId.isNotEmpty) {
+        current = await _db.getRabbit(parentId);
+      }
+    }
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
       Rabbit base = _baseRabbit;
       final existing = await _db.getRabbit(base.id);
@@ -135,13 +191,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       } else {
         base.damId = selectedRabbit?.id;
       }
-      await _db.insertRabbit(base);
+      await _db.updateRabbit(base);
       setState(() => _baseRabbit = base);
       _loadPedigreeData();
-    });
+    }, currentRabbit: current);
   }
 
-  Future<void> _updateGrandparent(Rabbit? parent, RabbitType gender, String label) async {
+  Future<void> _updateGrandparent(Rabbit? parent, RabbitType gender, String label, [Rabbit? currentGrandparent]) async {
     if (parent == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -150,6 +206,14 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         ),
       );
       return;
+    }
+
+    Rabbit? existing = currentGrandparent;
+    if (existing == null) {
+      final id = gender == RabbitType.buck ? parent.sireId : parent.damId;
+      if (id != null && id.isNotEmpty) {
+        existing = await _db.getRabbit(id);
+      }
     }
 
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
@@ -161,7 +225,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       }
       await _db.updateRabbit(updatedParent);
       _loadPedigreeData();
-    });
+    }, currentRabbit: existing);
   }
 
   @override
@@ -342,6 +406,54 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                         ],
                       ),
                     ],
+
+                    const SizedBox(height: 20),
+                    // 2 Options / Toggle Buttons: Landscape & Portrait
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F2F7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E5EA)),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        children: [
+                          _buildOrientationToggle('Landscape', PedigreeOrientation.landscape),
+                          _buildOrientationToggle('Portrait', PedigreeOrientation.portrait),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    // Preview Pedigree Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _exportPedigree,
+                        icon: Icon(
+                          PhosphorIcons.treeStructure(PhosphorIconsStyle.duotone),
+                          size: 18,
+                          color: const Color(0xFF5C4A70),
+                        ),
+                        label: const Text(
+                          'Preview Pedigree',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF5C4A70),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD4B3EE),
+                          foregroundColor: const Color(0xFF5C4A70),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

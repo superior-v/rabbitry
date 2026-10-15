@@ -144,42 +144,127 @@ class _LogBirthModalState extends State<LogBirthModal> {
     }
   }
 
-  String _formatDoeHeader() {
+  Widget _buildDoeHeaderWidget() {
     final prefix = (widget.doe.breederPrefix ?? '').trim();
     final name = widget.doe.name.trim();
     final ear = (widget.doe.earNumber?.trim().isNotEmpty == true
             ? widget.doe.earNumber!.trim()
-            : widget.doe.id.trim())
+            : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id).trim())
         .toUpperCase();
+    final isArchived = widget.doe.status == RabbitStatus.archived;
+    final nameColor = isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F);
 
-    final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-    if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-      return '$namePart $ear';
-    }
-    return namePart;
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
-  String _formatBuckHeader() {
+  Widget _buildBuckHeaderWidget() {
     if (_buck != null) {
       final prefix = (_buck!.breederPrefix ?? '').trim();
       final name = _buck!.name.trim();
       final ear = (_buck!.earNumber?.trim().isNotEmpty == true
               ? _buck!.earNumber!.trim()
-              : _buck!.id.trim())
+              : (_buck!.id.length >= 6 ? _buck!.id.substring(0, 6) : _buck!.id).trim())
           .toUpperCase();
-      final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-      if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-        return '$namePart $ear';
-      }
-      return namePart;
+      final isArchived = _buck!.status == RabbitStatus.archived;
+      final nameColor = isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3);
+
+      return Text.rich(
+        TextSpan(
+          children: [
+            if (prefix.isNotEmpty)
+              TextSpan(
+                text: '$prefix ',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF787774),
+                ),
+              ),
+            TextSpan(
+              text: name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: nameColor,
+              ),
+            ),
+            if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+              TextSpan(
+                text: ' $ear',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF787774),
+                ),
+              ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
     }
 
     final fallbackName = (_buckName ?? widget.doe.lastBreedBuckId ?? widget.existingLitter?.buckName ?? 'Unknown Sire').trim();
-    final buckId = (widget.doe.lastBreedBuckId ?? widget.existingLitter?.buckId ?? '').trim();
-    if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId.toUpperCase())) {
-      return '$fallbackName ${buckId.toUpperCase()}';
-    }
-    return fallbackName;
+    final buckId = (widget.doe.lastBreedBuckId ?? widget.existingLitter?.buckId ?? '').trim().toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: fallbackName,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2196F3),
+            ),
+          ),
+          if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId))
+            TextSpan(
+              text: ' $buckId',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   String get _formattedBredDate {
@@ -284,17 +369,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _formatDoeHeader(),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF55555C)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          _buildDoeHeaderWidget(),
                           const SizedBox(height: 2),
-                          Text(
-                            _formatBuckHeader(),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF55555C)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          _buildBuckHeaderWidget(),
                         ],
                       ),
                     ),

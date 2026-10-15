@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
+import '../models/rabbit_document.dart';
+import '../models/transaction.dart' as finance_model;
 import '../models/breed.dart';
 import '../models/barn.dart';
 import '../services/database_service.dart';
@@ -39,6 +41,9 @@ class _UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class _AddRabbitScreenState extends State<AddRabbitScreen> {
+  static const Color doePink = Color(0xFFEC4899);
+  static const Color buckBlue = Color(0xFF2E7BB5);
+
   final DatabaseService _db = DatabaseService();
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -62,6 +67,15 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final TextEditingController _acquiredDateController = TextEditingController();
   final TextEditingController _sireController = TextEditingController();
   final TextEditingController _damController = TextEditingController();
+
+  // Purchase Details controllers
+  final TextEditingController _sellerController = TextEditingController();
+  final TextEditingController _purchaseRabbitryController = TextEditingController();
+  final TextEditingController _purchaseCostController = TextEditingController();
+  final TextEditingController _purchaseDateController = TextEditingController();
+  DateTime? _purchaseDate;
+  bool _hasPurchaseDetails = false;
+  bool _addPurchaseAsExpense = false;
 
   RabbitType _selectedType = RabbitType.doe;
   RabbitStatus _selectedStatus = RabbitStatus.open;
@@ -141,6 +155,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _acquiredDate = r.acquiredDate;
     if (r.acquiredDate != null) {
       _acquiredDateController.text = FormatUtils.formatDate(r.acquiredDate!);
+    }
+    _sellerController.text = r.seller ?? '';
+    _purchaseRabbitryController.text = r.purchaseRabbitry ?? '';
+    _purchaseCostController.text = r.purchaseCost != null ? r.purchaseCost!.toStringAsFixed(2) : '';
+    _purchaseDate = r.purchaseDate ?? r.acquiredDate;
+    if (_purchaseDate != null) {
+      _purchaseDateController.text = FormatUtils.formatDate(_purchaseDate!);
+    }
+    if (r.hasPurchaseDetails || r.acquiredDate != null) {
+      _hasPurchaseDetails = true;
     }
     _autoGenetics = r.genetics;
     _parseGeneticsToMap(r.genetics);
@@ -298,6 +322,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _dobController.dispose();
     _sireController.dispose();
     _damController.dispose();
+    _sellerController.dispose();
+    _purchaseRabbitryController.dispose();
+    _purchaseCostController.dispose();
+    _purchaseDateController.dispose();
     super.dispose();
   }
 
@@ -520,8 +548,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 10. Date Acquired (ABOVE Date of Birth BELOW Ear Number)
-            _buildAcquiredDateField(),
+            // 10. Purchase Details (Activated toggle with Seller, Rabbitry, Date of Purchase, Cost, Add as Expense)
+            _buildPurchaseDetailsSection(),
             const SizedBox(height: 12),
 
             // 11. Date of Birth
@@ -596,7 +624,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   flex: 1,
                   child: _buildTextField(
                     controller: _grandChampionLegsController,
-                    label: 'GC Legs',
+                    label: 'Legs',
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -667,8 +695,6 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(fontSize: 17),
               decoration: InputDecoration(
-                hintText: 'Add any notes...',
-                hintStyle: const TextStyle(fontSize: 16, color: Color(0xFFCCCBC8)),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -693,6 +719,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildProfilePictureSection() {
+    final activeColor = _selectedType == RabbitType.doe ? doePink : buckBlue;
     return Center(
       child: Column(
         children: [
@@ -707,7 +734,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     shape: BoxShape.circle,
                     color: const Color(0xFFF7F7F5),
                     border: Border.all(
-                      color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                      color: activeColor,
                       width: 3,
                     ),
                     image: _profileImagePath != null
@@ -721,7 +748,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       ? Icon(
                           _selectedType == RabbitType.doe ? Icons.female : Icons.male,
                           size: 50,
-                          color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                          color: activeColor,
                         )
                       : null,
                 ),
@@ -732,7 +759,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                      color: activeColor,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -753,7 +780,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               child: Text(
                 'Change Photo',
                 style: TextStyle(
-                  color: _selectedType == RabbitType.doe ? kFemaleColor : kMaleColor,
+                  color: activeColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
@@ -949,12 +976,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     required IconData icon,
   }) {
     final isSelected = _selectedType == type;
-    // Herd page matching colors
-    const Color doeSelected = Color(0xFFEC4899);
-    const Color buckSelected = Color(0xFF2E7BB5);
-    final Color selectedColor = type == RabbitType.doe ? doeSelected : buckSelected;
-    // Unselected: softer tint of the accent
-    final Color unselectedIconColor = type == RabbitType.doe ? kFemaleColor : kMaleColor;
+    final Color selectedColor = type == RabbitType.doe ? doePink : buckBlue;
+    final Color unselectedIconColor = type == RabbitType.doe ? doePink : buckBlue;
 
     return InkWell(
       onTap: _isEditing ? null : () => setState(() => _selectedType = type),
@@ -1121,9 +1144,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Text(
                   'Select Genotype',
                   style: TextStyle(
-                    fontSize: 17,
-                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? kPinkDeep : kBlueDeep) : const Color(0xFF636366),
-                    fontWeight: FontWeight.normal,
+                    fontSize: 14,
+                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? doePink : buckBlue) : const Color(0xFF636366),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Icon(
@@ -1224,6 +1247,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     TextCapitalization textCapitalization = TextCapitalization.none,
+    String? prefixText,
   }) {
     return TextField(
       controller: controller,
@@ -1235,6 +1259,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       style: const TextStyle(fontSize: 17),
       decoration: InputDecoration(
         labelText: label,
+        prefixText: prefixText,
+        prefixStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         filled: true,
@@ -1413,66 +1439,160 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
-  Widget _buildAcquiredDateField() {
-    return Stack(
-      alignment: Alignment.centerRight,
+  Widget _buildPurchaseDetailsSection() {
+    final activeColor = _selectedType == RabbitType.doe ? doePink : buckBlue;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: _acquiredDate ?? DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime.now(),
-            );
-            if (date != null) {
-              setState(() {
-                _acquiredDate = date;
-                _acquiredDateController.text = FormatUtils.formatDate(date);
-              });
-            }
-          },
-          child: AbsorbPointer(
-            child: TextField(
-              controller: _acquiredDateController,
-              style: const TextStyle(fontSize: 17),
-              decoration: InputDecoration(
-                labelText: 'Date Acquired',
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
-                filled: true,
-                fillColor: Colors.white,
-                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Purchase Details',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4F4F56),
               ),
             ),
-          ),
+            _buildCompactToggle('', _hasPurchaseDetails, (val) {
+              setState(() {
+                _hasPurchaseDetails = val;
+                if (_hasPurchaseDetails && _purchaseDate == null) {
+                  _purchaseDate = _acquiredDate ?? DateTime.now();
+                  _purchaseDateController.text = FormatUtils.formatDate(_purchaseDate!);
+                  _acquiredDate = _purchaseDate;
+                }
+              });
+            }),
+          ],
         ),
-        if (_acquiredDate != null)
-          Positioned(
-            right: 4,
-            child: IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
-              onPressed: () {
-                setState(() {
-                  _acquiredDate = null;
-                  _acquiredDateController.clear();
-                });
-              },
+        if (_hasPurchaseDetails) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFC7C7CC),
+                width: 1.2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Seller
+                _buildTextField(
+                  controller: _sellerController,
+                  label: 'Seller',
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 12),
+
+                // Rabbitry
+                _buildTextField(
+                  controller: _purchaseRabbitryController,
+                  label: 'Rabbitry',
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 12),
+
+                // Date of Purchase
+                GestureDetector(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _purchaseDate ?? DateTime.now(),
+                      firstDate: DateTime(2010),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _purchaseDate = date;
+                        _purchaseDateController.text = FormatUtils.formatDate(date);
+                        _acquiredDate = date;
+                      });
+                    }
+                  },
+                  child: AbsorbPointer(
+                    child: TextField(
+                      controller: _purchaseDateController,
+                      style: const TextStyle(fontSize: 17),
+                      decoration: InputDecoration(
+                        labelText: 'Date of Purchase',
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                        contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
+                        filled: true,
+                        fillColor: Colors.white,
+                        labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                        floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                        suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Color(0xFF787774)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: activeColor, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Cost
+                _buildTextField(
+                  controller: _purchaseCostController,
+                  label: 'Cost',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  prefixText: FormatUtils.currencyPrefix,
+                ),
+                const SizedBox(height: 10),
+
+                // Add as Expense Check box
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => setState(() => _addPurchaseAsExpense = !_addPurchaseAsExpense),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _addPurchaseAsExpense,
+                            activeColor: activeColor,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            onChanged: (val) => setState(() => _addPurchaseAsExpense = val ?? false),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Add as Expense',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4F4F56),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
       ],
     );
   }
@@ -1598,19 +1718,18 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildCompactToggle(String label, bool value, ValueChanged<bool> onChanged) {
-    // Herd page matching colors
-    const Color doeActive = Color(0xFFEC4899);
-    const Color buckActive = Color(0xFF2E7BB5);
-    final Color activeColor = _selectedType == RabbitType.doe ? doeActive : buckActive;
+    final Color activeColor = _selectedType == RabbitType.doe ? doePink : buckBlue;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-        ),
-        const SizedBox(width: 6),
+        if (label.isNotEmpty) ...[
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          ),
+          const SizedBox(width: 6),
+        ],
         GestureDetector(
           onTap: () => onChanged(!value),
           child: AnimatedContainer(
@@ -1656,7 +1775,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   Widget _buildParentSelector(String label, String? selectedId, String? selectedName, List<Rabbit> options, void Function(String?, String?) onSelect) {
     final hasSelection = (selectedId != null && selectedId.isNotEmpty) || (selectedName != null && selectedName.isNotEmpty);
     final controller = label == 'Sire' ? _sireController : _damController;
-    final color = label == 'Dam' ? kFemaleColor : kMaleColor;
+    final color = label == 'Dam' ? doePink : buckBlue;
 
     return Stack(
       alignment: Alignment.centerRight,
@@ -1772,7 +1891,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
                       child: Text(
                         rabbit.name.isNotEmpty ? rabbit.name[0] : '?',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: label == 'Dam' ? kFemaleColor : kMaleColor),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: label == 'Dam' ? doePink : buckBlue),
                       ),
                     ),
                     title: Text(displayName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -1871,6 +1990,21 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
       final computedWeight = _computeWeight();
 
+      final seller = _hasPurchaseDetails && _sellerController.text.trim().isNotEmpty
+          ? _sellerController.text.trim()
+          : null;
+      final rabbitry = _hasPurchaseDetails && _purchaseRabbitryController.text.trim().isNotEmpty
+          ? _purchaseRabbitryController.text.trim()
+          : null;
+      final cost = _hasPurchaseDetails && _purchaseCostController.text.trim().isNotEmpty
+          ? double.tryParse(_purchaseCostController.text.trim())
+          : null;
+      final purchaseDate = _hasPurchaseDetails ? _purchaseDate : null;
+
+      if (_hasPurchaseDetails && purchaseDate != null) {
+        _acquiredDate = purchaseDate;
+      }
+
       if (_isEditing) {
         final updated = widget.editRabbit!.copyWith(
           name: _nameController.text,
@@ -1898,6 +2032,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           grandChampionLegs: int.tryParse(_grandChampionLegsController.text),
           activeInRabbitry: _activeInRabbitry,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
+          seller: seller,
+          purchaseRabbitry: rabbitry,
+          purchaseCost: cost,
+          purchaseDate: purchaseDate,
         );
 
         // Ensure null-clearable fields are explicitly set because copyWith uses ?? internally
@@ -1912,6 +2050,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         updated.cage = _selectedCage;
         updated.sireId = _selectedSireId;
         updated.damId = _selectedDamId;
+        updated.seller = seller;
+        updated.purchaseRabbitry = rabbitry;
+        updated.purchaseCost = cost;
+        updated.purchaseDate = purchaseDate;
 
         await _db.updateRabbit(updated);
         notifyDataChanged();
@@ -1926,6 +2068,58 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
         if (updated.location != null && updated.location!.isNotEmpty && updated.cage != null && updated.cage!.isNotEmpty) {
           await _db.syncCageToBarn(updated.location!, updated.cage!);
+        }
+
+        // Add expense transaction if requested
+        if (_hasPurchaseDetails && _addPurchaseAsExpense && cost != null && cost > 0) {
+          final tx = finance_model.Transaction(
+            id: 'tx_purch_${DateTime.now().millisecondsSinceEpoch}',
+            type: finance_model.TransactionType.expense,
+            category: finance_model.TransactionCategory.otherExpense,
+            amount: cost,
+            date: purchaseDate ?? DateTime.now(),
+            description: 'Purchased ${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : "rabbit"}',
+            notes: [
+              if (seller != null) 'Seller: $seller',
+              if (rabbitry != null) 'Rabbitry: $rabbitry',
+            ].join(', '),
+            linkType: finance_model.LinkType.rabbit,
+            rabbitId: updated.id,
+          );
+          await _db.insertTransaction(tx);
+        }
+
+        // Save purchase document in documents section
+        if (_hasPurchaseDetails && (seller != null || rabbitry != null || cost != null || purchaseDate != null)) {
+          try {
+            final docContent = '''PURCHASE DETAILS
+Rabbit: ${_nameController.text.trim()}
+Seller: ${seller ?? '-'}
+Rabbitry: ${rabbitry ?? '-'}
+Date of Purchase: ${purchaseDate != null ? FormatUtils.formatDate(purchaseDate) : '-'}
+Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}" : '-'}
+''';
+            final appDir = await getApplicationDocumentsDirectory();
+            final docsDir = Directory(p.join(appDir.path, 'rabbit_documents', updated.id, 'Registration'));
+            if (!await docsDir.exists()) await docsDir.create(recursive: true);
+            final filePath = p.join(docsDir.path, 'purchase_details.txt');
+            final file = File(filePath);
+            await file.writeAsString(docContent);
+
+            final doc = RabbitDocument(
+              id: 'doc_purch_${DateTime.now().millisecondsSinceEpoch}',
+              rabbitId: updated.id,
+              name: 'Purchase Details.txt',
+              filePath: filePath,
+              fileType: 'file',
+              fileSize: await file.length(),
+              createdAt: DateTime.now().toIso8601String(),
+              folder: 'Registration',
+            );
+            await _db.insertDocument(doc);
+          } catch (e) {
+            print('Error saving purchase document: $e');
+          }
         }
 
         if (mounted) {
@@ -1967,6 +2161,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           grandChampionLegs: int.tryParse(_grandChampionLegsController.text),
           activeInRabbitry: _activeInRabbitry,
           notes: _notesController.text.isEmpty ? null : _notesController.text,
+          seller: seller,
+          purchaseRabbitry: rabbitry,
+          purchaseCost: cost,
+          purchaseDate: purchaseDate,
         );
 
         await _db.insertRabbit(rabbit);
@@ -1982,6 +2180,58 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
         if (rabbit.location != null && rabbit.location!.isNotEmpty && rabbit.cage != null && rabbit.cage!.isNotEmpty) {
           await _db.syncCageToBarn(rabbit.location!, rabbit.cage!);
+        }
+
+        // Add expense transaction if requested
+        if (_hasPurchaseDetails && _addPurchaseAsExpense && cost != null && cost > 0) {
+          final tx = finance_model.Transaction(
+            id: 'tx_purch_${DateTime.now().millisecondsSinceEpoch}',
+            type: finance_model.TransactionType.expense,
+            category: finance_model.TransactionCategory.otherExpense,
+            amount: cost,
+            date: purchaseDate ?? DateTime.now(),
+            description: 'Purchased ${_nameController.text.trim().isNotEmpty ? _nameController.text.trim() : "rabbit"}',
+            notes: [
+              if (seller != null) 'Seller: $seller',
+              if (rabbitry != null) 'Rabbitry: $rabbitry',
+            ].join(', '),
+            linkType: finance_model.LinkType.rabbit,
+            rabbitId: rabbit.id,
+          );
+          await _db.insertTransaction(tx);
+        }
+
+        // Save purchase document in documents section
+        if (_hasPurchaseDetails && (seller != null || rabbitry != null || cost != null || purchaseDate != null)) {
+          try {
+            final docContent = '''PURCHASE DETAILS
+Rabbit: ${_nameController.text.trim()}
+Seller: ${seller ?? '-'}
+Rabbitry: ${rabbitry ?? '-'}
+Date of Purchase: ${purchaseDate != null ? FormatUtils.formatDate(purchaseDate) : '-'}
+Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}" : '-'}
+''';
+            final appDir = await getApplicationDocumentsDirectory();
+            final docsDir = Directory(p.join(appDir.path, 'rabbit_documents', rabbit.id, 'Registration'));
+            if (!await docsDir.exists()) await docsDir.create(recursive: true);
+            final filePath = p.join(docsDir.path, 'purchase_details.txt');
+            final file = File(filePath);
+            await file.writeAsString(docContent);
+
+            final doc = RabbitDocument(
+              id: 'doc_purch_${DateTime.now().millisecondsSinceEpoch}',
+              rabbitId: rabbit.id,
+              name: 'Purchase Details.txt',
+              filePath: filePath,
+              fileType: 'file',
+              fileSize: await file.length(),
+              createdAt: DateTime.now().toIso8601String(),
+              folder: 'Registration',
+            );
+            await _db.insertDocument(doc);
+          } catch (e) {
+            print('Error saving purchase document: $e');
+          }
         }
 
         if (mounted) {

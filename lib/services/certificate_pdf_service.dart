@@ -8,324 +8,431 @@ import '../widgets/certificate_layout.dart';
 class CertificatePdfService {
   CertificatePdfService._();
 
-  /// Generates the Birth Certificate v2 PDF as a byte array.
+  /// Generates the Birth Certificate PDF as a byte array matching the reference layout.
   static Future<Uint8List> generatePdf(CertificateData data) async {
     final pdf = pw.Document(compress: true);
 
-    // ─── 1. Load Background & Icon Assets ─────────────────────────────────────
-    final bgByteData = await rootBundle.load(CertificateLayout.backgroundAsset);
-    final bgImage = pw.MemoryImage(bgByteData.buffer.asUint8List());
-
-    final iconByteData = await rootBundle.load(CertificateLayout.rabbitIconAsset);
-    final rabbitIcon = pw.MemoryImage(iconByteData.buffer.asUint8List());
-
-    // ─── 2. Load Bundled TTF Fonts ───────────────────────────────────────────
-    final fontBadgeData = await rootBundle.load(CertificateLayout.fontBadgeWesternAsset);
+    // ─── 1. Load Bundled Fonts ──────────────────────────────────────────────
     final fontDetailsData = await rootBundle.load(CertificateLayout.fontDetailsAsset);
-    final fontDetailsBoldData = await rootBundle.load(CertificateLayout.fontDetailsBoldAsset);
-
-    final fontBadge = pw.Font.ttf(fontBadgeData);
     final fontDetails = pw.Font.ttf(fontDetailsData);
-    final fontDetailsBold = pw.Font.ttf(fontDetailsBoldData);
 
-    // ─── 3. Load Photo (if enabled) ───────────────────────────────────────────
+    // ─── 2. Load Photo (if enabled) ─────────────────────────────────────────
     pw.MemoryImage? photo;
-    if (data.includePhoto && data.photoPath != null && data.photoPath!.isNotEmpty) {
+    if (data.hasPhoto && data.photoPath != null && data.photoPath!.isNotEmpty) {
       final file = File(data.photoPath!);
       if (await file.exists()) {
-        photo = pw.MemoryImage(await file.readAsBytes());
+        try {
+          photo = pw.MemoryImage(await file.readAsBytes());
+        } catch (_) {}
       }
     }
 
-    // ─── 4. Build Document Page ───────────────────────────────────────────────
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.letter.landscape,
-        margin: pw.EdgeInsets.zero,
-        build: (pw.Context context) {
-          final double W = PdfPageFormat.letter.landscape.width;
-          final double H = PdfPageFormat.letter.landscape.height;
+    if (data.isColorWithPhoto) {
+      // ════ COLOR WITH PHOTO LAYOUT (Matches reference PDF) ════
+      final bgByteData = await rootBundle.load(CertificateLayout.templateColorPhotoAsset);
+      final bgImage = pw.MemoryImage(bgByteData.buffer.asUint8List());
 
-          // Compute badge font size with auto-scaling if needed
-          final double badgeFontSize = W * CertificateLayout.fontRatioBadge;
+      const pageFormat = PdfPageFormat(
+        CertificateLayout.pageColorPhotoWidthPt,
+        CertificateLayout.pageColorPhotoHeightPt,
+      );
 
-          // Detail rows definitions
-          final List<_DetailRowDef> rows = [
-            _DetailRowDef(
-              label: 'Name:',
-              value: data.name.isNotEmpty ? data.name : '—',
-              iconTop: CertificateLayout.iconTopName,
-              rowCenterY: CertificateLayout.rowNameCenterY,
-            ),
-            _DetailRowDef(
-              label: 'Breed:',
-              value: data.breed.isNotEmpty ? data.breed : '—',
-              iconTop: CertificateLayout.iconTopBreed,
-              rowCenterY: CertificateLayout.rowBreedCenterY,
-            ),
-            _DetailRowDef(
-              label: 'Color:',
-              value: data.color.isNotEmpty ? data.color : '—',
-              iconTop: CertificateLayout.iconTopColor,
-              rowCenterY: CertificateLayout.rowColorCenterY,
-            ),
-            _DetailRowDef(
-              label: 'DOB:',
-              value: data.dob.isNotEmpty ? data.dob : '—',
-              iconTop: CertificateLayout.iconTopDob,
-              rowCenterY: CertificateLayout.rowDobCenterY,
-            ),
-            _DetailRowDef(
-              label: 'Sex:',
-              value: data.sex.isNotEmpty ? data.sex : '—',
-              iconTop: CertificateLayout.iconTopSex,
-              rowCenterY: CertificateLayout.rowSexCenterY,
-            ),
-            _DetailRowDef(
-              label: 'Parents:',
-              value: 'Dam ${data.damName.isNotEmpty ? data.damName : "Unknown"} X Sire ${data.sireName.isNotEmpty ? data.sireName : "Unknown"}',
-              iconTop: CertificateLayout.iconTopParents,
-              rowCenterY: CertificateLayout.rowParentsCenterY,
-            ),
-          ];
-
-          return pw.Stack(
-            children: [
-              // Layer 1: Background Watercolor (Full Bleed)
-              pw.Positioned.fill(
-                child: pw.Image(bgImage, fit: pw.BoxFit.fill),
-              ),
-
-              // Layer 2: Outer Border (3 pt #656263)
-              pw.Positioned(
-                left: W * CertificateLayout.outerBorderLeft,
-                top: H * CertificateLayout.outerBorderTop,
-                child: pw.Container(
-                  width: W * CertificateLayout.outerBorderWidth,
-                  height: H * CertificateLayout.outerBorderHeight,
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(
-                      color: CertificateLayout.pdfColorBorderOuter,
-                      width: CertificateLayout.outerBorderStrokePt,
-                    ),
-                  ),
+      pdf.addPage(
+        pw.Page(
+          pageFormat: pageFormat,
+          margin: pw.EdgeInsets.zero,
+          build: (pw.Context context) {
+            return pw.Stack(
+              children: [
+                // Layer 1: Background Template (Border, Floral Bouquet, Title, Bunny icons)
+                pw.Positioned.fill(
+                  child: pw.Image(bgImage, fit: pw.BoxFit.fill),
                 ),
-              ),
 
-              // Layer 3: Inner Border (2 pt #4F4C4D)
-              pw.Positioned(
-                left: W * CertificateLayout.innerBorderLeft,
-                top: H * CertificateLayout.innerBorderTop,
-                child: pw.Container(
-                  width: W * CertificateLayout.innerBorderWidth,
-                  height: H * CertificateLayout.innerBorderHeight,
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(
-                      color: CertificateLayout.pdfColorBorderInner,
-                      width: CertificateLayout.innerBorderStrokePt,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Layer 4: Top Badge (#AAE3EC fill, 1 pt white stroke)
-              pw.Positioned(
-                left: W * CertificateLayout.badgeLeft,
-                top: H * CertificateLayout.badgeTop,
-                child: pw.Container(
-                  width: W * CertificateLayout.badgeWidth,
-                  height: H * CertificateLayout.badgeHeight,
-                  decoration: pw.BoxDecoration(
-                    color: CertificateLayout.pdfColorBadgeBg,
-                    border: pw.Border.all(
-                      color: CertificateLayout.pdfColorBadgeStroke,
-                      width: CertificateLayout.badgeStrokePt,
-                    ),
-                    borderRadius: pw.BorderRadius.all(
-                      pw.Radius.circular(W * CertificateLayout.badgeRadius),
-                    ),
-                  ),
-                  child: pw.Center(
-                    child: pw.SizedBox(
-                      width: W * CertificateLayout.badgeTextMaxWidth,
-                      height: H * CertificateLayout.badgeHeight,
-                      child: pw.FittedBox(
-                        fit: pw.BoxFit.scaleDown,
-                        alignment: pw.Alignment.center,
-                        child: _buildOutlinedText(
-                          text: CertificateLayout.badgeText,
-                          font: fontBadge,
-                          fontSize: badgeFontSize,
-                          fillColor: CertificateLayout.pdfColorBadgeText,
-                          outlineColor: PdfColors.white,
+                // Layer 2: Photo inside Rounded Rectangle Frame
+                if (photo != null)
+                  pw.Positioned(
+                    left: CertificateLayout.photoLeftPt,
+                    top: CertificateLayout.photoTopPt,
+                    child: pw.Container(
+                      width: CertificateLayout.photoWidthPt,
+                      height: CertificateLayout.photoHeightPt,
+                      decoration: pw.BoxDecoration(
+                        borderRadius: pw.BorderRadius.circular(CertificateLayout.photoRadiusPt),
+                        border: pw.Border.all(
+                          color: CertificateLayout.pdfColorPhotoFrameBorder,
+                          width: 2.0,
                         ),
+                      ),
+                      child: pw.ClipRRect(
+                        horizontalRadius: 13.0,
+                        verticalRadius: 13.0,
+                        child: pw.Image(photo, fit: pw.BoxFit.cover),
+                      ),
+                    ),
+                  ),
+
+                // Layer 3: Row 1 - Name
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row1TopPt,
+                  child: pw.Text(
+                    'Name: ${data.name}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 4: Row 2 - Breed
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row2TopPt,
+                  child: pw.Text(
+                    'Breed: ${data.breed}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 5: Row 3 - Color
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row3TopPt,
+                  child: pw.Text(
+                    'Color: ${data.color}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 6: Row 4 - DOB
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row4TopPt,
+                  child: pw.Text(
+                    'DOB: ${data.dob}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 7: Row 5 - Sex
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row5TopPt,
+                  child: pw.Text(
+                    'Sex: ${data.sex}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 8: Row 6 - Dam X Sire
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row6TopPt,
+                  child: pw.Text(
+                    data.parentsSentence,
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    } else {
+      // ════ STANDARD LAYOUT (Black & White and Color no photo) ════
+      final bgAsset = data.isBlackAndWhite
+          ? CertificateLayout.templateBwAsset
+          : CertificateLayout.templateColorAsset;
+      final bgByteData = await rootBundle.load(bgAsset);
+      final bgImage = pw.MemoryImage(bgByteData.buffer.asUint8List());
+
+      final fontDetailsBoldData = await rootBundle.load(CertificateLayout.fontDetailsBoldAsset);
+      final fontScriptData = await rootBundle.load(CertificateLayout.fontScriptAsset);
+
+      final fontDetailsBold = pw.Font.ttf(fontDetailsBoldData);
+      final fontScript = pw.Font.ttf(fontScriptData);
+
+      const pageFormat = PdfPageFormat(
+        CertificateLayout.pageWidthPt,
+        CertificateLayout.pageHeightPt,
+      );
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: pageFormat,
+          margin: pw.EdgeInsets.zero,
+          build: (pw.Context context) {
+            final double W = pageFormat.width;
+            final double H = pageFormat.height;
+
+            final PdfColor textColor = CertificateLayout.pdfColorText;
+
+            final double topCertifies = H * CertificateLayout.topRatioCertifies;
+            final double fontSizeCertifies = W * CertificateLayout.fontRatioCertifies;
+
+            final double topName = H * CertificateLayout.topRatioName;
+            final double fontSizeName = W * CertificateLayout.fontRatioName;
+
+            final double topBorn = H * CertificateLayout.topRatioBorn;
+            final double fontSizeBorn = W * CertificateLayout.fontRatioBorn;
+
+            final double topLocation = H * CertificateLayout.topRatioLocation;
+            final double fontSizeLocation = W * CertificateLayout.fontRatioLocation;
+
+            final double topGridRow1 = H * CertificateLayout.topRatioGridRow1;
+            final double topGridRow2 = H * CertificateLayout.topRatioGridRow2;
+            final double fontSizeGrid = W * CertificateLayout.fontRatioGrid;
+
+            final double leftColX = W * CertificateLayout.gridLeftColRatio;
+            final double rightColX = W * CertificateLayout.gridRightColRatio;
+            final double colWidth = W * CertificateLayout.gridColWidthRatio;
+
+            return pw.Stack(
+              children: [
+                // Layer 1: Background Template (Full Bleed)
+                pw.Positioned.fill(
+                  child: pw.Image(bgImage, fit: pw.BoxFit.fill),
+                ),
+
+                // Layer 2: "This certifies that"
+                pw.Positioned(
+                  top: topCertifies,
+                  left: 0,
+                  child: pw.Container(
+                    width: W,
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      'This certifies that',
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontDetails,
+                        fontSize: fontSizeCertifies,
+                        color: textColor,
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              // Layer 5: Left Photo Frame
-              pw.Positioned(
-                left: W * CertificateLayout.photoLeft,
-                top: H * CertificateLayout.photoTop,
-                child: pw.Container(
-                  width: W * CertificateLayout.photoWidth,
-                  height: H * CertificateLayout.photoHeight,
-                  decoration: pw.BoxDecoration(
-                    borderRadius: pw.BorderRadius.all(
-                      pw.Radius.circular(W * CertificateLayout.photoRadius),
-                    ),
-                    color: photo != null ? null : CertificateLayout.pdfColorPlaceholderBg,
-                  ),
-                  child: pw.Stack(
-                    children: [
-                      if (photo != null)
-                        pw.Positioned.fill(
-                          child: pw.ClipRRect(
-                            horizontalRadius: W * CertificateLayout.photoRadius,
-                            verticalRadius: W * CertificateLayout.photoRadius,
-                            child: pw.Image(photo, fit: pw.BoxFit.cover),
-                          ),
-                        ),
-                      pw.Positioned.fill(
-                        child: pw.Container(
-                          decoration: pw.BoxDecoration(
-                            borderRadius: pw.BorderRadius.all(
-                              pw.Radius.circular(W * CertificateLayout.photoRadius),
-                            ),
-                            border: pw.Border.all(
-                              color: CertificateLayout.pdfColorPhotoBorder,
-                              width: CertificateLayout.photoBorderWidthPt,
-                            ),
-                          ),
-                        ),
+                // Layer 3: Rabbit Name (Script font)
+                pw.Positioned(
+                  top: topName,
+                  left: 0,
+                  child: pw.Container(
+                    width: W,
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      data.name,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontScript,
+                        fontSize: fontSizeName,
+                        color: textColor,
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
 
-              // Layer 6: Right Detail Rows (Icons + Text)
-              for (final r in rows) ..._buildPdfDetailRow(W, H, rabbitIcon, fontDetails, fontDetailsBold, r),
-            ],
-          );
-        },
-      ),
-    );
+                // Layer 4: Birth Sentence ("a Holland Lop rabbit was born on Oct 10, 2026")
+                pw.Positioned(
+                  top: topBorn,
+                  left: 0,
+                  child: pw.Container(
+                    width: W,
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      data.birthSentence,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontDetails,
+                        fontSize: fontSizeBorn,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 5: Location Sentence ("at Amaranth, Ontario Canada")
+                pw.Positioned(
+                  top: topLocation,
+                  left: 0,
+                  child: pw.Container(
+                    width: W,
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      data.locationSentence,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontDetails,
+                        fontSize: fontSizeLocation,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 6: Bottom Details Grid - Row 1 (Color & Sex)
+                // Color (Left)
+                pw.Positioned(
+                  top: topGridRow1,
+                  left: leftColX,
+                  child: pw.Container(
+                    width: colWidth,
+                    child: pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: [
+                        pw.Text(
+                          'Color: ',
+                          style: pw.TextStyle(
+                            font: fontDetailsBold,
+                            fontSize: fontSizeGrid,
+                            color: textColor,
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            data.color,
+                            style: pw.TextStyle(
+                              font: fontDetails,
+                              fontSize: fontSizeGrid,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: pw.TextOverflow.clip,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Sex (Right)
+                pw.Positioned(
+                  top: topGridRow1,
+                  left: rightColX,
+                  child: pw.Container(
+                    width: colWidth,
+                    child: pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: [
+                        pw.Text(
+                          'Sex: ',
+                          style: pw.TextStyle(
+                            font: fontDetailsBold,
+                            fontSize: fontSizeGrid,
+                            color: textColor,
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            data.sex,
+                            style: pw.TextStyle(
+                              font: fontDetails,
+                              fontSize: fontSizeGrid,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: pw.TextOverflow.clip,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Layer 7: Bottom Details Grid - Row 2 (Sire & Dam)
+                // Sire (Left)
+                pw.Positioned(
+                  top: topGridRow2,
+                  left: leftColX,
+                  child: pw.Container(
+                    width: colWidth,
+                    child: pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: [
+                        pw.Text(
+                          'Sire: ',
+                          style: pw.TextStyle(
+                            font: fontDetailsBold,
+                            fontSize: fontSizeGrid,
+                            color: textColor,
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            data.sireName,
+                            style: pw.TextStyle(
+                              font: fontDetails,
+                              fontSize: fontSizeGrid,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: pw.TextOverflow.clip,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Dam (Right)
+                pw.Positioned(
+                  top: topGridRow2,
+                  left: rightColX,
+                  child: pw.Container(
+                    width: colWidth,
+                    child: pw.Row(
+                      mainAxisSize: pw.MainAxisSize.min,
+                      children: [
+                        pw.Text(
+                          'Dam: ',
+                          style: pw.TextStyle(
+                            font: fontDetailsBold,
+                            fontSize: fontSizeGrid,
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            data.damName,
+                            style: pw.TextStyle(
+                              font: fontDetails,
+                              fontSize: fontSizeGrid,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: pw.TextOverflow.clip,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
 
     return pdf.save();
   }
-
-  // ─── OUTLINED TEXT RENDERER ─────────────────────────────────────────────────
-  static pw.Widget _buildOutlinedText({
-    required String text,
-    required pw.Font font,
-    required double fontSize,
-    required PdfColor fillColor,
-    required PdfColor outlineColor,
-  }) {
-    // Render outline by drawing small offsets around the center
-    const double off = 1.0;
-    return pw.Stack(
-      alignment: pw.Alignment.center,
-      children: [
-        pw.Transform.translate(offset: const PdfPoint(-off, -off), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(off, -off), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(-off, off), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(off, off), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(0, -off * 1.2), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(0, off * 1.2), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(-off * 1.2, 0), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Transform.translate(offset: const PdfPoint(off * 1.2, 0), child: pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: outlineColor), maxLines: 1, softWrap: false)),
-        pw.Text(text, style: pw.TextStyle(font: font, fontSize: fontSize, color: fillColor), maxLines: 1, softWrap: false),
-      ],
-    );
-  }
-
-  // ─── DETAIL ROW RENDERER ────────────────────────────────────────────────────
-  static List<pw.Widget> _buildPdfDetailRow(
-    double W,
-    double H,
-    pw.MemoryImage rabbitIcon,
-    pw.Font font,
-    pw.Font fontBold,
-    _DetailRowDef rowDef,
-  ) {
-    final double rowHeight = H * CertificateLayout.textRowHeight;
-    final double totalRowWidth = W * (CertificateLayout.textLeft - CertificateLayout.iconLeft + CertificateLayout.textMaxWidth);
-
-    double valueFontSize = W * CertificateLayout.fontRatioDetails;
-    final double minFontSize = W * CertificateLayout.fontRatioDetailsMin;
-
-    if (rowDef.value.length > 20) {
-      valueFontSize = (valueFontSize * 20 / rowDef.value.length).clamp(minFontSize, valueFontSize);
-    }
-
-    final double labelFontSize = W * CertificateLayout.fontRatioDetails;
-
-    return [
-      pw.Positioned(
-        left: W * CertificateLayout.iconLeft,
-        top: H * rowDef.rowCenterY - (rowHeight / 2),
-        child: pw.Container(
-          width: totalRowWidth,
-          height: rowHeight,
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.SizedBox(
-                width: W * CertificateLayout.iconWidth,
-                height: H * CertificateLayout.iconHeight,
-                child: pw.Image(rabbitIcon, fit: pw.BoxFit.contain),
-              ),
-              pw.SizedBox(width: W * 0.012),
-              pw.SizedBox(
-                width: W * CertificateLayout.labelWidth,
-                child: pw.Text(
-                  rowDef.label,
-                  style: pw.TextStyle(
-                    font: fontBold,
-                    fontSize: labelFontSize,
-                    color: CertificateLayout.pdfColorDetailsText,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                ),
-              ),
-              pw.SizedBox(width: W * CertificateLayout.labelGap),
-              pw.Expanded(
-                child: pw.Align(
-                  alignment: pw.Alignment.centerLeft,
-                  child: pw.Text(
-                    rowDef.value,
-                    style: pw.TextStyle(
-                      font: font,
-                      fontSize: valueFontSize,
-                      color: CertificateLayout.pdfColorDetailsText,
-                    ),
-                    maxLines: 1,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ];
-  }
-}
-
-class _DetailRowDef {
-  final String label;
-  final String value;
-  final double iconTop;
-  final double rowCenterY;
-
-  const _DetailRowDef({
-    required this.label,
-    required this.value,
-    required this.iconTop,
-    required this.rowCenterY,
-  });
 }

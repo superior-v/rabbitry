@@ -132,24 +132,26 @@ class RabbitCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2F2F7),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: const Color(0xFFDCDCE0)),
-                        ),
-                        child: Text(
-                          _getStatusLetter(rabbit),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF636366),
+                      if (rabbit.type != RabbitType.buck || rabbit.status == RabbitStatus.resting || rabbit.status == RabbitStatus.quarantine) ...[
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F7),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFFDCDCE0)),
+                          ),
+                          child: Text(
+                            _getStatusLetter(rabbit),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF636366),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
+                        const SizedBox(width: 4),
+                      ],
                       InkWell(
                         onTap: onTap,
                         borderRadius: BorderRadius.circular(12),

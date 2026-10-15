@@ -65,6 +65,9 @@ flutter:
     - family: CertificateBadgeWestern
       fonts:
         - asset: assets/fonts/HoltwoodOneSC-Regular.ttf
+    - family: CertificateScript
+      fonts:
+        - asset: assets/fonts/DancingScript-VariableFont_wght.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

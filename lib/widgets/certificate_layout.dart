@@ -1,122 +1,143 @@
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 
-/// Centralized layout specification for Birth Certificate v2 PDF and Flutter Preview.
-/// All positions, widths, and heights are defined as fractions of page width (W) and height (H).
-/// Page size is US Letter Landscape: 792 x 612 pt (Aspect Ratio ~ 11 / 8.5).
+/// Centralized layout specification for Birth Certificate PDF and Flutter Preview.
+/// Matches the reference layout (US Letter Landscape adjusted to 792 x 576 pt, aspect ratio 1.375).
 class CertificateLayout {
   CertificateLayout._();
 
   // ─── PAGE DIMENSIONS ────────────────────────────────────────────────────────
   static const double pageWidthPt = 792.0;
-  static const double pageHeightPt = 612.0;
-  static const double aspectRatio = 792.0 / 612.0;
+  static const double pageHeightPt = 576.0;
+  static const double aspectRatio = 792.0 / 576.0; // 1.375
 
   // ─── ASSET PATHS ────────────────────────────────────────────────────────────
-  static const String backgroundAsset = 'assets/images/certificate_background_v2.png';
-  static const String rabbitIconAsset = 'assets/images/rabbit_icon_v2.png';
+  static const String templateBwAsset = 'assets/images/birth_cert_template_p1.png';
+  static const String templateColorAsset = 'assets/images/birth_cert_template_p2.png';
 
   // Fonts
-  static const String fontBadgeWesternAsset = 'assets/fonts/HoltwoodOneSC-Regular.ttf';
   static const String fontDetailsAsset = 'assets/fonts/PT_Sans-Web-Regular.ttf';
   static const String fontDetailsBoldAsset = 'assets/fonts/PT_Sans-Web-Bold.ttf';
+  static const String fontScriptAsset = 'assets/fonts/DancingScript-VariableFont_wght.ttf';
 
   // Font family names registered in pubspec.yaml
-  static const String fontFamilyBadgeWestern = 'CertificateBadgeWestern';
   static const String fontFamilyDetails = 'CertificateDetails';
+  static const String fontFamilyScript = 'CertificateScript';
 
   // ─── COLORS ─────────────────────────────────────────────────────────────────
   // Flutter UI Colors
-  static const Color colorBorderOuter = Color(0xFF656263);
-  static const Color colorBorderInner = Color(0xFF4F4C4D);
-  static const Color colorBadgeBg = Color(0xFFAAE3EC);
-  static const Color colorBadgeStroke = Colors.white;
-  static const Color colorBadgeText = Color(0xFF6F6F6F);
-  static const Color colorPhotoBorder = Color(0xFF4F4C4D);
-  static const Color colorDetailsText = Color(0xFF6D6E71);
-  static const Color colorPlaceholderBg = Color(0xFFE8E8E8);
+  static const Color colorText = Color(0xFF231F20);
+  static const Color colorPhotoBorder = Color(0xFF662C91);
+  static const Color colorPhotoBorderBw = Color(0xFF231F20);
+  static const Color colorPlaceholderBg = Color(0xFFF3EDF8);
 
   // PDF Colors
-  static const PdfColor pdfColorBorderOuter = PdfColor(0.396, 0.384, 0.388); // #656263
-  static const PdfColor pdfColorBorderInner = PdfColor(0.310, 0.298, 0.302); // #4F4C4D
-  static const PdfColor pdfColorBadgeBg = PdfColor(0.667, 0.890, 0.925);     // #AAE3EC
-  static const PdfColor pdfColorBadgeStroke = PdfColors.white;
-  static const PdfColor pdfColorBadgeText = PdfColor(0.435, 0.435, 0.435);   // #6F6F6F
-  static const PdfColor pdfColorPhotoBorder = PdfColor(0.310, 0.298, 0.302); // #4F4C4D
-  static const PdfColor pdfColorDetailsText = PdfColor(0.427, 0.431, 0.443); // #6D6E71
-  static const PdfColor pdfColorPlaceholderBg = PdfColor(0.91, 0.91, 0.91);
+  static const PdfColor pdfColorText = PdfColor(0.137, 0.122, 0.125); // #231F20
+  static const PdfColor pdfColorPhotoBorder = PdfColor(0.400, 0.173, 0.569); // #662C91
+  static const PdfColor pdfColorPhotoBorderBw = PdfColor(0.137, 0.122, 0.125);
+  static const PdfColor pdfColorPlaceholderBg = PdfColor(0.95, 0.93, 0.97);
 
   // ─── FONT SIZES (pt at 792 pt page width) ───────────────────────────────────
-  static const double fontSizeBadgePt = 50.6;
-  static const double fontSizeDetailsPt = 19.0;
-  static const double fontSizeDetailsMinPt = 12.0;
+  // No photo layout
+  static const double fontSizeCertifiesPt = 18.0;
+  static const double fontSizeNamePt = 42.0;
+  static const double fontSizeBornPt = 18.0;
+  static const double fontSizeLocationPt = 18.0;
+  static const double fontSizeGridPt = 18.0;
+
+  // With photo layout
+  static const double fontSizeCertifiesWithPhotoPt = 15.5;
+  static const double fontSizeNameWithPhotoPt = 34.0;
+  static const double fontSizeBornWithPhotoPt = 15.5;
+  static const double fontSizeLocationWithPhotoPt = 15.5;
+  static const double fontSizeGridWithPhotoPt = 17.0;
 
   // Font size multipliers (relative to page width W)
-  static const double fontRatioBadge = fontSizeBadgePt / pageWidthPt;
-  static const double fontRatioDetails = fontSizeDetailsPt / pageWidthPt;
-  static const double fontRatioDetailsMin = fontSizeDetailsMinPt / pageWidthPt;
+  static const double fontRatioCertifies = fontSizeCertifiesPt / pageWidthPt;
+  static const double fontRatioName = fontSizeNamePt / pageWidthPt;
+  static const double fontRatioBorn = fontSizeBornPt / pageWidthPt;
+  static const double fontRatioLocation = fontSizeLocationPt / pageWidthPt;
+  static const double fontRatioGrid = fontSizeGridPt / pageWidthPt;
 
-  // ─── BORDERS SPEC ───────────────────────────────────────────────────────────
-  static const double outerBorderLeft = 0.0007;
-  static const double outerBorderTop = 0.0032;
-  static const double outerBorderWidth = 0.9987;
-  static const double outerBorderHeight = 0.9987;
-  static const double outerBorderStrokePt = 3.0;
+  static const double fontRatioCertifiesWithPhoto = fontSizeCertifiesWithPhotoPt / pageWidthPt;
+  static const double fontRatioNameWithPhoto = fontSizeNameWithPhotoPt / pageWidthPt;
+  static const double fontRatioBornWithPhoto = fontSizeBornWithPhotoPt / pageWidthPt;
+  static const double fontRatioLocationWithPhoto = fontSizeLocationWithPhotoPt / pageWidthPt;
+  static const double fontRatioGridWithPhoto = fontSizeGridWithPhotoPt / pageWidthPt;
 
-  static const double innerBorderLeft = 0.0172;
-  static const double innerBorderTop = 0.0209;
-  static const double innerBorderWidth = 0.9658;
-  static const double innerBorderHeight = 0.9614;
-  static const double innerBorderStrokePt = 2.0;
+  // ─── VERTICAL FRACTIONS (relative to page height H = 576 pt) ────────────────
+  // Standard layout (Page 1 B&W & Page 2 Color no photo)
+  static const double topRatioCertifies = 172.0 / 576.0;   // ~0.2986
+  static const double topRatioName = 212.0 / 576.0;        // ~0.3681
+  static const double topRatioBorn = 292.0 / 576.0;        // ~0.5069
+  static const double topRatioLocation = 332.0 / 576.0;    // ~0.5764
+  static const double topRatioGridRow1 = 400.0 / 576.0;    // ~0.6944
+  static const double topRatioGridRow2 = 445.0 / 576.0;    // ~0.7726
 
-  // ─── BADGE SPEC ─────────────────────────────────────────────────────────────
-  static const double badgeLeft = 0.1643;
-  static const double badgeTop = 0.0843;
-  static const double badgeWidth = 0.6714;
-  static const double badgeHeight = 0.1036;
-  static const double badgeRadius = 0.0100; // W fraction
-  static const double badgeStrokePt = 1.0;
+  // Horizontal Grid Columns for standard layout (relative to page width W = 792 pt)
+  static const double gridLeftColRatio = 110.0 / 792.0;    // ~0.1389
+  static const double gridRightColRatio = 510.0 / 792.0;   // ~0.6439
+  static const double gridColWidthRatio = 260.0 / 792.0;   // ~0.3283
 
-  static const double badgeTextCenterX = 0.5000;
-  static const double badgeTextCenterY = 0.1304;
-  static const double badgeTextMaxWidth = 0.6200;
-  static const String badgeText = 'CERTIFICATE OF BIRTH';
+  // ─── COLOR WITH PHOTO LAYOUT (US Letter Landscape: 792 x 612 pt) ───────────
+  static const double pageColorPhotoWidthPt = 792.0;
+  static const double pageColorPhotoHeightPt = 612.0;
+  static const double aspectRatioColorPhoto = 792.0 / 612.0; // ~1.2941176
 
-  // ─── PHOTO SPEC (Left Frame) ────────────────────────────────────────────────
-  static const double photoLeft = 0.0658;
-  static const double photoTop = 0.3044;
-  static const double photoWidth = 0.4947;
-  static const double photoHeight = 0.5005;
-  static const double photoRadius = 0.0350; // W fraction
-  static const double photoBorderWidthPt = 2.0;
+  static const String templateColorPhotoAsset = 'assets/images/birth_cert_template_color_photo.png';
 
-  // ─── DETAILS SPEC (Right Column) ────────────────────────────────────────────
-  static const double iconLeft = 0.6325;
-  static const double iconWidth = 0.0250;
-  static const double iconHeight = 0.0385;
+  // Photo Frame
+  static const double photoLeftPt = 170.67;
+  static const double photoTopPt = 216.75;
+  static const double photoWidthPt = 300.65;
+  static const double photoHeightPt = 235.03;
+  static const double photoRadiusPt = 15.0;
 
-  static const double iconTopName = 0.3150;
-  static const double iconTopBreed = 0.4000;
-  static const double iconTopColor = 0.4850;
-  static const double iconTopDob = 0.5700;
-  static const double iconTopSex = 0.6550;
-  static const double iconTopParents = 0.7450;
+  static const double photoLeftRatio = photoLeftPt / pageColorPhotoWidthPt;      // ~0.21549
+  static const double photoTopRatio = photoTopPt / pageColorPhotoHeightPt;        // ~0.35417
+  static const double photoWidthRatio = photoWidthPt / pageColorPhotoWidthPt;    // ~0.37961
+  static const double photoHeightRatio = photoHeightPt / pageColorPhotoHeightPt; // ~0.38404
 
-  static const double textLeft = 0.6722;
-  static const double textMaxWidth = 0.3000;
-  static const double textRowHeight = 0.0450; // H fraction
-  static const double labelWidth = 0.0820; // W fraction for label column
-  static const double labelGap = 0.0080;   // W fraction gap between label & value
+  // Right Details Column (starts after bunny icons at X = 532.4 pt)
+  static const double detailsLeftPt = 532.4;
+  static const double detailsLeftRatio = detailsLeftPt / pageColorPhotoWidthPt;  // ~0.67222
+  static const double detailsFontSizePt = 19.0;
+  static const double detailsFontRatio = detailsFontSizePt / pageColorPhotoWidthPt; // ~0.02399
 
-  static const double rowNameCenterY = 0.3350;
-  static const double rowBreedCenterY = 0.4200;
-  static const double rowColorCenterY = 0.5050;
-  static const double rowDobCenterY = 0.5900;
-  static const double rowSexCenterY = 0.6750;
-  static const double rowParentsCenterY = 0.7650;
+  // Colors
+  static const Color colorDetailsPhoto = Color(0xFF6D6E71);
+  static const PdfColor pdfColorDetailsPhoto = PdfColor(0.427, 0.431, 0.443); // #6D6E71
+  static const Color colorPhotoFrameBorder = Color(0xFF58595B);
+  static const PdfColor pdfColorPhotoFrameBorder = PdfColor(0.345, 0.348, 0.356); // #58595B
+
+  // Row Y positions
+  static const double row1TopPt = 194.0;
+  static const double row1TopRatio = row1TopPt / pageColorPhotoHeightPt; // ~0.31699
+
+  static const double row2TopPt = 244.6;
+  static const double row2TopRatio = row2TopPt / pageColorPhotoHeightPt; // ~0.39967
+
+  static const double row3TopPt = 297.6;
+  static const double row3TopRatio = row3TopPt / pageColorPhotoHeightPt; // ~0.48627
+
+  static const double row4TopPt = 355.4;
+  static const double row4TopRatio = row4TopPt / pageColorPhotoHeightPt; // ~0.58072
+
+  static const double row5TopPt = 413.1;
+  static const double row5TopRatio = row5TopPt / pageColorPhotoHeightPt; // ~0.67500
+
+  static const double row6TopPt = 469.2;
+  static const double row6TopRatio = row6TopPt / pageColorPhotoHeightPt; // ~0.76667
 }
 
-/// Data holder model for populating a Certificate of Birth v2
+/// 3 Certificate display / generation options
+enum CertificateOption {
+  blackAndWhite,
+  colorNoPhoto,
+  colorWithPhoto,
+}
+
+/// Data holder model for populating a Birth Certificate
 class CertificateData {
   final String name;
   final String breed;
@@ -125,8 +146,9 @@ class CertificateData {
   final String sex;
   final String damName;
   final String sireName;
+  final String? location;
   final String? photoPath;
-  final bool includePhoto;
+  final CertificateOption option;
 
   const CertificateData({
     required this.name,
@@ -136,7 +158,34 @@ class CertificateData {
     required this.sex,
     required this.damName,
     required this.sireName,
+    this.location,
     this.photoPath,
-    this.includePhoto = true,
+    this.option = CertificateOption.colorWithPhoto,
   });
+
+  bool get isBlackAndWhite => option == CertificateOption.blackAndWhite;
+  bool get isColorWithPhoto => option == CertificateOption.colorWithPhoto;
+  bool get hasPhoto => option == CertificateOption.colorWithPhoto;
+
+  String get birthSentence {
+    final cleanBreed = breed.trim();
+    if (cleanBreed.isNotEmpty && cleanBreed != '—' && cleanBreed != 'Unknown') {
+      return 'a $cleanBreed rabbit was born on $dob';
+    }
+    return 'a rabbit was born on $dob';
+  }
+
+  String get locationSentence {
+    final cleanLoc = location?.trim();
+    if (cleanLoc != null && cleanLoc.isNotEmpty && cleanLoc != '—') {
+      return 'at $cleanLoc';
+    }
+    return 'at Amaranth, Ontario Canada';
+  }
+
+  String get parentsSentence {
+    final cleanDam = (damName.trim().isNotEmpty && damName != '—') ? damName.trim() : 'Unknown';
+    final cleanSire = (sireName.trim().isNotEmpty && sireName != '—') ? sireName.trim() : 'Unknown';
+    return 'Dam $cleanDam X Sire $cleanSire';
+  }
 }

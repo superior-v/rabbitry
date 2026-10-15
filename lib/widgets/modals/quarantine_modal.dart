@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
-import '../../services/format_utils.dart';
+import '../../constants/app_colors.dart';
 
 class QuarantineModal extends StatefulWidget {
   final Rabbit rabbit;
@@ -21,24 +21,47 @@ class QuarantineModal extends StatefulWidget {
 class _QuarantineModalState extends State<QuarantineModal> {
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
-  final _expenseController = TextEditingController();
   final _cageController = TextEditingController();
   final DatabaseService _db = DatabaseService();
 
   int _quarantineDays = 14;
   bool _isLoading = false;
   String? _selectedLocation;
-  List<String> _locations = []; // List of row names
+  List<String> _locations = [];
+
+  String? _selectedReason = 'New rabbit';
+  bool _isEnteringCustom = false;
+
+  final List<String> _reasonOptions = [
+    'New rabbit',
+    'Illness/Treatment',
+    'Post-surgery recovery',
+    'Injury',
+    'Observation',
+    'Other',
+    '+ Custom',
+  ];
+
+  final Map<String, int> _reasonDaysMap = {
+    'New rabbit': 14,
+    'Illness/Treatment': 7,
+    'Post-surgery recovery': 14,
+    'Injury': 10,
+    'Observation': 7,
+    'Other': 14,
+  };
 
   @override
   void initState() {
     super.initState();
     _loadBarns();
+    _selectedReason = 'New rabbit';
+    _reasonController.text = 'New rabbit';
+    _quarantineDays = 14;
   }
 
   Future<void> _loadBarns() async {
     final barns = await _db.getAllBarns();
-    // Extract all row names from barns as location options
     List<String> locations = [];
     for (var barn in barns) {
       final rowsRaw = barn['rows'];
@@ -62,44 +85,17 @@ class _QuarantineModalState extends State<QuarantineModal> {
       }
     }
 
-    setState(() {
-      _locations = locations;
-      // Only set location if it exists in the list
-      _selectedLocation = locations.contains(widget.rabbit.location) ? widget.rabbit.location : null;
-    });
+    if (mounted) {
+      setState(() {
+        _locations = locations;
+        _selectedLocation = null;
+      });
+    }
   }
-
-  final List<Map<String, dynamic>> _presetReasons = [
-    {
-      'label': 'New rabbit',
-      'days': 14
-    },
-    {
-      'label': 'Illness/Treatment',
-      'days': 7
-    },
-    {
-      'label': 'Post-surgery recovery',
-      'days': 14
-    },
-    {
-      'label': 'Injury',
-      'days': 10
-    },
-    {
-      'label': 'Observation',
-      'days': 7
-    },
-    {
-      'label': 'Other',
-      'days': 14
-    },
-  ];
 
   @override
   void dispose() {
     _reasonController.dispose();
-    _expenseController.dispose();
     _cageController.dispose();
     super.dispose();
   }
@@ -107,17 +103,25 @@ class _QuarantineModalState extends State<QuarantineModal> {
   Future<void> _saveQuarantine() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final reason = _isEnteringCustom ? _reasonController.text.trim() : (_selectedReason ?? _reasonController.text.trim());
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select or enter a reason'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final expense = _expenseController.text.isNotEmpty ? double.tryParse(_expenseController.text) : null;
-
-      // Fixed: Use correct number of arguments (4 not 5)
       await _db.addToQuarantine(
         widget.rabbit.id,
-        _reasonController.text,
+        reason,
         _quarantineDays,
-        expense,
+        null, // Related expenses option removed per specification
       );
 
       // Move cage if specified
@@ -130,30 +134,85 @@ class _QuarantineModalState extends State<QuarantineModal> {
       }
 
       widget.onComplete();
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${widget.rabbit.name} added to quarantine for $_quarantineDays days'),
-          backgroundColor: Color(0xFF7B6BA0),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${widget.rabbit.name} added to quarantine for $_quarantineDays days'),
+            backgroundColor: const Color(0xFF7B6BA0),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  Widget _buildRabbitHeaderWidget() {
+    final isDoe = widget.rabbit.type == RabbitType.doe;
+    final isArchived = widget.rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+    final prefix = (widget.rabbit.breederPrefix ?? '').trim();
+    final name = widget.rabbit.name.trim();
+    final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
+            ? widget.rabbit.earNumber!.trim()
+            : (widget.rabbit.id.length >= 6 ? widget.rabbit.id.substring(0, 6) : widget.rabbit.id).trim())
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -161,316 +220,332 @@ class _QuarantineModalState extends State<QuarantineModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle bar
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE0E0E0),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-
-                // Title
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Lilac Header Banner (matches Consistency.jpg)
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEDAFE),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      width: 36,
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: Color(0xFFFF9800).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.shield,
-                        color: Color(0xFFFF9800),
-                        size: 24,
+                        color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Add to Quarantine',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            widget.rabbit.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF787774),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-
-                // Warning banner
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFFF8E1),
-                    border: Border.all(color: Color(0xFFFFB300)),
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.warning_amber, color: Color(0xFFFF8F00), size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Quarantine isolates the rabbit from the herd for health monitoring.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFFE65100),
+                      const Text(
+                        'Add to Quarantine',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2C2C2E),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
                         ),
                       ),
                     ],
                   ),
-                ),
-                SizedBox(height: 20),
+                  const SizedBox(height: 4),
+                  _buildRabbitHeaderWidget(),
+                ],
+              ),
+            ),
 
-                // Preset reasons
-                Text(
-                  'Reason',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _presetReasons.map((preset) {
-                    final isSelected = _reasonController.text == preset['label'];
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          _reasonController.text = preset['label'];
-                          _quarantineDays = preset['days'];
-                        });
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Color(0xFFFF9800).withOpacity(0.1) : Colors.white,
-                          border: Border.all(
-                            color: isSelected ? Color(0xFFFF9800) : Color(0xFFE9E9E7),
-                          ),
-                          borderRadius: BorderRadius.circular(20),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Reason Dropdown / Custom field matching Consistency.jpg pattern
+                    if (!_isEnteringCustom) ...[
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Reason',
+                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
-                        child: Text(
-                          preset['label'],
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            color: isSelected ? Color(0xFFFF9800) : Color(0xFF787774),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: (_selectedReason == '+ Custom' || !_reasonOptions.contains(_selectedReason)) ? null : _selectedReason,
+                            hint: const Text('Select quarantine reason', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF787774))),
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                            selectedItemBuilder: (BuildContext context) {
+                              return _reasonOptions.map((e) => Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  e,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                    color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                  ),
+                                ),
+                              )).toList();
+                            },
+                            items: _reasonOptions.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final e = entry.value;
+                              final isAlt = idx % 2 == 1;
+                              return DropdownMenuItem(
+                                value: e,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    e,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
+                                      color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val == '+ Custom') {
+                                setState(() {
+                                  _isEnteringCustom = true;
+                                  _selectedReason = null;
+                                  _reasonController.clear();
+                                });
+                              } else {
+                                setState(() {
+                                  _selectedReason = val;
+                                  _reasonController.text = val ?? '';
+                                  if (val != null && _reasonDaysMap.containsKey(val)) {
+                                    _quarantineDays = _reasonDaysMap[val]!;
+                                  }
+                                });
+                              }
+                            },
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-                SizedBox(height: 16),
+                    ] else ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isEnteringCustom = false;
+                                _selectedReason = _reasonOptions.firstWhere((e) => e != '+ Custom', orElse: () => 'New rabbit');
+                                _reasonController.text = _selectedReason!;
+                                _quarantineDays = _reasonDaysMap[_selectedReason] ?? 14;
+                              });
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(bottom: 6),
+                              child: Text(
+                                'Choose from list',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF8B5CF6),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextFormField(
+                        controller: _reasonController,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                        decoration: InputDecoration(
+                          labelText: 'Reason',
+                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a reason';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 18),
 
-                // Reason input
-                TextFormField(
-                  controller: _reasonController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter reason or select above',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                    // Duration Slider
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Duration',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF37352F),
+                          ),
+                        ),
+                        Text(
+                          '$_quarantineDays days',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF7B6BA0),
+                          ),
+                        ),
+                      ],
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                    const SizedBox(height: 4),
+                    Slider(
+                      value: _quarantineDays.toDouble(),
+                      min: 1,
+                      max: 30,
+                      divisions: 29,
+                      activeColor: const Color(0xFF7B6BA0),
+                      inactiveColor: const Color(0xFFEADBEE),
+                      label: '$_quarantineDays days',
+                      onChanged: (value) {
+                        setState(() => _quarantineDays = value.toInt());
+                      },
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFFF9800), width: 2),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('1 day', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
+                        Text('30 days', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
+                      ],
                     ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a reason';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                // Duration slider
-                Text(
-                  'Duration: $_quarantineDays days',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Slider(
-                  value: _quarantineDays.toDouble(),
-                  min: 1,
-                  max: 30,
-                  divisions: 29,
-                  activeColor: Color(0xFFFF9800),
-                  inactiveColor: Color(0xFFE9E9E7),
-                  label: '$_quarantineDays days',
-                  onChanged: (value) {
-                    setState(() => _quarantineDays = value.toInt());
-                  },
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('1 day', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
-                    Text('30 days', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
+                    // Quarantine Cage Selection
+                    const Text(
+                      'Move to Quarantine Cage',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF37352F),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedLocation,
+                      decoration: InputDecoration(
+                        labelText: 'Location',
+                        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      items: _locations.map((location) {
+                        return DropdownMenuItem(
+                          value: location,
+                          child: Text(location, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56))),
+                        );
+                      }).toList(),
+                      onChanged: (value) => setState(() => _selectedLocation = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _cageController,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      decoration: InputDecoration(
+                        labelText: 'Cage / Pen',
+                        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _saveQuarantine,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE6BEFE),
+                          foregroundColor: const Color(0xFF4A3E6D),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                ),
+                              )
+                            : const Text(
+                                'Add to Quarantine',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                              ),
+                      ),
+                    ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
                   ],
                 ),
-                SizedBox(height: 20),
-
-                // Quarantine Cage Selection
-                Text(
-                  'Move to Quarantine Cage',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Color(0xFFE9E9E7)),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedLocation,
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                      hintText: 'Select location',
-                    ),
-                    items: _locations.map((location) {
-                      return DropdownMenuItem(
-                        value: location,
-                        child: Text(location),
-                      );
-                    }).toList(),
-                    onChanged: (value) => setState(() => _selectedLocation = value),
-                  ),
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: _cageController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g., Quarantine-1, Isolation Cage',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFFF9800), width: 2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                // Expense input
-                Text(
-                  'Related Expense (optional)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
-                  ),
-                ),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _expenseController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    prefixText: FormatUtils.currencyPrefix,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFE9E9E7)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Color(0xFFFF9800), width: 2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24),
-
-                // Save button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveQuarantine,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFFF9800),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            'Add to Quarantine',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

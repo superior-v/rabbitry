@@ -279,6 +279,9 @@ class _DocumentsCardState extends State<DocumentsCard> {
 
           const SizedBox(height: 8),
 
+          // ── Purchase Details ──────────────────────────────────
+          _buildPurchaseDetailsCard(),
+
           // ── Folder Grid – 4-column horizontal rows ────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -355,6 +358,113 @@ class _DocumentsCardState extends State<DocumentsCard> {
       );
     }
     return rows;
+  }
+
+  Widget _buildPurchaseDetailsCard() {
+    final rabbit = widget.rabbit;
+    final hasSeller = rabbit.seller?.isNotEmpty == true;
+    final hasRabbitry = rabbit.purchaseRabbitry?.isNotEmpty == true;
+    final purchaseDate = rabbit.purchaseDate ?? rabbit.acquiredDate;
+    final hasDate = purchaseDate != null;
+    final hasCost = rabbit.purchaseCost != null;
+
+    if (!hasSeller && !hasRabbitry && !hasDate && !hasCost) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F6FC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEADBEE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF0E6F7),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt_long_rounded, size: 16, color: Color(0xFF7B6BA0)),
+                const SizedBox(width: 8),
+                const Text(
+                  'Purchase Details',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF4A3E6D),
+                  ),
+                ),
+                const Spacer(),
+                if (hasCost)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6BEFE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${FormatUtils.currencyPrefix}${rabbit.purchaseCost!.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF4A3E6D),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Column(
+              children: [
+                if (hasSeller)
+                  _buildPurchaseDetailRow('Seller:', rabbit.seller!),
+                if (hasRabbitry)
+                  _buildPurchaseDetailRow('Rabbitry:', rabbit.purchaseRabbitry!),
+                if (hasDate)
+                  _buildPurchaseDetailRow('Date of Purchase:', FormatUtils.formatDate(purchaseDate)),
+                if (hasCost)
+                  _buildPurchaseDetailRow('Cost:', '${FormatUtils.currencyPrefix}${rabbit.purchaseCost!.toStringAsFixed(2)}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPurchaseDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF787774),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF37352F),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildFileListItem(RabbitDocument doc) {

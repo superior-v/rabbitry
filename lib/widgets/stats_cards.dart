@@ -161,32 +161,48 @@ class _StatsCardsState extends State<StatsCards> {
   // CARD 1: KIT OUTCOMES
   // ==========================================
   Widget _buildKitOutcomesCard() {
-    int sold = 0, breeder = 0, cull = 0, died = 0, total = 0;
+    int sold = 0, breeder = 0, cull = 0, died = 0, total = 0, alive = 0;
     for (var l in _litters) {
       if (_isMissedLitter(l)) continue;
-      final int deadBorn = l.deadKits ?? 0;
-      died += deadBorn;
-
-      for (var k in l.kits) {
-        final st = k.status.trim().toLowerCase();
-        if (st == 'sold') {
-          sold++;
-        } else if (st == 'breeder') {
-          breeder++;
-        } else if (st == 'cull' || st == 'culled' || st == 'butchered') {
-          cull++;
-        } else if (st == 'dead' || st == 'died' || st == 'deceased') {
-          died++;
-        }
-      }
 
       final int litterTotal = (l.totalKits != null && l.totalKits! > 0)
           ? l.totalKits!
-          : (l.kits.length + deadBorn);
+          : (l.kits.length + (l.deadKits ?? 0));
       total += litterTotal;
+
+      if (l.kits.isNotEmpty) {
+        for (var k in l.kits) {
+          final st = k.status.trim().toLowerCase();
+          if (st == 'sold') {
+            sold++;
+          } else if (st == 'breeder') {
+            breeder++;
+          } else if (st == 'cull' || st == 'culled' || st == 'butchered') {
+            cull++;
+          } else if (st == 'dead' || st == 'died' || st == 'deceased') {
+            died++;
+          }
+        }
+        final int deadKitsInList = l.kits.where((k) {
+          final st = k.status.trim().toLowerCase();
+          return st == 'dead' || st == 'died' || st == 'deceased';
+        }).length;
+        final int extraDead = (l.deadKits ?? 0) > deadKitsInList ? (l.deadKits! - deadKitsInList) : 0;
+        died += extraDead;
+
+        final int aliveInLitter = l.kits.where((k) {
+          final st = k.status.trim().toLowerCase();
+          return st != 'dead' && st != 'died' && st != 'culled' && st != 'cull' && st != 'deceased';
+        }).length;
+        alive += aliveInLitter;
+      } else {
+        final int deadBorn = l.deadKits ?? 0;
+        died += deadBorn;
+        final int aliveInLitter = l.aliveKits ?? (litterTotal - deadBorn).clamp(0, litterTotal);
+        alive += aliveInLitter;
+      }
     }
 
-    final int alive = (total - died).clamp(0, total);
     final int survivalRate = total > 0 ? ((alive / total) * 100).round() : 0;
 
     return Container(

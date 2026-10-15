@@ -5,12 +5,10 @@ import '../models/litter.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
-import '../widgets/rabbit_card.dart';
 import 'dart:io';
 import 'rabbit_detail_screen.dart';
 import 'add_rabbit_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:flutter/services.dart';
 import '../widgets/action_sheets/rabbit_action_sheet.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
@@ -221,53 +219,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     ];
   }
 
-  Future<void> _confirmAndDeleteBreed(String breedName) async {
-    if (breedName == 'All') return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Breed Category?'),
-        content: Text('Remove "$breedName" from breed filters and update any rabbits assigned to this breed?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
 
-    if (confirm == true) {
-      await _db.clearBreedName(breedName);
-      
-      final replacement = breedName.toLowerCase() == 'hotot' ? 'Dwarf Hotot' : '';
-      for (var r in _allRabbits) {
-        if (r.breed.toLowerCase() == breedName.toLowerCase()) {
-          r.breed = replacement;
-        }
-      }
-
-      if (_breedFilter.toLowerCase() == breedName.toLowerCase()) {
-        _breedFilter = 'All';
-      }
-
-      await _loadData();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Breed category "$breedName" removed'),
-            backgroundColor: const Color(0xFF7B6BA0),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _refreshData() async {
     if (!mounted) return;
@@ -723,7 +675,6 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               f,
               f,
               _breedFilter == f,
-              onDelete: f == 'All' ? null : () => _confirmAndDeleteBreed(f),
             )).toList(),
             onSelected: (v) => setState(() => _breedFilter = v),
           ),
@@ -764,48 +715,25 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   PopupMenuItem<String> _buildPopupItem(
     String label,
     String value,
-    bool isSelected, {
-    VoidCallback? onDelete,
-  }) {
-    final isBreedCategoryItem = onDelete != null && value != 'All';
+    bool isSelected,
+  ) {
     return PopupMenuItem<String>(
       value: value,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onLongPress: () {
-          if (isBreedCategoryItem) {
-            Navigator.pop(context);
-            onDelete();
-          }
-        },
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: iTextDark,
-                  fontSize: 14,
-                ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: iTextDark,
+                fontSize: 14,
               ),
             ),
-            if (isBreedCategoryItem)
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  onDelete();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                ),
-              )
-            else if (isSelected) ...[
-              const Icon(Icons.check, size: 16, color: kLilacDeep)
-            ],
-          ],
-        ),
+          ),
+          if (isSelected)
+            const Icon(Icons.check, size: 16, color: kLilacDeep),
+        ],
       ),
     );
   }
@@ -909,6 +837,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Butchered',
         'Dead',
         'Cull',
+        'Stud',
       ];
     }
   }
@@ -1262,6 +1191,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         if (_currentFilter == 'Butchered' && r.archiveReason != ArchiveReason.butchered) return false;
         if (_currentFilter == 'Dead' && r.archiveReason != ArchiveReason.dead && (r.deathCause == null || r.deathCause!.isEmpty)) return false;
         if (_currentFilter == 'Cull' && r.archiveReason != ArchiveReason.cull && (r.cullReason == null || r.cullReason!.isEmpty)) return false;
+        if (_currentFilter == 'Stud' && r.archiveReason != ArchiveReason.stud) return false;
       }
 
       if (_searchQuery.isNotEmpty) {
@@ -1274,6 +1204,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
       return true;
     }).toList();
+
+    filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     if (filtered.isEmpty) {
       return Center(
@@ -1303,7 +1235,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             controller: _archiveScrollController,
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
             itemCount: filtered.length,
-            itemBuilder: (context, index) => _buildRedesignedRabbitCard(filtered[index]),
+            itemBuilder: (context, index) => _buildRedesignedRabbitCard(filtered[index], isArchiveCard: true),
           ),
         ),
       ],
@@ -1355,7 +1287,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   Future<void> _restoreRabbit(Rabbit rabbit) async {
     try {
-      await _db.markOpenForBreeding(rabbit.id);
+      await _db.restoreRabbit(rabbit.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1417,11 +1349,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   Widget _buildRabbitList(RabbitType type) {
-    List<Rabbit> filtered = _allRabbits.where((r) {
+    List<Rabbit> activeList = _allRabbits.where((r) {
       if (r.type != type) return false;
       if (r.type == RabbitType.pedigree) return false;
       if (r.id.startsWith('PED-') || r.id.startsWith('ped_')) return false;
-      if (r.status == RabbitStatus.archived) return false;
+      if (r.status == RabbitStatus.archived || r.isArchived) return false;
 
       if (_breedFilter != 'All') {
         final normalizedRabbitBreed = _normalizeBreed(r.breed);
@@ -1447,7 +1379,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           if (statusName != 'open') return false;
         } else if (filterName == 'active') {
           if (statusName != 'active') return false;
-        } else if (statusName != filterName) {
+        } else {
           return false;
         }
       }
@@ -1467,8 +1399,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       return true;
     }).toList();
 
-    // Apply Sorting
-    filtered.sort((a, b) {
+    // Apply Sorting to active list
+    activeList.sort((a, b) {
       if (_sortQuery == 'breed') return a.breed.compareTo(b.breed);
       if (_sortQuery == 'cage') return (a.cage ?? '').compareTo(b.cage ?? '');
       if (_sortQuery == 'id') return a.id.compareTo(b.id);
@@ -1484,6 +1416,8 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       }
       return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
+
+    List<Rabbit> filtered = activeList;
 
     if (filtered.isEmpty) {
       return Center(
@@ -1565,38 +1499,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _grouping == 'location' ? PhosphorIcons.warehouse(PhosphorIconsStyle.duotone) : PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone),
-                          size: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          key.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey.shade600,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(100),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Text(
-                            '${groups[key]!.length}',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade600),
-                          ),
-                        ),
-                      ],
+                    padding: const EdgeInsets.only(top: 6, bottom: 4),
+                    child: Text(
+                      key.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade600,
+                        letterSpacing: 0.6,
+                      ),
                     ),
                   ),
                   ...groups[key]!.map((rabbit) => _buildRedesignedRabbitCard(rabbit)),
@@ -1698,9 +1609,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     return total;
   }
 
-  Widget _buildRedesignedRabbitCard(Rabbit rabbit) {
+  Widget _buildRedesignedRabbitCard(Rabbit rabbit, {bool isArchiveCard = false}) {
     final bool isDoe = rabbit.type == RabbitType.doe;
-    final bool isArchive = rabbit.status == RabbitStatus.archived;
+    final bool isArchive = isArchiveCard || rabbit.isArchived || rabbit.status == RabbitStatus.archived || _tabController.index == 2;
 
     final hasPhoto = rabbit.photos != null && rabbit.photos!.isNotEmpty;
     final photoPath = hasPhoto ? rabbit.photos!.first : null;
@@ -1713,7 +1624,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
     return GestureDetector(
       // Tapping anywhere on the card (except photo & 3-dots) → Breeding tab
-      onTap: () => isArchive ? _showArchiveMenu(rabbit) : _navigateToDetail(rabbit, tabIndex: 1),
+      onTap: () => _navigateToDetail(rabbit, tabIndex: 1),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
         decoration: BoxDecoration(
@@ -1743,7 +1654,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 children: [
                   // Photo Avatar — taps go to Profile tab (tab 0)
                   GestureDetector(
-                    onTap: () => isArchive ? null : _navigateToDetail(rabbit, tabIndex: 0),
+                    onTap: () => _navigateToDetail(rabbit, tabIndex: 0),
                     child: Container(
                       width: 62,
                       height: 62,
@@ -1751,7 +1662,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isArchive ? const Color(0xFF8E8E93) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3)),
+                          color: isDoe
+                              ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+                              : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
                           width: 2,
                         ),
                       ),
@@ -1796,7 +1709,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                               TextSpan(
                                 text: rabbit.name,
                                 style: TextStyle(
-                                  color: isArchive ? const Color(0xFF636366) : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3)),
+                                  color: isDoe
+                                      ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+                                      : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1839,7 +1754,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (_currentFilter.toLowerCase() == 'all') ...[
+                      if (_currentFilter.toLowerCase() == 'all' && _shouldShowStatusBadge(rabbit)) ...[
                         _buildStatusBadge(rabbit),
                         const SizedBox(height: 4),
                       ],
@@ -1912,6 +1827,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
+  bool _shouldShowStatusBadge(Rabbit rabbit) {
+    if (rabbit.status == RabbitStatus.archived) return true;
+    if (rabbit.type == RabbitType.buck) {
+      return rabbit.status == RabbitStatus.resting || rabbit.status == RabbitStatus.quarantine;
+    }
+    return true;
+  }
+
   String _getStatusLetter(Rabbit rabbit) {
     switch (rabbit.status) {
       case RabbitStatus.open:
@@ -1933,26 +1856,44 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       case RabbitStatus.inactive:
         return 'I';
       case RabbitStatus.archived:
+        if (rabbit.archiveReason == ArchiveReason.sold) return 'SOLD';
+        if (rabbit.archiveReason == ArchiveReason.dead) return 'DIED';
+        if (rabbit.archiveReason == ArchiveReason.cull) return 'CULL';
+        if (rabbit.archiveReason == ArchiveReason.butchered) return 'MEAT';
+        if (rabbit.archiveReason == ArchiveReason.stud) return 'STUD';
         return 'A';
     }
   }
 
   Widget _buildStatusBadge(Rabbit rabbit) {
+    if (!_shouldShowStatusBadge(rabbit)) {
+      return const SizedBox.shrink();
+    }
     final String letter = _getStatusLetter(rabbit);
+    final isArchived = rabbit.isArchived || rabbit.status == RabbitStatus.archived || _tabController.index == 2;
+    final isDoe = rabbit.type == RabbitType.doe;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
+        color: isArchived
+            ? (isDoe ? const Color(0xFFFCE4EC) : const Color(0xFFE3F2FD))
+            : const Color(0xFFF2F2F7),
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: const Color(0xFFDCDCE0)),
+        border: Border.all(
+          color: isArchived
+              ? (isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF))
+              : const Color(0xFFDCDCE0),
+        ),
       ),
       child: Text(
         letter,
-        style: const TextStyle(
-          fontSize: 11,
+        style: TextStyle(
+          fontSize: letter.length > 1 ? 10 : 11,
           fontWeight: FontWeight.w800,
-          color: Color(0xFF636366),
+          color: isArchived
+              ? (isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF))
+              : const Color(0xFF636366),
         ),
       ),
     );

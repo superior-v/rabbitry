@@ -32,6 +32,7 @@ class Kit {
         'died',
         'cull',
         'culled',
+        'archived',
       ].contains(status.trim().toLowerCase());
 
   Kit copyWith({

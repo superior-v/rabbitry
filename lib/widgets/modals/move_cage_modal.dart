@@ -62,25 +62,57 @@ class _MoveCageModalState extends State<MoveCageModal> {
     }
   }
 
-  String _formatRabbitName() {
-    final prefix = (widget.rabbit.breederPrefix ?? '').trim();
-    final name = widget.rabbit.name.trim();
-    final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
-            ? widget.rabbit.earNumber!.trim()
-            : widget.rabbit.id.trim())
+  Widget _buildRabbitHeaderName(Rabbit rabbit, {double fontSize = 14}) {
+    final isDoe = rabbit.type == RabbitType.doe;
+    final isArchived = rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+    final prefix = (rabbit.breederPrefix ?? '').trim();
+    final name = rabbit.name.trim();
+    final ear = (rabbit.earNumber?.trim().isNotEmpty == true
+            ? rabbit.earNumber!.trim()
+            : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).trim())
         .toUpperCase();
 
-    final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-    if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-      return '$namePart $ear';
-    }
-    return namePart;
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDoe = widget.rabbit.type == RabbitType.doe;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -128,16 +160,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                             ),
                           ),
                           const SizedBox(height: 3),
-                          Text(
-                            _formatRabbitName(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          _buildRabbitHeaderName(widget.rabbit, fontSize: 14),
                           if (widget.rabbit.location != null || widget.rabbit.cage != null) ...[
                             const SizedBox(height: 2),
                             Text(
@@ -274,19 +297,27 @@ class _MoveCageModalState extends State<MoveCageModal> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveCage,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: const Color(0xFFE6BEFE),
+                        foregroundColor: const Color(0xFF4A3E6D),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isSaving
                           ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                              ),
                             )
                           : const Text(
-                              'Move Cage',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                              'Move',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF4A3E6D),
+                              ),
                             ),
                     ),
                   ),

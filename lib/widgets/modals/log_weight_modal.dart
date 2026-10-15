@@ -86,19 +86,53 @@ class _LogWeightModalState extends State<LogWeightModal> {
     super.dispose();
   }
 
-  String _formatRabbitHeader() {
+  Widget _buildRabbitHeaderWidget() {
+    final isDoe = widget.rabbit.type == RabbitType.doe;
+    final isArchived = widget.rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (widget.rabbit.breederPrefix ?? '').trim();
     final name = widget.rabbit.name.trim();
     final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
             ? widget.rabbit.earNumber!.trim()
-            : widget.rabbit.id.trim())
+            : (widget.rabbit.id.length >= 6 ? widget.rabbit.id.substring(0, 6) : widget.rabbit.id).trim())
         .toUpperCase();
 
-    final namePart = prefix.isNotEmpty ? '$prefix $name' : name;
-    if (ear.isNotEmpty && !namePart.toUpperCase().endsWith(ear)) {
-      return '$namePart $ear';
-    }
-    return namePart;
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   String _formatLbsOz(dynamic weightVal) {
@@ -325,15 +359,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Text(
-                          _formatRabbitHeader(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A3E6D),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        child: _buildRabbitHeaderWidget(),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

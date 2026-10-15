@@ -79,17 +79,72 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
     super.dispose();
   }
 
+  Widget _buildRabbitHeaderWidget() {
+    final prefix = (widget.doe.breederPrefix ?? '').trim();
+    final name = widget.doe.name.trim();
+    final ear = (widget.doe.earNumber?.trim().isNotEmpty == true
+            ? widget.doe.earNumber!.trim()
+            : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id).trim())
+        .toUpperCase();
+    final isArchived = widget.doe.status == RabbitStatus.archived;
+    final nameColor = isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F);
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+          if (widget.doe.currentLitterSize != null)
+            TextSpan(
+              text: ' • ${widget.doe.currentLitterSize} kits',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,22 +153,19 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'Wean Litter',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close),
+                    icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              SizedBox(height: 8),
-              Text(
-                '${widget.doe.name} (${widget.doe.id}) • ${widget.doe.currentLitterSize ?? 0} kits',
-                style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
-              ),
-              SizedBox(height: 24),
+              const SizedBox(height: 4),
+              _buildRabbitHeaderWidget(),
+              const SizedBox(height: 24),
 
               // Weaned Count
               Text(
@@ -291,19 +343,28 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveWean,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF7B6BA0),
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFFE6BEFE),
+                    foregroundColor: const Color(0xFF4A3E6D),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                          ),
                         )
-                      : Text(
+                      : const Text(
                           'Wean Litter',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
+                          ),
                         ),
                 ),
               ),

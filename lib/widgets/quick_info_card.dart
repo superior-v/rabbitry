@@ -81,13 +81,13 @@ class _QuickInfoCardState extends State<QuickInfoCard> {
       _buildInfoRow(context, 'Ear No.:',
           _currentRabbit.earNumber?.isNotEmpty == true ? _currentRabbit.earNumber! : '-',
           rowIndex: rowIndex++),
-      if (_currentRabbit.acquiredDate != null)
-        _buildInfoRow(context, 'Date Acquired:',
-            DateFormat('MMM dd, yyyy').format(_currentRabbit.acquiredDate!),
-            rowIndex: rowIndex++),
       _buildInfoRow(context, 'Date of Birth:',
           _currentRabbit.dateOfBirth != null ? DateFormat('MMM dd, yyyy').format(_currentRabbit.dateOfBirth!) : '-',
           rowIndex: rowIndex++),
+      if (_currentRabbit.acquiredDate != null)
+        _buildInfoRow(context, 'Date of Acquisition:',
+            DateFormat('MMM dd, yyyy').format(_currentRabbit.acquiredDate!),
+            rowIndex: rowIndex++),
       _buildInfoRow(context, 'Age:',
           _calculateAge(),
           rowIndex: rowIndex++),

@@ -19,6 +19,7 @@ class PedigreeInlineCard extends StatefulWidget {
 class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   final DatabaseService _db = DatabaseService();
   int selectedGenerations = 4;
+  PedigreeOrientation _orientation = PedigreeOrientation.landscape;
   bool _isLoading = true;
   Rabbit? _sire; 
   Rabbit? _dam;
@@ -80,13 +81,60 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
 
   Future<void> _exportPedigree() async {
     try {
-      final data = await PedigreeData.fromRabbit(widget.rabbit, db: _db);
+      final data = await PedigreeData.fromRabbit(
+        widget.rabbit,
+        db: _db,
+        orientation: _orientation,
+      );
       if (mounted) {
-        PedigreePreviewSheet.show(context, data);
+        PedigreePreviewSheet.show(
+          context,
+          data,
+          onOrientationChanged: (opt) => setState(() => _orientation = opt),
+        );
       }
     } catch (e) {
       debugPrint('Error preparing pedigree export: $e');
     }
+  }
+
+  Widget _buildOrientationToggle(String label, PedigreeOrientation opt) {
+    final isSelected = _orientation == opt;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _orientation = opt),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                height: 1.15,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -282,13 +330,61 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                         Expanded(child: _buildAncestorCol(_dd, 'Dam\'s maternal', _dds, _ddd)),
                       ],
                     ),
-                 ],
-               ],
-             ),
-           ),
-         ],
-       ),
-    );
+                  ],
+
+                  const SizedBox(height: 20),
+                  // 2 Options / Toggle Buttons: Landscape & Portrait
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE5E5EA)),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        _buildOrientationToggle('Landscape', PedigreeOrientation.landscape),
+                        _buildOrientationToggle('Portrait', PedigreeOrientation.portrait),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Preview Pedigree Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _exportPedigree,
+                      icon: Icon(
+                        PhosphorIcons.treeStructure(PhosphorIconsStyle.duotone),
+                        size: 18,
+                        color: const Color(0xFF5C4A70),
+                      ),
+                      label: const Text(
+                        'Preview Pedigree',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5C4A70),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD4B3EE),
+                        foregroundColor: const Color(0xFF5C4A70),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+     );
   }
 
   Widget _buildSubjectCard() {
@@ -525,7 +621,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
           id: sire?.id ?? '--',
           borderColor: kBlueDeep,
           isSmall: true,
-          onTap: () => _updateGrandparent(parent, RabbitType.buck, label.contains('Sire') ? 'Sire\'s Paternal Sire' : 'Dam\'s Paternal Sire'),
+          onTap: () => _updateGrandparent(parent, RabbitType.buck, label.contains('Sire') ? 'Sire\'s Paternal Sire' : 'Dam\'s Paternal Sire', sire),
         ),
         const SizedBox(height: 6),
         _buildBaseCard(
@@ -533,7 +629,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
           id: dam?.id ?? '--',
           borderColor: kPinkDeep,
           isSmall: true,
-          onTap: () => _updateGrandparent(parent, RabbitType.doe, label.contains('Sire') ? 'Sire\'s Paternal Dam' : 'Dam\'s Paternal Dam'),
+          onTap: () => _updateGrandparent(parent, RabbitType.doe, label.contains('Sire') ? 'Sire\'s Paternal Dam' : 'Dam\'s Paternal Dam', dam),
         ),
       ],
     );
@@ -561,6 +657,13 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
 
   Future<void> _updateParent(RabbitType gender, bool isPrimary) async {
     final label = gender == RabbitType.buck ? 'Sire' : 'Dam';
+    Rabbit? current = gender == RabbitType.buck ? _sire : _dam;
+    if (current == null) {
+      final parentId = gender == RabbitType.buck ? widget.rabbit.sireId : widget.rabbit.damId;
+      if (parentId != null && parentId.isNotEmpty) {
+        current = await _db.getRabbit(parentId);
+      }
+    }
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
       final updated = widget.rabbit;
       if (gender == RabbitType.buck) {
@@ -571,13 +674,21 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       await _db.updateRabbit(updated);
       _loadPedigree();
       if (widget.onUpdated != null) widget.onUpdated!();
-    });
+    }, currentRabbit: current);
   }
 
-  Future<void> _updateGrandparent(Rabbit? parent, RabbitType gender, String label) async {
+  Future<void> _updateGrandparent(Rabbit? parent, RabbitType gender, String label, [Rabbit? currentGrandparent]) async {
     if (parent == null) {
       _showError('Please add the ${label.contains("Sire's") ? "Sire" : "Dam"} first.');
       return;
+    }
+
+    Rabbit? existing = currentGrandparent;
+    if (existing == null) {
+      final id = gender == RabbitType.buck ? parent.sireId : parent.damId;
+      if (id != null && id.isNotEmpty) {
+        existing = await _db.getRabbit(id);
+      }
     }
 
     _showParentPickerDialog(label, gender, (selectedRabbit) async {
@@ -589,7 +700,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       }
       await _db.updateRabbit(updatedParent);
       _loadPedigree();
-    });
+    }, currentRabbit: existing);
   }
 
   void _showError(String message) {
@@ -598,7 +709,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     );
   }
 
-  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect) async {
+  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit}) async {
     final options = await _db.getRabbitsByType(type);
     if (!mounted) return;
 
@@ -613,6 +724,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         onSelect: onSelect,
         db: _db,
         breed: widget.rabbit.breed,
+        currentRabbit: currentRabbit,
       ),
     );
   }
@@ -636,13 +748,13 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         width: double.infinity,
         padding: EdgeInsets.all(isSmall ? 10 : 12),
         decoration: BoxDecoration(
-          color: color ?? (isPlaceholder ? kNeutral50.withOpacity(0.5) : const Color(0xFFFAFAFA)),
+          color: color ?? (isPlaceholder ? kNeutral50.withValues(alpha: 0.5) : const Color(0xFFFAFAFA)),
           borderRadius: BorderRadius.circular(12),
           border: isFullBorder
               ? Border.all(color: borderColor, width: 1.5)
               : Border(left: BorderSide(color: borderColor, width: 3)),
           boxShadow: [
-             if (!isPlaceholder) BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+             if (!isPlaceholder) BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
       child: Column(
@@ -662,7 +774,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: const Color(0xFF787880).withOpacity(0.6)),
+              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: const Color(0xFF787880).withValues(alpha: 0.6)),
             ],
           ),
           Text(
@@ -698,6 +810,7 @@ class PedigreeEntryModal extends StatefulWidget {
   final Function(Rabbit?) onSelect;
   final DatabaseService db;
   final String? breed;
+  final Rabbit? currentRabbit;
 
   const PedigreeEntryModal({
     super.key,
@@ -707,6 +820,7 @@ class PedigreeEntryModal extends StatefulWidget {
     required this.onSelect,
     required this.db,
     this.breed,
+    this.currentRabbit,
   });
 
   @override
@@ -741,9 +855,39 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    if ((widget.breed ?? '').isNotEmpty) {
-      _breedController.text = widget.breed!;
+    final bool hasExisting = widget.currentRabbit != null;
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: hasExisting ? 1 : 0,
+    );
+
+    if (hasExisting) {
+      final r = widget.currentRabbit!;
+      _nameController.text = r.name;
+      _breedController.text = r.breed;
+      _colorController.text = r.color ?? '';
+      if (r.weight != null && r.weight! > 0) {
+        final totalOz = (r.weight! * 16.0).round();
+        final lbs = totalOz ~/ 16;
+        final oz = totalOz % 16;
+        if (lbs > 0) _lbsController.text = lbs.toString();
+        if (oz > 0) _ozController.text = oz.toString();
+      }
+      _idController.text = (r.earNumber ?? '').isNotEmpty ? r.earNumber! : (r.id.startsWith('PED-') ? '' : r.id);
+      _dateOfBirth = r.dateOfBirth;
+      _acquiredDate = r.acquiredDate;
+      if ((r.grandChampionLegs ?? 0) > 0) {
+        _legsController.text = r.grandChampionLegs.toString();
+      }
+      _regController.text = r.registrationNumber ?? '';
+      _gcController.text = r.grandChampionNumber ?? '';
+      _genotypeController.text = r.genetics ?? '';
+      _isBroken = r.broken ?? false;
+    } else {
+      if ((widget.breed ?? '').isNotEmpty) {
+        _breedController.text = widget.breed!;
+      }
     }
   }
 
@@ -854,7 +998,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -863,7 +1007,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Set ${widget.label}',
+                      widget.currentRabbit != null ? 'Edit ${widget.label}' : 'Set ${widget.label}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -875,7 +1019,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
@@ -1146,7 +1290,10 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
-                  child: const Text('Save Ancestor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kLilacText)),
+                  child: Text(
+                    widget.currentRabbit != null ? 'Update Ancestor' : 'Save Ancestor',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kLilacText),
+                  ),
                 ),
               ),
             ],
@@ -1158,7 +1305,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   }
 
   void _saveManual() async {
-    if (_nameController.text.isEmpty) {
+    if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a name for the ancestor'), backgroundColor: Colors.redAccent),
       );
@@ -1166,17 +1313,19 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     }
     
     final earNo = _idController.text.trim();
-    final id = 'PED-${DateTime.now().millisecondsSinceEpoch}';
     final lbs = double.tryParse(_lbsController.text.trim()) ?? 0.0;
     final oz = double.tryParse(_ozController.text.trim()) ?? 0.0;
     final double? weight = (lbs > 0 || oz > 0) ? (lbs + (oz / 16.0)) : null;
 
-    final newRabbit = Rabbit(
+    final existing = widget.currentRabbit;
+    final id = existing?.id ?? 'PED-${DateTime.now().millisecondsSinceEpoch}';
+
+    final rabbitToSave = Rabbit(
       id: id,
       name: _nameController.text.trim(),
-      type: RabbitType.pedigree,
-      status: RabbitStatus.archived,
-      breed: _breedController.text.isNotEmpty ? _breedController.text.trim() : 'Dwarf Hotot',
+      type: existing?.type ?? RabbitType.pedigree,
+      status: existing?.status ?? RabbitStatus.archived,
+      breed: _breedController.text.isNotEmpty ? _breedController.text.trim() : (existing?.breed ?? 'Dwarf Hotot'),
       color: _colorController.text.isNotEmpty ? _colorController.text.trim() : null,
       weight: weight,
       dateOfBirth: _dateOfBirth,
@@ -1187,13 +1336,24 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       grandChampionLegs: int.tryParse(_legsController.text) ?? 0,
       genetics: _genotypeController.text.isNotEmpty ? _genotypeController.text.trim() : null,
       broken: _isBroken,
-      createdAt: DateTime.now(),
+      sireId: existing?.sireId,
+      damId: existing?.damId,
+      breederPrefix: existing?.breederPrefix,
+      cage: existing?.cage,
+      notes: existing?.notes,
+      createdAt: existing?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
-    await widget.db.insertRabbit(newRabbit);
-    Navigator.pop(context);
-    widget.onSelect(newRabbit);
+    if (existing != null) {
+      await widget.db.updateRabbit(rabbitToSave);
+    } else {
+      await widget.db.insertRabbit(rabbitToSave);
+    }
+    if (mounted) {
+      Navigator.pop(context);
+      widget.onSelect(rabbitToSave);
+    }
   }
 
   Widget _buildOutlinedField(

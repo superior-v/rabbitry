@@ -110,35 +110,33 @@ class _TasksCardState extends State<TasksCard> {
     final todayToShow = todayTasks;
     final upcomingToShow = upcomingTasks;
     final completedToShow = completedTasks;
+    final bool allEmpty = todayToShow.isEmpty && upcomingToShow.isEmpty && completedToShow.isEmpty;
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF6EEFC),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE4D7F5)),
+        border: Border.all(color: kNeutral200),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
-            color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 20),
-                const SizedBox(width: 8),
                 const Text(
                   'TASKS',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2C2C2E),
-                    letterSpacing: 0.6,
+                    color: Color(0xFF4F4F56),
+                    letterSpacing: 0.8,
                   ),
                 ),
-                const Spacer(),
                 GestureDetector(
                   onTap: _showNewScheduleDialog,
                   child: Container(
@@ -158,78 +156,86 @@ class _TasksCardState extends State<TasksCard> {
               ],
             ),
           ),
+          const Divider(height: 1, color: kNeutral100),
 
-          const SizedBox(height: 12),
-
-          // TODAY & OVERDUE Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildSectionCard(
-              header: _buildSectionHeader(
-                title: 'TODAY & OVERDUE',
-                count: todayToShow.length,
-                tagBgColor: const Color(0xFFDCFCE7),
-                tagTextColor: const Color(0xFF3A3A3C),
-                countBgColor: const Color(0xFFDCFCE7),
-                countTextColor: const Color(0xFF3A3A3C),
-                isExpanded: _showToday,
-                onToggle: () => setState(() => _showToday = !_showToday),
+          if (allEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    'No tasks scheduled yet.\nTap + to create one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF787774),
+                    ),
+                  ),
+                ),
               ),
-              tasks: todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
-              isExpanded: _showToday,
-              isEmpty: todayToShow.isEmpty,
-              emptyText: 'No Task due',
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // UPCOMING Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _buildSectionCard(
-              header: _buildSectionHeader(
-                title: 'UPCOMING',
-                count: upcomingToShow.length,
-                tagBgColor: const Color(0xFFBAE6FD),
-                tagTextColor: const Color(0xFF3A3A3C),
-                countBgColor: const Color(0xFFBAE6FD),
-                countTextColor: const Color(0xFF3A3A3C),
-                isExpanded: _showUpcoming,
-                onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
-              ),
-              tasks: upcomingToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
-              isExpanded: _showUpcoming,
-              isEmpty: upcomingToShow.isEmpty,
-              emptyText: 'No upcoming tasks',
-            ),
-          ),
-
-          if (completedToShow.isNotEmpty) ...[
+            )
+          else ...[
             const SizedBox(height: 12),
-            // ARCHIVE Section
+
+            // TODAY & OVERDUE Section (Light grey box)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               child: _buildSectionCard(
                 header: _buildSectionHeader(
-                  title: 'ARCHIVE',
-                  count: completedToShow.length,
-                  tagBgColor: const Color(0xFFFFD1E8),
-                  tagTextColor: const Color(0xFF3A3A3C),
-                  countBgColor: const Color(0xFFFFD1E8),
-                  countTextColor: const Color(0xFF3A3A3C),
-                  isExpanded: _showCompleted,
-                  onToggle: () => setState(() => _showCompleted = !_showCompleted),
+                  title: 'TODAY & OVERDUE',
+                  count: todayToShow.length,
+                  isExpanded: _showToday,
+                  onToggle: () => setState(() => _showToday = !_showToday),
                 ),
-                tasks: completedToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)).toList(),
-                isExpanded: _showCompleted,
-                isEmpty: completedToShow.isEmpty,
-                emptyText: 'No archived tasks',
+                tasks: todayToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
+                isExpanded: _showToday,
+                isEmpty: todayToShow.isEmpty,
+                emptyText: 'No Task due',
               ),
             ),
-          ],
 
-          const SizedBox(height: 14),
+            const SizedBox(height: 12),
+
+            // UPCOMING Section (Light grey box)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: _buildSectionCard(
+                header: _buildSectionHeader(
+                  title: 'UPCOMING',
+                  count: upcomingToShow.length,
+                  isExpanded: _showUpcoming,
+                  onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
+                ),
+                tasks: upcomingToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key)).toList(),
+                isExpanded: _showUpcoming,
+                isEmpty: upcomingToShow.isEmpty,
+                emptyText: 'No upcoming tasks',
+              ),
+            ),
+
+            // ARCHIVE Section (Light grey box, vanishes if empty)
+            if (completedToShow.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: _buildSectionCard(
+                  header: _buildSectionHeader(
+                    title: 'ARCHIVE',
+                    count: completedToShow.length,
+                    isExpanded: _showCompleted,
+                    onToggle: () => setState(() => _showCompleted = !_showCompleted),
+                  ),
+                  tasks: completedToShow.asMap().entries.map((e) => _buildTaskItem(e.value, index: e.key, forcedCompleted: true)).toList(),
+                  isExpanded: _showCompleted,
+                  isEmpty: completedToShow.isEmpty,
+                  emptyText: 'No archived tasks',
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 14),
+          ],
         ],
       ),
     );
@@ -248,30 +254,31 @@ class _TasksCardState extends State<TasksCard> {
         header,
         if (isExpanded) ...[
           const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
+          if (isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Text(
+                emptyText,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF8E8E93),
+                ),
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E5EA)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: tasks,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Text(
-                      emptyText,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF636366),
-                      ),
-                    ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: tasks,
-                  ),
-          ),
         ],
       ],
     );
@@ -280,36 +287,30 @@ class _TasksCardState extends State<TasksCard> {
   Widget _buildSectionHeader({
     required String title,
     required int count,
-    required Color tagBgColor,
-    required Color tagTextColor,
-    required Color countBgColor,
-    required Color countTextColor,
     required bool isExpanded,
     required VoidCallback onToggle,
   }) {
     return GestureDetector(
       onTap: onToggle,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFFE5E5EA), width: 0.8),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: tagBgColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: tagTextColor,
-                  letterSpacing: 0.8,
-                ),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4F4F56),
+                letterSpacing: 0.6,
               ),
             ),
             Row(
@@ -318,22 +319,23 @@ class _TasksCardState extends State<TasksCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: countBgColor,
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFE0E0E6), width: 0.8),
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
-                      fontSize: 12.5,
+                    style: const TextStyle(
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w800,
-                      color: countTextColor,
+                      color: Color(0xFF4F4F56),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Icon(
                   isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
-                  size: 16,
+                  size: 15,
                   color: const Color(0xFF787880),
                 ),
               ],

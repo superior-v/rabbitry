@@ -30,6 +30,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
   final DatabaseService _db = DatabaseService();
   List<Rabbit> _bucks = [];
   List<Rabbit> _does = [];
+  List<Rabbit> _openDoes = [];
   Rabbit? _selectedBuck;
   Rabbit? _selectedDoe;
   DateTime _breedDate = DateTime.now();
@@ -63,10 +64,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
     final settings = SettingsService.instance;
     final bucks = await _db.getAvailableBucks();
     
-    List<Rabbit> openDoes = [];
-    if (widget.doe == null) {
-      openDoes = await _db.getOpenDoes();
-    }
+    final openDoes = await _db.getOpenDoes();
+    final allDoes = await _db.getAvailableDoes();
 
     Rabbit? preselectedBuck;
     DateTime preselectedDate = DateTime.now();
@@ -128,7 +127,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       _nestBoxDays = preselectedNestBox;
       _gestationDays = preselectedGestation;
       _bucks = bucks;
-      _does = openDoes;
+      _does = allDoes;
+      _openDoes = openDoes;
       _selectedBuck = preselectedBuck;
       _selectedDoe = widget.doe;
       _breedDate = preselectedDate;
@@ -279,7 +279,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                         _buildOutlinedField(
                           label: 'Breeding Notes',
                           controller: _breedingNotesController,
-                          maxLines: 1,
+                          keyboardType: TextInputType.multiline,
+                          minLines: 1,
+                          maxLines: 4,
+                          textInputAction: TextInputAction.newline,
                         ),
                       ],
                     ),
@@ -453,7 +456,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 16}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final isArchived = rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -502,13 +508,17 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
     String? hint,
     IconData? prefixIcon,
     TextInputType? keyboardType,
-    int maxLines = 1,
+    int? maxLines = 1,
+    int? minLines,
+    TextInputAction? textInputAction,
     Function(String)? onChanged,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      minLines: minLines,
+      textInputAction: textInputAction,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
       decoration: InputDecoration(
@@ -565,6 +575,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       context: context,
       title: 'Select Doe',
       rabbits: _does,
+      openRabbits: _openDoes,
+      openSectionTitle: 'OPEN DOES',
+      allSectionTitle: 'ALL OTHER DOES',
+      archivedSectionTitle: 'ARCHIVED DOES',
       selectedRabbit: _selectedDoe,
     );
     if (picked != null) {
@@ -579,6 +593,8 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       context: context,
       title: 'Select Buck',
       rabbits: _bucks,
+      allSectionTitle: 'ALL BUCKS',
+      archivedSectionTitle: 'ARCHIVED BUCKS',
       selectedRabbit: _selectedBuck,
     );
     if (picked != null) {

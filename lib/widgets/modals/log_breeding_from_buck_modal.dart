@@ -25,6 +25,7 @@ class LogBreedingFromBuckModal extends StatefulWidget {
 class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   final DatabaseService _db = DatabaseService();
   List<Rabbit> _does = [];
+  List<Rabbit> _openDoes = [];
   Rabbit? _selectedDoe;
   DateTime _breedDate = DateTime.now();
   bool _isLoading = true;
@@ -54,14 +55,15 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   Future<void> _loadData() async {
     await SettingsService.instance.init();
     final settings = SettingsService.instance;
-    final allRabbits = await _db.getAllRabbits();
-    final does = allRabbits.where((r) => r.type == RabbitType.doe && (r.status == RabbitStatus.open || r.status == RabbitStatus.resting)).toList();
+    final openDoes = await _db.getOpenDoes();
+    final allDoes = await _db.getAvailableDoes();
 
     setState(() {
       _palpationDays = settings.palpationDays;
       _nestBoxDays = settings.nestBoxDays;
       _gestationDays = settings.gestationDays;
-      _does = does;
+      _openDoes = openDoes;
+      _does = allDoes;
       _isLoading = false;
     });
   }
@@ -193,7 +195,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         _buildOutlinedField(
                           label: 'Breeding Notes',
                           controller: _breedingNotesController,
-                          maxLines: 1,
+                          keyboardType: TextInputType.multiline,
+                          minLines: 1,
+                          maxLines: 4,
+                          textInputAction: TextInputAction.newline,
                         ),
                       ],
                     ),
@@ -511,7 +516,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 16}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final isArchived = rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -559,13 +567,17 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
     String? hint,
     IconData? prefixIcon,
     TextInputType? keyboardType,
-    int maxLines = 1,
+    int? maxLines = 1,
+    int? minLines,
+    TextInputAction? textInputAction,
     Function(String)? onChanged,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      minLines: minLines,
+      textInputAction: textInputAction,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
       decoration: InputDecoration(
@@ -618,6 +630,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       context: context,
       title: 'Select Doe',
       rabbits: _does,
+      openRabbits: _openDoes,
+      openSectionTitle: 'OPEN DOES',
+      allSectionTitle: 'ALL OTHER DOES',
+      archivedSectionTitle: 'ARCHIVED DOES',
       selectedRabbit: _selectedDoe,
     );
     if (picked != null) {

@@ -119,10 +119,59 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
     }
   }
 
+  Widget _buildRabbitHeaderWidget() {
+    final isDoe = widget.rabbit.type == RabbitType.doe;
+    final isArchived = widget.rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+    final prefix = (widget.rabbit.breederPrefix ?? '').trim();
+    final name = widget.rabbit.name.trim();
+    final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
+            ? widget.rabbit.earNumber!.trim()
+            : (widget.rabbit.id.length >= 6 ? widget.rabbit.id.substring(0, 6) : widget.rabbit.id).trim())
+        .toUpperCase();
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (prefix.isNotEmpty)
+            TextSpan(
+              text: '$prefix ',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF787774),
+              ),
+            ),
+          TextSpan(
+            text: name,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: nameColor,
+            ),
+          ),
+          if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
+            TextSpan(
+              text: ' $ear',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -131,7 +180,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
       ),
       child: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,53 +191,48 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Color(0xFFE0E0E0),
+                    color: const Color(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Title
               Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Color(0xFF7B6BA0).withOpacity(0.1),
+                      color: const Color(0xFF7B6BA0).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.check_circle_outline,
                       color: Color(0xFF7B6BA0),
                       size: 24,
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Stop Quarantine',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Text(
-                          widget.rabbit.name,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF787774),
-                          ),
-                        ),
+                        const SizedBox(height: 2),
+                        _buildRabbitHeaderWidget(),
                       ],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
 
               // Current quarantine info
               if (widget.rabbit.quarantineReason != null || widget.rabbit.daysInQuarantineRemaining != null)
@@ -306,30 +350,32 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
               // Save button
               SizedBox(
                 width: double.infinity,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _stopQuarantine,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF7B6BA0),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFFE6BEFE),
+                    foregroundColor: const Color(0xFF4A3E6D),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isSaving
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
                           ),
                         )
-                      : Text(
+                      : const Text(
                           'Release from Quarantine',
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
                           ),
                         ),
                 ),

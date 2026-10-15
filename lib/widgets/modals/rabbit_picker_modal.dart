@@ -8,6 +8,10 @@ Future<Rabbit?> showRabbitPickerBottomSheet({
   required BuildContext context,
   required String title,
   required List<Rabbit> rabbits,
+  List<Rabbit>? openRabbits,
+  String? openSectionTitle,
+  String? allSectionTitle,
+  String? archivedSectionTitle,
   Rabbit? selectedRabbit,
   String? selectedRabbitId,
 }) {
@@ -18,6 +22,10 @@ Future<Rabbit?> showRabbitPickerBottomSheet({
     builder: (ctx) => RabbitPickerModal(
       title: title,
       rabbits: rabbits,
+      openRabbits: openRabbits,
+      openSectionTitle: openSectionTitle,
+      allSectionTitle: allSectionTitle,
+      archivedSectionTitle: archivedSectionTitle,
       selectedRabbitId: selectedRabbitId ?? selectedRabbit?.id,
     ),
   );
@@ -47,12 +55,20 @@ Future<List<Rabbit>?> showMultiRabbitPickerBottomSheet({
 class RabbitPickerModal extends StatefulWidget {
   final String title;
   final List<Rabbit> rabbits;
+  final List<Rabbit>? openRabbits;
+  final String? openSectionTitle;
+  final String? allSectionTitle;
+  final String? archivedSectionTitle;
   final String? selectedRabbitId;
 
   const RabbitPickerModal({
     Key? key,
     required this.title,
     required this.rabbits,
+    this.openRabbits,
+    this.openSectionTitle,
+    this.allSectionTitle,
+    this.archivedSectionTitle,
     this.selectedRabbitId,
   }) : super(key: key);
 
@@ -70,11 +86,11 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
     super.dispose();
   }
 
-  List<Rabbit> get _filteredRabbits {
-    List<Rabbit> list = widget.rabbits;
+  List<Rabbit> _filterAndSort(List<Rabbit> source) {
+    List<Rabbit> list = source;
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase().trim();
-      list = widget.rabbits.where((r) {
+      list = source.where((r) {
         final name = r.name.toLowerCase();
         final prefix = (r.breederPrefix ?? '').toLowerCase();
         final ear = (r.earNumber ?? '').toLowerCase();
@@ -93,9 +109,14 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
             location.contains(q);
       }).toList();
     } else {
-      list = List<Rabbit>.from(widget.rabbits);
+      list = List<Rabbit>.from(source);
     }
     list.sort((a, b) {
+      final aArchived = a.isArchived;
+      final bArchived = b.isArchived;
+      if (aArchived != bArchived) {
+        return aArchived ? 1 : -1;
+      }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
       final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
@@ -111,7 +132,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final isArchived = rabbit.isArchived;
+    final nameColor = isArchived
+        ? const Color(0xFF787774)
+        : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -155,8 +179,9 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
 
   @override
   Widget build(BuildContext context) {
-    final isDoeList = widget.rabbits.isNotEmpty && widget.rabbits.first.type == RabbitType.doe;
-    final filtered = _filteredRabbits;
+    final isDoeList = (widget.rabbits.isNotEmpty && widget.rabbits.first.type == RabbitType.doe) ||
+        (widget.openRabbits != null && widget.openRabbits!.isNotEmpty && widget.openRabbits!.first.type == RabbitType.doe) ||
+        widget.title.toLowerCase().contains('doe');
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -256,7 +281,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
 
           // List of rabbits
           Expanded(
-            child: widget.rabbits.isEmpty
+            child: widget.rabbits.isEmpty && (widget.openRabbits?.isEmpty ?? true)
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -281,83 +306,185 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                       ),
                     ),
                   )
-                : filtered.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            'No matches found for "$_searchQuery"',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF787774),
-                            ),
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final rabbit = filtered[index];
-                          final isSelected = rabbit.id == widget.selectedRabbitId;
-                          final details = <String>[];
-                          if (rabbit.breed.isNotEmpty) details.add(rabbit.breed);
-                          if ((rabbit.color ?? '').isNotEmpty) details.add(rabbit.color!);
-                          if ((rabbit.cage ?? '').isNotEmpty) details.add('Cage: ${rabbit.cage}');
-
-                          return InkWell(
-                            onTap: () => Navigator.pop(context, rabbit),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFF3E8FF) : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5E5EA),
-                                  width: isSelected ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        _buildRabbitNameWidget(rabbit, fontSize: 15),
-                                        if (details.isNotEmpty) ...[
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            details.join(' • '),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Color(0xFF787774),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check_circle_rounded,
-                                      color: Color(0xFF7B6BA0),
-                                      size: 22,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                : _buildSectionedList(isDoeList: isDoeList),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 8),
+      child: Center(
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF787774),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRabbitTile(Rabbit rabbit) {
+    final isSelected = rabbit.id == widget.selectedRabbitId;
+    final details = <String>[];
+    if (rabbit.breed.isNotEmpty) details.add(rabbit.breed);
+    if ((rabbit.color ?? '').isNotEmpty) details.add(rabbit.color!);
+    if ((rabbit.cage ?? '').isNotEmpty) details.add('Cage: ${rabbit.cage}');
+
+    return InkWell(
+      onTap: () => Navigator.pop(context, rabbit),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF3E8FF) : const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5E5EA),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRabbitNameWidget(rabbit, fontSize: 15),
+                  if (details.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      details.join(' • '),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF787774),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF7B6BA0),
+                size: 22,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionedList({required bool isDoeList}) {
+    final openIds = widget.openRabbits?.map((r) => r.id).toSet() ?? <String>{};
+    final filteredOpen = widget.openRabbits != null
+        ? _filterAndSort(widget.openRabbits!.where((r) => !r.isArchived).toList())
+        : <Rabbit>[];
+    final otherActive = widget.rabbits
+        .where((r) => !r.isArchived && !openIds.contains(r.id))
+        .toList();
+    final filteredActive = _filterAndSort(otherActive);
+    final archived = widget.rabbits.where((r) => r.isArchived).toList();
+    final filteredArchived = _filterAndSort(archived);
+
+    final totalCount = filteredOpen.length + filteredActive.length + filteredArchived.length;
+    if (totalCount == 0) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'No matches found for "$_searchQuery"',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF787774),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final String openTitle = widget.openSectionTitle ?? 'OPEN DOES';
+    final String allTitle = widget.allSectionTitle ??
+        ((widget.openRabbits != null && widget.openRabbits!.isNotEmpty)
+            ? 'ALL OTHER DOES'
+            : (isDoeList ? 'ALL DOES' : 'ALL BUCKS'));
+    final String archivedTitle = widget.archivedSectionTitle ??
+        (isDoeList ? 'ARCHIVED DOES' : 'ARCHIVED BUCKS');
+
+    final bool hasOpenSection = widget.openRabbits != null;
+    final bool hasArchivedSection = filteredArchived.isNotEmpty ||
+        (widget.rabbits.any((r) => r.isArchived) && _searchQuery.isEmpty);
+
+    final bool showAllHeader = hasOpenSection || hasArchivedSection || widget.allSectionTitle != null;
+
+    final children = <Widget>[];
+
+    // 1. OPEN SECTION
+    if (hasOpenSection) {
+      if (filteredOpen.isNotEmpty) {
+        children.add(_buildSectionHeader(openTitle));
+        for (final r in filteredOpen) {
+          children.add(Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildRabbitTile(r),
+          ));
+        }
+      } else if (_searchQuery.isEmpty) {
+        children.add(_buildSectionHeader(openTitle));
+        children.add(const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Center(
+            child: Text(
+              'No open does available',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF8E8E93),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ));
+      }
+    }
+
+    // 2. ALL OTHER DOES / ALL BUCKS SECTION
+    if (filteredActive.isNotEmpty) {
+      if (showAllHeader) {
+        children.add(_buildSectionHeader(allTitle));
+      }
+      for (final r in filteredActive) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildRabbitTile(r),
+        ));
+      }
+    }
+
+    // 3. ARCHIVED SECTION
+    if (filteredArchived.isNotEmpty) {
+      children.add(_buildSectionHeader(archivedTitle));
+      for (final r in filteredArchived) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildRabbitTile(r),
+        ));
+      }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+      children: children,
     );
   }
 }
@@ -421,6 +548,11 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
       list = List<Rabbit>.from(widget.rabbits);
     }
     list.sort((a, b) {
+      final aArchived = a.status == RabbitStatus.archived;
+      final bArchived = b.status == RabbitStatus.archived;
+      if (aArchived != bArchived) {
+        return aArchived ? 1 : -1;
+      }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
       final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
@@ -436,7 +568,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final isArchived = rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true

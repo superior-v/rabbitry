@@ -37,6 +37,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   final TextEditingController _farmNameController = TextEditingController();
   final TextEditingController _ownerNameController = TextEditingController();
   final TextEditingController _farmAddressController = TextEditingController();
+  final TextEditingController _farmAddressLine1Controller = TextEditingController();
+  final TextEditingController _farmAddressLine2Controller = TextEditingController();
+  final TextEditingController _farmStreetNameController = TextEditingController();
+  final TextEditingController _farmCityController = TextEditingController();
+  final TextEditingController _farmStateController = TextEditingController();
+  final TextEditingController _farmZipController = TextEditingController();
   final TextEditingController _farmPhoneController = TextEditingController();
   final TextEditingController _farmEmailController = TextEditingController();
 
@@ -198,6 +204,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _farmNameController.dispose();
     _ownerNameController.dispose();
     _farmAddressController.dispose();
+    _farmAddressLine1Controller.dispose();
+    _farmAddressLine2Controller.dispose();
+    _farmStreetNameController.dispose();
+    _farmCityController.dispose();
+    _farmStateController.dispose();
+    _farmZipController.dispose();
     _farmPhoneController.dispose();
     _farmEmailController.dispose();
     super.dispose();
@@ -244,7 +256,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         _ownerNameController.text = _settings.ownerName;
         _logoPath = loadedLogo;
         _farmAddressController.text = _settings.farmAddress;
-        _farmPhoneController.text = _settings.farmPhone;
+        _farmAddressLine1Controller.text = _settings.farmAddressLine1;
+        _farmAddressLine2Controller.text = _settings.farmAddressLine2;
+        _farmStreetNameController.text = _settings.farmStreetName;
+        _farmCityController.text = _settings.farmCity;
+        _farmStateController.text = _settings.farmState;
+        _farmZipController.text = _settings.farmZip;
+
+        if (_settings.farmAddressLine1.isEmpty &&
+            _settings.farmStreetName.isEmpty &&
+            _settings.farmCity.isEmpty &&
+            _settings.farmAddress.isNotEmpty) {
+          _farmAddressLine1Controller.text = _settings.farmAddress;
+        }
+
+        _farmPhoneController.text = FormatUtils.formatPhoneNumber(_settings.farmPhone, countryCode: 'usd');
         _farmEmailController.text = _settings.farmEmail;
 
         // Units and Formats
@@ -365,9 +391,29 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       } else {
         await _settings.removeFarmLogo();
       }
-      await _settings.setFarmAddress(_farmAddressController.text);
-      await _settings.setFarmPhone(_farmPhoneController.text);
-      await _settings.setFarmEmail(_farmEmailController.text);
+      final composedAddress = [
+        if (_farmAddressLine1Controller.text.trim().isNotEmpty) _farmAddressLine1Controller.text.trim(),
+        if (_farmAddressLine2Controller.text.trim().isNotEmpty) _farmAddressLine2Controller.text.trim(),
+        if (_farmCityController.text.trim().isNotEmpty) _farmCityController.text.trim(),
+        if (_farmStateController.text.trim().isNotEmpty && _farmZipController.text.trim().isNotEmpty)
+          '${_farmStateController.text.trim()} ${_farmZipController.text.trim()}'
+        else ...[
+          if (_farmStateController.text.trim().isNotEmpty) _farmStateController.text.trim(),
+          if (_farmZipController.text.trim().isNotEmpty) _farmZipController.text.trim(),
+        ],
+      ].join(', ');
+
+      await _settings.setFarmAddressLine1(_farmAddressLine1Controller.text.trim());
+      await _settings.setFarmAddressLine2(_farmAddressLine2Controller.text.trim());
+      await _settings.setFarmStreetName('');
+      await _settings.setFarmCity(_farmCityController.text.trim());
+      await _settings.setFarmState(_farmStateController.text.trim());
+      await _settings.setFarmZip(_farmZipController.text.trim());
+      await _settings.setFarmAddress(composedAddress);
+
+      final formattedPhone = FormatUtils.formatPhoneNumber(_farmPhoneController.text.trim(), countryCode: 'usd');
+      await _settings.setFarmPhone(formattedPhone);
+      await _settings.setFarmEmail(_farmEmailController.text.trim());
 
       // Units and Formats
       await _settings.setWeightUnit(weightUnit);
@@ -730,18 +776,47 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               description: 'Used for signature on birth certificates and pedigree.',
             ),
             _buildVerticalSetting(
-              'Farm Address',
+              'Address Line 1',
               _buildStandardTextField(
-                controller: _farmAddressController,
-                hintText: 'e.g. Amaranth, ON L9W 3Y4',
+                controller: _farmAddressLine1Controller,
+                hintText: 'e.g. 123 Farm Road',
               ),
-              description: 'Shown in the certificate footer.',
+            ),
+            _buildVerticalSetting(
+              'Address Line 2',
+              _buildStandardTextField(
+                controller: _farmAddressLine2Controller,
+                hintText: 'e.g. Suite 200, Unit B',
+              ),
+            ),
+            _buildVerticalSetting(
+              'City',
+              _buildStandardTextField(
+                controller: _farmCityController,
+                hintText: 'e.g. Amaranth',
+              ),
+            ),
+            _buildVerticalSetting(
+              'State / Province / Region',
+              _buildStandardTextField(
+                controller: _farmStateController,
+                hintText: 'e.g. Ontario / ON',
+              ),
+            ),
+            _buildVerticalSetting(
+              'Zip / Postal Code',
+              _buildStandardTextField(
+                controller: _farmZipController,
+                hintText: 'e.g. L9W 3Y4 or 90210',
+              ),
+              description: 'Address details are shown in certificates and pedigrees.',
             ),
             _buildVerticalSetting(
               'Farm Email',
               _buildStandardTextField(
                 controller: _farmEmailController,
                 hintText: 'e.g. contact@rabbitry.com',
+                keyboardType: TextInputType.emailAddress,
               ),
               description: 'Shown in the certificate footer.',
             ),
@@ -749,8 +824,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Farm Phone',
               _buildStandardTextField(
                 controller: _farmPhoneController,
-                hintText: 'e.g. (555) 123-4567',
+                hintText: 'xxx-xxx-xxxx',
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  PhoneNumberFormatter(countryCode: 'usd'),
+                ],
               ),
+              description: 'Formatted automatically as xxx-xxx-xxxx.',
             ),
             _buildVerticalSetting(
               'Logo',
@@ -909,10 +989,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildStandardTextField({required TextEditingController controller, required String hintText, TextInputType? keyboardType, int maxLines = 1}) {
+  Widget _buildStandardTextField({
+    required TextEditingController controller,
+    required String hintText,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLines: maxLines,
       style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
       decoration: InputDecoration(
@@ -1011,10 +1098,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   setState(() => palpationAutoTask = val);
                   _settings.setPalpationAutoTask(val);
                 },
-                actions: const [
-                  {'tag': 'Positive', 'desc': 'Move to Pregnant'},
-                  {'tag': 'Negative', 'desc': 'Move to Open'},
-                ],
               ),
               _buildPipelineStep(
                 'Nest Box',
@@ -1035,9 +1118,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   setState(() => nestBoxAutoTask = val);
                   _settings.setNestBoxAutoTask(val);
                 },
-                actions: [
-                  {'tag': 'Action', 'desc': 'Create Check Kits (Day $gestationDays)'},
-                ],
               ),
               _buildPipelineStep(
                 'Kindle (Birth)',
@@ -1054,9 +1134,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   setState(() => kindleAutoTask = val);
                   _settings.setKindleAutoTask(val);
                 },
-                actions: const [
-                  {'tag': 'Action', 'desc': 'Log Litter Count'},
-                ],
               ),
               _buildPipelineStep(
                 'Weaning',
@@ -1078,10 +1155,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   setState(() => weaningAutoTask = val);
                   _settings.setWeaningAutoTask(val);
                 },
-                actions: const [
-                  {'tag': 'Action', 'desc': 'Separate Kits & Doe'},
-                  {'tag': 'Action', 'desc': 'Promote to Grow-out'},
-                ],
               ),
               _buildPipelineStep(
                 'Rebreeding Day',
@@ -1089,9 +1162,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 dayValue: rebreedDays,
                 onDayChanged: (val) => setState(() => rebreedDays = val),
                 showScheduleDay: true,
-                actions: const [
-                  {'tag': 'Action', 'desc': 'Change Doe Status to OPEN'},
-                ],
               ),
               _buildPipelineStep(
                 'Active in Rabbitry',
@@ -1100,9 +1170,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onDayChanged: (val) => setState(() => matureAge = val),
                 dayUnit: 'weeks',
                 showScheduleDay: true,
-                actions: const [
-                  {'tag': 'Action', 'desc': 'Promote to Active Breeder'},
-                ],
                 isLast: true,
               ),
             ],
@@ -1160,13 +1227,39 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           'Task Management',
           PhosphorIconsDuotone.calendarCheck,
           [
-            _buildSubsectionHeader('SCHEDULED TASKS'),
+            _buildSubsectionHeader(
+              'SCHEDULED TASKS',
+              trailing: InkWell(
+                onTap: _cleanUpTasks,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(PhosphorIconsBold.broom, size: 12, color: kLilacDeep),
+                    SizedBox(width: 4),
+                    Text('Clean Up', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kLilacDeep)),
+                  ],
+                ),
+              ),
+            ),
             if (scheduledTasks.isEmpty)
               const Padding(padding: EdgeInsets.all(16), child: Center(child: Text("No schedules defined")))
             else
               ...scheduledTasks.map((s) => _buildScheduledTaskItem(s)),
             _buildAddListItem(_openScheduleModal),
-            _buildSubsectionHeader('ACTIVE PIPELINE'),
+            _buildSubsectionHeader(
+              'ACTIVE PIPELINE',
+              trailing: InkWell(
+                onTap: _cleanUpTasks,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(PhosphorIconsBold.broom, size: 12, color: kLilacDeep),
+                    SizedBox(width: 4),
+                    Text('Clean Up', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kLilacDeep)),
+                  ],
+                ),
+              ),
+            ),
             if (pipelineTasks.isEmpty)
               const Padding(padding: EdgeInsets.all(16), child: Center(child: Text("No pipeline tasks")))
             else
@@ -2633,21 +2726,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildSubsectionHeader(String title) {
+  Widget _buildSubsectionHeader(String title, {Widget? trailing}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: const BoxDecoration(
         color: kNeutral50,
       ),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF6E6E73),
-          letterSpacing: 0.8,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF6E6E73),
+              letterSpacing: 0.8,
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
       ),
     );
   }
@@ -2767,7 +2866,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 // ✅ NEW: Widget to render the fancy task row
 // ✅ UPDATED: Widget to render the task row with correct colors
   Widget _buildScheduledTaskItem(Map<String, dynamic> schedule) {
-    String linkType = schedule['linkType'];
+    String linkType = schedule['linkType'] ?? 'unlinked';
     Map<String, Color> colors = _getLinkColor(linkType);
 
     IconData badgeIcon;
@@ -2779,6 +2878,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       badgeIcon = PhosphorIconsBold.pawPrint;
     else
       badgeIcon = PhosphorIconsBold.linkBreak;
+
+    String entityLabel = '';
+    final entities = schedule['linkedEntities'];
+    if (entities is List && entities.isNotEmpty) {
+      final names = entities
+          .map((e) => (e is Map ? (e['name'] ?? e['id'] ?? '') : e.toString()).toString().trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.length == 1) {
+        entityLabel = names.first;
+      } else if (names.length > 1) {
+        entityLabel = '${names.length} items (${names.take(2).join(', ')}${names.length > 2 ? '...' : ''})';
+      }
+    }
 
     return InkWell(
       onTap: () => _showScheduleDetails(schedule),
@@ -2801,7 +2914,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(schedule['task'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56))),
-                  Text(schedule['frequency'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                  Row(
+                    children: [
+                      Text(schedule['frequency'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                      if (entityLabel.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        const Text('•', style: TextStyle(fontSize: 11, color: Color(0xFF8E8E93))),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            entityLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -2864,68 +2993,79 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         break;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: kNeutral100)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: const BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
-            child: Icon(taskIcon, size: 13, color: kLilacDeep),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        taskName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('PIPELINE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: kLilacDeep)),
-                    ),
-                  ],
-                ),
-                if (entityName.isNotEmpty || dueDateDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 1),
+    return InkWell(
+      onTap: () => _showPipelineTaskDetails(task),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: kNeutral100)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: const BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
+              child: Icon(taskIcon, size: 13, color: kLilacDeep),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
-                      if (entityName.isNotEmpty) ...[
-                        const Icon(PhosphorIconsRegular.rabbit, size: 11, color: Color(0xFF8E8E93)),
-                        const SizedBox(width: 3),
-                        Text(entityName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
-                        const SizedBox(width: 6),
-                      ],
-                      if (dueDateDisplay.isNotEmpty) ...[
-                        Icon(PhosphorIconsBold.calendar, size: 11, color: dueDateColor),
-                        const SizedBox(width: 3),
-                        Text(dueDateDisplay, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: dueDateColor)),
-                      ],
+                      Flexible(
+                        child: Text(
+                          taskName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(4)),
+                        child: const Text('PIPELINE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: kLilacDeep)),
+                      ),
                     ],
                   ),
+                  if (entityName.isNotEmpty || dueDateDisplay.isNotEmpty) ...[
+                    const SizedBox(height: 1),
+                    Row(
+                      children: [
+                        if (entityName.isNotEmpty) ...[
+                          const Icon(PhosphorIconsRegular.rabbit, size: 11, color: Color(0xFF8E8E93)),
+                          const SizedBox(width: 3),
+                          Text(entityName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                          const SizedBox(width: 6),
+                        ],
+                        if (dueDateDisplay.isNotEmpty) ...[
+                          Icon(PhosphorIconsBold.calendar, size: 11, color: dueDateColor),
+                          const SizedBox(width: 3),
+                          Text(dueDateDisplay, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: dueDateColor)),
+                        ],
+                      ],
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-            decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(4)),
-            child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(4)),
+              child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(PhosphorIconsBold.trash, size: 14, color: Color(0xFF94A3B8)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: 'Remove task',
+              onPressed: () => _deletePipelineTask(task['id'].toString()),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3603,19 +3743,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Define New $category Task'),
-        content: TextField(
+      builder: (context) => BrightPurpleDialog(
+        headerColor: const Color(0xFFE2BFFB),
+        borderColor: const Color(0xFFE2BFFB),
+        title: 'Define New $category Task',
+        contentWidget: TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Enter task name',
+            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
             ),
           ),
           autofocus: true,
@@ -3624,24 +3772,34 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
           ),
-          TextButton(
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
                 await _db.insertTaskDirectoryItem(controller.text.trim(), category);
                 await _loadTaskDirectory();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Task added to $category directory'),
-                    backgroundColor: Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Task added to $category directory'),
+                      backgroundColor: kLilacDeep,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               }
             },
-            child: Text('Add', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE6BEFE),
+              foregroundColor: const Color(0xFF4A3E6D),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Add', style: TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),
@@ -4699,13 +4857,160 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         scheduledTasks = updatedTasks;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Schedule deleted'), backgroundColor: Color(0xFF7B6BA0)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Schedule deleted'), backgroundColor: Color(0xFF7B6BA0)),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting schedule: $e'), backgroundColor: Color(0xFFD44C47)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting schedule: $e'), backgroundColor: Color(0xFFD44C47)),
+        );
+      }
+    }
+  }
+
+  void _deletePipelineTask(String id) async {
+    try {
+      await _db.deleteTask(id);
+      final updated = await _db.getAllPipelineTasks();
+      setState(() {
+        pipelineTasks = updated;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pipeline task removed'), backgroundColor: Color(0xFF7B6BA0)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error removing task: $e'), backgroundColor: Color(0xFFD44C47)),
+        );
+      }
+    }
+  }
+
+  void _showPipelineTaskDetails(Map<String, dynamic> task) {
+    final entityName = task['rabbitName'] ?? task['litterName'] ?? '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              task['task'] ?? task['name'] ?? 'Pipeline Task',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Category: ${task['category'] ?? 'Reproduction'} • Auto-generated Pipeline',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            if (entityName.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    const Icon(PhosphorIconsBold.rabbit, size: 16, color: Color(0xFF7B6BA0)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Linked Entity: $entityName',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    ),
+                  ],
+                ),
+              ),
+            if (task['dueDate'] != null)
+              Row(
+                children: [
+                  const Icon(PhosphorIconsBold.calendar, size: 16, color: Color(0xFF7B6BA0)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Due Date: ${task['dueDate']}',
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _deletePipelineTask(task['id'].toString());
+                    },
+                    icon: const Icon(PhosphorIconsBold.trash, size: 18, color: Colors.white),
+                    label: const Text('Remove Task'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _cleanUpTasks() async {
+    try {
+      final schedRemoved = await _db.cleanupDuplicateScheduledTasks();
+      final pipeRemoved = await _db.cleanupStalePipelineTasks();
+      final updatedScheduled = await _db.getAllScheduledTasks();
+      final updatedPipeline = await _db.getAllPipelineTasks();
+      setState(() {
+        scheduledTasks = updatedScheduled;
+        pipelineTasks = updatedPipeline;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cleaned up $schedRemoved duplicate schedule(s) and $pipeRemoved stale pipeline task(s)'),
+            backgroundColor: const Color(0xFF7B6BA0),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cleaning up tasks: $e'), backgroundColor: const Color(0xFFD44C47)),
+        );
+      }
     }
   }
 
@@ -4894,13 +5199,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Edit $category Task', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF4A3E6D))),
-        content: TextField(
+      builder: (context) => BrightPurpleDialog(
+        headerColor: const Color(0xFFE2BFFB),
+        borderColor: const Color(0xFFE2BFFB),
+        title: 'Edit $category Task',
+        contentWidget: TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Enter task name',
+            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -4912,7 +5219,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
             ),
           ),
           autofocus: true,
@@ -4921,9 +5228,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
           ),
-          TextButton(
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty) {
@@ -4941,7 +5249,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 }
               }
             },
-            child: const Text('Save', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE6BEFE),
+              foregroundColor: const Color(0xFF4A3E6D),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Save', style: TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),

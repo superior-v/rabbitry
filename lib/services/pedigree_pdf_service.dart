@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../widgets/pedigree_layout.dart';
@@ -41,11 +39,24 @@ class PedigreePdfService {
     }
 
     // ─── 4. Build Document Page ───────────────────────────────────────────────
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.letter.landscape,
-        margin: pw.EdgeInsets.zero,
-        build: (pw.Context context) {
+    if (data.isPortrait) {
+      pdf.addPage(
+        _buildPortraitPdfPage(
+          data: data,
+          logoImage: logoImage,
+          fontTitle: fontTitle,
+          fontDetails: fontDetails,
+          fontDetailsBold: fontDetailsBold,
+          fontSignature: fontSignature,
+          subjectPhoto: subjectPhoto,
+        ),
+      );
+    } else {
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.letter.landscape,
+          margin: pw.EdgeInsets.zero,
+          build: (pw.Context context) {
           final double W = PdfPageFormat.letter.landscape.width;
           final double H = PdfPageFormat.letter.landscape.height;
 
@@ -315,8 +326,564 @@ class PedigreePdfService {
         },
       ),
     );
+    }
 
     return pdf.save();
+  }
+
+  // ─── PORTRAIT PDF PAGE BUILDER ──────────────────────────────────────────────
+  static pw.Page _buildPortraitPdfPage({
+    required PedigreeData data,
+    required pw.MemoryImage logoImage,
+    required pw.Font fontTitle,
+    required pw.Font fontDetails,
+    required pw.Font fontDetailsBold,
+    required pw.Font fontSignature,
+    required pw.MemoryImage? subjectPhoto,
+  }) {
+    return pw.Page(
+      pageFormat: PdfPageFormat.letter.portrait,
+      margin: pw.EdgeInsets.zero,
+      build: (pw.Context context) {
+        double farmTitleSize = 30.0;
+        if (data.farmName.length > 20) {
+          farmTitleSize = (farmTitleSize * 20 / data.farmName.length).clamp(18.0, 30.0);
+        }
+
+        final tree = data.tree;
+
+        return pw.Stack(
+          children: [
+            // White background
+            pw.Positioned.fill(
+              child: pw.Container(color: PdfColors.white),
+            ),
+
+            // Farm Title
+            pw.Positioned(
+              left: 16.0,
+              top: 18.0,
+              child: pw.SizedBox(
+                width: 380.0,
+                height: 44.0,
+                child: pw.Align(
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text(
+                    data.farmName,
+                    style: pw.TextStyle(
+                      font: fontTitle,
+                      fontSize: farmTitleSize,
+                      color: PedigreeLayout.pdfColorHeaderTitle,
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ),
+
+            // Farm Contact Line
+            pw.Positioned(
+              left: 16.0,
+              top: 62.0,
+              child: pw.SizedBox(
+                width: 480.0,
+                height: 18.0,
+                child: pw.Align(
+                  alignment: pw.Alignment.centerLeft,
+                  child: pw.Text(
+                    [
+                      if (data.farmAddress.isNotEmpty) data.farmAddress,
+                      if (data.farmEmail.isNotEmpty) data.farmEmail,
+                      if (data.farmPhone.isNotEmpty) data.farmPhone,
+                    ].join('  •  '),
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: 10.0,
+                      color: PedigreeLayout.pdfColorHeaderContact,
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ),
+
+            // Bunny Logo Image
+            pw.Positioned(
+              left: 520.0,
+              top: 16.0,
+              child: pw.SizedBox(
+                width: 76.0,
+                height: 66.0,
+                child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+              ),
+            ),
+
+            // Header Separator Line
+            pw.Positioned(
+              left: 16.0,
+              top: 86.0,
+              child: pw.Container(
+                width: 580.0,
+                height: 0.8,
+                color: PedigreeLayout.pdfColorHeaderUnderline,
+              ),
+            ),
+
+            // Subject Box
+            pw.Positioned(
+              left: 16.0,
+              top: 96.0,
+              child: pw.Container(
+                width: 390.0,
+                height: 126.0,
+                decoration: const pw.BoxDecoration(
+                  color: PedigreeLayout.pdfColorSubjectBoxBg,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(8.0)),
+                ),
+                padding: const pw.EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+                  children: [
+                    pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Subject: ',
+                            style: pw.TextStyle(
+                              font: fontDetailsBold,
+                              fontSize: 13.0,
+                              color: PedigreeLayout.pdfColorSubjectText,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: data.subjectName,
+                            style: pw.TextStyle(
+                              font: fontDetailsBold,
+                              fontSize: 13.0,
+                              color: PedigreeLayout.pdfColorSubjectText,
+                            ),
+                          ),
+                          if (data.subjectBreed.isNotEmpty)
+                            pw.TextSpan(
+                              text: ' (${data.subjectBreed})',
+                              style: pw.TextStyle(
+                                font: fontDetails,
+                                fontSize: 12.0,
+                                color: PedigreeLayout.pdfColorSubjectText,
+                              ),
+                            ),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                    _buildPortraitPdfSubjectRow(fontDetails, fontDetailsBold, 'Color:', data.subjectColor, 'Sex:', data.subjectSex),
+                    _buildPortraitPdfSubjectRow(fontDetails, fontDetailsBold, 'DOB:', data.subjectDob, 'Ear No.:', data.subjectEarNo),
+                    _buildPortraitPdfSubjectRow(fontDetails, fontDetailsBold, 'Weight:', data.subjectWeight, 'Reg No.:', data.subjectRegNo),
+                    _buildPortraitPdfSubjectRow(fontDetails, fontDetailsBold, 'Legs:', data.subjectLegs, '', ''),
+                  ],
+                ),
+              ),
+            ),
+
+            // Subject Photo Box
+            pw.Positioned(
+              left: 416.0,
+              top: 96.0,
+              child: pw.Container(
+                width: 180.0,
+                height: 126.0,
+                decoration: pw.BoxDecoration(
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8.0)),
+                  border: pw.Border.all(
+                    color: PedigreeLayout.pdfColorSubjectPhotoOutline,
+                    width: 1.5,
+                  ),
+                  color: subjectPhoto == null ? const PdfColor.fromInt(0x0A000000) : null,
+                ),
+                child: subjectPhoto != null
+                    ? pw.ClipRRect(
+                        horizontalRadius: 8.0,
+                        verticalRadius: 8.0,
+                        child: pw.Image(subjectPhoto, fit: pw.BoxFit.cover),
+                      )
+                    : pw.Center(
+                        child: pw.Text(
+                          'No Photo',
+                          style: pw.TextStyle(
+                            font: fontDetails,
+                            fontSize: 10.0,
+                            color: PedigreeLayout.pdfColorSubjectPhotoOutline,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+
+            // ─── Ancestor Cards (Sire Top Half) ───────────────────────
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 1, 'Sire', true, 16.0, 234.0, 178.0, 226.0, tree?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 2, 'G.Sire', true, 202.0, 234.0, 186.0, 108.0, tree?.sire?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 2, 'G.Dam', false, 202.0, 352.0, 186.0, 108.0, tree?.sire?.dam),
+
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, 396.0, 234.0, 200.0, 50.0, tree?.sire?.sire?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, 396.0, 292.0, 200.0, 50.0, tree?.sire?.sire?.dam),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, 396.0, 352.0, 200.0, 50.0, tree?.sire?.dam?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, 396.0, 410.0, 200.0, 50.0, tree?.sire?.dam?.dam),
+
+            // ─── Ancestor Cards (Dam Bottom Half) ─────────────────────
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 1, 'Dam', false, 16.0, 480.0, 178.0, 226.0, tree?.dam),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 2, 'G.Sire', true, 202.0, 480.0, 186.0, 108.0, tree?.dam?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 2, 'G.Dam', false, 202.0, 598.0, 186.0, 108.0, tree?.dam?.dam),
+
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, 396.0, 480.0, 200.0, 50.0, tree?.dam?.sire?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, 396.0, 538.0, 200.0, 50.0, tree?.dam?.sire?.dam),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, 396.0, 598.0, 200.0, 50.0, tree?.dam?.dam?.sire),
+            ..._buildPortraitPdfCard(fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, 396.0, 656.0, 200.0, 50.0, tree?.dam?.dam?.dam),
+
+            // ─── Footer ───────────────────────────────────────────────
+            pw.Positioned(
+              left: 16.0,
+              top: 722.0,
+              child: pw.Text(
+                'I hereby certify this pedigree is correct to the best of my knowledge.',
+                style: pw.TextStyle(
+                  font: fontDetails,
+                  fontSize: 9.0,
+                  color: PedigreeLayout.pdfColorFooterCertify,
+                ),
+              ),
+            ),
+            pw.Positioned(
+              left: 16.0,
+              top: 760.0,
+              child: pw.Container(
+                width: 180.0,
+                height: 0.75,
+                color: PedigreeLayout.pdfColorHeaderUnderline,
+              ),
+            ),
+            if (data.ownerName.trim().isNotEmpty)
+              pw.Positioned(
+                left: 18.0,
+                top: 738.0,
+                child: pw.Text(
+                  data.ownerName.trim(),
+                  style: pw.TextStyle(
+                    font: fontSignature,
+                    fontSize: 18.0,
+                    color: PedigreeLayout.pdfColorFooterSignature,
+                  ),
+                ),
+              ),
+            if (data.farmPhone.trim().isNotEmpty)
+              pw.Positioned(
+                left: 450.0,
+                top: 742.0,
+                child: pw.Text(
+                  'Tel: ${data.farmPhone.trim()}',
+                  style: pw.TextStyle(
+                    font: fontDetails,
+                    fontSize: 10.0,
+                    color: PedigreeLayout.pdfColorFooterPhone,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  static pw.Widget _buildPortraitPdfSubjectRow(
+    pw.Font fontDetails,
+    pw.Font fontDetailsBold,
+    String label1,
+    String val1,
+    String label2,
+    String val2,
+  ) {
+    return pw.Row(
+      children: [
+        pw.Expanded(
+          flex: 6,
+          child: pw.RichText(
+            text: pw.TextSpan(
+              children: [
+                pw.TextSpan(
+                  text: '$label1 ',
+                  style: pw.TextStyle(
+                    font: fontDetailsBold,
+                    fontSize: 10.0,
+                    color: PedigreeLayout.pdfColorSubjectText,
+                  ),
+                ),
+                pw.TextSpan(
+                  text: val1,
+                  style: pw.TextStyle(
+                    font: fontDetails,
+                    fontSize: 10.0,
+                    color: PedigreeLayout.pdfColorSubjectText,
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+          ),
+        ),
+        if (label2.isNotEmpty)
+          pw.Expanded(
+            flex: 5,
+            child: pw.RichText(
+              text: pw.TextSpan(
+                children: [
+                  pw.TextSpan(
+                    text: '$label2 ',
+                    style: pw.TextStyle(
+                      font: fontDetailsBold,
+                      fontSize: 10.0,
+                      color: PedigreeLayout.pdfColorSubjectText,
+                    ),
+                  ),
+                  pw.TextSpan(
+                    text: val2,
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: 10.0,
+                      color: PedigreeLayout.pdfColorSubjectText,
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+            ),
+          )
+        else
+          pw.Spacer(flex: 5),
+      ],
+    );
+  }
+
+  static List<pw.Widget> _buildPortraitPdfCard(
+    pw.Font font,
+    pw.Font fontBold,
+    int generation,
+    String role,
+    bool isSireSide,
+    double left,
+    double top,
+    double width,
+    double height,
+    PedigreeRabbit? rabbit,
+  ) {
+    final String name = rabbit?.name ?? '';
+    final String color = rabbit?.color ?? '';
+    final String dob = rabbit?.dateOfBirth != null
+        ? FormatUtils.formatCertificateDate(rabbit!.dateOfBirth)
+        : '';
+    final String wt = _formatCardWeight(rabbit?.weight);
+    final String earNo = rabbit?.earNumber ?? '';
+    final String legs = (rabbit?.legs != null && rabbit!.legs! > 0)
+        ? '${rabbit.legs}'
+        : '';
+
+    final double titleSize = generation == 1
+        ? 11.5
+        : (generation == 2 ? 9.5 : 8.0);
+    final double textSize = generation == 1
+        ? 10.5
+        : (generation == 2 ? 8.5 : 7.0);
+
+    return [
+      pw.Positioned(
+        left: left,
+        top: top,
+        child: pw.Container(
+          width: width,
+          height: height,
+          decoration: pw.BoxDecoration(
+            color: isSireSide
+                ? PedigreeLayout.pdfColorSireCardBg
+                : PedigreeLayout.pdfColorDamCardBg,
+            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6.0)),
+          ),
+          padding: pw.EdgeInsets.symmetric(
+            horizontal: 6.0,
+            vertical: (generation == 3 ? 3.0 : 6.0),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+            children: [
+              // Role & Name
+              pw.RichText(
+                text: pw.TextSpan(
+                  children: [
+                    pw.TextSpan(
+                      text: '$role: ',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: titleSize,
+                        color: PedigreeLayout.pdfColorCardText,
+                      ),
+                    ),
+                    pw.TextSpan(
+                      text: name,
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: titleSize,
+                        color: PedigreeLayout.pdfColorCardText,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+              ),
+
+              // Color
+              pw.RichText(
+                text: pw.TextSpan(
+                  children: [
+                    pw.TextSpan(
+                      text: 'Color: ',
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: textSize,
+                        color: PedigreeLayout.pdfColorCardText,
+                      ),
+                    ),
+                    pw.TextSpan(
+                      text: color,
+                      style: pw.TextStyle(
+                        font: font,
+                        fontSize: textSize,
+                        color: PedigreeLayout.pdfColorCardText,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+              ),
+
+              // DOB & Wt
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    flex: 6,
+                    child: pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'DOB: ',
+                            style: pw.TextStyle(
+                              font: fontBold,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: dob,
+                            style: pw.TextStyle(
+                              font: font,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 5,
+                    child: pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Wt: ',
+                            style: pw.TextStyle(
+                              font: fontBold,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: wt,
+                            style: pw.TextStyle(
+                              font: font,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Ear No. & Legs
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    flex: 6,
+                    child: pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Ear No.: ',
+                            style: pw.TextStyle(
+                              font: fontBold,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: earNo,
+                            style: pw.TextStyle(
+                              font: font,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 5,
+                    child: pw.RichText(
+                      text: pw.TextSpan(
+                        children: [
+                          pw.TextSpan(
+                            text: 'Legs: ',
+                            style: pw.TextStyle(
+                              font: fontBold,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                          pw.TextSpan(
+                            text: legs,
+                            style: pw.TextStyle(
+                              font: font,
+                              fontSize: textSize,
+                              color: PedigreeLayout.pdfColorCardText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
   }
 
   // ─── SUBJECT ROW BUILDERS ───────────────────────────────────────────────────

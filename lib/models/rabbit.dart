@@ -27,6 +27,7 @@ enum ArchiveReason {
   butchered,
   dead,
   cull,
+  stud,
 }
 
 extension ArchiveReasonExtension on ArchiveReason {
@@ -40,6 +41,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return 'DEAD';
       case ArchiveReason.cull:
         return 'CULL';
+      case ArchiveReason.stud:
+        return 'STUD';
     }
   }
 
@@ -53,6 +56,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return const Color(0xFF2C2C2C); // Black
       case ArchiveReason.cull:
         return const Color(0xFFE63946); // Red
+      case ArchiveReason.stud:
+        return const Color(0xFF1976D2); // Blue
     }
   }
 
@@ -66,6 +71,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return const Color(0xFFE8E8E8);
       case ArchiveReason.cull:
         return const Color(0xFFFFEBEC);
+      case ArchiveReason.stud:
+        return const Color(0xFFE3F2FD);
     }
   }
 }
@@ -143,6 +150,18 @@ class Rabbit {
   DateTime? acquiredDate;
   final String? deathCause;
 
+  // Purchase Details fields
+  String? seller;
+  String? purchaseRabbitry;
+  double? purchaseCost;
+  DateTime? purchaseDate;
+
+  bool get hasPurchaseDetails =>
+      (seller != null && seller!.isNotEmpty) ||
+      (purchaseRabbitry != null && purchaseRabbitry!.isNotEmpty) ||
+      purchaseCost != null ||
+      purchaseDate != null;
+
   // For CULL status
   final String? cullReason;
 
@@ -211,6 +230,10 @@ class Rabbit {
     this.grandChampionNumber,
     this.grandChampionLegs,
     this.activeInRabbitry = true,
+    this.seller,
+    this.purchaseRabbitry,
+    this.purchaseCost,
+    this.purchaseDate,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -265,6 +288,11 @@ class Rabbit {
         return 'Archived';
     }
   }
+
+  bool get isArchived =>
+      status == RabbitStatus.archived ||
+      archiveDate != null ||
+      archiveReason != null;
 
   String get fullName {
     final prefix = breederPrefix?.trim();
@@ -433,6 +461,10 @@ class Rabbit {
       'grandChampionNumber': grandChampionNumber,
       'grandChampionLegs': grandChampionLegs,
       'activeInRabbitry': activeInRabbitry ? 1 : 0,
+      'seller': seller,
+      'purchaseRabbitry': purchaseRabbitry,
+      'purchaseCost': purchaseCost,
+      'purchaseDate': purchaseDate?.toIso8601String(),
     };
   }
 
@@ -445,10 +477,20 @@ class Rabbit {
         orElse: () => map['type'] == 'RabbitType.pedigree' ? RabbitType.pedigree : RabbitType.doe,
       ),
       status: () {
+        final st = (map['status'] as String? ?? '').toLowerCase();
+        if (map['archiveDate'] != null ||
+            map['archiveReason'] != null ||
+            st.contains('archive') ||
+            st.contains('dead') ||
+            st.contains('died') ||
+            st.contains('cull') ||
+            st.contains('sold') ||
+            st.contains('butcher')) {
+          return RabbitStatus.archived;
+        }
         return RabbitStatus.values.firstWhere(
           (e) => e.toString() == map['status'] || e.name == map['status'],
           orElse: () {
-            final st = (map['status'] as String? ?? '').toLowerCase();
             if (st.contains('pregnant') || st == 'bred') return RabbitStatus.pregnant;
             if (st.contains('palpate')) return RabbitStatus.palpateDue;
             if (st.contains('nursing')) return RabbitStatus.nursing;
@@ -457,8 +499,6 @@ class Rabbit {
             if (st.contains('inactive')) return RabbitStatus.inactive;
             if (st.contains('growout') || st.contains('grow out')) return RabbitStatus.growout;
             if (st.contains('quarantine')) return RabbitStatus.quarantine;
-            if (st.contains('archived') || st.contains('dead') || st.contains('died') || st.contains('cull') || st.contains('sold') || st.contains('butcher')) return RabbitStatus.archived;
-            if (map['archiveDate'] != null || map['archiveReason'] != null) return RabbitStatus.archived;
             return RabbitStatus.open;
           },
         );
@@ -510,6 +550,9 @@ class Rabbit {
         if (rawLower.contains('sold') || rawLower.contains('sale')) {
           return ArchiveReason.sold;
         }
+        if (rawLower.contains('stud')) {
+          return ArchiveReason.stud;
+        }
         return ArchiveReason.values.firstWhere(
           (e) => e.toString() == raw || e.name == raw || e.name.toLowerCase() == rawLower,
           orElse: () => ArchiveReason.dead,
@@ -537,6 +580,10 @@ class Rabbit {
       grandChampionNumber: map['grandChampionNumber'],
       grandChampionLegs: map['grandChampionLegs'] as int?,
       activeInRabbitry: map['activeInRabbitry'] == 1 || map['activeInRabbitry'] == null,
+      seller: map['seller'] as String?,
+      purchaseRabbitry: map['purchaseRabbitry'] as String?,
+      purchaseCost: map['purchaseCost'] != null ? (map['purchaseCost'] as num).toDouble() : null,
+      purchaseDate: map['purchaseDate'] != null ? DateTime.parse(map['purchaseDate']) : null,
     );
   }
 
@@ -595,6 +642,10 @@ class Rabbit {
     String? grandChampionNumber,
     int? grandChampionLegs,
     bool? activeInRabbitry,
+    String? seller,
+    String? purchaseRabbitry,
+    double? purchaseCost,
+    DateTime? purchaseDate,
   }) {
     return Rabbit(
       id: id,
@@ -655,6 +706,10 @@ class Rabbit {
       grandChampionNumber: grandChampionNumber ?? this.grandChampionNumber,
       grandChampionLegs: grandChampionLegs ?? this.grandChampionLegs,
       activeInRabbitry: activeInRabbitry ?? this.activeInRabbitry,
+      seller: seller ?? this.seller,
+      purchaseRabbitry: purchaseRabbitry ?? this.purchaseRabbitry,
+      purchaseCost: purchaseCost ?? this.purchaseCost,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
     );
   }
 }

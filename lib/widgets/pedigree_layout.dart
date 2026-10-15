@@ -6,16 +6,27 @@ import '../services/database_service.dart';
 import '../services/settings_service.dart';
 import '../services/format_utils.dart';
 
+/// 2 Pedigree orientation options
+enum PedigreeOrientation {
+  landscape,
+  portrait,
+}
+
 /// Centralized layout specification for Pedigree PDF and Flutter Preview.
 /// All positions, widths, and heights are defined as fractions of page width (W) and height (H).
-/// Page size is US Letter Landscape: 792 x 612 pt.
+/// Page size is US Letter Landscape: 792 x 612 pt, or US Letter Portrait: 612 x 792 pt.
 class PedigreeLayout {
   PedigreeLayout._();
 
-  // ─── PAGE DIMENSIONS ────────────────────────────────────────────────────────
+  // ─── PAGE DIMENSIONS (Landscape) ──────────────────────────────────────────
   static const double pageWidthPt = 792.0;
   static const double pageHeightPt = 612.0;
   static const double aspectRatio = 792.0 / 612.0;
+
+  // ─── PAGE DIMENSIONS (Portrait) ───────────────────────────────────────────
+  static const double portraitPageWidthPt = 612.0;
+  static const double portraitPageHeightPt = 792.0;
+  static const double portraitAspectRatio = 612.0 / 792.0;
 
   // ─── ASSET PATHS ────────────────────────────────────────────────────────────
   static const String logoAsset = 'assets/images/bunny_pedigree_logo.png';
@@ -225,6 +236,9 @@ class PedigreeData {
   // 4-Generation Pedigree Tree Root
   final PedigreeRabbit? tree;
 
+  // Orientation
+  final PedigreeOrientation orientation;
+
   const PedigreeData({
     required this.farmName,
     required this.farmAddress,
@@ -242,13 +256,57 @@ class PedigreeData {
     required this.subjectLegs,
     this.subjectPhotoPath,
     this.tree,
+    this.orientation = PedigreeOrientation.landscape,
   });
+
+  bool get isPortrait => orientation == PedigreeOrientation.portrait;
+
+  PedigreeData copyWith({
+    String? farmName,
+    String? farmAddress,
+    String? farmEmail,
+    String? farmPhone,
+    String? ownerName,
+    String? subjectName,
+    String? subjectBreed,
+    String? subjectColor,
+    String? subjectSex,
+    String? subjectDob,
+    String? subjectEarNo,
+    String? subjectWeight,
+    String? subjectRegNo,
+    String? subjectLegs,
+    String? subjectPhotoPath,
+    PedigreeRabbit? tree,
+    PedigreeOrientation? orientation,
+  }) {
+    return PedigreeData(
+      farmName: farmName ?? this.farmName,
+      farmAddress: farmAddress ?? this.farmAddress,
+      farmEmail: farmEmail ?? this.farmEmail,
+      farmPhone: farmPhone ?? this.farmPhone,
+      ownerName: ownerName ?? this.ownerName,
+      subjectName: subjectName ?? this.subjectName,
+      subjectBreed: subjectBreed ?? this.subjectBreed,
+      subjectColor: subjectColor ?? this.subjectColor,
+      subjectSex: subjectSex ?? this.subjectSex,
+      subjectDob: subjectDob ?? this.subjectDob,
+      subjectEarNo: subjectEarNo ?? this.subjectEarNo,
+      subjectWeight: subjectWeight ?? this.subjectWeight,
+      subjectRegNo: subjectRegNo ?? this.subjectRegNo,
+      subjectLegs: subjectLegs ?? this.subjectLegs,
+      subjectPhotoPath: subjectPhotoPath ?? this.subjectPhotoPath,
+      tree: tree ?? this.tree,
+      orientation: orientation ?? this.orientation,
+    );
+  }
 
   /// Builds a complete PedigreeData structure with 4 generations from a Rabbit model
   static Future<PedigreeData> fromRabbit(
     Rabbit rabbit, {
     DatabaseService? db,
     SettingsService? settings,
+    PedigreeOrientation orientation = PedigreeOrientation.landscape,
   }) async {
     final database = db ?? DatabaseService();
     final appSettings = settings ?? SettingsService.instance;
@@ -287,6 +345,7 @@ class PedigreeData {
       subjectLegs: legs,
       subjectPhotoPath: photo,
       tree: tree,
+      orientation: orientation,
     );
   }
 }

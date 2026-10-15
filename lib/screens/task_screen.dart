@@ -26,6 +26,7 @@ const kPrimary = kLilacDeep;
 const kSuccess = Color(0xFF4CAF50);
 const kError = Color(0xFFD94452);
 const kTaskHeaderPurple = Color(0xFFE6BEFE);
+const kTaskPageBg = Color(0xFFEEDAFF); // Lilac purple page background matching TaskColor+notepad.jpg
 
 class TaskScreen extends StatefulWidget {
   final VoidCallback? onScheduleAdded;
@@ -38,6 +39,8 @@ class TaskScreen extends StatefulWidget {
 class TaskScreenState extends State<TaskScreen> {
   final DatabaseService _db = DatabaseService();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _notePadController = TextEditingController();
+  bool _isSavingNotes = false;
 
   void scrollToTop() {
     if (_scrollController.hasClients) {
@@ -48,11 +51,13 @@ class TaskScreenState extends State<TaskScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _notePadController.dispose();
     super.dispose();
   }
 
-  String _selectedCategory = 'All'; // Matches the tabs in tasks.html
+  String _selectedCategory = 'Task'; // Matches top grey bar: Task, Breeding Plan, Wait List, Note Pad, Contacts
   String _breedFilter = 'All';
+  String _taskCategoryFilter = 'All';
   String _searchQuery = '';
   Set<int> _ignoredTasks = {};
   Set<String> _expandedGroups = {};
@@ -72,12 +77,16 @@ class TaskScreenState extends State<TaskScreen> {
   int _growOutCount = 0;
   List<Map<String, dynamic>> _contacts = [];
   List<Map<String, dynamic>> _breedingPlans = [];
+  List<Map<String, dynamic>> _waitlist = [];
+  List<Rabbit> _allDoes = [];
+  Map<String, DateTime> _doeAvailableDateMap = {};
   Map<String, String> _rabbitNameMap = {};
   Map<String, Rabbit> _rabbitMap = {};
 
   @override
   void initState() {
     super.initState();
+    _notePadController.text = SettingsService.instance.taskNotes;
     _initTasks();
   }
 
@@ -93,6 +102,7 @@ class TaskScreenState extends State<TaskScreen> {
     await _loadStats();
     await _loadContacts();
     await _loadBreedingPlans();
+    await _loadWaitlist();
     if (mounted)
       setState(() {
         _isLoading = false;
@@ -106,6 +116,7 @@ class TaskScreenState extends State<TaskScreen> {
     await _loadStats();
     await _loadContacts();
     await _loadBreedingPlans();
+    await _loadWaitlist();
   }
 
   Future<void> _loadContacts() async {
@@ -115,18 +126,72 @@ class TaskScreenState extends State<TaskScreen> {
     } catch (e) {}
   }
 
+  Future<void> _loadWaitlist() async {
+    try {
+      final waitlist = await _db.getAllWaitlist();
+      if (mounted) setState(() => _waitlist = waitlist);
+    } catch (e) {}
+  }
+
   Future<void> _loadBreedingPlans() async {
     try {
       final allRabbits = await _db.getAllRabbits();
       final rabbitMap = {for (final r in allRabbits) r.id: r};
       final plans = await _db.getAllBreedingPlans();
+      final litters = await _db.getLitters();
+      final does = allRabbits.where((r) => r.type == RabbitType.doe && r.status != RabbitStatus.archived).toList();
+
+      final rebreedDays = SettingsService.instance.rebreedDays;
+      const gestationDays = 31;
+      final today = DateTime.now();
+      final dateMap = <String, DateTime>{};
+
+      final db = await _db.database;
+      for (final doe in does) {
+        DateTime availableDate = today;
+
+        final openTasks = await db.query('tasks', where: 'rabbitId = ?', whereArgs: [doe.id]);
+        final openBreedTask = openTasks.where((t) => (t['taskType'] == 'open_breeding' || t['taskType'] == 'resting') && t['completed'] != 1).firstOrNull;
+        if (openBreedTask != null && openBreedTask['dueDate'] != null) {
+          final d = DateTime.tryParse(openBreedTask['dueDate'].toString());
+          if (d != null) {
+            availableDate = d;
+          }
+        } else {
+          final activeNursingLitter = litters.where((l) => l.doeId == doe.id && (l.status.toLowerCase() == 'nursing' || l.status.toLowerCase() == 'active')).firstOrNull;
+          if (activeNursingLitter != null) {
+            final litterDate = activeNursingLitter.kindleDate ?? activeNursingLitter.dob;
+            availableDate = litterDate.add(Duration(days: rebreedDays));
+          } else if (doe.status == RabbitStatus.pregnant || doe.status == RabbitStatus.palpateDue) {
+            final breedDate = doe.lastBreedDate ?? doe.dueDate?.subtract(const Duration(days: gestationDays));
+            if (breedDate != null) {
+              final expectedKindle = doe.kindleDate ?? doe.dueDate ?? breedDate.add(const Duration(days: gestationDays));
+              availableDate = expectedKindle.add(Duration(days: rebreedDays));
+            } else {
+              availableDate = today.add(Duration(days: rebreedDays));
+            }
+          } else if (doe.status == RabbitStatus.resting) {
+            final refDate = doe.updatedAt ?? today;
+            availableDate = refDate.add(Duration(days: rebreedDays));
+          } else {
+            availableDate = today;
+          }
+        }
+
+        dateMap[doe.id] = availableDate;
+      }
+
       if (mounted) {
         setState(() {
           _rabbitMap = rabbitMap;
           _breedingPlans = plans;
+          _allDoes = does;
+          _doeAvailableDateMap = dateMap;
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      print('Error loading breeding plans: $e');
+    }
   }
 
   Future<void> _loadStats() async {
@@ -591,12 +656,12 @@ class TaskScreenState extends State<TaskScreen> {
     return count;
   }
 
-  bool _isFilterActive() => _selectedCategory != 'All' || _breedFilter != 'All' || _searchQuery.isNotEmpty;
+  bool _isFilterActive() => _taskCategoryFilter != 'All' || _breedFilter != 'All' || _searchQuery.isNotEmpty;
 
   bool _shouldShowCategory(String? taskCategory) {
-    if (_selectedCategory == 'All') return true;
-    final cat = taskCategory?.toLowerCase() ?? '';
-    switch (_selectedCategory) {
+    if (_taskCategoryFilter == 'All') return true;
+    final cat = (taskCategory ?? '').trim().toLowerCase();
+    switch (_taskCategoryFilter) {
       case 'Breeding':
         return [
           'breeding',
@@ -609,7 +674,7 @@ class TaskScreenState extends State<TaskScreen> {
           'palpation',
           'nestbox',
           'open_breeding'
-        ].contains(cat);
+        ].contains(cat) || cat.contains('breed');
       case 'Health':
         return [
           'medical',
@@ -618,26 +683,35 @@ class TaskScreenState extends State<TaskScreen> {
           'quarantine',
           'quarantine_end',
           'nail trim'
-        ].contains(cat);
+        ].contains(cat) || cat.contains('health') || cat.contains('med');
       case 'Operations':
         return [
           'housing',
           'operations',
           'butchering',
           'butcher',
-          'custom',
-          'general',
           'maintenance',
-          'other'
-        ].contains(cat);
+          'husbandry',
+          'cage'
+        ].contains(cat) || cat.contains('operat');
+      case 'Custom':
+        return cat == 'custom' ||
+            cat == 'other' ||
+            cat == 'general' ||
+            (![
+              'medical', 'health', 'weight', 'quarantine', 'quarantine_end', 'nail trim',
+              'housing', 'operations', 'butchering', 'butcher', 'maintenance', 'husbandry', 'cage',
+              'breeding', 'mating', 'kindling', 'weaning', 'pregnancy', 'reproduction', 'birth', 'palpation', 'nestbox', 'open_breeding'
+            ].contains(cat) && !cat.contains('health') && !cat.contains('breed') && !cat.contains('operat'));
       default:
-        return taskCategory?.toLowerCase() == _selectedCategory.toLowerCase();
+        return cat == _taskCategoryFilter.toLowerCase();
     }
   }
 
   bool _shouldShowBreed(String? breed) {
     if (_breedFilter == 'All') return true;
-    return breed == _breedFilter;
+    if (breed == null) return false;
+    return breed.trim().toLowerCase() == _breedFilter.trim().toLowerCase();
   }
 
   bool _matchesSearch(String title, String? breed, String? location) {
@@ -704,7 +778,7 @@ class TaskScreenState extends State<TaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
+      backgroundColor: kTaskPageBg,
       appBar: _buildHeader(),
       body: (_isLoading && !_hasLoadedOnce)
           ? const Center(child: CircularProgressIndicator(color: kNeutral700, strokeWidth: 2))
@@ -756,32 +830,35 @@ class TaskScreenState extends State<TaskScreen> {
         ],
       ),
       actions: [
-        PopupMenuButton<String>(
-          onSelected: (v) => setState(() => _breedFilter = v),
-          offset: const Offset(0, 44),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
-          itemBuilder: (ctx) => _getUniqueBreeds().map((f) => _buildPopupItem(
-            f,
-            f,
-            _breedFilter == f,
-          )).toList(),
-          child: Container(
-            width: 36,
-            height: 36,
-            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-            decoration: BoxDecoration(
-              color: _breedFilter != 'All' ? kLilacWash : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _breedFilter != 'All' ? kLilacLight : kNeutral300),
+        if (_selectedCategory == 'Task')
+          Builder(
+            builder: (btnContext) => IconButton(
+              icon: const Icon(
+                PhosphorIconsRegular.funnel,
+                size: 22,
+                color: Color(0xFF3A3A3C),
+              ),
+              tooltip: 'Filter',
+              onPressed: () => _showTaskFilterMenu(btnContext),
             ),
-            child: Icon(
-              PhosphorIcons.funnel(PhosphorIconsStyle.bold),
-              size: 18,
-              color: _breedFilter != 'All' ? kLilacDeep : kNeutral500,
+          )
+        else if (_selectedCategory == 'Breeding Plan')
+          PopupMenuButton<String>(
+            onSelected: (v) => setState(() => _breedFilter = v),
+            offset: const Offset(0, 44),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 4,
+            icon: const Icon(
+              PhosphorIconsRegular.funnel,
+              size: 22,
+              color: Color(0xFF3A3A3C),
             ),
+            itemBuilder: (ctx) => _getUniqueBreeds().map((f) => _buildPopupItem(
+              f,
+              f,
+              _breedFilter.trim().toLowerCase() == f.trim().toLowerCase(),
+            )).toList(),
           ),
-        ),
         IconButton(
           onPressed: () => _showSearchModal(),
           icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: const Color(0xFF3A3A3C)),
@@ -795,6 +872,206 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
+  void _showTaskFilterMenu(BuildContext buttonContext) async {
+    final RenderBox button = buttonContext.findRenderObject() as RenderBox;
+    final RenderBox overlay = Overlay.of(buttonContext).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset(0, button.size.height), ancestor: overlay),
+        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      items: [
+        PopupMenuItem<String>(
+          value: 'category',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.category_outlined, size: 18, color: Color(0xFF4A3477)),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Category',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _taskCategoryFilter != 'All' ? FontWeight.w700 : FontWeight.w500,
+                      color: const Color(0xFF2C2C2E),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  if (_taskCategoryFilter != 'All')
+                    Text(
+                      _taskCategoryFilter,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF8B5CF6),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8E8E93)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'breed',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.pets_outlined, size: 18, color: Color(0xFF4A3477)),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Breed',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _breedFilter != 'All' ? FontWeight.w700 : FontWeight.w500,
+                      color: const Color(0xFF2C2C2E),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  if (_breedFilter != 'All')
+                    Text(
+                      _breedFilter,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF8B5CF6),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8E8E93)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_taskCategoryFilter != 'All' || _breedFilter != 'All') ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(
+            value: 'clear',
+            child: Row(
+              children: const [
+                Icon(Icons.clear, size: 16, color: Color(0xFFDC2626)),
+                SizedBox(width: 10),
+                Text(
+                  'Clear Filters',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+
+    if (selected == 'category') {
+      if (mounted) _showCategoryFilterMenu(context, position);
+    } else if (selected == 'breed') {
+      if (mounted) _showBreedFilterMenu(context, position);
+    } else if (selected == 'clear') {
+      setState(() {
+        _taskCategoryFilter = 'All';
+        _breedFilter = 'All';
+      });
+    }
+  }
+
+  void _showCategoryFilterMenu(BuildContext context, RelativeRect position) async {
+    const categories = ['All', 'Health', 'Operations', 'Breeding', 'Custom'];
+    final selected = await showMenu<String>(
+      context: context,
+      position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      items: categories.map((cat) {
+        final isSelected = _taskCategoryFilter.toLowerCase() == cat.toLowerCase();
+        return PopupMenuItem<String>(
+          value: cat,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                cat == 'All' ? 'All Categories' : cat,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF2C2C2E),
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check, size: 18, color: Color(0xFF8B5CF6)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+
+    if (selected != null) {
+      setState(() {
+        _taskCategoryFilter = selected;
+      });
+    }
+  }
+
+  void _showBreedFilterMenu(BuildContext context, RelativeRect position) async {
+    final breeds = _getUniqueBreeds();
+    final selected = await showMenu<String>(
+      context: context,
+      position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      items: breeds.map((breed) {
+        final isSelected = _breedFilter.trim().toLowerCase() == breed.trim().toLowerCase();
+        return PopupMenuItem<String>(
+          value: breed,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                breed,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF2C2C2E),
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check, size: 18, color: Color(0xFF8B5CF6)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+
+    if (selected != null) {
+      setState(() {
+        _breedFilter = selected;
+      });
+    }
+  }
+
   Widget _buildTabs() {
     return Container(
       color: const Color(0xFF8F8A90),
@@ -804,15 +1081,13 @@ class TaskScreenState extends State<TaskScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            _buildTabPill('All'),
-            const SizedBox(width: 20),
-            _buildTabPill('Operations'),
-            const SizedBox(width: 20),
-            _buildTabPill('Breeding'),
-            const SizedBox(width: 20),
-            _buildTabPill('Health'),
+            _buildTabPill('Task'),
             const SizedBox(width: 20),
             _buildTabPill('Breeding Plan'),
+            const SizedBox(width: 20),
+            _buildTabPill('Wait List'),
+            const SizedBox(width: 20),
+            _buildTabPill('Note Pad'),
             const SizedBox(width: 20),
             _buildTabPill('Contacts'),
           ],
@@ -852,12 +1127,11 @@ class TaskScreenState extends State<TaskScreen> {
 
   void _onSwipeGreyBar(bool isLeftSwipe) {
     const categories = [
-      'All',
-      'Operations',
-      'Breeding',
-      'Health',
+      'Task',
       'Breeding Plan',
-      'Contacts'
+      'Wait List',
+      'Note Pad',
+      'Contacts',
     ];
     int currentIndex = categories.indexOf(_selectedCategory);
     if (currentIndex == -1) currentIndex = 0;
@@ -874,6 +1148,9 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   Widget _buildFAB() {
+    if (_selectedCategory == 'Breeding Plan' || _selectedCategory == 'Note Pad') {
+      return const SizedBox.shrink();
+    }
     return SizedBox(
       width: 46,
       height: 46,
@@ -884,8 +1161,10 @@ class TaskScreenState extends State<TaskScreen> {
             _showAddBreedingPlanDialog();
           } else if (_selectedCategory == 'Contacts') {
             _showAddContactDialog();
+          } else if (_selectedCategory == 'Wait List') {
+            _showAddWaitlistDialog();
           } else {
-            _showNewScheduleDialog(context, initialCategory: _selectedCategory);
+            _showNewScheduleDialog(context, initialCategory: 'Operations');
           }
         },
         backgroundColor: const Color(0xFFE6BEFE),
@@ -946,36 +1225,40 @@ class TaskScreenState extends State<TaskScreen> {
   Widget _buildSectionHeader({
     required String title,
     required int count,
-    required Color tagBgColor,
-    required Color tagTextColor,
-    required Color countBgColor,
-    required Color countTextColor,
     required bool isExpanded,
     required VoidCallback onToggle,
   }) {
+    Color headerBg = const Color(0xFFF2F2F7);
+    Color headerBorder = const Color(0xFFE5E5EA);
+    if (title.toUpperCase().contains('TODAY')) {
+      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
+      headerBorder = const Color(0xFFC0EFC0);
+    } else if (title.toUpperCase().contains('UPCOMING')) {
+      headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
+      headerBorder = const Color(0xFFBAE5FD);
+    }
+
     return GestureDetector(
       onTap: onToggle,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: headerBg,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: headerBorder, width: 0.8),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: tagBgColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: tagTextColor,
-                  letterSpacing: 0.8,
-                ),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF4F4F56),
+                letterSpacing: 0.6,
               ),
             ),
             Row(
@@ -984,23 +1267,24 @@ class TaskScreenState extends State<TaskScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: countBgColor,
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFE0E0E6), width: 0.8),
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
-                      fontSize: 12.5,
+                    style: const TextStyle(
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w800,
-                      color: countTextColor,
+                      color: Color(0xFF4F4F56),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Icon(
                   isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
-                  size: 16,
-                  color: kNeutral500,
+                  size: 15,
+                  color: const Color(0xFF787880),
                 ),
               ],
             ),
@@ -1010,63 +1294,77 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, int count) {
+  Widget _buildSectionTitle(String title, [int? count, Widget? trailing]) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3E8FF),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFFE5E5EA), width: 0.8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
               title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF4A3E6D),
-                letterSpacing: 0.8,
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9D5FF),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '$count',
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4A3E6D),
+                color: Color(0xFF4F4F56),
+                letterSpacing: 0.6,
               ),
             ),
-          ),
-        ],
+            if (trailing != null)
+              trailing
+            else if (count != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFE0E0E6), width: 0.8),
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTaskList() {
-    if (_selectedCategory == 'Breeding Plan') {
-      return _buildBreedingPlanView();
+    switch (_selectedCategory) {
+      case 'Breeding Plan':
+        return _buildBreedingPlanView();
+      case 'Wait List':
+        return _buildWaitlistView();
+      case 'Note Pad':
+        return _buildNotePadView();
+      case 'Contacts':
+        return _buildContactsView();
+      case 'Task':
+      default:
+        return _buildTaskView();
     }
-    if (_selectedCategory == 'Contacts') {
-      return _buildContactsView();
-    }
+  }
 
+  Widget _buildTaskView() {
     final todayTasks = _getFilteredTodayTasks();
     final upcomingTasks = _getFilteredUpcomingTasks();
     final archivedTasks = _getFilteredArchivedTasks();
 
     return Container(
-      color: const Color(0xFFEEDAFE),
+      color: kTaskPageBg,
       child: ListView(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
@@ -1076,10 +1374,6 @@ class TaskScreenState extends State<TaskScreen> {
             header: _buildSectionHeader(
               title: 'TODAY & OVERDUE',
               count: _getFilteredTodayTasksCount(),
-              tagBgColor: const Color(0xFFDCFCE7),
-              tagTextColor: const Color(0xFF3A3A3C),
-              countBgColor: const Color(0xFFDCFCE7),
-              countTextColor: const Color(0xFF3A3A3C),
               isExpanded: _showToday,
               onToggle: () => setState(() => _showToday = !_showToday),
             ),
@@ -1096,10 +1390,6 @@ class TaskScreenState extends State<TaskScreen> {
             header: _buildSectionHeader(
               title: 'UPCOMING',
               count: _getFilteredUpcomingTasksCount(),
-              tagBgColor: const Color(0xFFBAE6FD),
-              tagTextColor: const Color(0xFF3A3A3C),
-              countBgColor: const Color(0xFFBAE6FD),
-              countTextColor: const Color(0xFF3A3A3C),
               isExpanded: _showUpcoming,
               onToggle: () => setState(() => _showUpcoming = !_showUpcoming),
             ),
@@ -1109,31 +1399,160 @@ class TaskScreenState extends State<TaskScreen> {
             emptyText: _isFilterActive() ? 'No upcoming tasks match your filter' : 'No upcoming tasks',
           ),
 
-          const SizedBox(height: 16),
-
-          // ARCHIVE SECTION
-          _buildSectionCard(
-            header: _buildSectionHeader(
-              title: 'ARCHIVE',
-              count: _getFilteredArchivedTasksCount(),
-              tagBgColor: const Color(0xFFFFD1E8),
-              tagTextColor: const Color(0xFF3A3A3C),
-              countBgColor: const Color(0xFFFFD1E8),
-              countTextColor: const Color(0xFF3A3A3C),
+          // ARCHIVE SECTION (Vanish if empty)
+          if (archivedTasks.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSectionCard(
+              header: _buildSectionHeader(
+                title: 'ARCHIVE',
+                count: _getFilteredArchivedTasksCount(),
+                isExpanded: _showArchive,
+                onToggle: () => setState(() => _showArchive = !_showArchive),
+              ),
+              tasks: archivedTasks,
               isExpanded: _showArchive,
-              onToggle: () => setState(() => _showArchive = !_showArchive),
+              isEmpty: archivedTasks.isEmpty && !_isLoading,
+              emptyText: _isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks',
             ),
-            tasks: archivedTasks,
-            isExpanded: _showArchive,
-            isEmpty: archivedTasks.isEmpty && !_isLoading,
-            emptyText: _isFilterActive() ? 'No archived tasks match your filter' : 'No archived tasks',
-          ),
+          ],
 
           const SizedBox(height: 100),
         ],
       ),
     );
   }
+
+  Widget _buildNotePadView() {
+    return Container(
+      color: kTaskPageBg,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          const Text(
+            'NOTE PAD',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF6B5B95),
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            constraints: const BoxConstraints(minHeight: 280),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E5EA)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _notePadController,
+              minLines: 8,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(
+                fontSize: 14.5,
+                color: Color(0xFF2C2C2E),
+                height: 1.5,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(
+                onPressed: _isSavingNotes ? null : _saveTaskNotes,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFBA7BE8),
+                  disabledBackgroundColor: const Color(0xFFBA7BE8).withValues(alpha: 0.6),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  _isSavingNotes ? 'SAVING...' : 'SAVE',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWaitlistView() {
+    return Container(
+      color: kTaskPageBg,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          const Text(
+            'WAIT LIST',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF6B5B95),
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildWaitlistSection(),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveTaskNotes() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _isSavingNotes = true);
+    await SettingsService.instance.setTaskNotes(_notePadController.text);
+    if (mounted) {
+      setState(() => _isSavingNotes = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Notes saved successfully'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2C2C2E),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
 
   List<Widget> _getFilteredTodayTasks() {
     List<Map<String, dynamic>> filtered = [];
@@ -2027,7 +2446,7 @@ class TaskScreenState extends State<TaskScreen> {
               onPressed: () => setState(() {
                 _breedFilter = 'All';
                 _searchQuery = '';
-                _selectedCategory = 'All';
+                _selectedCategory = 'Task';
               }),
               child: const Text(
                 'Clear Filters',
@@ -2044,72 +2463,391 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   Widget _buildBreedingPlanView() {
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    final filteredPlans = _breedingPlans.where((plan) {
+      final doe = _rabbitMap[plan['doeId']];
+      if (doe != null && !_shouldShowBreed(doe.breed)) return false;
+      if (_searchQuery.isNotEmpty) {
+        final doeName = doe != null ? doe.name : (_rabbitNameMap[plan['doeId']] ?? '');
+        final buck = _rabbitMap[plan['buckId']];
+        final buckName = buck != null ? buck.name : (_rabbitNameMap[plan['buckId']] ?? '');
+        final query = _searchQuery.toLowerCase();
+        return doeName.toLowerCase().contains(query) || buckName.toLowerCase().contains(query);
+      }
+      return true;
+    }).toList();
+
+    // Group available does by breed (case-insensitive canonical key to prevent duplicates)
+    final Map<String, String> canonicalBreedNames = {};
+    final Map<String, List<Rabbit>> doesByBreed = {};
+    for (final doe in _allDoes) {
+      if (!_shouldShowBreed(doe.breed)) continue;
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final match = doe.name.toLowerCase().contains(query) ||
+            (doe.breederPrefix?.toLowerCase().contains(query) ?? false) ||
+            (doe.earNumber?.toLowerCase().contains(query) ?? false) ||
+            doe.breed.toLowerCase().contains(query);
+        if (!match) continue;
+      }
+      final trimmedBreed = doe.breed.trim();
+      final displayBreed = trimmedBreed.isNotEmpty ? trimmedBreed : 'Other';
+      final normKey = displayBreed.toLowerCase();
+      canonicalBreedNames.putIfAbsent(normKey, () => displayBreed);
+      doesByBreed.putIfAbsent(normKey, () => []).add(doe);
+    }
+
+    final sortedKeys = doesByBreed.keys.toList()
+      ..sort((a, b) => canonicalBreedNames[a]!.toLowerCase().compareTo(canonicalBreedNames[b]!.toLowerCase()));
+
+    for (final k in sortedKeys) {
+      doesByBreed[k]!.sort((a, b) {
+        final dateA = _doeAvailableDateMap[a.id] ?? DateTime.now();
+        final dateB = _doeAvailableDateMap[b.id] ?? DateTime.now();
+        final comp = dateA.compareTo(dateB);
+        if (comp != 0) return comp;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    }
+
+    return Container(
+      color: kTaskPageBg,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          // 1. BREEDING PLAN SECTION
+          _buildSectionTitle(
+            'BREEDING PLAN',
+            null,
+            GestureDetector(
+              onTap: () => _showAddBreedingPlanDialog(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2BFFB)),
+                ),
+                child: const Text(
+                  'Add',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF8B5CF6),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (filteredPlans.isEmpty)
+            _buildEmptyState('No planned matings scheduled.')
+          else
+            ...filteredPlans.map((plan) => _buildBreedingPlanCard(plan)),
+
+          const SizedBox(height: 18),
+
+          // 2. AVAILABLE DATES SECTION
+          _buildSectionTitle('AVAILABLE DATES'),
+          const SizedBox(height: 6),
+          if (sortedKeys.isEmpty)
+            _buildEmptyState('No does available.')
+          else
+            ...sortedKeys.map((key) => _buildBreedAvailableDoesSection(canonicalBreedNames[key]!, doesByBreed[key]!)).toList(),
+
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreedAvailableDoesSection(String breed, List<Rabbit> does) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSectionTitle('PLANNED MATINGS', _breedingPlans.length),
-        const SizedBox(height: 16),
-        if (_breedingPlans.isEmpty) _buildEmptyState('No planned matings scheduled.') else ..._breedingPlans.map((plan) => _buildBreedingPlanCard(plan)).toList(),
-        const SizedBox(height: 100),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          margin: const EdgeInsets.only(top: 6, bottom: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFBAE6FD), // Sky blue banner matching AvailableDoes.jpg
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            breed,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0C4A6E),
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kNeutral200),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: does.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final doe = entry.value;
+              final isLast = idx == does.length - 1;
+              return _buildAvailableDoeRow(doe, isLast: isLast);
+            }).toList(),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildAvailableDoeRow(Rabbit doe, {required bool isLast}) {
+    final availDate = _doeAvailableDateMap[doe.id] ?? DateTime.now();
+    final isAlreadyPlanned = _breedingPlans.any((p) => p['doeId'] == doe.id);
+
+    final prefix = (doe.breederPrefix ?? '').trim();
+    final ear = (doe.earNumber ?? '').trim();
+    final name = doe.name.trim();
+
+    String titleText;
+    if (prefix.isNotEmpty && prefix.toLowerCase() != name.toLowerCase()) {
+      titleText = '$prefix - $name';
+    } else if (ear.isNotEmpty && ear.toLowerCase() != name.toLowerCase()) {
+      titleText = '$ear - $name';
+    } else {
+      titleText = name;
+    }
+
+    final formattedDate = DateFormat('MMM dd, yyyy').format(availDate);
+
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => FutureBreedingPlanModal(
+            initialDoe: doe,
+            initialPlannedDate: availDate,
+            onSaved: () {
+              _loadBreedingPlans();
+            },
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titleText,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ready $formattedDate',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF787774),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            if (isAlreadyPlanned)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Add Task',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFC7C7CC),
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Rebreed task\nadded',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF787774),
+                      height: 1.15,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2BFFB)),
+                ),
+                child: const Text(
+                  'Add',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF8B5CF6),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildContactsView() {
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      children: [
-        _buildSectionTitle('BREEDER CONTACTS', _contacts.length),
-        const SizedBox(height: 16),
-        if (_contacts.isEmpty) _buildEmptyState('No contacts added yet.') else ..._contacts.map((contact) => _buildContactCard(contact)).toList(),
-        const SizedBox(height: 100),
-      ],
+    return Container(
+      color: kTaskPageBg,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          const Text(
+            'CONTACTS',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF6B5B95),
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            constraints: const BoxConstraints(minHeight: 380),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E5EA)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: _contacts.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text(
+                        'No contacts added yet.\nTap + to add one.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF71717A),
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: _contacts.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final contact = e.value;
+                      final isLast = idx == _contacts.length - 1;
+                      return _buildContactCard(contact, isLast: isLast);
+                    }).toList(),
+                  ),
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
     );
   }
 
-  Widget _buildContactCard(Map<String, dynamic> contact) {
+  Widget _buildContactCard(Map<String, dynamic> contact, {bool isLast = false}) {
+    final name = (contact['name']?.toString() ?? '').trim();
+    final farmName = (contact['farmName']?.toString() ?? '').trim();
+    final phone = (contact['phone']?.toString() ?? '').trim();
+
+    final displayName = farmName.isNotEmpty ? farmName : (name.isNotEmpty ? name : 'Contact');
+    final subtitleName = (farmName.isNotEmpty && name.isNotEmpty && name != farmName) ? name : null;
+    final initialLetter = displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : '?';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kNeutral200),
+        border: Border.all(color: const Color(0xFFE5E5EA), width: 1),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: kLilacWash,
+            radius: 18,
+            backgroundColor: const Color(0xFFF2F0F7),
             child: Text(
-              (contact['name'] as String).substring(0, 1).toUpperCase(),
-              style: const TextStyle(color: kLilacDeep, fontWeight: FontWeight.bold),
+              initialLetter,
+              style: const TextStyle(
+                color: Color(0xFF4A3477),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  contact['name'],
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kNeutral900),
-                ),
-                if (contact['farmName'] != null && contact['farmName'].isNotEmpty)
-                  Text(
-                    contact['farmName'],
-                    style: const TextStyle(fontSize: 12, color: kNeutral600),
+                  displayName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: Color(0xFF18181B),
                   ),
-                const SizedBox(height: 4),
-                if (contact['phone'] != null && contact['phone'].isNotEmpty)
+                ),
+                if (subtitleName != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitleName,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF71717A)),
+                  ),
+                ],
+                if (phone.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(PhosphorIcons.phone(), size: 12, color: kNeutral400),
+                      Icon(PhosphorIcons.phone(), size: 12, color: const Color(0xFF71717A)),
                       const SizedBox(width: 4),
-                      Text(FormatUtils.formatPhoneNumber(contact['phone']), style: const TextStyle(fontSize: 12, color: kNeutral500)),
+                      Text(
+                        FormatUtils.formatPhoneNumber(phone),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF71717A),
+                        ),
+                      ),
                     ],
                   ),
+                ],
               ],
             ),
           ),
@@ -2121,7 +2859,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildContactMenu(Map<String, dynamic> contact) {
     return PopupMenuButton<String>(
-      icon: Icon(PhosphorIcons.dotsThreeVertical(), color: kNeutral400),
+      icon: Icon(PhosphorIcons.dotsThreeVertical(), color: const Color(0xFFC4C4C8), size: 18),
       onSelected: (val) {
         if (val == 'edit') _showAddContactDialog(existing: contact);
         if (val == 'delete') _deleteContact(contact['id']);
@@ -2146,6 +2884,830 @@ class TaskScreenState extends State<TaskScreen> {
       await _db.deleteContact(id);
       _loadContacts();
     }
+  }
+
+  // ==================== WAITLIST SECTION ====================
+
+  Widget _buildWaitlistSection() {
+    final Map<String, String> canonicalBreedNames = {};
+    final Map<String, List<Map<String, dynamic>>> waitlistByBreed = {};
+
+    for (final item in _waitlist) {
+      final breedStr = (item['breed']?.toString() ?? '').trim();
+      final displayBreed = breedStr.isNotEmpty ? breedStr : 'General / Any Breed';
+      final lower = displayBreed.toLowerCase();
+      canonicalBreedNames.putIfAbsent(lower, () => displayBreed);
+      waitlistByBreed.putIfAbsent(lower, () => []).add(item);
+    }
+
+    final sortedKeys = waitlistByBreed.keys.toList()
+      ..sort((a, b) => canonicalBreedNames[a]!.toLowerCase().compareTo(canonicalBreedNames[b]!.toLowerCase()));
+
+    if (_waitlist.isEmpty) {
+      return Container(
+        constraints: const BoxConstraints(minHeight: 380),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E5EA)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text(
+              'No waitlist entries yet.\nTap + to add one.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF71717A),
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: sortedKeys.map((key) => _buildBreedWaitlistCard(canonicalBreedNames[key]!, waitlistByBreed[key]!)).toList(),
+    );
+  }
+
+  Widget _buildBreedWaitlistCard(String breed, List<Map<String, dynamic>> entries) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      constraints: const BoxConstraints(minHeight: 380),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E5EA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: const Color(0xFFFCE7F3), // Soft pink matching WaitList-Contacts.Jpg
+            child: Center(
+              child: Text(
+                breed,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF831843),
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+          ...entries.asMap().entries.map((e) {
+            final idx = e.key;
+            final item = e.value;
+            final isLast = idx == entries.length - 1;
+            return _buildWaitlistRow(item, isLast: isLast);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWaitlistRow(Map<String, dynamic> item, {required bool isLast}) {
+    final createdAt = DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now();
+    final dateStr = DateFormat('MMM dd').format(createdAt);
+    final name = (item['name']?.toString() ?? '').trim();
+    final colorPref = (item['colorPreferred']?.toString() ?? '').trim();
+    final gender = item['gender']?.toString();
+
+    return InkWell(
+      onTap: () => _showWaitlistDetailsDialog(item),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 52,
+              child: Text(
+                dateStr,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF71717A),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 4,
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF71717A), // Text in Dark Grey matching the date
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 24,
+              child: Center(
+                child: _buildWaitlistGenderWidget(gender), // Buck in blue color. PURPLE box not needed
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 5,
+              child: Text(
+                colorPref.isNotEmpty ? colorPref : 'Any Color',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF71717A), // Text Orange the same Font and color as the date
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: () => _confirmDeleteWaitlist(item),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  PhosphorIcons.trash(PhosphorIconsStyle.regular),
+                  size: 18,
+                  color: const Color(0xFFDC2626), // Delete icon in Red with lines inside
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitlistGenderWidget(String? gender) {
+    final g = (gender ?? '').toLowerCase();
+    if (g.contains('buck') || g.contains('male') || g.contains('♂')) {
+      return Icon(
+        PhosphorIcons.genderMale(PhosphorIconsStyle.bold),
+        size: 16,
+        color: const Color(0xFF2563EB), // Buck in blue color
+      );
+    } else if (g.contains('doe') || g.contains('female') || g.contains('♀')) {
+      return Icon(
+        PhosphorIcons.genderFemale(PhosphorIconsStyle.bold),
+        size: 16,
+        color: const Color(0xFF9333EA), // Doe in purple
+      );
+    }
+    return const Text(
+      '—',
+      style: TextStyle(
+        color: Color(0xFF71717A),
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Future<void> _showWaitlistDetailsDialog(Map<String, dynamic> entry) async {
+    final createdAt = DateTime.tryParse(entry['createdAt']?.toString() ?? '') ?? DateTime.now();
+    final dateStr = DateFormat('MMM dd, yyyy').format(createdAt);
+    final name = (entry['name']?.toString() ?? '').trim();
+    final phone = (entry['phone']?.toString() ?? '').trim();
+    final email = (entry['email']?.toString() ?? '').trim();
+    final userName = (entry['userName']?.toString() ?? '').trim();
+    final breed = (entry['breed']?.toString() ?? '').trim();
+    final gender = (entry['gender']?.toString() ?? '').trim();
+    final colorPref = (entry['colorPreferred']?.toString() ?? '').trim();
+    final notes = (entry['specialNotes']?.toString() ?? '').trim();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with Title, Trash can on right to Delete, and Cross to Close
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Waitlist Details',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF18181B),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626), size: 22),
+                        tooltip: 'Delete',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await _confirmDeleteWaitlist(entry);
+                        },
+                      ),
+                      const SizedBox(width: 14),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Color(0xFF6B7280), size: 22),
+                        tooltip: 'Close',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 14),
+
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildWaitlistDetailRow('Name', name.isNotEmpty ? name : '—', isBold: true),
+                      if (userName.isNotEmpty) _buildWaitlistDetailRow('User Name', userName),
+                      if (phone.isNotEmpty) _buildWaitlistDetailRow('Phone', phone),
+                      if (email.isNotEmpty) _buildWaitlistDetailRow('Email', email),
+                      _buildWaitlistDetailRow('Breed Interested in', breed.isNotEmpty ? breed : 'General / Any'),
+                      _buildWaitlistDetailRow('Gender', gender.isNotEmpty ? gender : 'Any'),
+                      _buildWaitlistDetailRow('Color Preferred', colorPref.isNotEmpty ? colorPref : 'Any'),
+                      _buildWaitlistDetailRow('Date Added', dateStr),
+                      if (notes.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Special Notes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF71717A),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: Text(
+                            notes,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF374151),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showAddWaitlistDialog(existing: entry);
+                    },
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4A3477),
+                      side: const BorderSide(color: Color(0xFFD8B4FE)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitlistDetailRow(String label, String value, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF71717A),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+                color: const Color(0xFF18181B),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddWaitlistDialog({Map<String, dynamic>? existing}) async {
+    final nameController = TextEditingController(text: existing?['name'] ?? '');
+    final phoneController = TextEditingController(text: existing?['phone'] ?? '');
+    final emailController = TextEditingController(text: existing?['email'] ?? '');
+    final userNameController = TextEditingController(text: existing?['userName'] ?? '');
+    final breedController = TextEditingController(text: existing?['breed'] ?? '');
+    final colorController = TextEditingController(text: existing?['colorPreferred'] ?? '');
+    final notesController = TextEditingController(text: existing?['specialNotes'] ?? '');
+    String selectedGender = existing?['gender'] ?? 'Any';
+    bool isSaving = false;
+
+    // Available breeds collection from herd
+    final Set<String> breedSet = {};
+    for (final r in _rabbitMap.values) {
+      if (r.breed.trim().isNotEmpty) breedSet.add(r.breed.trim());
+    }
+    for (final d in _allDoes) {
+      if (d.breed.trim().isNotEmpty) breedSet.add(d.breed.trim());
+    }
+    for (final b in _availableBreeds) {
+      if (b.trim().isNotEmpty) breedSet.add(b.trim());
+    }
+    for (final b in SettingsService.instance.breeds) {
+      final name = b['name']?.trim() ?? '';
+      if (name.isNotEmpty) breedSet.add(name);
+    }
+    final breedList = breedSet.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top header matching consistency.jpg
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFECDDFB), // Top light purple matching consistency.jpg
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        existing != null ? 'Edit Waitlist Entry' : 'Add to Waitlist',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Color(0xFF4A3477), size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Form body
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildWaitlistTextField('Name', nameController),
+                        const SizedBox(height: 12),
+                        _buildWaitlistTextField(
+                          'Phone',
+                          phoneController,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [PhoneNumberFormatter()],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildWaitlistTextField('Email', emailController, keyboardType: TextInputType.emailAddress),
+                        const SizedBox(height: 12),
+                        _buildWaitlistTextField('User Name', userNameController),
+                        const SizedBox(height: 12),
+
+                        // Breed Interested in (dropdown from herd with ability to overwrite/type)
+                        _buildWaitlistTextField(
+                          'Breed Interested in',
+                          breedController,
+                          suffixIcon: breedList.isEmpty
+                              ? null
+                              : PopupMenuButton<String>(
+                                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF6B7280), size: 26),
+                                  tooltip: 'Select Breed',
+                                  onSelected: (val) {
+                                    setModalState(() {
+                                      breedController.text = val;
+                                    });
+                                  },
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  itemBuilder: (_) => breedList.map((b) => PopupMenuItem<String>(
+                                    value: b,
+                                    child: Text(b, style: const TextStyle(fontSize: 14)),
+                                  )).toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Gender choice with 3 checkboxes (no brackets, no colored box)
+                        const Text(
+                          'Gender',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _buildWaitlistGenderCheckbox(
+                              label: 'Any',
+                              value: 'Any',
+                              selectedValue: selectedGender,
+                              onSelected: (val) => setModalState(() => selectedGender = val),
+                            ),
+                            const SizedBox(width: 24),
+                            _buildWaitlistGenderCheckbox(
+                              label: 'Buck',
+                              value: 'Buck',
+                              selectedValue: selectedGender,
+                              icon: Icon(
+                                PhosphorIcons.genderMale(PhosphorIconsStyle.bold),
+                                size: 16,
+                                color: const Color(0xFF2563EB),
+                              ),
+                              onSelected: (val) => setModalState(() => selectedGender = val),
+                            ),
+                            const SizedBox(width: 24),
+                            _buildWaitlistGenderCheckbox(
+                              label: 'Doe',
+                              value: 'Doe',
+                              selectedValue: selectedGender,
+                              icon: Icon(
+                                PhosphorIcons.genderFemale(PhosphorIconsStyle.bold),
+                                size: 16,
+                                color: const Color(0xFFEC4899),
+                              ),
+                              onSelected: (val) => setModalState(() => selectedGender = val),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        _buildWaitlistTextField('Color Preferred', colorController),
+                        const SizedBox(height: 12),
+
+                        _buildWaitlistTextField('Special Notes', notesController, minLines: 3, maxLines: 5),
+                        const SizedBox(height: 24),
+
+                        // Save button matching consistency.jpg
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: isSaving ? null : () async {
+                              final name = nameController.text.trim();
+                              if (name.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFDC2626)),
+                                );
+                                return;
+                              }
+                              setModalState(() => isSaving = true);
+                              try {
+                                final entry = {
+                                  'id': existing?['id'] ?? 'wl_${DateTime.now().millisecondsSinceEpoch}',
+                                  'name': name,
+                                  'phone': phoneController.text.trim(),
+                                  'email': emailController.text.trim(),
+                                  'userName': userNameController.text.trim(),
+                                  'breed': breedController.text.trim().isEmpty ? 'General' : breedController.text.trim(),
+                                  'gender': selectedGender,
+                                  'colorPreferred': colorController.text.trim(),
+                                  'specialNotes': notesController.text.trim(),
+                                  'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
+                                };
+                                if (existing != null) {
+                                  await _db.updateWaitlistEntry(entry);
+                                } else {
+                                  await _db.insertWaitlistEntry(entry);
+                                }
+                                await _loadWaitlist();
+                                if (ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                }
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(existing != null ? 'Waitlist entry updated' : 'Added to waitlist'),
+                                      backgroundColor: const Color(0xFF2C2C2E),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFDC2626)),
+                                  );
+                                }
+                              } finally {
+                                if (ctx.mounted) setModalState(() => isSaving = false);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE2BFFB), // Light purple matching consistency.jpg
+                              foregroundColor: const Color(0xFF2C2C2E),
+                              disabledBackgroundColor: const Color(0xFFE2BFFB).withValues(alpha: 0.6),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                            child: isSaving
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
+                                : const Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF2C2C2E), // Dark text matching consistency.jpg
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitlistTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
+    Widget? suffixIcon,
+    int minLines = 1,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+        ),
+        const SizedBox(height: 5),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          minLines: minLines,
+          maxLines: maxLines,
+          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1F2937)),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            suffixIcon: suffixIcon,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWaitlistGenderCheckbox({
+    required String label,
+    required String value,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+    Widget? icon,
+  }) {
+    final isChecked = selectedValue.toLowerCase() == value.toLowerCase();
+    return InkWell(
+      onTap: () => onSelected(value),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: isChecked ? const Color(0xFF8B5CF6) : const Color(0xFFD1D5DB),
+                  width: 1.5,
+                ),
+                color: isChecked ? const Color(0xFF8B5CF6) : Colors.white,
+              ),
+              child: isChecked
+                  ? const Icon(Icons.check, size: 15, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 6),
+            if (icon != null) ...[
+              icon,
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2C2C2E),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteWaitlist(Map<String, dynamic> item) async {
+    final name = item['name'] ?? 'this entry';
+    final confirmed = await showBrightPurpleDialog<bool>(
+      context: context,
+      title: 'Delete Waitlist Entry?',
+      content: 'Are you sure you want to remove $name from the waitlist?',
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
+    );
+
+    if (confirmed == true) {
+      await _db.deleteWaitlistEntry(item['id']);
+      await _loadWaitlist();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name removed from waitlist'),
+            backgroundColor: const Color(0xFF2C2C2E),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showContactsAddMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(PhosphorIcons.userPlus(), color: kLilacDeep),
+                ),
+                title: const Text('Add Breeder Contact', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Add a rabbit breeder to contacts'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAddContactDialog();
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFCE7F3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(PhosphorIcons.clipboardText(), color: const Color(0xFF9D3B66)),
+                ),
+                title: const Text('Add Waitlist Entry', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Add a customer to the waitlist'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAddWaitlistDialog();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildBreedingPlanCard(Map<String, dynamic> plan) {
@@ -2198,7 +3760,7 @@ class TaskScreenState extends State<TaskScreen> {
                     context: context,
                     title: 'Breeding not due',
                     content:
-                        'Breeding is not due until ${FormatUtils.formatDateShort(date!)}.\n\nDo you still want to breed today?',
+                        'Breeding is not due until ${DateFormat('MMM dd, yyyy').format(date!)}.\n\nDo you still want to breed today?',
                     cancelText: 'Cancel',
                     confirmText: 'OK',
                   );
@@ -2209,7 +3771,7 @@ class TaskScreenState extends State<TaskScreen> {
                     context: context,
                     title: 'Log Planned Mating?',
                     content:
-                        'The planned mating date (${FormatUtils.formatDateShort(date!)}) has occurred. Would you like to log it now?',
+                        'The planned mating date (${DateFormat('MMM dd, yyyy').format(date!)}) has occurred. Would you like to log it now?',
                     cancelText: 'Cancel',
                     confirmText: 'Log Breeding',
                   );
@@ -2271,7 +3833,7 @@ class TaskScreenState extends State<TaskScreen> {
                             Icon(PhosphorIcons.calendar(), size: 14, color: kNeutral400),
                             const SizedBox(width: 4),
                             Text(
-                              date != null ? FormatUtils.formatDate(date) : 'No Date',
+                              date != null ? DateFormat('MMM dd, yyyy').format(date) : 'No Date',
                               style: const TextStyle(fontSize: 13, color: kNeutral600),
                             ),
                           ],
@@ -2314,60 +3876,91 @@ class TaskScreenState extends State<TaskScreen> {
   void _showSearchModal() {
     final searchController = TextEditingController(text: _searchQuery);
     showDialog(
-        context: context,
-        builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    const Text('Search Tasks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                  ]),
-                  const SizedBox(height: 16),
-                  TextField(
-                      controller: searchController,
-                      autofocus: true,
-                      decoration: InputDecoration(hintText: 'Search by task name, breed, location...', prefixIcon: const Icon(Icons.search, color: Color(0xFF787774)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
-                      onSubmitted: (value) {
-                        setState(() => _searchQuery = value.trim());
-                        Navigator.pop(context);
-                      }),
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                        child: OutlinedButton(
-                            onPressed: () {
-                              searchController.clear();
-                              setState(() => _searchQuery = '');
-                              Navigator.pop(context);
-                            },
-                            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF787774), side: const BorderSide(color: Color(0xFFE2E8F0)), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: const Text('Clear'))),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: ElevatedButton(
-                            onPressed: () {
-                              setState(() => _searchQuery = searchController.text.trim());
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: const Text('Search'))),
-                  ]),
-                ]),
+      context: context,
+      builder: (context) => BrightPurpleDialog(
+        headerColor: const Color(0xFFE2BFFB),
+        borderColor: const Color(0xFFE2BFFB),
+        title: 'Search Tasks',
+        contentWidget: TextField(
+          controller: searchController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Search by task name, breed, location...',
+            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
+            prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: const Color(0xFF787774), size: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kLilacLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+          onSubmitted: (value) {
+            setState(() => _searchQuery = value.trim());
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () {
+              searchController.clear();
+              setState(() => _searchQuery = '');
+              Navigator.pop(context);
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF787774),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _searchQuery = searchController.text.trim());
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE6BEFE),
+              foregroundColor: const Color(0xFF4A3E6D),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text(
+              'Search',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: Color(0xFF4A3E6D),
               ),
-            ));
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<String> _getUniqueBreeds() {
-    final breeds = _availableBreeds
-        .where((b) => b.trim().isNotEmpty)
-        .map((b) => b.trim())
-        .toSet()
-        .toList();
-    breeds.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final Map<String, String> canonicalMap = {};
+    for (final b in _availableBreeds) {
+      final trimmed = b.trim();
+      if (trimmed.isEmpty) continue;
+      final lower = trimmed.toLowerCase();
+      if (!canonicalMap.containsKey(lower)) {
+        canonicalMap[lower] = trimmed;
+      }
+    }
+    final breeds = canonicalMap.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return [
       'All',
       ...breeds,

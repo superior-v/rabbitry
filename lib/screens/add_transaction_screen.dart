@@ -305,23 +305,57 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           child: DropdownButtonFormField<TransactionCategory>(
             value: _category,
+            dropdownColor: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             hint: const Text('Select category', style: TextStyle(color: Color(0xFF787880))),
-            items: _availableCategories.map((cat) {
-              return DropdownMenuItem(
+            selectedItemBuilder: (BuildContext context) {
+              return _availableCategories.map((cat) {
+                final categoryName = Transaction(
+                  id: '',
+                  type: _type,
+                  category: cat,
+                  amount: 0,
+                  date: DateTime.now(),
+                ).categoryName;
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    categoryName,
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                  ),
+                );
+              }).toList();
+            },
+            items: _availableCategories.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final cat = entry.value;
+              final isAlt = idx % 2 == 1;
+              final categoryName = Transaction(
+                id: '',
+                type: _type,
+                category: cat,
+                amount: 0,
+                date: DateTime.now(),
+              ).categoryName;
+
+              return DropdownMenuItem<TransactionCategory>(
                 value: cat,
-                child: Text(
-                  Transaction(
-                    id: '',
-                    type: _type,
-                    category: cat,
-                    amount: 0,
-                    date: DateTime.now(),
-                  ).categoryName,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    categoryName,
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                  ),
                 ),
               );
             }).toList(),
@@ -543,18 +577,44 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           child: DropdownButtonFormField<String>(
             value: _selectedKitKey,
+            dropdownColor: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             hint: const Text('Select weaned kit', style: TextStyle(color: Color(0xFF787880))),
-            items: kits.map((item) {
+            selectedItemBuilder: (BuildContext context) {
+              return kits.map((item) {
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    item['label'] as String,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList();
+            },
+            items: kits.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final item = entry.value;
+              final isAlt = idx % 2 == 1;
               return DropdownMenuItem<String>(
                 value: item['key'] as String,
-                child: Text(
-                  item['label'] as String,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56)),
-                  overflow: TextOverflow.ellipsis,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    item['label'] as String,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               );
             }).toList(),

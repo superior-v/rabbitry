@@ -1,0 +1,36 @@
+Total pages: 2
+
+--- PAGE 1 ---
+Rect: Rect(0.0, 0.0, 792.0, 576.0)
+Text:
+Certificate of Birth
+
+
+		
+
+
+
+
+
+Baby Peaches
+
+Images on page 1: 0
+Rendered page 1 to assets/images/certificate_reference_p1.png (2200x1600)
+
+--- PAGE 2 ---
+Rect: Rect(0.0, 0.0, 792.0, 576.0)
+Text:
+Certificate of Birth
+
+
+		
+
+
+
+
+
+Baby Peaches
+
+Images on page 2: 1
+  Extracted image 82 (1684x1152) -> assets/images/pdf_extracted_p2_0.png
+Rendered page 2 to assets/images/certificate_reference_p2.png (2200x1600)

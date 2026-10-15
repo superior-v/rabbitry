@@ -303,4 +303,37 @@ void main() {
     expect(pdfBytes, isNotEmpty);
     expect(String.fromCharCodes(pdfBytes.take(5)), equals('%PDF-'));
   });
+
+  test('Pedigree PDF generation in Portrait and Landscape orientations', () async {
+    final pedData = PedigreeData(
+      farmName: 'Little Bunnies Rabbitry',
+      farmAddress: '123 Meadow Lane',
+      farmEmail: 'info@littlebunnies.com',
+      farmPhone: '555-123-4567',
+      ownerName: 'Jane Doe',
+      subjectName: 'Peaches',
+      subjectBreed: 'Holland Lop',
+      subjectColor: 'Orange',
+      subjectSex: 'Doe',
+      subjectDob: 'Oct 10, 2026',
+      subjectEarNo: 'P-101',
+      subjectWeight: '3lbs 4oz',
+      subjectRegNo: 'REG-101',
+      subjectLegs: '2',
+      orientation: PedigreeOrientation.portrait,
+    );
+
+    expect(pedData.isPortrait, isTrue);
+
+    final portraitPdf = await PedigreePdfService.generatePdf(pedData);
+    expect(portraitPdf, isNotEmpty);
+    expect(String.fromCharCodes(portraitPdf.take(5)), equals('%PDF-'));
+
+    final landscapeData = pedData.copyWith(orientation: PedigreeOrientation.landscape);
+    expect(landscapeData.isPortrait, isFalse);
+
+    final landscapePdf = await PedigreePdfService.generatePdf(landscapeData);
+    expect(landscapePdf, isNotEmpty);
+    expect(String.fromCharCodes(landscapePdf.take(5)), equals('%PDF-'));
+  });
 }

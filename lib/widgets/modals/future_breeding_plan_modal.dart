@@ -7,11 +7,15 @@ import 'rabbit_picker_modal.dart';
 
 class FutureBreedingPlanModal extends StatefulWidget {
   final Map<String, dynamic>? existingPlan;
+  final Rabbit? initialDoe;
+  final DateTime? initialPlannedDate;
   final VoidCallback onSaved;
 
   const FutureBreedingPlanModal({
     super.key,
     this.existingPlan,
+    this.initialDoe,
+    this.initialPlannedDate,
     required this.onSaved,
   });
 
@@ -43,12 +47,19 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
   }
 
   Future<void> _loadData() async {
-    final rabbits = await _db.getAllRabbits();
-    final does = rabbits.where((r) => r.type == RabbitType.doe && r.status != RabbitStatus.archived).toList();
-    final bucks = rabbits.where((r) => r.type == RabbitType.buck && r.status != RabbitStatus.archived).toList();
+    final activeRabbits = await _db.getAllRabbits();
+    final archivedRabbits = await _db.getArchivedRabbits();
+    final rabbits = [...activeRabbits, ...archivedRabbits];
+    final does = rabbits.where((r) => r.type == RabbitType.doe).toList();
+    final bucks = rabbits.where((r) => r.type == RabbitType.buck).toList();
 
     final sortRabbits = (List<Rabbit> list) {
       list.sort((a, b) {
+        final aArchived = a.status == RabbitStatus.archived;
+        final bArchived = b.status == RabbitStatus.archived;
+        if (aArchived != bArchived) {
+          return aArchived ? 1 : -1;
+        }
         final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
         if (breedCompare != 0) return breedCompare;
         final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
@@ -65,7 +76,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
 
     Rabbit? preselectedDoe;
     Rabbit? preselectedBuck;
-    DateTime plannedDate = DateTime.now().add(const Duration(days: 7));
+    DateTime plannedDate = widget.initialPlannedDate ?? DateTime.now().add(const Duration(days: 7));
     String notes = '';
 
     if (widget.existingPlan != null) {
@@ -82,6 +93,8 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       }
       notes = widget.existingPlan!['notes']?.toString() ?? '';
       _notesController.text = notes;
+    } else if (widget.initialDoe != null) {
+      preselectedDoe = does.where((d) => d.id == widget.initialDoe!.id).firstOrNull ?? widget.initialDoe;
     }
 
     if (mounted) {
@@ -454,7 +467,10 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final isArchived = rabbit.status == RabbitStatus.archived;
+    final nameColor = isDoe
+        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true

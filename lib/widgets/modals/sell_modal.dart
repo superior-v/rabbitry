@@ -283,6 +283,7 @@ class _SellModalState extends State<SellModal> {
         null, // butcherCost
         null, // deathCause
         null, // cullReason
+        archiveDate: _saleDate,
       );
 
       // Create finance transaction if price is set and ledger toggle is on

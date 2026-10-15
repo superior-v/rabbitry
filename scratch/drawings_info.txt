@@ -1,0 +1,25 @@
+Page 1 drawings count: 48
+
+--- PAGE 1 BLOCKS & FONTS ---
+Text: 'Certificate of Birth' | Font: ModernAge | Size: 56.9 | Color: 0x231f20 | BBox: [118.3, 67.0, 673.7, 146.0]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [284.3, 159.5, 498.9, 200.8]
+Text: '
+		' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [106.0, 281.9, 690.3, 323.2]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [107.5, 389.2, 285.4, 430.5]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [572.8, 388.8, 694.6, 430.2]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [107.5, 434.5, 285.1, 475.8]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [507.5, 434.5, 690.8, 475.8]
+Text: '' | Font: AcuminVariableConcept | Size: 30.9 | Color: 0x231f20 | BBox: [209.6, 321.8, 578.7, 363.1]
+Text: 'Baby Peaches' | Font: Shakies | Size: 49.5 | Color: 0x231f20 | BBox: [259.9, 206.9, 516.3, 265.8]
+
+--- PAGE 2 BLOCKS & FONTS ---
+Text: 'Certificate of Birth' | Font: ModernAge | Size: 51.9 | Color: 0x662c91 | BBox: [114.5, 80.2, 677.5, 145.2]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [292.4, 159.1, 499.6, 198.1]
+Text: '
+		' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [113.9, 270.5, 678.1, 309.5]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [113.6, 363.8, 285.3, 402.8]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [562.9, 363.4, 680.5, 402.4]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [113.6, 406.5, 285.0, 445.5]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [499.8, 406.5, 676.9, 445.5]
+Text: '' | Font: AcuminVariableConcept | Size: 29.5 | Color: 0x231f20 | BBox: [217.8, 308.2, 574.2, 347.2]
+Text: 'Baby Peaches' | Font: Shakies | Size: 47.3 | Color: 0x58595b | BBox: [271.8, 203.7, 519.4, 259.3]
