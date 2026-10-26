@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/format_utils.dart';
+import '../../services/settings_service.dart';
 import '../../constants/app_colors.dart';
 import 'rabbit_picker_modal.dart';
 
@@ -60,6 +61,13 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
         if (aArchived != bArchived) {
           return aArchived ? 1 : -1;
         }
+        if (SettingsService.instance.sortDoeBuck == 'Ear Number') {
+          final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+          final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+          final earCompare = earA.compareTo(earB);
+          if (earCompare != 0) return earCompare;
+          return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+        }
         final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
         if (breedCompare != 0) return breedCompare;
         final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
@@ -115,6 +123,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       title: 'Select Doe',
       rabbits: _does,
       selectedRabbit: _selectedDoe,
+      showSectionHeaders: false,
     );
     if (picked != null) {
       setState(() => _selectedDoe = picked);
@@ -127,6 +136,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       title: 'Select Buck',
       rabbits: _bucks,
       selectedRabbit: _selectedBuck,
+      showSectionHeaders: false,
     );
     if (picked != null) {
       setState(() => _selectedBuck = picked);
@@ -468,9 +478,9 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
-    final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+    final nameColor = isArchived
+        ? const Color(0xFF787774)
+        : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true

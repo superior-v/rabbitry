@@ -19,10 +19,12 @@ class CertificateLayout {
   static const String fontDetailsAsset = 'assets/fonts/PT_Sans-Web-Regular.ttf';
   static const String fontDetailsBoldAsset = 'assets/fonts/PT_Sans-Web-Bold.ttf';
   static const String fontScriptAsset = 'assets/fonts/DancingScript-VariableFont_wght.ttf';
+  static const String fontShakiesAsset = 'assets/fonts/Shakies-OpenType-TT.ttf';
 
   // Font family names registered in pubspec.yaml
   static const String fontFamilyDetails = 'CertificateDetails';
   static const String fontFamilyScript = 'CertificateScript';
+  static const String fontFamilyShakies = 'Shakies';
 
   // ─── COLORS ─────────────────────────────────────────────────────────────────
   // Flutter UI Colors
@@ -40,7 +42,7 @@ class CertificateLayout {
   // ─── FONT SIZES (pt at 792 pt page width) ───────────────────────────────────
   // No photo layout
   static const double fontSizeCertifiesPt = 18.0;
-  static const double fontSizeNamePt = 42.0;
+  static const double fontSizeNamePt = 48.0;
   static const double fontSizeBornPt = 18.0;
   static const double fontSizeLocationPt = 18.0;
   static const double fontSizeGridPt = 18.0;
@@ -67,17 +69,19 @@ class CertificateLayout {
 
   // ─── VERTICAL FRACTIONS (relative to page height H = 576 pt) ────────────────
   // Standard layout (Page 1 B&W & Page 2 Color no photo)
-  static const double topRatioCertifies = 172.0 / 576.0;   // ~0.2986
-  static const double topRatioName = 212.0 / 576.0;        // ~0.3681
-  static const double topRatioBorn = 292.0 / 576.0;        // ~0.5069
-  static const double topRatioLocation = 332.0 / 576.0;    // ~0.5764
-  static const double topRatioGridRow1 = 400.0 / 576.0;    // ~0.6944
-  static const double topRatioGridRow2 = 445.0 / 576.0;    // ~0.7726
+  // Shifted away from flower borders and centered
+  static const double topRatioCertifies = 168.0 / 576.0;   // ~0.2917
+  static const double topRatioName = 205.0 / 576.0;        // ~0.3559
+  static const double topRatioBorn = 285.0 / 576.0;        // ~0.4948
+  static const double topRatioLocation = 325.0 / 576.0;    // ~0.5642
+  static const double topRatioGridRow1 = 390.0 / 576.0;    // ~0.6771
+  static const double topRatioGridRow2 = 435.0 / 576.0;    // ~0.7552
 
   // Horizontal Grid Columns for standard layout (relative to page width W = 792 pt)
-  static const double gridLeftColRatio = 110.0 / 792.0;    // ~0.1389
-  static const double gridRightColRatio = 510.0 / 792.0;   // ~0.6439
-  static const double gridColWidthRatio = 260.0 / 792.0;   // ~0.3283
+  // Moved towards the center to avoid flower bouquets on the left and right corners
+  static const double gridLeftColRatio = 210.0 / 792.0;    // ~0.2652
+  static const double gridRightColRatio = 440.0 / 792.0;   // ~0.5556
+  static const double gridColWidthRatio = 190.0 / 792.0;   // ~0.2399
 
   // ─── COLOR WITH PHOTO LAYOUT (US Letter Landscape: 792 x 612 pt) ───────────
   static const double pageColorPhotoWidthPt = 792.0;
@@ -178,9 +182,20 @@ class CertificateData {
   String get locationSentence {
     final cleanLoc = location?.trim();
     if (cleanLoc != null && cleanLoc.isNotEmpty && cleanLoc != '—') {
-      return 'at $cleanLoc';
+      final city = _extractCity(cleanLoc);
+      return 'at $city';
     }
-    return 'at Amaranth, Ontario Canada';
+    return 'at Amaranth';
+  }
+
+  static String _extractCity(String input) {
+    final parts = input.split(RegExp(r'[,;\n]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    if (parts.isEmpty) return 'Amaranth';
+    // If first component is a street number/address, use second component
+    if (parts.length > 1 && RegExp(r'^\d+').hasMatch(parts.first)) {
+      return parts[1];
+    }
+    return parts.first;
   }
 
   String get parentsSentence {

@@ -290,15 +290,25 @@ class _TasksCardState extends State<TasksCard> {
     required bool isExpanded,
     required VoidCallback onToggle,
   }) {
+    Color headerBg = const Color(0xFFF2F2F7);
+    Color headerBorder = const Color(0xFFE5E5EA);
+    if (title.toUpperCase().contains('TODAY')) {
+      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
+      headerBorder = const Color(0xFFC0EFC0);
+    } else if (title.toUpperCase().contains('UPCOMING')) {
+      headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
+      headerBorder = const Color(0xFFBAE5FD);
+    }
+
     return GestureDetector(
       onTap: onToggle,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F7),
+          color: headerBg,
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: const Color(0xFFE5E5EA), width: 0.8),
+          border: Border.all(color: headerBorder, width: 0.8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -316,20 +326,12 @@ class _TasksCardState extends State<TasksCard> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFE0E0E6), width: 0.8),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF4F4F56),
-                    ),
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF4F4F56),
                   ),
                 ),
                 const SizedBox(width: 8),

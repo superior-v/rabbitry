@@ -371,7 +371,7 @@ class _StatsCardsState extends State<StatsCards> {
         children: [
           Row(
             children: [
-              Expanded(child: _buildGradientCard('$littersCount', 'LITTERS')),
+              Expanded(child: _buildGradientCard('$littersCount', 'LIVE LITTERS')),
               const SizedBox(width: 8),
               Expanded(child: _buildGradientCard('$soldKits', 'SOLD KITS')),
               const SizedBox(width: 8),
@@ -430,7 +430,7 @@ class _StatsCardsState extends State<StatsCards> {
             style: const TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF64748B),
+              color: Color(0xFF334155),
               letterSpacing: 0.3,
             ),
           ),

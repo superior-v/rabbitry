@@ -112,9 +112,13 @@ class DatabaseService {
               gender TEXT,
               colorPreferred TEXT,
               specialNotes TEXT,
-              createdAt TEXT NOT NULL
+              createdAt TEXT NOT NULL,
+              deposit TEXT
             )
           ''');
+        } catch (_) {}
+        try {
+          await db.execute('ALTER TABLE waitlist ADD COLUMN deposit TEXT');
         } catch (_) {}
       },
     );
@@ -389,7 +393,8 @@ class DatabaseService {
         gender TEXT,
         colorPreferred TEXT,
         specialNotes TEXT,
-        createdAt TEXT NOT NULL
+        createdAt TEXT NOT NULL,
+        deposit TEXT
       )
     ''');
 
@@ -910,9 +915,14 @@ class DatabaseService {
       final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
       final kindleStr = map['kindleDate'] as String?;
       final kindle = kindleStr != null ? DateTime.tryParse(kindleStr) : null;
+      final dueDateStr = map['dueDate'] as String?;
+      final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
 
-      // If doe is currently bred (has active breeding date), NEVER reset her to open!
-      if (lastBreed != null && (kindle == null || kindle.isBefore(lastBreed))) {
+      // If doe is currently bred (has active breeding / upcoming due date), NEVER reset her to open!
+      if (dueDate != null && !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day))) {
+        continue;
+      }
+      if (lastBreed != null && today.difference(lastBreed).inDays <= 35) {
         continue;
       }
 
@@ -968,6 +978,52 @@ class DatabaseService {
         );
       }
     }
+
+    // Self-healing: If a doe was bred (has upcoming dueDate and recent breedDate) but was wrongly marked as open/resting/nursing,
+    // restore her status to PREGNANT/PALPATEDUE so she doesn't appear in Open Does, and clear stale kindleDate.
+    final wronglyOpenDoes = await db.query(
+      'rabbits',
+      where: 'type = ? AND dueDate IS NOT NULL AND (status = ? OR status = ? OR status = ? OR status = ? OR status = ? OR status = ?)',
+      whereArgs: [
+        RabbitType.doe.toString(),
+        RabbitStatus.open.toString(),
+        'open',
+        RabbitStatus.resting.toString(),
+        'resting',
+        RabbitStatus.nursing.toString(),
+        'nursing',
+      ],
+    );
+    for (final map in wronglyOpenDoes) {
+      final dueDateStr = map['dueDate'] as String?;
+      final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
+      final lastBreedStr = map['lastBreedDate'] as String?;
+      final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+      if (dueDate != null && !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day).add(const Duration(days: 5)))) {
+        if (lastBreed == null || today.difference(lastBreed).inDays <= 38) {
+          final settings = SettingsService.instance;
+          final statusToSet = settings.palpationEnabled && (map['palpationResult'] == null || map['palpationResult'] == 0)
+              ? RabbitStatus.palpateDue.toString()
+              : RabbitStatus.pregnant.toString();
+          await db.update(
+            'rabbits',
+            {
+              'status': statusToSet,
+              'kindleDate': null,
+              'updatedAt': now.toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [map['id']],
+          );
+          notifyDataChanged();
+        }
+      }
+    }
+
+    // Ensure any doe currently bred has stale kindleDate cleared from rabbits table so old kindle dates don't linger
+    await db.rawUpdate(
+      "UPDATE rabbits SET kindleDate = NULL WHERE dueDate IS NOT NULL AND (status LIKE '%pregnant%' OR status LIKE '%palpate%')",
+    );
   }
 
   Future<void> fixPedigreeRabbits() async {
@@ -1139,6 +1195,13 @@ class DatabaseService {
       if (aArchived != bArchived) {
         return aArchived ? 1 : -1;
       }
+      if (SettingsService.instance.sortDoeBuck == 'Ear Number') {
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        final earCompare = earA.compareTo(earB);
+        if (earCompare != 0) return earCompare;
+        return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
       final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
@@ -1179,6 +1242,13 @@ class DatabaseService {
       if (aArchived != bArchived) {
         return aArchived ? 1 : -1;
       }
+      if (SettingsService.instance.sortDoeBuck == 'Ear Number') {
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        final earCompare = earA.compareTo(earB);
+        if (earCompare != 0) return earCompare;
+        return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
       final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
@@ -1212,9 +1282,25 @@ class DatabaseService {
     final eligibleDoes = <Rabbit>[];
 
     for (final doe in does) {
+      // If doe is already bred / pregnant (has upcoming dueDate or pregnant/palpateDue status or recent breedDate), she is NOT open!
+      final dueDate = doe.dueDate;
+      final isUpcomingDue = dueDate != null && !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day).add(const Duration(days: 5)));
+      final isRecentlyBred = doe.lastBreedDate != null && today.difference(doe.lastBreedDate!).inDays <= 38;
+      if (doe.status == RabbitStatus.pregnant ||
+          doe.status == RabbitStatus.palpateDue ||
+          isRecentlyBred ||
+          isUpcomingDue) {
+        continue;
+      }
+
       if (doe.status == RabbitStatus.open) {
-        eligibleDoes.add(doe);
+        if (!isUpcomingDue) {
+          eligibleDoes.add(doe);
+        }
       } else if (doe.status == RabbitStatus.nursing) {
+        if (isUpcomingDue || isRecentlyBred) {
+          continue;
+        }
         // Check if active nursing litter / kindle date is >= rebreedDays
         final activeLitter = litters.where((l) => l.doeId == doe.id && (l.status.toLowerCase() == 'nursing' || l.status.toLowerCase() == 'active')).firstOrNull;
         final litterDate = activeLitter?.kindleDate ?? activeLitter?.dob ?? doe.kindleDate;
@@ -1384,6 +1470,7 @@ class DatabaseService {
         'palpationDate':
             settings.palpationEnabled ? palpationDate.toIso8601String() : null,
         'dueDate': dueDate.toIso8601String(),
+        'kindleDate': null,
         'fallOffs': fallOffs,
         'breedingNotes': breedingNotes,
         'updatedAt': DateTime.now().toIso8601String(),
@@ -1395,14 +1482,15 @@ class DatabaseService {
     // Delete any obsolete open_breeding / previous breeding tasks for this doe
     await db.delete(
       'tasks',
-      where: 'rabbitId = ? AND taskType IN (?, ?, ?, ?, ?)',
+      where: 'rabbitId = ? AND taskType IN (?, ?, ?, ?, ?, ?)',
       whereArgs: [
         doeId,
         'palpation',
         'nestbox',
         'kindle',
         'wean',
-        'open_breeding'
+        'open_breeding',
+        'resting',
       ],
     );
 
@@ -2571,6 +2659,42 @@ class DatabaseService {
         }
 
         if (hasActiveNursingKits) {
+          final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
+          bool isBred = false;
+          if (doeMap.isNotEmpty) {
+            final dueDateStr = doeMap.first['dueDate'] as String?;
+            final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
+            final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
+            final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            isBred = dueDate != null &&
+                !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day).add(const Duration(days: 5))) &&
+                (lastBreed == null || today.difference(lastBreed).inDays <= 38);
+          }
+
+          if (isBred) {
+            // Doe is nursing previous kits BUT has already been rebred for an upcoming litter!
+            // Do NOT overwrite her status to nursing; ensure her reproductive status remains pregnant/palpateDue,
+            // and clear any stale kindleDate from the rabbits row.
+            final settings = SettingsService.instance;
+            final statusToSet = settings.palpationEnabled
+                ? RabbitStatus.palpateDue.toString()
+                : RabbitStatus.pregnant.toString();
+            await db.update(
+              'rabbits',
+              {
+                if (!currentStatus.contains('pregnant') && !currentStatus.contains('palpateDue'))
+                  'status': statusToSet,
+                'kindleDate': null,
+                'updatedAt': DateTime.now().toIso8601String(),
+              },
+              where: 'id = ?',
+              whereArgs: [doeId],
+            );
+            continue;
+          }
+
           if (!currentStatus.contains('nursing')) {
             await db.update(
               'rabbits',
@@ -2583,6 +2707,28 @@ class DatabaseService {
             );
           }
         } else if (currentStatus.contains('nursing')) {
+          final doeMap = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
+          if (doeMap.isNotEmpty) {
+            final dueDateStr = doeMap.first['dueDate'] as String?;
+            final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
+            final lastBreedStr = doeMap.first['lastBreedDate'] as String?;
+            final lastBreed = lastBreedStr != null ? DateTime.tryParse(lastBreedStr) : null;
+            final isBred = dueDate != null && !DateTime.now().isAfter(dueDate) && (lastBreed == null || DateTime.now().difference(lastBreed).inDays <= 35);
+            if (isBred) {
+              await db.update(
+                'rabbits',
+                {
+                  'status': RabbitStatus.pregnant.toString(),
+                  'currentLitterSize': 0,
+                  'weanDate': null,
+                  'updatedAt': DateTime.now().toIso8601String(),
+                },
+                where: 'id = ?',
+                whereArgs: [doeId],
+              );
+              continue;
+            }
+          }
           await db.update(
             'rabbits',
             {

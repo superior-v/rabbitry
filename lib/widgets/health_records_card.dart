@@ -154,26 +154,17 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
               child: Center(child: CircularProgressIndicator(color: Color(0xFF7B6BA0), strokeWidth: 2)),
             )
           else if (_records.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'No health records yet.\nTap ADD to create one.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF787774),
-                        ),
-                      ),
-                    ),
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'No records yet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF787774),
                   ),
-                  SizedBox(height: 8),
-                ],
+                ),
               ),
             )
           else

@@ -67,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   String weightUnit = 'lbs';
   String currency = 'usd';
   String dateFormat = 'MMM d, yyyy';
+  String sortDoeBuck = 'Ear Number';
   String digestTime = '07:00';
   String? _logoPath;
   // Pipeline settings
@@ -277,6 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         weightUnit = _settings.weightUnit;
         currency = _settings.currency;
         dateFormat = _settings.dateFormat;
+        sortDoeBuck = _settings.sortDoeBuck;
 
         // Pipeline Settings
         gestationDays = _settings.gestationDays;
@@ -418,6 +420,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       // Units and Formats
       await _settings.setWeightUnit(weightUnit);
       await _settings.setDateFormat(dateFormat);
+      await _settings.setSortDoeBuck(sortDoeBuck);
 
       // Pipeline Settings
       await _settings.setGestationDays(gestationDays);
@@ -882,7 +885,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           ],
         ),
         _buildCard(
-          'Localization',
+          'My Preference',
           PhosphorIconsDuotone.globe,
           [
             _buildSettingRow(
@@ -961,6 +964,22 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   if (value != null) {
                     setState(() => dateFormat = value);
                     _settings.setDateFormat(value);
+                  }
+                },
+              ),
+            ),
+            _buildSettingRow(
+              'Sort Doe/Buck',
+              _buildStandardDropdown<String>(
+                value: sortDoeBuck,
+                items: const [
+                  DropdownMenuItem(value: 'Ear Number', child: Text('Ear Number', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'Bunny Name', child: Text('Bunny Name', style: TextStyle(color: Color(0xFF4F4F56)))),
+                ],
+                onChanged: (value) async {
+                  if (value != null) {
+                    setState(() => sortDoeBuck = value);
+                    await _settings.setSortDoeBuck(value);
                   }
                 },
               ),

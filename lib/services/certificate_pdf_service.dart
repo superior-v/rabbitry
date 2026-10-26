@@ -169,10 +169,10 @@ class CertificatePdfService {
       final bgImage = pw.MemoryImage(bgByteData.buffer.asUint8List());
 
       final fontDetailsBoldData = await rootBundle.load(CertificateLayout.fontDetailsBoldAsset);
-      final fontScriptData = await rootBundle.load(CertificateLayout.fontScriptAsset);
+      final fontShakiesData = await rootBundle.load(CertificateLayout.fontShakiesAsset);
 
       final fontDetailsBold = pw.Font.ttf(fontDetailsBoldData);
-      final fontScript = pw.Font.ttf(fontScriptData);
+      final fontShakies = pw.Font.ttf(fontShakiesData);
 
       const pageFormat = PdfPageFormat(
         CertificateLayout.pageWidthPt,
@@ -235,7 +235,7 @@ class CertificatePdfService {
                   ),
                 ),
 
-                // Layer 3: Rabbit Name (Script font)
+                // Layer 3: Rabbit Name (Shakies font)
                 pw.Positioned(
                   top: topName,
                   left: 0,
@@ -246,7 +246,7 @@ class CertificatePdfService {
                       data.name,
                       textAlign: pw.TextAlign.center,
                       style: pw.TextStyle(
-                        font: fontScript,
+                        font: fontShakies,
                         fontSize: fontSizeName,
                         color: textColor,
                       ),

@@ -702,7 +702,7 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Rabbit Name (Script font)
+        // Rabbit Name (Shakies font)
         Positioned(
           top: topName,
           left: 0,
@@ -711,9 +711,9 @@ class CertificatePreviewWidget extends StatelessWidget {
             data.name,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: CertificateLayout.fontFamilyScript,
+              fontFamily: CertificateLayout.fontFamilyShakies,
               fontSize: fontSizeName,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: textColor,
             ),
           ),
@@ -722,8 +722,8 @@ class CertificatePreviewWidget extends StatelessWidget {
         // Birth Sentence ("a Holland Lop rabbit was born on Oct 10, 2026")
         Positioned(
           top: topBorn,
-          left: 0,
-          right: 0,
+          left: 40,
+          right: 40,
           child: Text(
             data.birthSentence,
             textAlign: TextAlign.center,
@@ -736,11 +736,11 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Location Sentence ("at Amaranth, Ontario Canada")
+        // Location Sentence ("at Amaranth")
         Positioned(
           top: topLocation,
-          left: 0,
-          right: 0,
+          left: 40,
+          right: 40,
           child: Text(
             data.locationSentence,
             textAlign: TextAlign.center,

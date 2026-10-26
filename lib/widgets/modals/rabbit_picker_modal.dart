@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../constants/app_colors.dart';
+import '../../services/settings_service.dart';
 
 /// Shows a bottom sheet modal to select a Rabbit (Doe or Buck)
 /// with a title and an 'X' close button in the top right to dismiss without selecting.
@@ -14,6 +15,7 @@ Future<Rabbit?> showRabbitPickerBottomSheet({
   String? archivedSectionTitle,
   Rabbit? selectedRabbit,
   String? selectedRabbitId,
+  bool showSectionHeaders = true,
 }) {
   return showModalBottomSheet<Rabbit>(
     context: context,
@@ -27,6 +29,7 @@ Future<Rabbit?> showRabbitPickerBottomSheet({
       allSectionTitle: allSectionTitle,
       archivedSectionTitle: archivedSectionTitle,
       selectedRabbitId: selectedRabbitId ?? selectedRabbit?.id,
+      showSectionHeaders: showSectionHeaders,
     ),
   );
 }
@@ -60,6 +63,7 @@ class RabbitPickerModal extends StatefulWidget {
   final String? allSectionTitle;
   final String? archivedSectionTitle;
   final String? selectedRabbitId;
+  final bool showSectionHeaders;
 
   const RabbitPickerModal({
     Key? key,
@@ -70,6 +74,7 @@ class RabbitPickerModal extends StatefulWidget {
     this.allSectionTitle,
     this.archivedSectionTitle,
     this.selectedRabbitId,
+    this.showSectionHeaders = true,
   }) : super(key: key);
 
   @override
@@ -117,6 +122,13 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
       if (aArchived != bArchived) {
         return aArchived ? 1 : -1;
       }
+      if (SettingsService.instance.sortDoeBuck == 'Ear Number') {
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        final earCompare = earA.compareTo(earB);
+        if (earCompare != 0) return earCompare;
+        return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+      }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;
       final breedCompare = a.breed.trim().toLowerCase().compareTo(b.breed.trim().toLowerCase());
@@ -149,8 +161,8 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -164,8 +176,8 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -332,6 +344,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
 
   Widget _buildRabbitTile(Rabbit rabbit) {
     final isSelected = rabbit.id == widget.selectedRabbitId;
+    final isArchived = rabbit.isArchived;
     final details = <String>[];
     if (rabbit.breed.isNotEmpty) details.add(rabbit.breed);
     if ((rabbit.color ?? '').isNotEmpty) details.add(rabbit.color!);
@@ -343,10 +356,14 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF3E8FF) : const Color(0xFFFAFAFA),
+          color: isSelected
+              ? const Color(0xFFF3E8FF)
+              : (isArchived ? const Color(0xFFF4F4F6) : const Color(0xFFFAFAFA)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5E5EA),
+            color: isSelected
+                ? const Color(0xFF7B6BA0)
+                : const Color(0xFFE5E5EA),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -361,10 +378,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                     const SizedBox(height: 3),
                     Text(
                       details.join(' • '),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF787774),
+                        color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -414,6 +431,36 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
       );
     }
 
+    final children = <Widget>[];
+
+    // If section headers are disabled (e.g., Future Breeding Plan picker),
+    // remove ALL DOES / ALL BUCKS / ARCHIVED DOES / ARCHIVED BUCKS headers,
+    // and place archived at the bottom in grey color.
+    if (!widget.showSectionHeaders) {
+      for (final r in filteredOpen) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildRabbitTile(r),
+        ));
+      }
+      for (final r in filteredActive) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildRabbitTile(r),
+        ));
+      }
+      for (final r in filteredArchived) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildRabbitTile(r),
+        ));
+      }
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+        children: children,
+      );
+    }
+
     final String openTitle = widget.openSectionTitle ?? 'OPEN DOES';
     final String allTitle = widget.allSectionTitle ??
         ((widget.openRabbits != null && widget.openRabbits!.isNotEmpty)
@@ -427,8 +474,6 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
         (widget.rabbits.any((r) => r.isArchived) && _searchQuery.isEmpty);
 
     final bool showAllHeader = hasOpenSection || hasArchivedSection || widget.allSectionTitle != null;
-
-    final children = <Widget>[];
 
     // 1. OPEN SECTION
     if (hasOpenSection) {
@@ -552,6 +597,13 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
       final bArchived = b.status == RabbitStatus.archived;
       if (aArchived != bArchived) {
         return aArchived ? 1 : -1;
+      }
+      if (SettingsService.instance.sortDoeBuck == 'Ear Number') {
+        final earA = (a.earNumber ?? a.id).trim().toLowerCase();
+        final earB = (b.earNumber ?? b.id).trim().toLowerCase();
+        final earCompare = earA.compareTo(earB);
+        if (earCompare != 0) return earCompare;
+        return a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       }
       final nameCompare = a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
       if (nameCompare != 0) return nameCompare;

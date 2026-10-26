@@ -50,6 +50,7 @@ class SettingsService {
   String get weightUnit => _prefs?.getString('weightUnit') ?? 'lbs';
   String get currency => _prefs?.getString('currency') ?? 'usd';
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MMM dd, yyyy';
+  String get sortDoeBuck => _prefs?.getString('sortDoeBuck') ?? 'Ear Number';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
   String get digestTime => _prefs?.getString('digestTime') ?? '07:00';
@@ -418,6 +419,10 @@ class SettingsService {
     await _prefs?.setString('dateFormat', format);
   }
 
+  Future<void> setSortDoeBuck(String sortOrder) async {
+    await _prefs?.setString('sortDoeBuck', sortOrder);
+  }
+
   Future<void> setDarkMode(bool enabled) async {
     await _prefs?.setBool('darkMode', enabled);
   }
@@ -540,6 +545,7 @@ class SettingsService {
       'sexualMaturityAge': sexualMaturityAge,
       'weightUnit': weightUnit,
       'dateFormat': dateFormat,
+      'sortDoeBuck': sortDoeBuck,
       'darkMode': darkMode,
       'notificationsEnabled': notificationsEnabled,
       'farmName': farmName,
@@ -577,6 +583,7 @@ class SettingsService {
     if (settings['sexualMaturityAge'] != null) await setSexualMaturityAge(settings['sexualMaturityAge']);
     if (settings['weightUnit'] != null) await setWeightUnit(settings['weightUnit']);
     if (settings['dateFormat'] != null) await setDateFormat(settings['dateFormat']);
+    if (settings['sortDoeBuck'] != null) await setSortDoeBuck(settings['sortDoeBuck']);
     if (settings['darkMode'] != null) await setDarkMode(settings['darkMode']);
     if (settings['notificationsEnabled'] != null) await setNotificationsEnabled(settings['notificationsEnabled']);
     if (settings['farmName'] != null) await setFarmName(settings['farmName']);

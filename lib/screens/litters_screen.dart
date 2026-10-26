@@ -64,17 +64,29 @@ class LittersScreenState extends State<LittersScreen> {
   bool _isBarnEditMode = false;
   bool _isLoading = true;
   bool _keyboardWasOpen = false;
-  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode(canRequestFocus: false, skipTraversal: true);
 
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus && _searchFocusNode.canRequestFocus) {
+        _searchFocusNode.canRequestFocus = false;
+      }
+    });
     if (widget.initialLitterId != null) {
       _expandedLitters[widget.initialLitterId!] = true;
     }
     print(' initState called, loading litters...');
     _loadLitters();
     dataChangeNotifier.addListener(_onDataChanged);
+  }
+
+  @override
+  void dispose() {
+    dataChangeNotifier.removeListener(_onDataChanged);
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   void _onDataChanged() {
@@ -151,12 +163,13 @@ class LittersScreenState extends State<LittersScreen> {
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     if (keyboardVisible) {
       _keyboardWasOpen = true;
-    } else if (_keyboardWasOpen && _searchFocusNode.hasFocus) {
+    } else if (_keyboardWasOpen) {
       _keyboardWasOpen = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_searchFocusNode.hasFocus) {
           _searchFocusNode.unfocus();
         }
+        _searchFocusNode.canRequestFocus = false;
       });
     }
 
@@ -205,7 +218,6 @@ class LittersScreenState extends State<LittersScreen> {
             _searchFocusNode.canRequestFocus = false;
             FocusScope.of(context).unfocus();
             await _showAddLitterDialog();
-            _searchFocusNode.canRequestFocus = true;
           },
           backgroundColor: const Color(0xFFE6BEFE),
           shape: const CircleBorder(),
@@ -299,7 +311,6 @@ class LittersScreenState extends State<LittersScreen> {
     int nursingKits = 0;
     int weanedKitsCount = 0;
     final Set<String> nursingDoes = {};
-    int fallbackNursingLitters = 0;
 
     for (final litter in litters) {
       if (_isLitterArchived(litter)) continue;
@@ -307,64 +318,97 @@ class LittersScreenState extends State<LittersScreen> {
       if (lStatus == 'history_only' || lStatus == 'deleted_archive') continue;
 
       final doe = _rabbitMap[litter.doeId];
+      final String doeStatusStr = doe?.status.name.toLowerCase() ?? '';
+      final bool isDoeOpenOrBred = doeStatusStr.contains('open') || doeStatusStr.contains('bred');
+
       final int weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
       final int weanDays = weanWeeks * 7;
-      final bool isWeanAgeReached = litter.ageDays >= weanDays;
+      final bool isWeanAgeReached = (litter.weanDate != null
+              ? litter.weanDate!.isBefore(DateTime.now())
+              : litter.ageDays >= weanDays) ||
+          lStatus == 'weaned';
 
-      bool isWeanedTile = false;
-      bool isNursingTile = false;
+      final bool isLitterGrowOut = lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out';
+      final bool isLitterQuarantine = lStatus == 'quarantine';
 
-      final hasWeanedKits = litter.kits.any((kit) {
-        final st = kit.status.toLowerCase().trim();
-        if (kit.isArchived || st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') return false;
-        return st == 'weaned' || st == 'growout' || st == 'grow out' || st == 'grow-out';
-      });
-
-      final hasNursingKits = litter.kits.any((kit) {
-        final st = kit.status.toLowerCase().trim();
-        if (kit.isArchived || st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') return false;
-        return st == 'nursing' || st == 'active' || st == '';
-      });
-
-      if (hasWeanedKits || lStatus == 'weaned' || (isWeanAgeReached && (lStatus == 'nursing' || lStatus == '' || lStatus == 'active'))) {
-        isWeanedTile = true;
-      }
-      if (!isWeanedTile) {
-        if (hasNursingKits || lStatus == 'nursing' || lStatus == '' || lStatus == 'active') {
-          isNursingTile = true;
-        }
-      }
-
-      if (isNursingTile) {
-        fallbackNursingLitters++;
-        final doeKey = litter.doeId.isNotEmpty ? litter.doeId : litter.doeName.trim().toLowerCase();
-        if (doeKey.isNotEmpty) {
-          nursingDoes.add(doeKey);
-        }
-      }
+      bool litterHasActiveNursingKit = false;
 
       if (litter.kits.isNotEmpty) {
         for (final kit in litter.kits) {
           if (kit.isArchived) continue;
           final st = kit.status.toLowerCase().trim();
-          if (st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull') continue;
-          if (st == 'weaned' || st == 'growout' || st == 'grow out' || st == 'grow-out' || (isWeanedTile && st != 'nursing')) {
+          if (st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull' || st == 'culled') {
+            continue;
+          }
+
+          // Fostered-out kits are nursing with the foster doe, NOT with this biological doe.
+          // They must not be counted under the biological mother's litter.
+          final bool isFosteredOut = st == 'fostered' ||
+              (kit.details != null && kit.details!.toLowerCase().contains('fostered to'));
+          if (isFosteredOut) {
+            continue;
+          }
+
+          // Check if this kit is in Grow-Out
+          final bool isKitGrowOut = isLitterGrowOut ||
+              st == 'growout' ||
+              st == 'grow out' ||
+              st == 'grow-out' ||
+              (kit.details != null &&
+                  (kit.details!.toLowerCase().contains('grow-out') || kit.details!.toLowerCase().contains('grow out')));
+          if (isKitGrowOut) {
+            // Kits in Grow-out are NOT weaned kits and NOT nursing kits.
+            continue;
+          }
+
+          // Check if this kit is in Quarantine
+          final bool isKitQuarantine = isLitterQuarantine || st == 'quarantine';
+          if (isKitQuarantine) {
+            continue;
+          }
+
+          // Check if this kit is Weaned
+          final bool isKitWeaned = st == 'weaned' ||
+              (lStatus == 'weaned' && st != 'nursing') ||
+              (isWeanAgeReached && st != 'nursing');
+
+          if (isKitWeaned) {
             weanedKitsCount++;
-          } else if (st == 'nursing' || isNursingTile) {
+          } else {
+            // Kit is actively nursing
             nursingKits++;
+            litterHasActiveNursingKit = true;
           }
         }
       } else {
-        final count = litter.aliveKits ?? litter.totalKits ?? 0;
-        if (isWeanedTile) {
-          weanedKitsCount += count;
-        } else if (isNursingTile) {
-          nursingKits += count;
+        // Litter without individual kit models
+        final count = litter.aliveKits ?? 0;
+        if (count > 0 && lStatus != 'fostered') {
+          if (isLitterGrowOut || isLitterQuarantine) {
+            // Grow-out or quarantine, not counted in weaned or nursing
+          } else if (isWeanAgeReached || lStatus == 'weaned') {
+            weanedKitsCount += count;
+          } else if (!isDoeOpenOrBred) {
+            nursingKits += count;
+            litterHasActiveNursingKit = true;
+          }
+        }
+      }
+
+      // Nursing mothers count:
+      // Must NOT include mothers that have fostered all their kits and are open/bred.
+      // Only include actual nursing mothers currently nursing at least one active nursing kit.
+      if (litterHasActiveNursingKit && !isDoeOpenOrBred && !isWeanAgeReached && lStatus != 'weaned' && !isLitterGrowOut && !isLitterQuarantine) {
+        final doeKey = litter.doeId.isNotEmpty
+            ? litter.doeId
+            : (litter.doeName.trim().isNotEmpty ? litter.doeName.trim().toLowerCase() : litter.id);
+        if (doeKey.isNotEmpty) {
+          nursingDoes.add(doeKey);
         }
       }
     }
 
-    final doesInNursingCount = nursingDoes.isNotEmpty ? nursingDoes.length : fallbackNursingLitters;
+    final doesInNursingCount = nursingDoes.length;
 
     return Container(
       width: double.infinity,
@@ -482,8 +526,19 @@ class LittersScreenState extends State<LittersScreen> {
                   Expanded(
                     child: TextField(
                       focusNode: _searchFocusNode,
+                      onTap: () {
+                        _searchFocusNode.canRequestFocus = true;
+                        _searchFocusNode.requestFocus();
+                      },
                       onChanged: (value) => setState(() => _searchQuery = value),
-                      onTapOutside: (event) => _searchFocusNode.unfocus(),
+                      onSubmitted: (_) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
+                      onTapOutside: (event) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search by name or ID',
@@ -506,7 +561,6 @@ class LittersScreenState extends State<LittersScreen> {
               _searchFocusNode.canRequestFocus = false;
               FocusScope.of(context).unfocus();
               await _showGroupingModal();
-              _searchFocusNode.canRequestFocus = true;
             },
           ),
           const SizedBox(width: 6),
@@ -517,7 +571,6 @@ class LittersScreenState extends State<LittersScreen> {
               _searchFocusNode.canRequestFocus = false;
               FocusScope.of(context).unfocus();
               await _showBarnDrawer();
-              _searchFocusNode.canRequestFocus = true;
             },
           ),
           const SizedBox(width: 6),
@@ -609,7 +662,6 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ),
     );
-    _searchFocusNode.canRequestFocus = true;
   }
 
   Widget _buildGroupingOption(String value, String label, IconData icon) {
@@ -1407,7 +1459,6 @@ class LittersScreenState extends State<LittersScreen> {
                               _searchFocusNode.canRequestFocus = false;
                               FocusScope.of(context).unfocus();
                               await _showLitterActions(litter);
-                              _searchFocusNode.canRequestFocus = true;
                             },
                             child: const Padding(
                               padding: EdgeInsets.only(top: 2, right: 4),
@@ -1737,7 +1788,6 @@ class LittersScreenState extends State<LittersScreen> {
                       _searchFocusNode.canRequestFocus = false;
                       FocusScope.of(context).unfocus();
                       await _showLitterActions(litter);
-                      _searchFocusNode.canRequestFocus = true;
                     },
                     child: const Padding(
                       padding: EdgeInsets.only(top: 2, right: 2),
@@ -2867,7 +2917,7 @@ class LittersScreenState extends State<LittersScreen> {
     List<Widget> actionPills = [];
 
     if (effectiveStage == 'archive') {
-      // Archive: Edit Birth Info, Move (Move to Nursing, Move to Weaned, Move to Grow-Out, Move to Quarantine. Move to Cage No.), Delete from Archive
+      // Archive: Edit Birth Info, Move (Move to Weaned, Move to Grow-Out, Move to Quarantine, Move to Cage No.), Delete from Archive
       actionPills = [
         _buildLitterActionPill(
           label: 'Edit Birth Info',
@@ -3138,7 +3188,6 @@ class LittersScreenState extends State<LittersScreen> {
             ),
           ),
         );
-        _searchFocusNode.canRequestFocus = true;
         return;
       } else {
         final allKits = _getOrGenerateLitterKits(litter);
@@ -3361,7 +3410,6 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ),
     );
-    _searchFocusNode.canRequestFocus = true;
   }
 
   Future<void> _showMoveLitterModal(Litter litter, {String? fromStage, BuildContext? parentContext}) async {
@@ -3419,16 +3467,8 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ];
     } else if (stage == 'archive') {
-      // Archive: Move to Nursing, Move to Weaned, Move to Grow-Out, Move to Quarantine, Move to Cage No.
+      // Archive: Move to Weaned, Move to Grow-Out, Move to Quarantine, Move to Cage No.
       movePills = [
-        _buildLitterActionPill(
-          label: 'Move to Nursing',
-          onTap: () async {
-            closeModals();
-            await _moveLitterToStage(litter, 'Nursing');
-          },
-        ),
-        const SizedBox(height: 10),
         _buildLitterActionPill(
           label: 'Move to Weaned',
           onTap: () async {
@@ -4139,7 +4179,11 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
-  void _showKitActions(Litter litter, Kit kit) {
+  Future<void> _showKitActions(Litter litter, Kit kit) async {
+    _searchFocusNode.canRequestFocus = false;
+    _searchFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final DateTime? kitDob = litter.dob ?? litter.kindleDate;
     final int kitAgeDays = kitDob != null
         ? DateTime.now().difference(kitDob).inDays
@@ -4279,6 +4323,8 @@ class LittersScreenState extends State<LittersScreen> {
         actions.add(_buildLitterActionPill(
           label: 'Cancel Reservation',
           onTap: () {
+            _searchFocusNode.canRequestFocus = false;
+            FocusManager.instance.primaryFocus?.unfocus();
             Navigator.pop(context);
             _cancelKitReservation(litter, kit);
           },
@@ -4402,6 +4448,8 @@ class LittersScreenState extends State<LittersScreen> {
         actions.add(_buildLitterActionPill(
           label: 'Cancel Reservation',
           onTap: () {
+            _searchFocusNode.canRequestFocus = false;
+            FocusManager.instance.primaryFocus?.unfocus();
             Navigator.pop(context);
             _cancelKitReservation(litter, kit);
           },
@@ -4880,7 +4928,7 @@ class LittersScreenState extends State<LittersScreen> {
           : 'Nursing';
     }
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -4939,7 +4987,11 @@ class LittersScreenState extends State<LittersScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        _searchFocusNode.canRequestFocus = false;
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.pop(context);
+                      },
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -4967,6 +5019,8 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = false;
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _moveKitToStage(Litter litter, Kit kit, String targetStage) async {
@@ -6354,6 +6408,8 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Future<void> _cancelKitReservation(Litter litter, Kit kit) async {
+    _searchFocusNode.canRequestFocus = false;
+    FocusManager.instance.primaryFocus?.unfocus();
     final kitTag = _getKitDisplayTag(litter, kit);
     final confirmed = await showBrightPurpleDialog<bool>(
       context: context,
@@ -6363,6 +6419,8 @@ class LittersScreenState extends State<LittersScreen> {
       confirmText: 'Cancel Reservation',
       confirmColor: const Color(0xFFD32F2F),
     );
+    _searchFocusNode.canRequestFocus = false;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     if (confirmed == true) {
       final litterIndex = litters.indexWhere((l) => l.id == litter.id);
@@ -6408,7 +6466,11 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
-  void _showReserveKitDialog(Litter litter, Kit kit) {
+  Future<void> _showReserveKitDialog(Litter litter, Kit kit) async {
+    _searchFocusNode.canRequestFocus = false;
+    _searchFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final TextEditingController buyerController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
     final TextEditingController usernameController = TextEditingController();
@@ -6460,7 +6522,7 @@ class LittersScreenState extends State<LittersScreen> {
       }
     }
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -6502,7 +6564,11 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () {
+                          _searchFocusNode.canRequestFocus = false;
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.pop(context);
+                        },
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
@@ -6820,6 +6886,8 @@ class LittersScreenState extends State<LittersScreen> {
 
                     final reservationText = 'Reserved: ${resParts.join(' • ')}';
 
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    _searchFocusNode.canRequestFocus = false;
                     Navigator.pop(context);
 
                     final litterIndex = litters.indexWhere((l) => l.id == litter.id);
@@ -6881,6 +6949,8 @@ class LittersScreenState extends State<LittersScreen> {
                                   height: 50,
                                   child: ElevatedButton(
                                     onPressed: () async {
+                                      FocusManager.instance.primaryFocus?.unfocus();
+                                      _searchFocusNode.canRequestFocus = false;
                                       Navigator.pop(context);
                                       await _cancelKitReservation(litter, kit);
                                     },
@@ -6970,6 +7040,8 @@ class LittersScreenState extends State<LittersScreen> {
         ),
       ),
     );
+    _searchFocusNode.canRequestFocus = false;
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _showSellKitDialog(Litter litter, Kit kit) {
@@ -11640,7 +11712,6 @@ class LittersScreenState extends State<LittersScreen> {
         },
       ),
     );
-    _searchFocusNode.canRequestFocus = true;
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(

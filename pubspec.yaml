@@ -68,6 +68,9 @@ flutter:
     - family: CertificateScript
       fonts:
         - asset: assets/fonts/DancingScript-VariableFont_wght.ttf
+    - family: Shakies
+      fonts:
+        - asset: assets/fonts/Shakies-OpenType-TT.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -136,16 +136,17 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
               child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep)),
             )
           else if (_weightLogs.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              child: Column(
-                children: [
-                  Icon(Icons.monitor_weight_outlined, size: 36, color: kNeutral300),
-                  const SizedBox(height: 8),
-                  Text('No weight logs yet', style: TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 4),
-                  Text('Tap "Log" to record a weight entry', style: TextStyle(fontSize: 12, color: kNeutral300)),
-                ],
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'No records yet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF787774),
+                  ),
+                ),
               ),
             )
           else

@@ -17,6 +17,7 @@ import 'purple_dialog.dart';
 import '../screens/home_dashboard_screen.dart' show HomeDashboardScreen;
 import 'modals/wean_litter_modal.dart';
 import 'modals/log_birth_modal.dart';
+import '../services/app_event_service.dart';
 
 class LitterHistoryCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -481,16 +482,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           // Expandable children kits & notes matching Nursery page
           if (isExpanded) ...[
             const Divider(height: 20, color: Color(0xFFE5E5EA)),
-            if (litter.kits.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                child: Text(
-                  isMissedLitter ? 'Missed breeding — no kits' : 'No kits recorded in this litter',
-                  style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontStyle: FontStyle.italic),
+            if (litter.kits.isEmpty) ...[
+              if (!isMissedLitter)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                  child: Text(
+                    'No kits recorded in this litter',
+                    style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontStyle: FontStyle.italic),
+                  ),
                 ),
-              )
-            else
-              ...litter.kits.map((kit) => _buildKitRow(litter, kit)).toList(),
+            ] else
+              ...litter.kits.map((kit) => _buildKitRow(litter, kit)),
             const SizedBox(height: 8),
             _buildLitterNotesBox(litter),
             const SizedBox(height: 4),
@@ -503,12 +505,16 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   Widget _buildKitRow(Litter litter, Kit kit) {
     final String rawStatus = kit.status.toLowerCase().trim();
     final bool isSold = rawStatus == 'sold';
-    final String kStatus = (rawStatus == 'cull' || rawStatus == 'culled')
-        ? 'cull'
-        : ((rawStatus == 'dead' || rawStatus == 'died' || rawStatus == 'deceased')
-            ? 'dead'
-            : (rawStatus == 'butchered' ? 'butchered' : (isSold ? 'sold' : rawStatus)));
-    final bool isReserved = rawStatus == 'reserved' || (kit.details != null && kit.details!.toLowerCase().contains('reserved:'));
+    final bool isReserved = !isSold && (rawStatus == 'reserved' || (kit.details != null && kit.details!.toLowerCase().contains('reserved:')));
+    final String kStatus = isSold
+        ? 'sold'
+        : (isReserved
+            ? 'reserved'
+            : ((rawStatus == 'cull' || rawStatus == 'culled')
+                ? 'cull'
+                : ((rawStatus == 'dead' || rawStatus == 'died' || rawStatus == 'deceased')
+                    ? 'dead'
+                    : (rawStatus == 'butchered' ? 'butchered' : rawStatus))));
     final bool isOutcome = (rawStatus == 'cull' ||
         rawStatus == 'culled' ||
         rawStatus == 'dead' ||
@@ -607,7 +613,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             ),
             const SizedBox(width: 8),
             if (isOutcome) ...[
-              _buildOutcomeBadge(kStatus),
+              _buildOutcomeBadge(kStatus, litter, kit),
               const SizedBox(width: 6),
             ],
             const Icon(PhosphorIconsRegular.caretRight, size: 16, color: Color(0xFFE5E5EA)),
@@ -644,18 +650,23 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       if (litterIndex != -1) {
         final currentLitter = _litters[litterIndex];
         final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+        final int targetIndexInLitter = litter.kits.indexOf(kit);
         bool updated = false;
-        final updatedKits = currentLitter.kits.map((k) {
+        final updatedKits = currentLitter.kits.asMap().entries.map((entry) {
+          final int idx = entry.key;
+          final Kit k = entry.value;
           final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
           final bool isExactId = k.id == kit.id;
-          final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
-              (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
-              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-          if ((isExactId || isNumericMatch) && !updated) {
+          final bool isNumericMatch = kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+          final bool isIndexMatch = (targetIndexInLitter != -1 && idx == targetIndexInLitter);
+
+          if ((isExactId || isNumericMatch || isIndexMatch) && !updated) {
             updated = true;
             return k.copyWith(
               status: 'Sold',
-              details: (k.details != null && k.details!.isNotEmpty) ? k.details : 'Sold',
+              details: (k.details != null && k.details!.isNotEmpty && !k.details!.toLowerCase().contains('reserved'))
+                  ? k.details
+                  : 'Sold',
             );
           }
           return k;
@@ -673,6 +684,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           deadKits: deadCount,
         );
         await _db.updateLitter(updatedLitter);
+        notifyDataChanged();
         await _loadLitterHistory();
       }
 
@@ -695,67 +707,111 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   }
 
   void _showKitActions(Litter litter, Kit kit) {
-    final String kStatus = kit.status.toLowerCase().trim();
-    final String kitTag = _getKitDisplayTag(litter, kit);
+    final matchIdx = litter.kits.indexWhere((k) => k.id == kit.id);
+    final currentKit = matchIdx != -1 ? litter.kits[matchIdx] : kit;
+
+    final String rawStatus = currentKit.status.toLowerCase().trim();
+    final bool isSold = rawStatus == 'sold';
+    final bool isReserved = !isSold && (rawStatus == 'reserved' || (currentKit.details != null && currentKit.details!.toLowerCase().contains('reserved:')));
+    final bool isDeadOrCulled = rawStatus == 'dead' || rawStatus == 'died' || rawStatus == 'deceased' || rawStatus == 'cull' || rawStatus == 'culled';
+    final String kitTag = _getKitDisplayTag(litter, currentKit);
     final List<Widget> actions = [];
 
-    if (kStatus == 'sold') {
-      // Sold Kit options:
+    if (isSold) {
       // 1. Edit Kit Info
-      actions.add(_buildCompactActionTile(
+      actions.add(_buildKitActionPill(
         label: 'Edit Kit Info',
-        color: kLilacDeep,
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, currentKit);
+        },
+      ));
+
+      // 2. Cancel Sale
+      actions.add(_buildKitActionPill(
+        label: 'Cancel Sale',
+        onTap: () {
+          Navigator.pop(context);
+          _cancelKitSale(litter, currentKit);
+        },
+      ));
+
+      // 3. Birth Certificate
+      actions.add(_buildKitActionPill(
+        label: 'Birth Certificate',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, currentKit);
+        },
+      ));
+
+      // 4. Pedigree
+      actions.add(_buildKitActionPill(
+        label: 'Pedigree',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, currentKit);
+        },
+      ));
+    } else if (isReserved) {
+      // 1. Edit Kit Info
+      actions.add(_buildKitActionPill(
+        label: 'Edit Kit Info',
         onTap: () {
           Navigator.pop(context);
           _showEditKitDetails(litter, kit);
         },
       ));
 
-      // 2. Cancel Sale
-      actions.add(_buildCompactActionTile(
-        label: 'Cancel Sale',
-        color: const Color(0xFFD44C47),
-        textColor: const Color(0xFFD44C47),
+      // 2. Cancel Reservation
+      actions.add(_buildKitActionPill(
+        label: 'Cancel Reservation',
         onTap: () {
           Navigator.pop(context);
-          _cancelKitSale(litter, kit);
+          _cancelKitReservation(litter, kit);
         },
       ));
 
-      // 3. Birth Certificate
-      actions.add(_buildCompactActionTile(
+      // 3. Complete Sale
+      actions.add(_buildKitActionPill(
+        label: 'Complete Sale',
+        onTap: () {
+          Navigator.pop(context);
+          _showSellKitDialog(litter, kit);
+        },
+      ));
+
+      // 4. Birth Certificate
+      actions.add(_buildKitActionPill(
         label: 'Birth Certificate',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _showKitBirthCertificate(litter, kit);
         },
       ));
 
-      // 4. Pedigree
-      actions.add(_buildCompactActionTile(
+      // 5. Pedigree
+      actions.add(_buildKitActionPill(
         label: 'Pedigree',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _showKitPedigree(litter, kit);
         },
       ));
     } else {
+      // Standard Weaned Kit
       // 1. Edit Kit Info
-      actions.add(_buildCompactActionTile(
+      actions.add(_buildKitActionPill(
         label: 'Edit Kit Info',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _showEditKitDetails(litter, kit);
         },
       ));
 
-      // 2. Mark as Sold
-      actions.add(_buildCompactActionTile(
-        label: 'Mark as Sold',
-        color: kLilacDeep,
+      // 2. Mark as sold
+      actions.add(_buildKitActionPill(
+        label: 'Mark as sold',
         onTap: () {
           Navigator.pop(context);
           _markKitAsSoldQuickly(litter, kit);
@@ -763,29 +819,26 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       ));
 
       // 3. Sell Kit
-      actions.add(_buildCompactActionTile(
+      actions.add(_buildKitActionPill(
         label: 'Sell Kit',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _showSellKitDialog(litter, kit);
         },
       ));
 
-      // 4. Move to Grow Out
-      actions.add(_buildCompactActionTile(
-        label: 'Move to Grow Out',
-        color: kLilacDeep,
+      // 4. Reserve Kit
+      actions.add(_buildKitActionPill(
+        label: 'Reserve Kit',
         onTap: () {
           Navigator.pop(context);
-          _moveKitToStage(litter, kit, 'GrowOut');
+          _showReserveKitDialog(litter, kit);
         },
       ));
 
       // 5. Record Health
-      actions.add(_buildCompactActionTile(
+      actions.add(_buildKitActionPill(
         label: 'Record Health',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _showKitHealthRecord(litter, kit);
@@ -793,66 +846,108 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       ));
 
       // 6. Log Weight
-      actions.add(_buildCompactActionTile(
+      actions.add(_buildKitActionPill(
         label: 'Log Weight',
-        color: kLilacDeep,
         onTap: () {
           Navigator.pop(context);
           _logKitWeight(litter, kit);
         },
       ));
 
-      // 7. Delete Kit
-      actions.add(_buildCompactActionTile(
+      // 7. Move to Grow Out
+      actions.add(_buildKitActionPill(
+        label: 'Move to Grow Out',
+        onTap: () {
+          Navigator.pop(context);
+          _moveKitToStage(litter, kit, 'GrowOut');
+        },
+      ));
+
+      // 8. Birth Certificate
+      actions.add(_buildKitActionPill(
+        label: 'Birth Certificate',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, kit);
+        },
+      ));
+
+      // 9. Pedigree
+      actions.add(_buildKitActionPill(
+        label: 'Pedigree',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, kit);
+        },
+      ));
+
+      // 10. Quarantine
+      actions.add(_buildKitActionPill(
+        label: 'Quarantine',
+        onTap: () {
+          Navigator.pop(context);
+          _confirmMoveKitToQuarantine(litter, kit);
+        },
+      ));
+
+      // 11. Kit Died / Bring Back to Life
+      if (isDeadOrCulled) {
+        actions.add(_buildKitActionPill(
+          label: 'Bring Back to Life',
+          onTap: () {
+            Navigator.pop(context);
+            _showReverseKitDiedDialog(litter, kit);
+          },
+        ));
+      } else {
+        actions.add(_buildKitActionPill(
+          label: 'Kit Died',
+          isDestructive: true,
+          onTap: () {
+            Navigator.pop(context);
+            _markKitAsDied(litter, kit);
+          },
+        ));
+
+        // 12. Cull Kit
+        actions.add(_buildKitActionPill(
+          label: 'Cull Kit',
+          isDestructive: true,
+          onTap: () {
+            Navigator.pop(context);
+            _markKitAsCulled(litter, kit);
+          },
+        ));
+      }
+
+      // 13. Delete Kit
+      actions.add(_buildKitActionPill(
         label: 'Delete Kit',
-        color: const Color(0xFFD44C47),
-        textColor: const Color(0xFFD44C47),
+        isDestructive: true,
         onTap: () {
           Navigator.pop(context);
           _showDeleteKitConfirm(litter, kit);
         },
       ));
-
-      // 8. Cull Kit
-      actions.add(_buildCompactActionTile(
-        label: 'Cull Kit',
-        color: const Color(0xFFD44C47),
-        textColor: const Color(0xFFD44C47),
-        onTap: () {
-          Navigator.pop(context);
-          _markKitAsCulled(litter, kit);
-        },
-      ));
-
-      // 9. Kit Died
-      actions.add(_buildCompactActionTile(
-        label: 'Kit Died',
-        color: const Color(0xFFD44C47),
-        textColor: const Color(0xFFD44C47),
-        onTap: () {
-          Navigator.pop(context);
-          _markKitAsDied(litter, kit);
-        },
-      ));
     }
 
-    String displayStageName = 'Nursing';
-    if (kStatus == 'sold') {
+    String displayStageName;
+    if (isSold) {
       displayStageName = 'Sold';
-    } else if (kStatus == 'cull' || kStatus == 'culled') {
+    } else if (isReserved) {
+      displayStageName = 'Reserved';
+    } else if (rawStatus == 'cull' || rawStatus == 'culled') {
       displayStageName = 'Culled';
-    } else if (kStatus == 'dead' || kStatus == 'died' || kStatus == 'deceased') {
+    } else if (rawStatus == 'dead' || rawStatus == 'died' || rawStatus == 'deceased') {
       displayStageName = 'Dead';
-    } else if (kStatus == 'growout' || kStatus == 'grow out') {
-      displayStageName = 'Grow out';
-    } else if (kStatus == 'weaned') {
+    } else if (rawStatus == 'growout' || rawStatus == 'grow out' || rawStatus == 'grow-out') {
+      displayStageName = 'Grow Out';
+    } else if (rawStatus == 'weaned') {
       displayStageName = 'Weaned';
-    } else if (kStatus.isNotEmpty) {
-      displayStageName = kStatus[0].toUpperCase() + kStatus.substring(1);
+    } else if (rawStatus.isNotEmpty) {
+      displayStageName = rawStatus[0].toUpperCase() + rawStatus.substring(1);
     } else {
-      displayStageName = litter.status.isNotEmpty
-          ? (litter.status == 'growout' || litter.status == 'grow out' ? 'Grow out' : (litter.status[0].toUpperCase() + litter.status.substring(1)))
-          : 'Nursing';
+      displayStageName = 'Weaned';
     }
 
     showModalBottomSheet(
@@ -927,14 +1022,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     color: const Color(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    childAspectRatio: 3.4,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    children: actions,
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < actions.length; i++) ...[
+                        actions[i],
+                        if (i < actions.length - 1) const SizedBox(height: 10),
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -945,35 +1039,669 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     );
   }
 
-  Widget _buildCompactActionTile({
+  Widget _buildKitActionPill({
     required String label,
-    required Color color,
     required VoidCallback onTap,
-    Color? textColor,
+    bool isDestructive = false,
   }) {
-    final effectiveTextColor = textColor ?? const Color(0xFF2C2C2E);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDestructive ? const Color(0xFFD32F2F) : const Color(0xFF2C2C2E),
+              ),
             ),
-          ],
+          ),
         ),
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          textAlign: TextAlign.left,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: effectiveTextColor),
-          overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Future<void> _confirmMoveKitToQuarantine(Litter litter, Kit kit) async {
+    final confirmed = await showBrightPurpleDialog<bool>(
+      context: context,
+      title: 'Move to Quarantine',
+      content: 'Do you want to move Kit ${_getKitDisplayTag(litter, kit)} to Quarantine?',
+      cancelText: 'Cancel',
+      confirmText: 'Yes',
+      confirmColor: kLilacDeep,
+    );
+    if (confirmed == true) {
+      await _moveKitToStage(litter, kit, 'Quarantine');
+    }
+  }
+
+  Future<void> _cancelKitReservation(Litter litter, Kit kit) async {
+    final kitTag = _getKitDisplayTag(litter, kit);
+    final confirmed = await showBrightPurpleDialog<bool>(
+      context: context,
+      title: 'Cancel Reservation',
+      content: 'Do you want to cancel the reservation for Kit $kitTag and restore it to available status?',
+      cancelText: 'Keep',
+      confirmText: 'Cancel Reservation',
+      confirmColor: const Color(0xFFD32F2F),
+    );
+
+    if (confirmed == true) {
+      final litterIndex = _litters.indexWhere((l) => l.id == litter.id);
+      if (litterIndex != -1) {
+        final currentLitter = _litters[litterIndex];
+        final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+        bool updated = false;
+        final updatedKits = currentLitter.kits.map((k) {
+          final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+          final bool isExactId = k.id == kit.id;
+          final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+              (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+          if ((isExactId || isNumericMatch) && !updated) {
+            updated = true;
+            String? cleanDetails;
+            if (k.details != null && k.details!.toLowerCase().contains('fostered')) {
+              final fosterParts = k.details!.split('•').where((p) => p.toLowerCase().contains('fostered')).toList();
+              cleanDetails = fosterParts.isNotEmpty ? fosterParts.first.trim() : null;
+            } else {
+              cleanDetails = null;
+            }
+            return k.copyWith(details: cleanDetails);
+          }
+          return k;
+        }).toList();
+
+        final updatedLitter = currentLitter.copyWith(kits: updatedKits);
+        await _db.updateLitter(updatedLitter);
+        notifyDataChanged();
+        await _loadLitterHistory();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Reservation cancelled for Kit $kitTag.'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showReserveKitDialog(Litter litter, Kit kit) {
+    final TextEditingController buyerController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController usernameController = TextEditingController();
+    final TextEditingController salesAmountController = TextEditingController(
+      text: kit.price != null && kit.price! > 0 ? kit.price!.toStringAsFixed(2) : '',
+    );
+    final TextEditingController depositAmountController = TextEditingController();
+    DateTime pickupDate = DateTime.now().add(const Duration(days: 7));
+
+    final bool isEditing = kit.status.toLowerCase() == 'reserved' ||
+        (kit.details != null && kit.details!.toLowerCase().contains('reserved:'));
+
+    // If existing details has reservation info, prefill
+    if (kit.details != null && kit.details!.toLowerCase().contains('reserved:')) {
+      final fullDetails = kit.details!;
+      final resIdx = fullDetails.toLowerCase().indexOf('reserved:');
+      if (resIdx != -1) {
+        final resContent = fullDetails.substring(resIdx + 'reserved:'.length).trim();
+        final parts = resContent.split('•').map((p) => p.trim()).toList();
+        for (final p in parts) {
+          final pLower = p.toLowerCase();
+          if (pLower.startsWith('tel:')) {
+            phoneController.text = p.substring(4).trim();
+          } else if (p.startsWith('@')) {
+            usernameController.text = p.substring(1).trim();
+          } else if (pLower.startsWith('deposit:')) {
+            final cleaned = p.replaceAll(RegExp(r'[^0-9.]'), '');
+            if (cleaned.isNotEmpty) {
+              depositAmountController.text = cleaned;
+            }
+          } else if (pLower.startsWith('pickup:')) {
+            final dateStr = p.substring(7).trim();
+            try {
+              pickupDate = DateFormat('MMM d, yyyy').parse(dateStr);
+            } catch (_) {
+              try {
+                pickupDate = DateFormat('yyyy-MM-dd').parse(dateStr);
+              } catch (_) {}
+            }
+          } else if (buyerController.text.isEmpty &&
+              !pLower.startsWith('tel:') &&
+              !p.startsWith('@') &&
+              !pLower.startsWith('deposit:') &&
+              !pLower.startsWith('pickup:') &&
+              p.isNotEmpty) {
+            buyerController.text = p;
+          }
+        }
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.88,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top Header matching Nursery Lilac theme
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEADBEE),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEditing ? 'Edit Reservation' : 'Reserve Kit',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF4A3E6D),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Kit Summary Info Box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F2FA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEDE5FA),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  _getKitDisplayTag(litter, kit),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF7B6BA0),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color}${kit.weight > 0 ? ' • ${FormatUtils.formatWeight(kit.weight)}' : ''}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF555555),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 1. BUYER NAME
+                        const Text(
+                          'BUYER NAME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: buyerController,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF7B6BA0)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // 2. PHONE NUMBER
+                        const Text(
+                          'PHONE NUMBER',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [PhoneNumberFormatter()],
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: Color(0xFF7B6BA0)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // 3. USER NAME
+                        const Text(
+                          'USER NAME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: usernameController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.alternate_email, size: 19, color: Color(0xFF7B6BA0)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // 4 & 5. SALES AMOUNT & DEPOSIT AMOUNT
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'SALES AMOUNT',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF4F4F56),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: salesAmountController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: InputDecoration(
+                                      prefixText: '${FormatUtils.currencySymbol} ',
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'DEPOSIT AMOUNT',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF4F4F56),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: depositAmountController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: InputDecoration(
+                                      prefixText: '${FormatUtils.currencySymbol} ',
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // 6. PICK UP DATE
+                        const Text(
+                          'PICK UP DATE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4F4F56),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: pickupDate,
+                              firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF7B6BA0),
+                                      onPrimary: Colors.white,
+                                      surface: Colors.white,
+                                      onSurface: Color(0xFF2C2C2E),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setModalState(() => pickupDate = picked);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.2),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  DateFormat('EEEE, MMM d, yyyy').format(pickupDate),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF4F4F56),
+                                  ),
+                                ),
+                                const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Save / Cancel Actions
+                () {
+                  Future<void> saveReservation() async {
+                    final buyerName = buyerController.text.trim();
+                    final phone = phoneController.text.trim();
+                    final userName = usernameController.text.trim();
+                    final salesAmt = double.tryParse(salesAmountController.text.trim());
+                    final depositAmt = double.tryParse(depositAmountController.text.trim());
+                    final pickupFormatted = DateFormat('MMM d, yyyy').format(pickupDate);
+
+                    List<String> resParts = [];
+                    if (buyerName.isNotEmpty) resParts.add(buyerName);
+                    if (phone.isNotEmpty) resParts.add('Tel: $phone');
+                    if (userName.isNotEmpty) resParts.add('@$userName');
+                    if (depositAmt != null && depositAmt > 0) resParts.add('Deposit: ${FormatUtils.currencySymbol}${depositAmt.toStringAsFixed(2)}');
+                    resParts.add('Pickup: $pickupFormatted');
+
+                    final reservationText = 'Reserved: ${resParts.join(' • ')}';
+
+                    Navigator.pop(context);
+
+                    final litterIndex = _litters.indexWhere((l) => l.id == litter.id);
+                    if (litterIndex != -1) {
+                      final currentLitter = _litters[litterIndex];
+                      final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+                      bool updated = false;
+                      final updatedKits = currentLitter.kits.map((k) {
+                        final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                        final bool isExactId = k.id == kit.id;
+                        final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+                            (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+                            kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                        if ((isExactId || isNumericMatch) && !updated) {
+                          updated = true;
+                          String newDetails = reservationText;
+                          if (k.details != null && k.details!.isNotEmpty) {
+                            if (k.details!.toLowerCase().contains('fostered')) {
+                              final fosterParts = k.details!.split('•').where((p) => p.toLowerCase().contains('fostered')).toList();
+                              if (fosterParts.isNotEmpty) {
+                                newDetails = '${fosterParts.first.trim()} • $reservationText';
+                              }
+                            }
+                          }
+                          return k.copyWith(
+                            status: 'Reserved',
+                            details: newDetails,
+                            price: salesAmt ?? k.price,
+                          );
+                        }
+                        return k;
+                      }).toList();
+
+                      final updatedLitter = currentLitter.copyWith(kits: updatedKits);
+                      await _db.updateLitter(updatedLitter);
+                      notifyDataChanged();
+                      await _loadLitterHistory();
+
+                      if (mounted) {
+                        final kitTag = _getKitDisplayTag(litter, kit);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(isEditing ? 'Kit $kitTag reservation updated.' : 'Kit $kitTag marked as Reserved.'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    child: isEditing
+                        ? Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      Navigator.pop(context);
+                                      await _cancelKitReservation(litter, kit);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE2BFFB),
+                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                      ),
+                                    ),
+                                    child: const FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        'Cancel Reservation',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () => saveReservation(),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE2BFFB),
+                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                      ),
+                                    ),
+                                    child: const FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        'Save Edits',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () => saveReservation(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE2BFFB),
+                                foregroundColor: const Color(0xFF4A3E6D),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                ),
+                              ),
+                              child: const Text(
+                                'Confirm Reservation',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                  );
+                }(),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -2086,6 +2814,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       if (litterIndex != -1) {
         final currentLitter = _litters[litterIndex];
         final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+        final int targetIndexInLitter = litter.kits.indexOf(kit);
         final int weanDays = SettingsService.instance.weanAge * 7;
         final DateTime? kitDob = currentLitter.dob ?? currentLitter.kindleDate;
         final int kitAgeDays = kitDob != null ? DateTime.now().difference(kitDob).inDays : currentLitter.ageDays;
@@ -2093,13 +2822,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         final String restoredStatus = isWeanAgeReached ? 'Weaned' : 'Nursing';
 
         bool updated = false;
-        final updatedKits = currentLitter.kits.map((k) {
+        final updatedKits = currentLitter.kits.asMap().entries.map((entry) {
+          final int idx = entry.key;
+          final Kit k = entry.value;
           final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
           final bool isExactId = k.id == kit.id;
-          final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
-              (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
-              kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-          if ((isExactId || isNumericMatch) && !updated) {
+          final bool isNumericMatch = kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+          final bool isIndexMatch = (targetIndexInLitter != -1 && idx == targetIndexInLitter);
+
+          if ((isExactId || isNumericMatch || isIndexMatch) && !updated) {
             updated = true;
             String? newDetails = k.details;
             if (newDetails != null && newDetails.toLowerCase().contains('sold')) {
@@ -2130,6 +2861,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           whereArgs: [kit.id],
         );
 
+        notifyDataChanged();
         await _loadLitterHistory();
       }
 
@@ -3040,119 +3772,151 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     }
   }
 
-  Widget _buildOutcomeBadge(String status) {
+  Widget _buildOutcomeBadge(String status, [Litter? litter, Kit? kit]) {
     final s = status.toLowerCase();
     if (s == 'reserved') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2E7D32),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: const Text(
-          'RESERVED',
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: 0.4,
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (litter != null && kit != null) {
+            _showKitActions(litter, kit);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E7D32),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: const Text(
+            'RESERVED',
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 0.4,
+            ),
           ),
         ),
       );
     }
     if (s == 'sold') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E24),
-          borderRadius: BorderRadius.circular(5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(PhosphorIconsFill.tag, size: 10, color: Colors.white),
-            SizedBox(width: 3),
-            Text(
-              'SOLD',
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.4,
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (litter != null && kit != null) {
+            _showKitActions(litter, kit);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E24),
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(PhosphorIconsFill.tag, size: 10, color: Colors.white),
+              SizedBox(width: 3),
+              Text(
+                'SOLD',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
     if (s == 'cull' || s == 'culled') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-          borderRadius: BorderRadius.circular(5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.close, size: 10, color: Colors.white),
-            SizedBox(width: 3),
-            Text(
-              'CULL',
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.4,
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (litter != null && kit != null) {
+            _showKitActions(litter, kit);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.close, size: 10, color: Colors.white),
+              SizedBox(width: 3),
+              Text(
+                'CULL',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
     if (s == 'dead' || s == 'died' || s == 'deceased') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-          borderRadius: BorderRadius.circular(5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.close, size: 10, color: Colors.white),
-            SizedBox(width: 3),
-            Text(
-              'DIED',
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.4,
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (litter != null && kit != null) {
+            _showKitActions(litter, kit);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.close, size: 10, color: Colors.white),
+              SizedBox(width: 3),
+              Text(
+                'DIED',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

@@ -16,6 +16,7 @@ import '../services/format_utils.dart';
 import '../services/settings_service.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class AddRabbitScreen extends StatefulWidget {
   final Rabbit? editRabbit;
@@ -331,183 +332,58 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Doe = herd pink (0xFFB5567A), Buck = herd blue (0xFF3A7BB8)
-    const Color _doeAccent = Color(0xFFEC4899);
-    const Color _buckAccent = Color(0xFF2E7BB5);
-    final Color _accentColor = _selectedType == RabbitType.doe ? _doeAccent : _buckAccent;
-
     return Scaffold(
-      backgroundColor: kSurfaceTint, // Bottom portion can be 1 shade lighter: kSurfaceTint
+      backgroundColor: const Color(0xFFEEDAFE),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE6BEFE), // Top bar should be same purple as home page
+        backgroundColor: const Color(0xFFE6BEFE),
         elevation: 0,
-        centerTitle: true,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF4F4F56)),
+          icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: const Color(0xFF4A3E6D)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           _isEditing ? 'Edit Rabbit' : 'Add New Rabbit',
-          style: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 18),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _saveRabbit,
-            child: Text(
-              'SAVE',
-              style: TextStyle(
-                color: _isSaving ? kNeutral400 : _accentColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-            ),
+          style: const TextStyle(
+            color: Color(0xFF4A3E6D),
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
           ),
-        ],
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Rabbit Type (Buck / Doe) at the very top
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTypeButton(
-                    type: RabbitType.buck,
-                    label: 'Buck',
-                    icon: Icons.male,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildTypeButton(
-                    type: RabbitType.doe,
-                    label: 'Doe',
-                    icon: Icons.female,
-                  ),
-                ),
-              ],
-            ),
+            // 1. Rabbit Type (Buck / Doe) Toggle
+            _buildTypeToggle(),
             const SizedBox(height: 16),
 
-            // 2. Profile picture section below the gender toggles
+            // 2. Profile picture section
             _buildProfilePictureSection(),
             const SizedBox(height: 16),
 
-            // 3. Breed Selector
-            _buildBreedSelector(),
-            const SizedBox(height: 12),
+            // 3. Breed Selector (with Consistency.jpg alternate colors modal)
+            _buildBreedField(),
+            const SizedBox(height: 14),
 
-            // 4. Other Breed text field
-            _buildTextField(
-              controller: _otherBreedController,
-              label: 'Other Breed',
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 12),
+            // 4. Color Selector (with Consistency.jpg alternate colors modal)
+            // (Other Breed and Other Color boxes REMOVED!)
+            _buildColorField(),
+            const SizedBox(height: 14),
 
-            // 5. Color Autocomplete
-            Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                final colors = SettingsService.instance.colors;
-                if (textEditingValue.text.isEmpty) return colors;
-                return colors.where(
-                  (c) => c.toLowerCase().contains(textEditingValue.text.toLowerCase()),
-                );
-              },
-              initialValue: TextEditingValue(text: _colorController.text),
-              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                controller.addListener(() {
-                  _colorController.text = controller.text;
-                });
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(fontSize: 17),
-                  decoration: InputDecoration(
-                    labelText: 'Color',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    filled: true,
-                    fillColor: Colors.white,
-                    labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                    floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                  ),
-                );
-              },
-              onSelected: (String color) {
-                _colorController.text = color;
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // 6. Other Color Autocomplete
-            Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                final colors = SettingsService.instance.colors;
-                if (textEditingValue.text.isEmpty) return colors;
-                return colors.where(
-                  (c) => c.toLowerCase().contains(textEditingValue.text.toLowerCase()),
-                );
-              },
-              initialValue: TextEditingValue(text: _otherColorController.text),
-              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                controller.addListener(() {
-                  _otherColorController.text = controller.text;
-                });
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(fontSize: 17),
-                  decoration: InputDecoration(
-                    labelText: 'Other Color',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    filled: true,
-                    fillColor: Colors.white,
-                    labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                    floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                    ),
-                  ),
-                );
-              },
-              onSelected: (String color) {
-                _otherColorController.text = color;
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // 7. Broken, VM, VC compact toggles row
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+            // 5. Broken, VM, VC compact toggles container
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFD6CEE2)),
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildCompactToggle('Broken', _broken, (val) => setState(() => _broken = val)),
                   _buildCompactToggle('VM', _viennaMarked, (val) => setState(() => _viennaMarked = val)),
@@ -515,17 +391,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 8. Name text field
+            // 6. Name text field
             _buildTextField(
               controller: _nameController,
               label: 'Name',
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 9. Breeder Prefix & Ear Number Row
+            // 7. Breeder Prefix & Ear Number Row
             Row(
               children: [
                 Expanded(
@@ -546,17 +422,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 10. Purchase Details (Activated toggle with Seller, Rabbitry, Date of Purchase, Cost, Add as Expense)
+            // 8. Purchase Details
             _buildPurchaseDetailsSection(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 11. Date of Birth
+            // 9. Date of Birth
             _buildDateField(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 11. Pounds & Ounce Row
+            // 10. Pounds & Ounce Row
             Row(
               children: [
                 Expanded(
@@ -576,9 +452,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // 12. Sire & Dam selector Row
+            // 11. Sire & Dam selector Row
             Row(
               children: [
                 Expanded(
@@ -601,15 +477,17 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               ],
             ),
             const SizedBox(height: 16),
+
+            // 12. Genotype Section
             _buildGenotypeSection(),
             const SizedBox(height: 16),
 
-            // l. Registration / Grand Champion/Legs
+            // 13. Registration / Grand Champion/Legs
             _buildTextField(
               controller: _registrationNumberController,
               label: 'Registration Number',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
@@ -632,85 +510,46 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             ),
             const SizedBox(height: 16),
 
-            // m. Active in Rabbitry etc.
-            _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) => setState(() => _activeInRabbitry = val)),
-            const SizedBox(height: 16),
-
-            const Text(
-              'Status',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
+            // 14. Active in Rabbitry
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFD6CEE2)),
+              ),
+              child: _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) => setState(() => _activeInRabbitry = val)),
             ),
-            const SizedBox(height: 8),
-            _buildStatusDropdown(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
+            // 15. Status
+            _buildStatusDropdown(),
+            const SizedBox(height: 14),
+
+            // 16. Location & Cage
             Row(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Location',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildLocationDropdown(),
-                    ],
-                  ),
-                ),
+                Expanded(child: _buildLocationDropdown()),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Cage',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildCageDropdown(),
-                    ],
-                  ),
-                ),
+                Expanded(child: _buildCageDropdown()),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
+            // 17. Rabbit ID
             _buildTextField(
               controller: _idController,
               label: 'Rabbit ID',
               readOnly: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            const Text(
-              'Notes',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Color(0xFFB0AFA8)),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _notesController,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(fontSize: 17),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                ),
-              ),
-            ),
+            // 18. Notes
+            _buildNotesField(),
+            const SizedBox(height: 24),
+
+            // 19. Save Button
+            _buildSaveButton(),
             const SizedBox(height: 32),
           ],
         ),
@@ -970,100 +809,546 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     }
   }
 
-  Widget _buildTypeButton({
-    required RabbitType type,
-    required String label,
-    required IconData icon,
-  }) {
-    final isSelected = _selectedType == type;
-    final Color selectedColor = type == RabbitType.doe ? doePink : buckBlue;
-    final Color unselectedIconColor = type == RabbitType.doe ? doePink : buckBlue;
-
-    return InkWell(
-      onTap: _isEditing ? null : () => setState(() => _selectedType = type),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.white,
-          border: Border.all(color: isSelected ? selectedColor : const Color(0xFFE9E9E7)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : unselectedIconColor,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : unselectedIconColor,
+  Widget _buildTypeToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: const Color(0xFFD6CEE2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: _isEditing ? null : () => setState(() => _selectedType = RabbitType.buck),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedType == RabbitType.buck ? const Color(0xFFE5E5EA) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: _selectedType == RabbitType.buck
+                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                      : null,
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.male, size: 18, color: _selectedType == RabbitType.buck ? buckBlue : const Color(0xFF787880)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Buck',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _selectedType == RabbitType.buck ? buckBlue : const Color(0xFF787880),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: _isEditing ? null : () => setState(() => _selectedType = RabbitType.doe),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedType == RabbitType.doe ? const Color(0xFFE5E5EA) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: _selectedType == RabbitType.doe
+                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                      : null,
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.female, size: 18, color: _selectedType == RabbitType.doe ? doePink : const Color(0xFF787880)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Doe',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _selectedType == RabbitType.doe ? doePink : const Color(0xFF787880),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBreedSelector() {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        final breedNames = _availableBreeds.map((b) => b.name).toList();
-        if (textEditingValue.text.isEmpty) return breedNames;
-        return breedNames.where(
-          (name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+  void _showBreedPickerModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final allBreeds = _availableBreeds.map((b) => b.name).toList();
+            final filtered = searchQuery.isEmpty
+                ? allBreeds
+                : allBreeds.where((b) => b.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEADBFC),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Breed',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search or enter breed...',
+                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        filled: true,
+                        fillColor: const Color(0xFFF7F3FB),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) => setModalState(() => searchQuery = val),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length + (searchQuery.isNotEmpty && !filtered.contains(searchQuery.trim()) ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index < filtered.length) {
+                          final breedName = filtered[index];
+                          final isSelected = _breedController.text.trim().toLowerCase() == breedName.toLowerCase();
+                          final isOdd = index % 2 == 1;
+                          final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+
+                          return Material(
+                            color: rowBg,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _breedController.text = breedName;
+                                  final matched = _availableBreeds.where((b) => b.name == breedName);
+                                  if (matched.isNotEmpty) {
+                                    final geneticsStr = matched.first.genetics.join(', ');
+                                    _autoGenetics = geneticsStr;
+                                    _parseGeneticsToMap(geneticsStr);
+                                  }
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      breedName,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                        color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF2C2C2E),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle, color: Color(0xFF7B6BA0), size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          final customBreed = searchQuery.trim();
+                          return Material(
+                            color: Colors.white,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _breedController.text = customBreed;
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.add_circle_outline, color: Color(0xFF7B6BA0), size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Use "$customBreed"',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF7B6BA0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
-      initialValue: TextEditingValue(text: _breedController.text),
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        controller.addListener(() {
-          _breedController.text = controller.text;
-        });
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          textCapitalization: TextCapitalization.words,
-          style: const TextStyle(fontSize: 17),
-          decoration: InputDecoration(
-            labelText: 'Breed',
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            filled: true,
-            fillColor: Colors.white,
-            labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-            floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+    );
+  }
+
+  void _showColorPickerModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final colors = SettingsService.instance.colors;
+            final filtered = searchQuery.isEmpty
+                ? colors
+                : colors.where((c) => c.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEADBFC),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Select Color',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search or enter color...',
+                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        filled: true,
+                        fillColor: const Color(0xFFF7F3FB),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) => setModalState(() => searchQuery = val),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length + (searchQuery.isNotEmpty && !filtered.contains(searchQuery.trim()) ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index < filtered.length) {
+                          final colorName = filtered[index];
+                          final isSelected = _colorController.text.trim().toLowerCase() == colorName.toLowerCase();
+                          final isOdd = index % 2 == 1;
+                          final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+
+                          return Material(
+                            color: rowBg,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _colorController.text = colorName;
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      colorName,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                        color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF2C2C2E),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle, color: Color(0xFF7B6BA0), size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          final customColor = searchQuery.trim();
+                          return Material(
+                            color: Colors.white,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _colorController.text = customColor;
+                                });
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.add_circle_outline, color: Color(0xFF7B6BA0), size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Use "$customColor"',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF7B6BA0),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBreedField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'BREED',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: _showBreedPickerModal,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFD6CEE2)),
+              borderRadius: BorderRadius.circular(14),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _breedController.text.isNotEmpty ? _breedController.text : 'Select Breed',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _breedController.text.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
+                      color: _breedController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                    ),
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+              ],
             ),
           ),
-        );
-      },
-      onSelected: (String breedName) {
-        _breedController.text = breedName;
-        final matched = _availableBreeds.where((b) => b.name == breedName);
-        if (matched.isNotEmpty) {
-          final geneticsStr = matched.first.genetics.join(', ');
-          setState(() {
-            _autoGenetics = geneticsStr;
-            _parseGeneticsToMap(geneticsStr);
-          });
-        }
-      },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'COLOR',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: _showColorPickerModal,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFD6CEE2)),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _colorController.text.isNotEmpty ? _colorController.text : 'Select Color',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _colorController.text.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
+                      color: _colorController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                    ),
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE6BEFE).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _saveRabbit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFE6BEFE),
+          foregroundColor: const Color(0xFF4A3E6D),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                ),
+              )
+            : Text(
+                _isEditing ? 'Update Rabbit' : 'Save Rabbit',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF4A3E6D),
+                  letterSpacing: -0.2,
+                ),
+              ),
+      ),
     );
   }
 
@@ -1130,13 +1415,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         InkWell(
           onTap: () => setState(() => _genotypeExpanded = !_genotypeExpanded),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFD6CEE2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1248,104 +1533,187 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     List<TextInputFormatter>? inputFormatters,
     TextCapitalization textCapitalization = TextCapitalization.none,
     String? prefixText,
+    String? hintText,
   }) {
-    return TextField(
-      controller: controller,
-      readOnly: readOnly,
-      onTap: onTap,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      textCapitalization: textCapitalization,
-      style: const TextStyle(fontSize: 17),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixText: prefixText,
-        prefixStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        filled: true,
-        fillColor: Colors.white,
-        labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-        floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+        const SizedBox(height: 4),
+        TextField(
+          controller: controller,
+          readOnly: readOnly,
+          onTap: onTap,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+            prefixText: prefixText,
+            prefixStyle: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-        ),
-      ),
+      ],
     );
   }
 
   Widget _buildStatusDropdown() {
-    return DropdownButtonFormField<RabbitStatus>(
-      value: _selectedStatus,
-      style: const TextStyle(fontSize: 17, color: Colors.black87),
-      decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'STATUS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<RabbitStatus>(
+          value: _selectedStatus,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            ),
+          ),
+          selectedItemBuilder: (context) {
+            final List<RabbitStatus> allPossible = [
+              RabbitStatus.open,
+              RabbitStatus.growout,
+              RabbitStatus.resting,
+              RabbitStatus.quarantine,
+              _selectedStatus,
+            ];
+            return allPossible.map((status) {
+              String label;
+              switch (status) {
+                case RabbitStatus.open:
+                  label = 'Open';
+                  break;
+                case RabbitStatus.growout:
+                  label = 'Growout';
+                  break;
+                case RabbitStatus.resting:
+                  label = 'Resting';
+                  break;
+                case RabbitStatus.quarantine:
+                  label = 'Quarantine';
+                  break;
+                default:
+                  label = status.toString().split('.').last;
+                  break;
+              }
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              );
+            }).toList();
+          },
+          items: () {
+            final List<RabbitStatus> baseItems = _isEditing
+                ? [
+                    RabbitStatus.open,
+                    RabbitStatus.growout,
+                    RabbitStatus.resting,
+                    RabbitStatus.quarantine
+                  ]
+                : [
+                    RabbitStatus.open,
+                    RabbitStatus.growout
+                  ];
+            if (!baseItems.contains(_selectedStatus)) {
+              baseItems.add(_selectedStatus);
+            }
+            return baseItems;
+          }()
+              .asMap()
+              .entries
+              .map((entry) {
+            final idx = entry.key;
+            final status = entry.value;
+            final isAlt = idx % 2 == 1;
+            String label;
+            switch (status) {
+              case RabbitStatus.open:
+                label = 'Open';
+                break;
+              case RabbitStatus.growout:
+                label = 'Growout';
+                break;
+              case RabbitStatus.resting:
+                label = 'Resting';
+                break;
+              case RabbitStatus.quarantine:
+                label = 'Quarantine';
+                break;
+              default:
+                label = status.toString().split('.').last;
+                break;
+            }
+            return DropdownMenuItem(
+              value: status,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _selectedStatus = value!),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-        ),
-      ),
-      items: () {
-        final List<RabbitStatus> baseItems = _isEditing
-            ? [
-                RabbitStatus.open,
-                RabbitStatus.growout,
-                RabbitStatus.resting,
-                RabbitStatus.quarantine
-              ]
-            : [
-                RabbitStatus.open,
-                RabbitStatus.growout
-              ];
-        if (!baseItems.contains(_selectedStatus)) {
-          baseItems.add(_selectedStatus);
-        }
-        return baseItems;
-      }()
-          .map((status) {
-        String label;
-        switch (status) {
-          case RabbitStatus.open:
-            label = 'Open';
-            break;
-          case RabbitStatus.growout:
-            label = 'Growout';
-            break;
-          case RabbitStatus.resting:
-            label = 'Resting';
-            break;
-          case RabbitStatus.quarantine:
-            label = 'Quarantine';
-            break;
-          default:
-            label = status.toString().split('.').last;
-            break;
-        }
-        return DropdownMenuItem(
-          value: status,
-          child: Text(label),
-        );
-      }).toList(),
-      onChanged: (value) => setState(() => _selectedStatus = value!),
+      ],
     );
   }
 
@@ -1356,36 +1724,84 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       _selectedLocation = null;
     }
 
-    return DropdownButtonFormField<String>(
-      value: _selectedLocation,
-      style: const TextStyle(fontSize: 17, color: Colors.black87),
-      decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'LOCATION',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<String>(
+          value: _selectedLocation,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            ),
+          ),
+          hint: Text(
+            locationNames.isEmpty ? 'No barns' : 'Location',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+          ),
+          selectedItemBuilder: (context) {
+            return locationNames.map((loc) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  loc,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              );
+            }).toList();
+          },
+          items: locationNames.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final location = entry.value;
+            final isAlt = idx % 2 == 1;
+            return DropdownMenuItem(
+              value: location,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  location,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedLocation = value;
+              _selectedCage = null;
+            });
+          },
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-        ),
-      ),
-      hint: Text(locationNames.isEmpty ? 'No barns' : 'Location', style: const TextStyle(fontSize: 16)),
-      items: locationNames.map((location) {
-        return DropdownMenuItem(value: location, child: Text(location));
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedLocation = value;
-          _selectedCage = null;
-        });
-      },
+      ],
     );
   }
 
@@ -1404,38 +1820,84 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       _selectedCage = null;
     }
 
-    return DropdownButtonFormField<String>(
-      key: ValueKey(_selectedLocation),
-      value: _selectedCage,
-      style: const TextStyle(fontSize: 17, color: Colors.black87),
-      decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'CAGE',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<String>(
+          key: ValueKey(_selectedLocation),
+          value: _selectedCage,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+          dropdownColor: Colors.white,
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            ),
+          ),
+          hint: Text(
+            _selectedLocation == null
+                ? 'Select Location'
+                : cageNames.isEmpty
+                    ? 'No cages'
+                    : 'Cage',
+            style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+          ),
+          selectedItemBuilder: (context) {
+            return cageNames.map((cage) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  cage,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              );
+            }).toList();
+          },
+          items: cageNames.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final cage = entry.value;
+            final isAlt = idx % 2 == 1;
+            return DropdownMenuItem(
+              value: cage,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  cage,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _selectedCage = value),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-        ),
-      ),
-      hint: Text(
-          _selectedLocation == null
-              ? 'Select Location'
-              : cageNames.isEmpty
-                  ? 'No cages'
-                  : 'Cage',
-          style: const TextStyle(fontSize: 16)),
-      items: cageNames.map((cage) {
-        return DropdownMenuItem(value: cage, child: Text(cage));
-      }).toList(),
-      onChanged: (value) => setState(() => _selectedCage = value),
+      ],
     );
   }
 
@@ -1474,10 +1936,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: const Color(0xFFC7C7CC),
-                width: 1.2,
+                color: const Color(0xFFD6CEE2),
               ),
             ),
             child: Column(
@@ -1500,50 +1961,71 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 const SizedBox(height: 12),
 
                 // Date of Purchase
-                GestureDetector(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _purchaseDate ?? DateTime.now(),
-                      firstDate: DateTime(2010),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _purchaseDate = date;
-                        _purchaseDateController.text = FormatUtils.formatDate(date);
-                        _acquiredDate = date;
-                      });
-                    }
-                  },
-                  child: AbsorbPointer(
-                    child: TextField(
-                      controller: _purchaseDateController,
-                      style: const TextStyle(fontSize: 17),
-                      decoration: InputDecoration(
-                        labelText: 'Date of Purchase',
-                        floatingLabelBehavior: FloatingLabelBehavior.always,
-                        contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                        floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                        suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Color(0xFF787774)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'DATE OF PURCHASE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF4F4F56),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _purchaseDate ?? DateTime.now(),
+                          firstDate: DateTime(2010),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) {
+                          setState(() {
+                            _purchaseDate = date;
+                            _purchaseDateController.text = FormatUtils.formatDate(date);
+                            _acquiredDate = date;
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFFD6CEE2)),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: activeColor, width: 1.5),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _purchaseDate != null ? FormatUtils.formatDate(_purchaseDate!) : 'Select Date of Purchase',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: _purchaseDate != null ? FontWeight.w600 : FontWeight.w400,
+                                  color: _purchaseDate != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                                ),
+                              ),
+                            ),
+                            if (_purchaseDate != null)
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _purchaseDate = null;
+                                    _purchaseDateController.clear();
+                                  });
+                                },
+                                child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                              ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 12),
 
@@ -1598,9 +2080,19 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildDateField() {
-    return Stack(
-      alignment: Alignment.centerRight,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text(
+          'DATE OF BIRTH',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
         GestureDetector(
           onTap: () async {
             final date = await showDatePicker(
@@ -1616,47 +2108,41 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               });
             }
           },
-          child: AbsorbPointer(
-            child: TextField(
-              controller: _dobController,
-              style: const TextStyle(fontSize: 17),
-              decoration: InputDecoration(
-                labelText: 'Date of Birth',
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
-                filled: true,
-                fillColor: Colors.white,
-                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFD6CEE2)),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _dateOfBirth != null ? FormatUtils.formatDate(_dateOfBirth!) : 'Select Date of Birth',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _dateOfBirth != null ? FontWeight.w600 : FontWeight.w400,
+                      color: _dateOfBirth != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                    ),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-              ),
+                if (_dateOfBirth != null)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _dateOfBirth = null;
+                        _dobController.clear();
+                      });
+                    },
+                    child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                  ),
+              ],
             ),
           ),
         ),
-        if (_dateOfBirth != null)
-          Positioned(
-            right: 4,
-            child: IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
-              onPressed: () {
-                setState(() {
-                  _dateOfBirth = null;
-                  _dobController.clear();
-                });
-              },
-            ),
-          ),
       ],
     );
   }
@@ -1774,151 +2260,310 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
   Widget _buildParentSelector(String label, String? selectedId, String? selectedName, List<Rabbit> options, void Function(String?, String?) onSelect) {
     final hasSelection = (selectedId != null && selectedId.isNotEmpty) || (selectedName != null && selectedName.isNotEmpty);
-    final controller = label == 'Sire' ? _sireController : _damController;
     final color = label == 'Dam' ? doePink : buckBlue;
 
-    return Stack(
-      alignment: Alignment.centerRight,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
           onTap: () {
             _showParentPickerDialog(label, options, (id, name) {
               onSelect(id, name);
               setState(() {
                 if (name != null) {
-                  controller.text = name;
+                  if (label == 'Sire') _sireController.text = name;
+                  if (label == 'Dam') _damController.text = name;
                 } else {
-                  controller.clear();
+                  if (label == 'Sire') _sireController.clear();
+                  if (label == 'Dam') _damController.clear();
                 }
               });
             });
           },
-          child: AbsorbPointer(
-            child: TextField(
-              controller: controller,
-              style: const TextStyle(fontSize: 17),
-              decoration: InputDecoration(
-                labelText: label,
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-                contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
-                filled: true,
-                fillColor: Colors.white,
-                labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFD6CEE2)),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasSelection ? (selectedName ?? '') : 'Select $label',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
+                      color: hasSelection ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
-                ),
-              ),
+                if (hasSelection)
+                  GestureDetector(
+                    onTap: () {
+                      onSelect(null, null);
+                      setState(() {
+                        if (label == 'Sire') _sireController.clear();
+                        if (label == 'Dam') _damController.clear();
+                      });
+                    },
+                    child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                  )
+                else
+                  Icon(Icons.keyboard_arrow_down, color: color, size: 20),
+              ],
             ),
           ),
         ),
-        if (hasSelection)
-          Positioned(
-            right: 4,
-            child: IconButton(
-              icon: const Icon(Icons.clear, color: Color(0xFFBBB9B2), size: 20),
-              tooltip: 'Clear $label',
-              onPressed: () {
-                onSelect(null, null);
-                setState(() {
-                  controller.clear();
-                });
-              },
-            ),
-          )
-        else
-          Positioned(
-            right: 12,
-            child: Icon(Icons.arrow_drop_down, color: color, size: 24),
-          ),
       ],
     );
   }
 
   void _showParentPickerDialog(String label, List<Rabbit> options, void Function(String?, String?) onSelect) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select $label', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              ListTile(
-                leading: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Icon(Icons.block, color: Colors.red.shade700, size: 18),
-                ),
-                title: Text(
-                  'None (Leave Blank)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.red.shade700),
-                ),
-                subtitle: Text('Clear $label and leave field empty', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(null, null);
-                },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = searchQuery.isEmpty
+                ? options
+                : options.where((r) {
+                    final name = r.fullName.isNotEmpty ? r.fullName : r.name;
+                    return name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                        (r.earNumber != null && r.earNumber!.toLowerCase().contains(searchQuery.toLowerCase()));
+                  }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              const Divider(height: 1, color: Color(0xFFE5DEEC)),
-              if (options.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: Text('No rabbits available in herd', style: TextStyle(fontSize: 14, color: Color(0xFF787880))),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEADBFC),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Select $label',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else
-                ...options.map((rabbit) {
-                  final displayName = rabbit.fullName.isNotEmpty ? rabbit.fullName : rabbit.name;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
-                      child: Text(
-                        rabbit.name.isNotEmpty ? rabbit.name[0] : '?',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: label == 'Dam' ? doePink : buckBlue),
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search $label by name or ear...',
+                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        filled: true,
+                        fillColor: const Color(0xFFF7F3FB),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                        ),
+                      ),
+                      onChanged: (val) => setModalState(() => searchQuery = val),
+                    ),
+                  ),
+                  Material(
+                    color: Colors.white,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onSelect(null, null);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Color(0xFFE5DEEC))),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Icon(Icons.block, color: Colors.red.shade700, size: 16),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'None (Leave Blank)',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.red.shade700),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    title: Text(displayName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                    subtitle: Text('${rabbit.breed}${rabbit.status == RabbitStatus.archived ? " • Archived" : ""} • ${rabbit.id}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelect(rabbit.id, displayName);
-                    },
-                  );
-                }),
-            ],
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No rabbits available',
+                              style: TextStyle(fontSize: 14, color: Color(0xFF787880)),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final rabbit = filtered[index];
+                              final displayName = rabbit.fullName.isNotEmpty ? rabbit.fullName : rabbit.name;
+                              final isOdd = index % 2 == 1;
+                              final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+
+                              return Material(
+                                color: rowBg,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    onSelect(rabbit.id, displayName);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: label == 'Dam' ? kPinkLight : kBlueLight,
+                                          child: Text(
+                                            rabbit.name.isNotEmpty ? rabbit.name[0] : '?',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: label == 'Dam' ? doePink : buckBlue,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                displayName,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF2C2C2E),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${rabbit.breed}${rabbit.status == RabbitStatus.archived ? " • Archived" : ""} • ${rabbit.id}',
+                                                style: const TextStyle(fontSize: 12, color: Color(0xFF787880)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildNotesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'NOTES',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.8,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onSelect(null, null);
-            },
-            child: Text('Leave Blank', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.red.shade700)),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: _notesController,
+          maxLines: 3,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          decoration: InputDecoration(
+            hintText: 'Enter notes...',
+            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontSize: 16)),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

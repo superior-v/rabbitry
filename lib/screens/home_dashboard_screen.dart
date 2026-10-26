@@ -316,30 +316,47 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       }
 
       for (final r in rabbits) {
-        final expectedKindleDate = r.kindleDate ?? r.dueDate;
-        if (r.type == RabbitType.doe && expectedKindleDate != null && r.status != RabbitStatus.archived) {
-          final breedName = normalizeBreedName(r.breed);
-          breedSet.add(breedName);
-          kindleMap.putIfAbsent(breedName, () => []);
+        if (r.type != RabbitType.doe || r.status == RabbitStatus.archived) continue;
 
-          String buckName = 'Unknown';
-          if (r.lastBreedBuckId != null) {
-            try {
-              final buck = await _db.getRabbit(r.lastBreedBuckId!);
-              if (buck != null) buckName = buck.name;
-            } catch (_) {}
-          }
+        // A doe should only appear in Kindle Date if she has an active pregnancy/breeding
+        // (dueDate is the upcoming expected kindle date for the current breeding)
+        DateTime? expectedKindleDate = r.dueDate;
 
-          final diff = expectedKindleDate.difference(today).inDays;
-          kindleMap[breedName]!.add({
-            'id': r.id,
-            'doe': r,
-            'doeName': r.name,
-            'buckName': buckName,
-            'kindleDate': expectedKindleDate,
-            'daysUntil': diff,
-          });
+        // If dueDate is not set, check if kindleDate is an upcoming date (not in the past)
+        if (expectedKindleDate == null && r.kindleDate != null && !today.isAfter(r.kindleDate!)) {
+          expectedKindleDate = r.kindleDate;
         }
+
+        if (expectedKindleDate == null) continue;
+
+        final diff = expectedKindleDate.difference(today).inDays;
+
+        // Only show active breeding: do not show past dates from previous litters (e.g. diff < -5 days)
+        // or non-pregnant open/resting does
+        if (diff < -5) continue;
+        if ((r.status == RabbitStatus.open || r.status == RabbitStatus.resting) && r.lastBreedDate == null) continue;
+        if (r.lastBreedDate != null && today.difference(r.lastBreedDate!).inDays > 38) continue;
+
+        final breedName = normalizeBreedName(r.breed);
+        breedSet.add(breedName);
+        kindleMap.putIfAbsent(breedName, () => []);
+
+        String buckName = 'Unknown';
+        if (r.lastBreedBuckId != null) {
+          try {
+            final buck = await _db.getRabbit(r.lastBreedBuckId!);
+            if (buck != null) buckName = buck.name;
+          } catch (_) {}
+        }
+
+        kindleMap[breedName]!.add({
+          'id': r.id,
+          'doe': r,
+          'doeName': r.name,
+          'buckName': buckName,
+          'kindleDate': expectedKindleDate,
+          'daysUntil': diff,
+        });
       }
 
       for (final breed in kindleMap.keys) {
@@ -664,7 +681,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
     if (daysUntil < 0) {
       daysColor = kError;
     } else if (daysUntil <= 1) {
-      daysColor = const Color(0xFF1B5E20);
+      daysColor = const Color(0xFF10B981);
     } else {
       daysColor = const Color(0xFF4F4F56);
     }
