@@ -102,6 +102,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (_selectedNavIndex == 4 && index != 4) {
       _financeTabKey.currentState?.resetView();
     }
+    if (_selectedNavIndex == 2 && index != 2) {
+      _littersTabKey.currentState?.collapseAllLitters();
+    }
     setState(() => _selectedNavIndex = index);
     if (index == 0) {
       _homeTabKey.currentState?._loadData(showLoading: false);
@@ -110,6 +113,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _herdTabKey.currentState?.refresh();
       _herdTabKey.currentState?.scrollToTop();
     } else if (index == 2) {
+      _littersTabKey.currentState?.collapseAllLitters();
       _littersTabKey.currentState?.refresh();
       _littersTabKey.currentState?.scrollToTop();
     } else if (index == 3) {

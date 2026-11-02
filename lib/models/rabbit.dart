@@ -28,6 +28,7 @@ enum ArchiveReason {
   dead,
   cull,
   stud,
+  donated,
 }
 
 extension ArchiveReasonExtension on ArchiveReason {
@@ -43,6 +44,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return 'CULL';
       case ArchiveReason.stud:
         return 'STUD';
+      case ArchiveReason.donated:
+        return 'DONATED';
     }
   }
 
@@ -58,6 +61,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return const Color(0xFFE63946); // Red
       case ArchiveReason.stud:
         return const Color(0xFF1976D2); // Blue
+      case ArchiveReason.donated:
+        return const Color(0xFF0D9488); // Teal
     }
   }
 
@@ -73,6 +78,8 @@ extension ArchiveReasonExtension on ArchiveReason {
         return const Color(0xFFFFEBEC);
       case ArchiveReason.stud:
         return const Color(0xFFE3F2FD);
+      case ArchiveReason.donated:
+        return const Color(0xFFCCFBF1);
     }
   }
 }
@@ -552,6 +559,9 @@ class Rabbit {
         }
         if (rawLower.contains('stud')) {
           return ArchiveReason.stud;
+        }
+        if (rawLower.contains('donat')) {
+          return ArchiveReason.donated;
         }
         return ArchiveReason.values.firstWhere(
           (e) => e.toString() == raw || e.name == raw || e.name.toLowerCase() == rawLower,

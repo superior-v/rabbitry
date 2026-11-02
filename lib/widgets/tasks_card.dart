@@ -790,44 +790,57 @@ class _TasksCardState extends State<TasksCard> {
               surfaceTintColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               insetPadding: const EdgeInsets.all(16),
+              clipBehavior: Clip.antiAlias,
               child: Container(
                 width: double.infinity,
                 constraints: BoxConstraints(maxWidth: 400, maxHeight: MediaQuery.of(context).size.height * 0.9),
-                padding: const EdgeInsets.all(24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEADBEE), // Consistency.jpg top purple
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
+                      ),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
+                          const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D))),
                           GestureDetector(
                             onTap: () => Navigator.pop(dialogContext),
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle),
-                              child: Icon(Icons.close, size: 20, color: kNeutral500),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle),
+                              child: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF4A3E6D)),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      _buildDialogLabel('Category'),
-                      Row(
-                        children: [
-                          Expanded(child: buildCategoryRadio('Health', 'Health')),
-                          Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: buildCategoryRadio('Operations', 'Operations')),
-                          Expanded(child: buildCategoryRadio('Custom', 'Custom')),
-                        ],
-                      ),
+                    ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDialogLabel('Category'),
+                            Row(
+                              children: [
+                                Expanded(child: buildCategoryRadio('Health', 'Health')),
+                                Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                                Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                              ],
+                            ),
                       const SizedBox(height: 16),
                       if (!isEnteringCustomName) ...[
                         _buildDialogLabel('Task'),
@@ -1091,9 +1104,12 @@ class _TasksCardState extends State<TasksCard> {
                   ),
                 ),
               ),
-            );
-          },
-        );
+            ],
+          ),
+        ),
+      );
+    },
+  );
       },
     );
   }

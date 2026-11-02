@@ -88,6 +88,9 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF7B6BA0),
           primary: const Color(0xFF7B6BA0),
         ),
+        snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+        ),
         datePickerTheme: DatePickerThemeData(
           headerBackgroundColor: const Color(0xFFE2BFFB),
           headerForegroundColor: const Color(0xFF463466),

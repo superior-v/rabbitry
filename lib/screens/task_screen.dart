@@ -40,7 +40,6 @@ class TaskScreenState extends State<TaskScreen> {
   final DatabaseService _db = DatabaseService();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _notePadController = TextEditingController();
-  bool _isSavingNotes = false;
 
   void scrollToTop() {
     if (_scrollController.hasClients) {
@@ -50,6 +49,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   @override
   void dispose() {
+    SettingsService.instance.setTaskNotes(_notePadController.text);
     _scrollController.dispose();
     _notePadController.dispose();
     super.dispose();
@@ -82,6 +82,7 @@ class TaskScreenState extends State<TaskScreen> {
   Map<String, DateTime> _doeAvailableDateMap = {};
   Map<String, String> _rabbitNameMap = {};
   Map<String, Rabbit> _rabbitMap = {};
+  DateTime _breedingShowDate = DateTime(DateTime.now().year + 1, 1, 1);
 
   @override
   void initState() {
@@ -145,17 +146,29 @@ class TaskScreenState extends State<TaskScreen> {
       final today = DateTime(now.year, now.month, now.day);
       final dateMap = <String, DateTime>{};
 
+      final rebreedDays = SettingsService.instance.rebreedDays > 0 ? SettingsService.instance.rebreedDays : 28;
+      final gestationDays = SettingsService.instance.gestationDays > 0 ? SettingsService.instance.gestationDays : 31;
+
       final db = await _db.database;
+      final openTasks = await db.query('tasks', where: 'completed != 1');
+      final openTasksByRabbit = <String, List<Map<String, dynamic>>>{};
+      for (final t in openTasks) {
+        final rId = t['rabbitId']?.toString();
+        if (rId != null && rId.isNotEmpty) {
+          openTasksByRabbit.putIfAbsent(rId, () => []).add(t);
+        }
+      }
+
       for (final doe in does) {
         DateTime availableDate = today;
+        final doeTasks = openTasksByRabbit[doe.id] ?? [];
 
         // 1. Quarantine Bunny: Immediately after the number of quarantine date chosen
         if (doe.status == RabbitStatus.quarantine || (doe.quarantineEndDate != null && doe.quarantineEndDate!.isAfter(today))) {
           if (doe.quarantineEndDate != null) {
             availableDate = doe.quarantineEndDate!;
           } else {
-            final openTasks = await db.query('tasks', where: 'rabbitId = ?', whereArgs: [doe.id]);
-            final qTask = openTasks.where((t) => t['taskType'] == 'quarantine_end' && t['completed'] != 1).firstOrNull;
+            final qTask = doeTasks.where((t) => t['taskType'] == 'quarantine_end').firstOrNull;
             if (qTask != null && qTask['dueDate'] != null) {
               final d = DateTime.tryParse(qTask['dueDate'].toString());
               if (d != null) availableDate = d;
@@ -166,7 +179,50 @@ class TaskScreenState extends State<TaskScreen> {
             }
           }
         }
-        // 2. Nursing Does: 4 weeks (28 days) after their kindle date from the current breeding
+        // 2. Bred / Pregnant Does / Due to Kindle
+        // (Evaluated BEFORE nursing because a doe can be bred while still having a nursing litter!)
+        final bool hasRecentBreeding = doe.lastBreedDate != null && (doe.kindleDate == null || doe.lastBreedDate!.isAfter(doe.kindleDate!));
+        final bool hasActiveDueDate = doe.dueDate != null && (doe.kindleDate == null || doe.dueDate!.isAfter(doe.kindleDate!));
+        final bool hasKindleTask = doeTasks.any((t) {
+          final type = (t['taskType'] ?? '').toString().toLowerCase();
+          final title = (t['title'] ?? '').toString().toLowerCase();
+          return type == 'kindle' || type == 'nest_box' || type == 'palpate' || title.contains('kindle') || title.contains('nest box');
+        });
+
+        if (doe.status == RabbitStatus.pregnant ||
+            doe.status == RabbitStatus.palpateDue ||
+            hasKindleTask ||
+            hasActiveDueDate ||
+            hasRecentBreeding) {
+          DateTime expectedKindle;
+          if (doe.dueDate != null) {
+            expectedKindle = doe.dueDate!;
+          } else if (doe.lastBreedDate != null) {
+            expectedKindle = doe.lastBreedDate!.add(Duration(days: gestationDays));
+          } else {
+            final kindleTask = doeTasks.where((t) {
+              final type = (t['taskType'] ?? '').toString().toLowerCase();
+              final title = (t['title'] ?? '').toString().toLowerCase();
+              return type == 'kindle' || title.contains('kindle');
+            }).firstOrNull;
+            if (kindleTask != null && kindleTask['dueDate'] != null) {
+              final d = DateTime.tryParse(kindleTask['dueDate'].toString());
+              expectedKindle = d ?? today;
+            } else {
+              expectedKindle = today;
+            }
+          }
+
+          // If expected kindle date is today or already passed (doe is due today or overdue to kindle),
+          // her kindle occurs now/today
+          DateTime effectiveKindle = DateTime(expectedKindle.year, expectedKindle.month, expectedKindle.day);
+          if (effectiveKindle.isBefore(today)) {
+            effectiveKindle = today;
+          }
+          // Available rebreedDays (e.g. 28 days) after kindle
+          availableDate = effectiveKindle.add(Duration(days: rebreedDays));
+        }
+        // 3. Nursing Does: rebreedDays after their kindle date from the current breeding
         else if (doe.status == RabbitStatus.nursing || litters.any((l) => l.doeId == doe.id && (l.status.toLowerCase() == 'nursing' || l.status.toLowerCase() == 'active'))) {
           final doeLitters = litters.where((l) => l.doeId == doe.id && (l.status.toLowerCase() == 'nursing' || l.status.toLowerCase() == 'active')).toList();
           doeLitters.sort((a, b) {
@@ -179,34 +235,23 @@ class TaskScreenState extends State<TaskScreen> {
 
           if (kindleDate != null) {
             final kDay = DateTime(kindleDate.year, kindleDate.month, kindleDate.day);
-            availableDate = kDay.add(const Duration(days: 28)); // 4 weeks after kindle date
+            availableDate = kDay.add(Duration(days: rebreedDays));
           } else if (doe.updatedAt != null) {
             final uDay = DateTime(doe.updatedAt.year, doe.updatedAt.month, doe.updatedAt.day);
-            availableDate = uDay.add(const Duration(days: 28));
+            availableDate = uDay.add(Duration(days: rebreedDays));
           } else {
-            availableDate = today.add(const Duration(days: 28));
+            availableDate = today.add(Duration(days: rebreedDays));
           }
-        }
-        // 3. Bred / Pregnant Does: 4 weeks after expected kindle date
-        else if (doe.status == RabbitStatus.pregnant ||
-            doe.status == RabbitStatus.palpateDue ||
-            (doe.dueDate != null && !today.isAfter(doe.dueDate!) && (doe.lastBreedDate == null || today.difference(doe.lastBreedDate!).inDays <= 38))) {
-          const gestationDays = 31;
-          final breedDate = doe.lastBreedDate ?? doe.dueDate?.subtract(const Duration(days: gestationDays));
-          final expectedKindle = doe.dueDate ?? (breedDate != null ? breedDate.add(const Duration(days: gestationDays)) : today.add(const Duration(days: gestationDays)));
-          final kDay = DateTime(expectedKindle.year, expectedKindle.month, expectedKindle.day);
-          availableDate = kDay.add(const Duration(days: 28)); // 4 weeks after expected kindle
         }
         // 4. Resting Does
         else if (doe.status == RabbitStatus.resting) {
-          final openTasks = await db.query('tasks', where: 'rabbitId = ?', whereArgs: [doe.id]);
-          final openBreedTask = openTasks.where((t) => (t['taskType'] == 'open_breeding' || t['taskType'] == 'resting') && t['completed'] != 1).firstOrNull;
+          final openBreedTask = doeTasks.where((t) => (t['taskType'] == 'open_breeding' || t['taskType'] == 'resting')).firstOrNull;
           if (openBreedTask != null && openBreedTask['dueDate'] != null) {
             final d = DateTime.tryParse(openBreedTask['dueDate'].toString());
             if (d != null) availableDate = d;
           } else {
             final refDate = doe.updatedAt ?? today;
-            availableDate = refDate.add(const Duration(days: 14));
+            availableDate = refDate.add(Duration(days: rebreedDays));
           }
         }
         // 5. Open Does: Immediate .. i.e Today
@@ -1125,6 +1170,8 @@ class TaskScreenState extends State<TaskScreen> {
             const SizedBox(width: 20),
             _buildTabPill('Note Pad'),
             const SizedBox(width: 20),
+            _buildTabPill('Breeding Calculator'),
+            const SizedBox(width: 20),
             _buildTabPill('Contacts'),
           ],
         ),
@@ -1135,7 +1182,12 @@ class TaskScreenState extends State<TaskScreen> {
   Widget _buildTabPill(String label) {
     final isActive = _selectedCategory == label;
     return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = label),
+      onTap: () {
+        if (_selectedCategory == 'Note Pad') {
+          SettingsService.instance.setTaskNotes(_notePadController.text);
+        }
+        setState(() => _selectedCategory = label);
+      },
       child: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -1162,11 +1214,15 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   void _onSwipeGreyBar(bool isLeftSwipe) {
+    if (_selectedCategory == 'Note Pad') {
+      SettingsService.instance.setTaskNotes(_notePadController.text);
+    }
     const categories = [
       'Task',
       'Breeding Plan',
       'Wait List',
       'Note Pad',
+      'Breeding Calculator',
       'Contacts',
     ];
     int currentIndex = categories.indexOf(_selectedCategory);
@@ -1184,7 +1240,7 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   Widget _buildFAB() {
-    if (_selectedCategory == 'Breeding Plan' || _selectedCategory == 'Note Pad') {
+    if (_selectedCategory == 'Breeding Plan' || _selectedCategory == 'Note Pad' || _selectedCategory == 'Breeding Calculator') {
       return const SizedBox.shrink();
     }
     return SizedBox(
@@ -1200,7 +1256,7 @@ class TaskScreenState extends State<TaskScreen> {
           } else if (_selectedCategory == 'Wait List') {
             _showAddWaitlistDialog();
           } else {
-            _showNewScheduleDialog(context, initialCategory: 'Operations');
+            _showNewScheduleDialog(context);
           }
         },
         backgroundColor: const Color(0xFFE6BEFE),
@@ -1272,6 +1328,9 @@ class TaskScreenState extends State<TaskScreen> {
     } else if (title.toUpperCase().contains('UPCOMING')) {
       headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
       headerBorder = const Color(0xFFBAE5FD);
+    } else if (title.toUpperCase().contains('ARCHIVE')) {
+      headerBg = const Color(0xFFFFBCE7); // Light pink from Home page (kHeaderPink)
+      headerBorder = const Color(0xFFFFBCE7);
     }
 
     return GestureDetector(
@@ -1328,9 +1387,8 @@ class TaskScreenState extends State<TaskScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F7),
+          color: const Color(0xFFFFBCE7), // Pink from Home page (kHeaderPink)
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: const Color(0xFFE5E5EA), width: 0.8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1370,6 +1428,8 @@ class TaskScreenState extends State<TaskScreen> {
         return _buildWaitlistView();
       case 'Note Pad':
         return _buildNotePadView();
+      case 'Breeding Calculator':
+        return _buildBreedingCalculatorView();
       case 'Contacts':
         return _buildContactsView();
       case 'Task':
@@ -1480,6 +1540,9 @@ class TaskScreenState extends State<TaskScreen> {
               maxLines: null,
               keyboardType: TextInputType.multiline,
               textCapitalization: TextCapitalization.sentences,
+              onChanged: (text) {
+                SettingsService.instance.setTaskNotes(text);
+              },
               style: const TextStyle(
                 fontSize: 14.5,
                 color: Color(0xFF2C2C2E),
@@ -1489,35 +1552,270 @@ class TaskScreenState extends State<TaskScreen> {
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
+                hintText: 'Type your notes here...',
+                hintStyle: TextStyle(color: Color(0xFFC7C7CC), fontSize: 14.5),
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: _isSavingNotes ? null : _saveTaskNotes,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFBA7BE8),
-                  disabledBackgroundColor: const Color(0xFFBA7BE8).withValues(alpha: 0.6),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  DateTime _subtractMonths(DateTime date, int months) {
+    int year = date.year;
+    int month = date.month - months;
+    while (month <= 0) {
+      month += 12;
+      year -= 1;
+    }
+    final daysInTargetMonth = DateTime(year, month + 1, 0).day;
+    final day = date.day > daysInTargetMonth ? daysInTargetMonth : date.day;
+    return DateTime(year, month, day);
+  }
+
+  String _formatCalDate(DateTime date) {
+    return DateFormat('MM-dd-yyyy').format(date);
+  }
+
+  Widget _buildBreedingCalculatorView() {
+    // 6 Class calculations
+    final senior6Breed = _formatCalDate(_subtractMonths(_breedingShowDate, 9));
+    final intermediate6Start = _formatCalDate(_subtractMonths(_breedingShowDate, 9));
+    final intermediate6End = _formatCalDate(_subtractMonths(_breedingShowDate, 7).subtract(const Duration(days: 1)));
+    final juniorStart = _formatCalDate(_subtractMonths(_breedingShowDate, 7));
+    final juniorEnd = _formatCalDate(_subtractMonths(_breedingShowDate, 5));
+    final meatPenBreed = _formatCalDate(_breedingShowDate.subtract(const Duration(days: 101)));
+
+    // 4 Class calculations
+    final senior4Breed = _formatCalDate(_subtractMonths(_breedingShowDate, 7));
+
+    return Container(
+      color: Colors.white,
+      child: ListView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          // Header Bar matching BreedingCal.jpg
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF65D8F7),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'When to Breed',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1C1C1E),
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Date Selector Field (Show Date)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _breedingShowDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2040),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xFF65D8F7),
+                          onPrimary: Colors.white,
+                          onSurface: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() => _breedingShowDate = picked);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
                 ),
-                child: Text(
-                  _isSavingNotes ? 'SAVING...' : 'SAVE',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      DateFormat('MM-dd-yyyy').format(_breedingShowDate),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C2C2E),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF787774)),
+                  ],
                 ),
               ),
-            ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Informational Text
+          const Text(
+            'Select the date of an upcoming show to see when breedings need to be done to have rabbits of each class for that show.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF3A3A3C),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Dates are calculated assuming the litter is born on the due date. Adjust dates for does that normally go early or late.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF3A3A3C),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 6 Class Card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Text(
+                    '6 Class',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5EA)),
+                const SizedBox(height: 10),
+
+                // For Seniors
+                const Text(
+                  'For Seniors:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed before $senior6Breed',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+                const SizedBox(height: 10),
+
+                // For Intermediates
+                const Text(
+                  'For Intermediates:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed between $intermediate6Start & $intermediate6End',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+                const SizedBox(height: 10),
+
+                // For Juniors 4 - 5 months old
+                const Text(
+                  'For Juniors 4 – 5 months old:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed between $juniorStart & $juniorEnd',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+                const SizedBox(height: 10),
+
+                // For Meat Pens within 10 weeks old
+                const Text(
+                  'For Meat Pens within 10 weeks old:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed beginning $meatPenBreed',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 4 Class Card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Text(
+                    '4 Class',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5EA)),
+                const SizedBox(height: 10),
+
+                // For Seniors
+                const Text(
+                  'For Seniors:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed before $senior4Breed',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+                const SizedBox(height: 10),
+
+                // For Juniors 4 - 5 months old
+                const Text(
+                  'For Juniors 4 – 5 months old:',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Breed between $juniorStart & $juniorEnd',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 100),
         ],
@@ -1548,31 +1846,6 @@ class TaskScreenState extends State<TaskScreen> {
       ),
     );
   }
-
-  Future<void> _saveTaskNotes() async {
-    FocusScope.of(context).unfocus();
-    setState(() => _isSavingNotes = true);
-    await SettingsService.instance.setTaskNotes(_notePadController.text);
-    if (mounted) {
-      setState(() => _isSavingNotes = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text('Notes saved successfully'),
-            ],
-          ),
-          backgroundColor: const Color(0xFF2C2C2E),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
-  }
-
 
   List<Widget> _getFilteredTodayTasks() {
     List<Map<String, dynamic>> filtered = [];
@@ -1639,12 +1912,26 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   String _getTaskBunnyName(Map<String, dynamic> task) {
+    if (task['isAllBunnies'] == 1 ||
+        task['isAllBunnies'] == true ||
+        task['isAllBunnies'] == '1' ||
+        task['rabbitId'] == 'all' ||
+        task['rabbitId'] == 'ALL') {
+      return 'All Bunnies';
+    }
     final rabbitId = task['rabbitId']?.toString();
     if (rabbitId != null && _rabbitNameMap.containsKey(rabbitId)) {
       return _rabbitNameMap[rabbitId]!;
     }
     final entities = task['linkedEntities'];
     if (entities is List && entities.isNotEmpty) {
+      if (entities.any((e) => e is Map && (e['id'] == 'all' || e['name'] == 'All Bunnies' || e['isAll'] == 'true'))) {
+        return 'All Bunnies';
+      }
+      final totalActive = _rabbitNameMap.length;
+      if (totalActive > 1 && entities.length >= totalActive) {
+        return 'All Bunnies';
+      }
       final names = entities
           .map((e) {
             if (e is Map) {
@@ -1658,7 +1945,12 @@ class TaskScreenState extends State<TaskScreen> {
           })
           .where((n) => n != null && n.isNotEmpty && n != 'Unlinked')
           .toList();
-      if (names.isNotEmpty) return names.join(', ');
+      if (names.isNotEmpty) {
+        if (totalActive > 1 && names.length >= totalActive) {
+          return 'All Bunnies';
+        }
+        return names.join(', ');
+      }
     }
     return '';
   }
@@ -2991,7 +3283,7 @@ class TaskScreenState extends State<TaskScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: const Color(0xFFFCE7F3), // Soft pink matching WaitList-Contacts.Jpg
+            color: const Color(0xFFFFBCE7), // Pink bar from Home page (kHeaderPink)
             child: Center(
               child: Text(
                 breed,
@@ -3008,106 +3300,121 @@ class TaskScreenState extends State<TaskScreen> {
             final idx = e.key;
             final item = e.value;
             final isLast = idx == entries.length - 1;
-            return _buildWaitlistRow(item, isLast: isLast);
+            return _buildWaitlistRow(item, index: idx, isLast: isLast);
           }),
         ],
       ),
     );
   }
 
-  Widget _buildWaitlistRow(Map<String, dynamic> item, {required bool isLast}) {
+  Widget _buildWaitlistRow(Map<String, dynamic> item, {required int index, required bool isLast}) {
     final createdAt = DateTime.tryParse(item['createdAt']?.toString() ?? '') ?? DateTime.now();
     final dateStr = DateFormat('MMM dd').format(createdAt);
     final name = (item['name']?.toString() ?? '').trim();
     final deposit = (item['deposit']?.toString() ?? '').trim();
     final colorPref = (item['colorPreferred']?.toString() ?? '').trim();
     final gender = item['gender']?.toString();
+    final isOdd = index % 2 == 1;
+    final rowBg = isOdd ? const Color(0xFFF9F9FB) : Colors.white;
 
-    return InkWell(
-      onTap: () => _showWaitlistDetailsDialog(item),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 52,
-              child: Text(
-                dateStr,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF71717A),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    name,
+    return Material(
+      color: rowBg,
+      child: InkWell(
+        onTap: () => _showWaitlistDetailsDialog(item),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 52,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Text(
+                    dateStr,
                     style: const TextStyle(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF71717A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF71717A),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (deposit.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        deposit.toLowerCase().startsWith('deposit') ? deposit : 'Deposit: ',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF059669),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: SizedBox(
+                  width: 20,
+                  child: Center(
+                    child: _buildWaitlistGenderWidget(gender),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Text(
+                    colorPref.isNotEmpty ? colorPref : 'Any Color',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
                       color: Color(0xFF71717A),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (deposit.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      deposit.toLowerCase().startsWith('deposit') ? deposit : 'Deposit: $deposit',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF059669),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            SizedBox(
-              width: 24,
-              child: Center(
-                child: _buildWaitlistGenderWidget(gender),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 5,
-              child: Text(
-                colorPref.isNotEmpty ? colorPref : 'Any Color',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF71717A),
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 4),
-            InkWell(
-              onTap: () => _confirmDeleteWaitlist(item),
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  PhosphorIcons.trash(PhosphorIconsStyle.regular),
-                  size: 18,
-                  color: const Color(0xFFDC2626),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: () => _confirmDeleteWaitlist(item),
+                borderRadius: BorderRadius.circular(16),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3396,7 +3703,7 @@ class TaskScreenState extends State<TaskScreen> {
 
           return Container(
             decoration: const BoxDecoration(
-              color: Color(0xFFFDF2F8), // Soft pink matching homepage
+              color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: EdgeInsets.only(
@@ -3407,36 +3714,7 @@ class TaskScreenState extends State<TaskScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Top header matching homepage pink (kHeaderPink)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFBCE7), // Pink like in the homepage
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          existing != null ? 'Edit Waitlist Entry' : 'Add to Waitlist',
-                          style: const TextStyle(
-                            color: Color(0xFF4F4F56),
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(ctx),
-                          child: Icon(
-                            PhosphorIcons.x(PhosphorIconsStyle.bold),
-                            color: const Color(0xFF4F4F56),
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildModalHeader(context, existing != null ? 'Edit Waitlist' : 'Add to Waitlist'),
 
                   // Compact form - fits entirely on one screen with NO scroll
                   Padding(
@@ -3485,12 +3763,11 @@ class TaskScreenState extends State<TaskScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'BREED PREFERRED',
+                                    'Breed Preferred',
                                     style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF4F4F56),
-                                      letterSpacing: 0.6,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF4A3E6D),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -3575,29 +3852,47 @@ class TaskScreenState extends State<TaskScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'GENDER',
+                                    'Gender',
                                     style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF4F4F56),
-                                      letterSpacing: 0.6,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF4A3E6D),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Container(
                                     height: 38,
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFFD6CEE2)),
-                                    ),
+                                    alignment: Alignment.centerLeft,
                                     child: Row(
-                                      children: [
-                                        _buildGenderChip('Any', 'Any', PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold), const Color(0xFF9333EA), selectedGender, (val) => setModalState(() => selectedGender = val)),
-                                        _buildGenderChip('Buck', 'Buck', PhosphorIcons.genderMale(PhosphorIconsStyle.bold), const Color(0xFF2563EB), selectedGender, (val) => setModalState(() => selectedGender = val)),
-                                        _buildGenderChip('Doe', 'Doe', PhosphorIcons.genderFemale(PhosphorIconsStyle.bold), const Color(0xFFEC4899), selectedGender, (val) => setModalState(() => selectedGender = val)),
-                                      ],
+                                      children: ['Any', 'Buck', 'Doe'].map((g) {
+                                        final isSel = selectedGender.toLowerCase() == g.toLowerCase();
+                                        return GestureDetector(
+                                          onTap: () => setModalState(() => selectedGender = g),
+                                          behavior: HitTestBehavior.opaque,
+                                          child: Container(
+                                            margin: const EdgeInsets.only(right: 14),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  isSel ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                                  size: 18,
+                                                  color: isSel ? const Color(0xFF7B6BA0) : const Color(0xFF9E9E9E),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  g,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                                    color: isSel ? const Color(0xFF4A3E6D) : const Color(0xFF4F4F56),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
                                   ),
                                 ],
@@ -3617,7 +3912,6 @@ class TaskScreenState extends State<TaskScreen> {
                                 'Deposit Paid',
                                 depositController,
                                 keyboardType: TextInputType.text,
-                                hintText: 'e.g. 100',
                               ),
                             ),
                           ],
@@ -3625,13 +3919,13 @@ class TaskScreenState extends State<TaskScreen> {
                         const SizedBox(height: 8),
 
                         // Row 5: Special Notes
-                        _buildWaitlistField('Special Notes', notesController, hintText: 'Optional notes...'),
-                        const SizedBox(height: 12),
+                        _buildWaitlistField('Special Notes', notesController),
+                        const SizedBox(height: 14),
 
-                        // Save button matching Finance Page New Transaction
+                        // Save button matching Tasks - Contacts - Add new contacts
                         SizedBox(
                           width: double.infinity,
-                          height: 44,
+                          height: 46,
                           child: ElevatedButton(
                             onPressed: isSaving ? null : () async {
                               final name = nameController.text.trim();
@@ -3686,21 +3980,20 @@ class TaskScreenState extends State<TaskScreen> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF7B6BA0), // kLilacDeep matching Finance Page
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: const Color(0xFF7B6BA0).withValues(alpha: 0.6),
+                              backgroundColor: const Color(0xFFE6BEFE), // Matching Add Contact
+                              foregroundColor: const Color(0xFF4A3E6D),
+                              disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
                             child: isSaving
-                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4A3E6D)))
                                 : Text(
                                     existing != null ? 'Update Waitlist' : 'Add to Waitlist',
                                     style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                      letterSpacing: -0.2,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF4A3E6D),
                                     ),
                                   ),
                           ),
@@ -3806,12 +4099,11 @@ class TaskScreenState extends State<TaskScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
+          label,
           style: const TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF4F4F56),
-            letterSpacing: 0.6,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4A3E6D),
           ),
         ),
         const SizedBox(height: 4),
@@ -4264,15 +4556,10 @@ class TaskScreenState extends State<TaskScreen> {
   }
 
   void _showNewScheduleDialog(BuildContext context, {String? initialCategory}) async {
-    final bool isCategoryLocked = initialCategory != null &&
-        initialCategory != 'All' &&
-        (initialCategory == 'Health' || initialCategory == 'Breeding' || initialCategory == 'Operations');
-
-    String selectedCategory = isCategoryLocked
-        ? initialCategory!
-        : (initialCategory == 'Breeding' || initialCategory == 'Operations'
-            ? initialCategory!
-            : 'Health');
+    String selectedCategory = (initialCategory != null &&
+            (initialCategory == 'Health' || initialCategory == 'Breeding' || initialCategory == 'Operations' || initialCategory == 'Custom'))
+        ? initialCategory
+        : 'Health';
     String? selectedTask;
     String selectedFrequency = 'Select date';
     bool isEnteringCustomName = false;
@@ -4457,7 +4744,7 @@ class TaskScreenState extends State<TaskScreen> {
               ),
               child: Column(
                 children: [
-                  _buildModalHeader(context, isCategoryLocked ? 'New $selectedCategory Task' : 'New Task'),
+                  _buildModalHeader(context, 'New Task'),
                   Expanded(
                     child: SingleChildScrollView(
                       physics: const ClampingScrollPhysics(),
@@ -4465,27 +4752,25 @@ class TaskScreenState extends State<TaskScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (!isCategoryLocked) ...[
-                            const Text(
-                              'CATEGORY',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(child: buildCategoryRadio('Health', 'Health')),
-                                Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(child: buildCategoryRadio('Operations', 'Operations')),
-                                Expanded(child: buildCategoryRadio('Custom', 'Custom')),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                          ],
+                          const Text(
+                            'CATEGORY',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(child: buildCategoryRadio('Health', 'Health')),
+                              Expanded(child: buildCategoryRadio('Operations', 'Operations')),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(child: buildCategoryRadio('Breeding', 'Breeding')),
+                              Expanded(child: buildCategoryRadio('Custom', 'Custom')),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
                           if (!isEnteringCustomName) ...[
                             InputDecorator(
                               decoration: InputDecoration(
@@ -4594,58 +4879,35 @@ class TaskScreenState extends State<TaskScreen> {
                           ],
                           const SizedBox(height: 16),
                           _buildModalRabbitSelectorField(
-                            label: isBreeding ? 'Link to Doe' : 'Link to Bunny',
+                            label: isBreeding ? 'Link to Doe' : (selectedCategory == 'Health' ? 'Link to Bunny' : 'Link to Bunny (Optional)'),
                             hint: isBreeding ? 'Select Doe' : 'Select Bunny',
                             selectedRabbits: selectedRabbitsForLink,
+                            totalCount: availableRabbits.length,
                             onTap: pickRabbit,
                             onClear: isBreeding ? null : () => setSheetState(() => selectedRabbitsForLink = []),
                             prefixIcon: isBreeding ? Icons.female_rounded : Icons.pets_rounded,
                             prefixColor: isBreeding ? const Color(0xFFE04F9F) : const Color(0xFF7B6BA0),
                           ),
                           const SizedBox(height: 16),
-                          if (!isBreeding) ...[
-                            InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Frequency',
-                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                floatingLabelBehavior: FloatingLabelBehavior.always,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: selectedFrequency,
-                                  isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-                                  selectedItemBuilder: (BuildContext context) {
-                                    return [
-                                      'Select date',
-                                      'Daily',
-                                      'Weekly',
-                                      'Bi-Weekly',
-                                      'Monthly',
-                                      '2 Months starting',
-                                      '3 Months starting',
-                                      '4 Months starting',
-                                      '6 Months starting',
-                                      'Annually',
-                                    ].map((e) => Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        e,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                          color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
-                                        ),
-                                      ),
-                                    )).toList();
-                                  },
-                                  items: [
+                          InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Frequency',
+                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelBehavior: FloatingLabelBehavior.always,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedFrequency,
+                                isExpanded: true,
+                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                selectedItemBuilder: (BuildContext context) {
+                                  return [
                                     'Select date',
                                     'Daily',
                                     'Weekly',
@@ -4656,44 +4918,66 @@ class TaskScreenState extends State<TaskScreen> {
                                     '4 Months starting',
                                     '6 Months starting',
                                     'Annually',
-                                  ].asMap().entries.map((entry) {
-                                    final idx = entry.key;
-                                    final e = entry.value;
-                                    final isAlt = idx % 2 == 1;
-                                    return DropdownMenuItem(
-                                      value: e,
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          e,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                            color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
-                                          ),
+                                  ].map((e) => Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      e,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                        color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
+                                      ),
+                                    ),
+                                  )).toList();
+                                },
+                                items: [
+                                  'Select date',
+                                  'Daily',
+                                  'Weekly',
+                                  'Bi-Weekly',
+                                  'Monthly',
+                                  '2 Months starting',
+                                  '3 Months starting',
+                                  '4 Months starting',
+                                  '6 Months starting',
+                                  'Annually',
+                                ].asMap().entries.map((entry) {
+                                  final idx = entry.key;
+                                  final e = entry.value;
+                                  final isAlt = idx % 2 == 1;
+                                  return DropdownMenuItem(
+                                    value: e,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        e,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
+                                          color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setSheetState(() => selectedFrequency = val);
-                                    }
-                                  },
-                                ),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setSheetState(() => selectedFrequency = val);
+                                  }
+                                },
                               ),
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                          if (isBreeding || selectedFrequency != 'Daily') ...[
+                          ),
+                          const SizedBox(height: 16),
+                          if (selectedFrequency != 'Daily') ...[
                             _buildModalDatePickerField(
                               context: context,
-                              label: isBreeding ? 'Due Date' : (selectedFrequency == 'Select date' ? 'Due Date' : 'Starting Date'),
+                              label: (selectedFrequency == 'Select date' || isBreeding) ? 'Due Date' : 'Starting Date',
                               value: selectedCustomDate,
                               onDateSelected: (picked) => setSheetState(() => selectedCustomDate = picked),
                             ),
@@ -4727,15 +5011,24 @@ class TaskScreenState extends State<TaskScreen> {
                                   );
                                   return;
                                 }
-                                final isDaily = !isBreeding && selectedFrequency == 'Daily';
+                                final isDaily = selectedFrequency == 'Daily';
                                 final dueDate = isDaily ? DateTime.now() : (selectedCustomDate ?? DateTime.now());
-                                final freqToSave = isBreeding ? 'Once' : (selectedFrequency == 'Select date' ? 'Once' : selectedFrequency);
+                                final freqToSave = (selectedFrequency == 'Select date') ? 'Once' : selectedFrequency;
 
+                                final bool isAllSelected = availableRabbits.isNotEmpty && selectedRabbitsForLink.length >= availableRabbits.length;
                                 List<Map<String, String>> entitiesToSave = selectedRabbitsForLink.map((r) => {
                                   'id': r.id,
                                   'name': r.name,
                                   'code': r.cage ?? r.location ?? 'No cage',
                                 }).toList();
+                                if (isAllSelected) {
+                                  entitiesToSave.insert(0, {
+                                    'id': 'all',
+                                    'name': 'All Bunnies',
+                                    'code': 'ALL',
+                                    'isAll': 'true',
+                                  });
+                                }
 
                                 setSheetState(() => isSaving = true);
                                 try {
@@ -4746,6 +5039,7 @@ class TaskScreenState extends State<TaskScreen> {
                                     'linkType': selectedRabbitsForLink.isNotEmpty ? 'rabbit' : 'unlinked',
                                     'linkedEntities': entitiesToSave,
                                     'dueDate': dueDate.toIso8601String(),
+                                    'isAllBunnies': isAllSelected ? 1 : 0,
                                   });
                                   Navigator.pop(sheetContext);
                                   await _loadScheduledTasks();
@@ -4761,11 +5055,12 @@ class TaskScreenState extends State<TaskScreen> {
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
-                          foregroundColor: const Color(0xFF4A3E6D),
+                          backgroundColor: const Color(0xFFD4B3EE), // Consistency.jpg purple
+                          disabledBackgroundColor: const Color(0xFFEAE3F2),
+                          foregroundColor: const Color(0xFF5C4A70),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         child: isSaving
@@ -4774,15 +5069,16 @@ class TaskScreenState extends State<TaskScreen> {
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5C4A70)),
                                 ),
                               )
                             : const Text(
-                                'Save Task',
+                                'SAVE',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: Color(0xFF5C4A70),
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                       ),
@@ -5183,11 +5479,11 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildModalHeader(BuildContext context, String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: const BoxDecoration(
-        color: kLilacLight,
+        color: Color(0xFFEADBEE), // Consistency.jpg top purple
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(bottom: BorderSide(color: kLilac, width: 1)),
+        border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
       ),
       child: Column(
         children: [
@@ -5197,7 +5493,7 @@ class TaskScreenState extends State<TaskScreen> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -5208,10 +5504,10 @@ class TaskScreenState extends State<TaskScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   color: Color(0xFF4A3E6D),
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.2,
                 ),
               ),
               GestureDetector(
@@ -5219,7 +5515,7 @@ class TaskScreenState extends State<TaskScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
@@ -5356,7 +5652,10 @@ class TaskScreenState extends State<TaskScreen> {
     VoidCallback? onClear,
     required IconData prefixIcon,
     required Color prefixColor,
+    int? totalCount,
   }) {
+    final bool isAllSelected = totalCount != null && totalCount > 1 && selectedRabbits.length >= totalCount;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -5391,21 +5690,39 @@ class TaskScreenState extends State<TaskScreen> {
                 hint,
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
               )
-            : selectedRabbits.length == 1
-                ? _buildModalRabbitNameWidget(selectedRabbits.first, fontSize: 15)
-                : Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: selectedRabbits.map((r) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E8FF),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: kLilacLight),
+            : isAllSelected
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E8FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kLilacLight),
+                    ),
+                    child: const Text(
+                      'ALL',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF4A3E6D),
+                        letterSpacing: 0.5,
                       ),
-                      child: _buildModalRabbitNameWidget(r, fontSize: 13),
-                    )).toList(),
-                  ),
+                    ),
+                  )
+                : selectedRabbits.length == 1
+                    ? _buildModalRabbitNameWidget(selectedRabbits.first, fontSize: 15)
+                    : Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: selectedRabbits.map((r) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3E8FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: kLilacLight),
+                          ),
+                          child: _buildModalRabbitNameWidget(r, fontSize: 13),
+                        )).toList(),
+                      ),
       ),
     );
   }

@@ -1138,7 +1138,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Reservation cancelled for Kit $kitTag.'),
-              duration: const Duration(seconds: 2),
+              duration: const Duration(milliseconds: 800),
             ),
           );
         }
@@ -1599,7 +1599,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(isEditing ? 'Kit $kitTag reservation updated.' : 'Kit $kitTag marked as Reserved.'),
-                            duration: const Duration(seconds: 2),
+                            duration: const Duration(milliseconds: 800),
                           ),
                         );
                       }
@@ -1777,6 +1777,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       sireId: litter.buckId,
       damId: litter.doeId,
       status: RabbitStatus.open,
+      photos: (kit.imagePath != null && kit.imagePath!.trim().isNotEmpty) ? [kit.imagePath!.trim()] : null,
     );
 
     showModalBottomSheet(
@@ -1838,6 +1839,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       sireId: litter.buckId,
       damId: litter.doeId,
       status: RabbitStatus.open,
+      photos: (kit.imagePath != null && kit.imagePath!.trim().isNotEmpty) ? [kit.imagePath!.trim()] : null,
     );
 
     Navigator.push(

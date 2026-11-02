@@ -490,11 +490,6 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   }
                   if (result == true) {
                     await _refreshData();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('🐰 Rabbit added successfully'), duration: Duration(seconds: 2), behavior: SnackBarBehavior.floating, backgroundColor: kLilacDeep),
-                      );
-                    }
                   }
                 },
                 backgroundColor: const Color(0xFFE6BEFE),
@@ -821,6 +816,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Open',
         'Bred',
         'Nursing',
+        'Grow-Out',
         'Resting',
         'Quarantine',
       ];
@@ -828,7 +824,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       return [
         'All',
         'Active',
-        'Resting',
+        'Grow-Out',
         'Quarantine',
       ];
     } else {
@@ -839,12 +835,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         'Dead',
         'Cull',
         'Stud',
+        'Donated',
       ];
     }
   }
 
   String _mapStatus(String status) {
-    return status == 'Bred' ? 'Pregnant' : (status == 'Grow Out' ? 'GrowOut' : status);
+    if (status == 'Bred') return 'Pregnant';
+    if (status == 'Grow-Out' || status == 'Grow Out') return 'GrowOut';
+    return status;
   }
 
   void _onSwipeGreyBar(bool isLeftSwipe) {
@@ -887,7 +886,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: statuses.map((status) {
-              final mappedStatus = status == 'Bred' ? 'Pregnant' : (status == 'Grow Out' ? 'GrowOut' : status);
+              final mappedStatus = _mapStatus(status);
               final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
 
               return GestureDetector(
@@ -1193,6 +1192,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         if (_currentFilter == 'Dead' && r.archiveReason != ArchiveReason.dead && (r.deathCause == null || r.deathCause!.isEmpty)) return false;
         if (_currentFilter == 'Cull' && r.archiveReason != ArchiveReason.cull && (r.cullReason == null || r.cullReason!.isEmpty)) return false;
         if (_currentFilter == 'Stud' && r.archiveReason != ArchiveReason.stud) return false;
+        if (_currentFilter == 'Donated' && r.archiveReason != ArchiveReason.donated) return false;
       }
 
       if (_searchQuery.isNotEmpty) {
@@ -1362,12 +1362,18 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         if (normalizedRabbitBreed.toLowerCase() != normalizedFilter.toLowerCase()) return false;
       }
 
-      if (_currentFilter != 'All') {
-        final statusName = r.status.toString().split('.').last.toLowerCase();
+      final statusName = r.status.toString().split('.').last.toLowerCase();
+      final isGrowOut = statusName == 'growout' || statusName == 'weaned' || !r.activeInRabbitry;
+
+      if (_currentFilter == 'GrowOut') {
+        if (!isGrowOut) return false;
+      } else if (_currentFilter == 'All') {
+        if (isGrowOut) return false;
+      } else {
+        if (isGrowOut) return false;
+
         final filterName = _currentFilter.toLowerCase();
-        if (filterName == 'growout') {
-          if (statusName != 'growout' && statusName != 'weaned') return false;
-        } else if (filterName == 'bred' || filterName == 'pregnant') {
+        if (filterName == 'bred' || filterName == 'pregnant') {
           if (statusName != 'palpatedue' && statusName != 'pregnant') return false;
         } else if (filterName == 'quarantine') {
           final isQuarantined = statusName == 'quarantine' || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
@@ -1912,6 +1918,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         if (rabbit.archiveReason == ArchiveReason.cull) return 'CULL';
         if (rabbit.archiveReason == ArchiveReason.butchered) return 'MEAT';
         if (rabbit.archiveReason == ArchiveReason.stud) return 'STUD';
+        if (rabbit.archiveReason == ArchiveReason.donated) return 'DONATED';
         return 'A';
     }
   }

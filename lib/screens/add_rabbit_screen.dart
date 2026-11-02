@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
+import '../models/litter.dart';
 import '../models/rabbit_document.dart';
 import '../models/transaction.dart' as finance_model;
 import '../models/breed.dart';
@@ -20,8 +21,19 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class AddRabbitScreen extends StatefulWidget {
   final Rabbit? editRabbit;
+  final bool isAddToHerd;
+  final Litter? sourceLitter;
+  final Kit? sourceKit;
+  final VoidCallback? onRabbitAdded;
 
-  const AddRabbitScreen({Key? key, this.editRabbit}) : super(key: key);
+  const AddRabbitScreen({
+    Key? key,
+    this.editRabbit,
+    this.isAddToHerd = false,
+    this.sourceLitter,
+    this.sourceKit,
+    this.onRabbitAdded,
+  }) : super(key: key);
 
   @override
   State<AddRabbitScreen> createState() => _AddRabbitScreenState();
@@ -68,6 +80,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   final TextEditingController _acquiredDateController = TextEditingController();
   final TextEditingController _sireController = TextEditingController();
   final TextEditingController _damController = TextEditingController();
+  final FocusNode _breedFocusNode = FocusNode();
+  final FocusNode _colorFocusNode = FocusNode();
 
   // Purchase Details controllers
   final TextEditingController _sellerController = TextEditingController();
@@ -126,8 +140,69 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _loadParentOptions();
     if (_isEditing) {
       _prefillFromRabbit(widget.editRabbit!);
+    } else if (widget.isAddToHerd && widget.sourceKit != null && widget.sourceLitter != null) {
+      _prefillFromKitAndLitter(widget.sourceLitter!, widget.sourceKit!);
+      _generateRabbitId();
     } else {
       _generateRabbitId();
+    }
+  }
+
+  void _prefillFromKitAndLitter(Litter litter, Kit kit) {
+    _selectedType = (kit.sex == 'M') ? RabbitType.buck : RabbitType.doe;
+    _selectedStatus = RabbitStatus.growout;
+    _activeInRabbitry = false;
+
+    if (kit.name != null && kit.name!.isNotEmpty) {
+      _nameController.text = kit.name!;
+    } else {
+      _nameController.text = 'Kit ${kit.id}';
+    }
+
+    _breedController.text = litter.breed;
+    _colorController.text = kit.color != 'Unknown' ? kit.color : '';
+
+    final dob = litter.dob ?? litter.kindleDate;
+    if (dob != null) {
+      _dateOfBirth = dob;
+      _dobController.text = FormatUtils.formatDate(dob);
+    }
+
+    if (litter.location.isNotEmpty) {
+      _selectedLocation = litter.location;
+    }
+    if (litter.cage.isNotEmpty) {
+      _selectedCage = litter.cage;
+    }
+
+    if (litter.buckId.isNotEmpty) {
+      _selectedSireId = litter.buckId;
+    }
+    _selectedSireName = litter.sire;
+
+    if (litter.doeId.isNotEmpty) {
+      _selectedDamId = litter.doeId;
+    }
+    _selectedDamName = litter.dam;
+
+    if (kit.weight > 0) {
+      final totalOz = kit.weight * 16;
+      final lbs = totalOz ~/ 16;
+      final oz = (totalOz % 16).round();
+      _weightPoundsController.text = lbs > 0 ? lbs.toString() : '';
+      _weightOuncesController.text = oz > 0 ? oz.toString() : '';
+      _weightController.text = kit.weight.toString();
+    }
+
+    final rawDetails = kit.details ?? '';
+    final cleanDetails = rawDetails
+        .replaceAll(RegExp(r'Grow-out|growout|grow out', caseSensitive: false), '')
+        .replaceAll(RegExp(r'^[•\s\-\:]+|[•\s\-\:]+$'), '')
+        .trim();
+    _notesController.text = cleanDetails.isNotEmpty ? cleanDetails : 'From litter ${litter.id}';
+
+    if (kit.imagePath != null && kit.imagePath!.isNotEmpty) {
+      _profileImagePath = kit.imagePath;
     }
   }
 
@@ -327,6 +402,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _purchaseRabbitryController.dispose();
     _purchaseCostController.dispose();
     _purchaseDateController.dispose();
+    _breedFocusNode.dispose();
+    _colorFocusNode.dispose();
     super.dispose();
   }
 
@@ -343,7 +420,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          _isEditing ? 'Edit Rabbit' : 'Add New Rabbit',
+          _isEditing ? 'Edit Rabbit' : (widget.isAddToHerd ? 'ADD TO HERD' : 'Add New Rabbit'),
           style: const TextStyle(
             color: Color(0xFF4A3E6D),
             fontSize: 18,
@@ -407,7 +484,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Expanded(
                   child: _buildTextField(
                     controller: _breederPrefixController,
-                    label: 'Breeder Prefix',
+                    label: 'Breeder prefix',
                     inputFormatters: [_UpperCaseTextFormatter()],
                     textCapitalization: TextCapitalization.characters,
                   ),
@@ -416,7 +493,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Expanded(
                   child: _buildTextField(
                     controller: _earNumberController,
-                    label: 'Ear Number',
+                    label: 'Ear number',
                     textCapitalization: TextCapitalization.words,
                   ),
                 ),
@@ -485,7 +562,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             // 13. Registration / Grand Champion/Legs
             _buildTextField(
               controller: _registrationNumberController,
-              label: 'Registration Number',
+              label: 'Registration number',
             ),
             const SizedBox(height: 14),
             Row(
@@ -494,7 +571,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   flex: 2,
                   child: _buildTextField(
                     controller: _grandChampionNumberController,
-                    label: 'GC Number',
+                    label: 'GC number',
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -518,7 +595,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFD6CEE2)),
               ),
-              child: _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) => setState(() => _activeInRabbitry = val)),
+              child: _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) {
+                setState(() {
+                  _activeInRabbitry = val;
+                  if (!_activeInRabbitry) {
+                    _selectedStatus = RabbitStatus.growout;
+                  } else if (_selectedStatus == RabbitStatus.growout) {
+                    _selectedStatus = RabbitStatus.open;
+                  }
+                });
+              }),
             ),
             const SizedBox(height: 14),
 
@@ -766,7 +852,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           const SnackBar(
             content: Text('Photo added successfully'),
             backgroundColor: Color(0xFF7B6BA0),
-            duration: Duration(seconds: 2),
+            duration: Duration(milliseconds: 800),
           ),
         );
       }
@@ -775,6 +861,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         SnackBar(
           content: Text('Failed to pick image: $e'),
           backgroundColor: const Color(0xFFD44C47),
+          duration: const Duration(milliseconds: 800),
         ),
       );
     }
@@ -1221,41 +1308,137 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'BREED',
+          'Breed',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        InkWell(
-          onTap: _showBreedPickerModal,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFD6CEE2)),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _breedController.text.isNotEmpty ? _breedController.text : 'Select Breed',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: _breedController.text.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
-                      color: _breedController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+        RawAutocomplete<String>(
+          textEditingController: _breedController,
+          focusNode: _breedFocusNode,
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            final query = textEditingValue.text.trim().toLowerCase();
+            if (query.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            final all = _availableBreeds.map((b) => b.name).toList();
+            final startsWith = all.where((b) => b.toLowerCase().startsWith(query)).toList();
+            final contains = all.where((b) => !b.toLowerCase().startsWith(query) && b.toLowerCase().contains(query)).toList();
+            return [...startsWith, ...contains];
+          },
+          onSelected: (String breedName) {
+            _breedController.text = breedName;
+            final matched = _availableBreeds.where((b) => b.name == breedName);
+            if (matched.isNotEmpty) {
+              final geneticsStr = matched.first.genetics.join(', ');
+              _autoGenetics = geneticsStr;
+              _parseGeneticsToMap(geneticsStr);
+            }
+            setState(() {});
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              onChanged: (val) {
+                final matched = _availableBreeds.where((b) => b.name.toLowerCase() == val.trim().toLowerCase());
+                if (matched.isNotEmpty) {
+                  final geneticsStr = matched.first.genetics.join(', ');
+                  _autoGenetics = geneticsStr;
+                  _parseGeneticsToMap(geneticsStr);
+                  setState(() {});
+                }
+              },
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Select Breed',
+                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                ),
+                suffixIcon: GestureDetector(
+                  onTap: _showBreedPickerModal,
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+                  ),
+                ),
+                suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
+              ),
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(14),
+                color: Colors.white,
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  width: MediaQuery.of(context).size.width - 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFD6CEE2)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final option = options.elementAt(index);
+                        final isAlt = index % 2 == 1;
+                        return InkWell(
+                          onTap: () => onSelected(option),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  option,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF4F4F56),
+                                  ),
+                                ),
+                                if (_breedController.text.trim().toLowerCase() == option.toLowerCase())
+                                  const Icon(Icons.check, size: 16, color: Color(0xFF7B6BA0)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1266,41 +1449,122 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'COLOR',
+          'Color',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        InkWell(
-          onTap: _showColorPickerModal,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFD6CEE2)),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _colorController.text.isNotEmpty ? _colorController.text : 'Select Color',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: _colorController.text.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
-                      color: _colorController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+        RawAutocomplete<String>(
+          textEditingController: _colorController,
+          focusNode: _colorFocusNode,
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            final query = textEditingValue.text.trim().toLowerCase();
+            if (query.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            final all = SettingsService.instance.colors;
+            final startsWith = all.where((c) => c.toLowerCase().startsWith(query)).toList();
+            final contains = all.where((c) => !c.toLowerCase().startsWith(query) && c.toLowerCase().contains(query)).toList();
+            return [...startsWith, ...contains];
+          },
+          onSelected: (String color) {
+            _colorController.text = color;
+            setState(() {});
+          },
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: 'Select Color',
+                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                ),
+                suffixIcon: GestureDetector(
+                  onTap: _showColorPickerModal,
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+                  ),
+                ),
+                suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
+              ),
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(14),
+                color: Colors.white,
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  width: MediaQuery.of(context).size.width - 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFD6CEE2)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final option = options.elementAt(index);
+                        final isAlt = index % 2 == 1;
+                        return InkWell(
+                          onTap: () => onSelected(option),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  option,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF4F4F56),
+                                  ),
+                                ),
+                                if (_colorController.text.trim().toLowerCase() == option.toLowerCase())
+                                  const Icon(Icons.check, size: 16, color: Color(0xFF7B6BA0)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -1340,7 +1604,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ),
               )
             : Text(
-                _isEditing ? 'Update Rabbit' : 'Save Rabbit',
+                _isEditing ? 'Update Rabbit' : (widget.isAddToHerd ? 'ADD TO HERD' : 'Save Rabbit'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -1539,12 +1803,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
+          label,
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -1557,6 +1821,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           textCapitalization: textCapitalization,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           decoration: InputDecoration(
+            isDense: true,
             hintText: hintText,
             hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
             prefixText: prefixText,
@@ -1582,136 +1847,117 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
+  String _getStatusDisplayLabel(RabbitStatus status) {
+    switch (status) {
+      case RabbitStatus.open:
+        return 'Open';
+      case RabbitStatus.pregnant:
+      case RabbitStatus.palpateDue:
+        return 'Bred';
+      case RabbitStatus.nursing:
+        return 'Nursing';
+      case RabbitStatus.growout:
+        return 'Grow Out';
+      case RabbitStatus.resting:
+        return 'Resting';
+      case RabbitStatus.quarantine:
+        return 'Quarantine';
+      case RabbitStatus.active:
+        return 'Active';
+      default:
+        return status.toString().split('.').last;
+    }
+  }
+
   Widget _buildStatusDropdown() {
+    final List<RabbitStatus> statusOptions = [
+      RabbitStatus.open,
+      RabbitStatus.pregnant,
+      RabbitStatus.nursing,
+      RabbitStatus.growout,
+      RabbitStatus.resting,
+      RabbitStatus.quarantine,
+    ];
+    if (!statusOptions.contains(_selectedStatus)) {
+      statusOptions.add(_selectedStatus);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'STATUS',
+          'Status',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        DropdownButtonFormField<RabbitStatus>(
-          value: _selectedStatus,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-          dropdownColor: Colors.white,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFD6CEE2)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<RabbitStatus>(
+              value: _selectedStatus,
+              isDense: true,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+              dropdownColor: Colors.white,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              selectedItemBuilder: (context) {
+                return statusOptions.map((status) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _getStatusDisplayLabel(status),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  );
+                }).toList();
+              },
+              items: statusOptions
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                final idx = entry.key;
+                final status = entry.value;
+                final isAlt = idx % 2 == 1;
+                return DropdownMenuItem(
+                  value: status,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      _getStatusDisplayLabel(status),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedStatus = value;
+                    if (value == RabbitStatus.growout) {
+                      _activeInRabbitry = false;
+                    } else {
+                      _activeInRabbitry = true;
+                    }
+                  });
+                }
+              },
             ),
           ),
-          selectedItemBuilder: (context) {
-            final List<RabbitStatus> allPossible = [
-              RabbitStatus.open,
-              RabbitStatus.growout,
-              RabbitStatus.resting,
-              RabbitStatus.quarantine,
-              _selectedStatus,
-            ];
-            return allPossible.map((status) {
-              String label;
-              switch (status) {
-                case RabbitStatus.open:
-                  label = 'Open';
-                  break;
-                case RabbitStatus.growout:
-                  label = 'Growout';
-                  break;
-                case RabbitStatus.resting:
-                  label = 'Resting';
-                  break;
-                case RabbitStatus.quarantine:
-                  label = 'Quarantine';
-                  break;
-                default:
-                  label = status.toString().split('.').last;
-                  break;
-              }
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  label,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
-              );
-            }).toList();
-          },
-          items: () {
-            final List<RabbitStatus> baseItems = _isEditing
-                ? [
-                    RabbitStatus.open,
-                    RabbitStatus.growout,
-                    RabbitStatus.resting,
-                    RabbitStatus.quarantine
-                  ]
-                : [
-                    RabbitStatus.open,
-                    RabbitStatus.growout
-                  ];
-            if (!baseItems.contains(_selectedStatus)) {
-              baseItems.add(_selectedStatus);
-            }
-            return baseItems;
-          }()
-              .asMap()
-              .entries
-              .map((entry) {
-            final idx = entry.key;
-            final status = entry.value;
-            final isAlt = idx % 2 == 1;
-            String label;
-            switch (status) {
-              case RabbitStatus.open:
-                label = 'Open';
-                break;
-              case RabbitStatus.growout:
-                label = 'Growout';
-                break;
-              case RabbitStatus.resting:
-                label = 'Resting';
-                break;
-              case RabbitStatus.quarantine:
-                label = 'Quarantine';
-                break;
-              default:
-                label = status.toString().split('.').last;
-                break;
-            }
-            return DropdownMenuItem(
-              value: status,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  label,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) => setState(() => _selectedStatus = value!),
         ),
       ],
     );
@@ -1728,78 +1974,73 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'LOCATION',
+          'Location',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        DropdownButtonFormField<String>(
-          value: _selectedLocation,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-          dropdownColor: Colors.white,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFD6CEE2)),
+            borderRadius: BorderRadius.circular(14),
           ),
-          hint: Text(
-            locationNames.isEmpty ? 'No barns' : 'Location',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
-          ),
-          selectedItemBuilder: (context) {
-            return locationNames.map((loc) {
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  loc,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
-              );
-            }).toList();
-          },
-          items: locationNames.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final location = entry.value;
-            final isAlt = idx % 2 == 1;
-            return DropdownMenuItem(
-              value: location,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  location,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedLocation,
+              isDense: true,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+              dropdownColor: Colors.white,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              hint: Text(
+                locationNames.isEmpty ? 'No barns' : 'Location',
+                style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
               ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedLocation = value;
-              _selectedCage = null;
-            });
-          },
+              selectedItemBuilder: (context) {
+                return locationNames.map((loc) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      loc,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  );
+                }).toList();
+              },
+              items: locationNames.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final location = entry.value;
+                final isAlt = idx % 2 == 1;
+                return DropdownMenuItem(
+                  value: location,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      location,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedLocation = value;
+                  _selectedCage = null;
+                });
+              },
+            ),
+          ),
         ),
       ],
     );
@@ -1824,78 +2065,73 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'CAGE',
+          'Cage',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        DropdownButtonFormField<String>(
-          key: ValueKey(_selectedLocation),
-          value: _selectedCage,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
-          dropdownColor: Colors.white,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFD6CEE2)),
+            borderRadius: BorderRadius.circular(14),
           ),
-          hint: Text(
-            _selectedLocation == null
-                ? 'Select Location'
-                : cageNames.isEmpty
-                    ? 'No cages'
-                    : 'Cage',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
-          ),
-          selectedItemBuilder: (context) {
-            return cageNames.map((cage) {
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  cage,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
-              );
-            }).toList();
-          },
-          items: cageNames.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final cage = entry.value;
-            final isAlt = idx % 2 == 1;
-            return DropdownMenuItem(
-              value: cage,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  cage,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-                ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              key: ValueKey(_selectedLocation),
+              value: _selectedCage,
+              isDense: true,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+              dropdownColor: Colors.white,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              hint: Text(
+                _selectedLocation == null
+                    ? 'Select Location'
+                    : cageNames.isEmpty
+                        ? 'No cages'
+                        : 'Cage',
+                style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
               ),
-            );
-          }).toList(),
-          onChanged: (value) => setState(() => _selectedCage = value),
+              selectedItemBuilder: (context) {
+                return cageNames.map((cage) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      cage,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  );
+                }).toList();
+              },
+              items: cageNames.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final cage = entry.value;
+                final isAlt = idx % 2 == 1;
+                return DropdownMenuItem(
+                  value: cage,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      cage,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _selectedCage = value),
+            ),
+          ),
         ),
       ],
     );
@@ -1965,12 +2201,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'DATE OF PURCHASE',
+                      'Date of purchase',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF4F4F56),
-                        letterSpacing: 0.8,
+                        letterSpacing: 0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2084,12 +2320,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'DATE OF BIRTH',
+          'Date of birth',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -2266,12 +2502,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
+          label,
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -2323,7 +2559,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
                   )
                 else
-                  Icon(Icons.keyboard_arrow_down, color: color, size: 20),
+                  Icon(Icons.keyboard_arrow_down, color: color, size: 18),
               ],
             ),
           ),
@@ -2530,12 +2766,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'NOTES',
+          'Notes',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -2544,8 +2780,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           maxLines: 3,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           decoration: InputDecoration(
-            hintText: 'Enter notes...',
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+            isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
             fillColor: Colors.white,
@@ -2605,14 +2840,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   Future<void> _saveRabbit() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47)),
+        const SnackBar(content: Text('Please enter a name', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47), duration: Duration(milliseconds: 800)),
       );
       return;
     }
 
     if (_breedController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a breed', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47)),
+        const SnackBar(content: Text('Please enter a breed', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47), duration: Duration(milliseconds: 800)),
       );
       return;
     }
@@ -2774,6 +3009,7 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
             SnackBar(
               content: Text('${updated.name} updated successfully', style: const TextStyle(fontSize: 16)),
               backgroundColor: const Color(0xFF7B6BA0),
+              duration: const Duration(milliseconds: 800),
             ),
           );
         }
@@ -2814,6 +3050,31 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
 
         await _db.insertRabbit(rabbit);
         notifyDataChanged();
+
+        if (widget.isAddToHerd && widget.sourceKit != null && widget.sourceLitter != null) {
+          try {
+            final freshLitters = await _db.getLitters();
+            final targetLitter = freshLitters.where((l) => l.id == widget.sourceLitter!.id).firstOrNull ?? widget.sourceLitter!;
+            final updatedKits = targetLitter.kits.map((k) {
+              if (k.id == widget.sourceKit!.id) {
+                final cleanDetails = (k.details ?? '')
+                    .replaceAll(RegExp(r'Grow-out|growout|grow out', caseSensitive: false), '')
+                    .replaceAll(RegExp(r'^[•\s\-\:]+|[•\s\-\:]+$'), '')
+                    .trim();
+                return k.copyWith(
+                  status: 'Promoted',
+                  details: cleanDetails.isNotEmpty ? '$cleanDetails • Added to Herd (${rabbit.id})' : 'Added to Herd (${rabbit.id})',
+                );
+              }
+              return k;
+            }).toList();
+
+            await _db.updateLitter(targetLitter.copyWith(kits: updatedKits));
+            widget.onRabbitAdded?.call();
+          } catch (e) {
+            print('Error updating kit status on add to herd: $e');
+          }
+        }
 
         // ✅ SYNC BREEDS TO LIBRARY
         await _syncBreedToLibrary(_breedController.text);
@@ -2884,15 +3145,21 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
           Navigator.pop(context, true);
           messenger.showSnackBar(
             SnackBar(
-              content: Text('${rabbit.name} added successfully', style: const TextStyle(fontSize: 16)),
+              content: Text(
+                widget.isAddToHerd
+                    ? '${rabbit.name} added to herd successfully'
+                    : '${rabbit.name} added successfully',
+                style: const TextStyle(fontSize: 16),
+              ),
               backgroundColor: const Color(0xFF7B6BA0),
+              duration: const Duration(milliseconds: 800),
             ),
           );
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e', style: const TextStyle(fontSize: 16)), backgroundColor: const Color(0xFFD44C47)),
+        SnackBar(content: Text('Error: $e', style: const TextStyle(fontSize: 16)), backgroundColor: const Color(0xFFD44C47), duration: const Duration(milliseconds: 800)),
       );
     } finally {
       setState(() => _isSaving = false);

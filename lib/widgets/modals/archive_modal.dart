@@ -35,6 +35,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
   ArchiveReason? _selectedReason;
   DateTime _archiveDate = DateTime.now();
   bool _isSaving = false;
+  bool _addToIncome = false;
+  bool _addToExpense = false;
   List<Map<String, dynamic>> _contacts = [];
 
   @override
@@ -69,11 +71,6 @@ class _ArchiveModalState extends State<ArchiveModal> {
   }
 
   Widget _buildRabbitHeaderName(Rabbit rabbit, {double fontSize = 14}) {
-    final isDoe = rabbit.type == RabbitType.doe;
-    final isArchived = rabbit.status == RabbitStatus.archived;
-    final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -86,11 +83,11 @@ class _ArchiveModalState extends State<ArchiveModal> {
         children: [
           if (prefix.isNotEmpty)
             TextSpan(
-              text: '$prefix ',
+              text: ' ',
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF787774),
+                color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
               ),
             ),
           TextSpan(
@@ -98,16 +95,16 @@ class _ArchiveModalState extends State<ArchiveModal> {
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
-              color: nameColor,
+              color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
             ),
           ),
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
-              text: ' $ear',
+              text: ' ',
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF787774),
+                color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
               ),
             ),
         ],
@@ -130,6 +127,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
           return 'Butcher Rabbit';
         case ArchiveReason.stud:
           return 'Stud Rabbit';
+        case ArchiveReason.donated:
+          return 'Donate Rabbit';
       }
     }
     return 'Archive Rabbit';
@@ -149,6 +148,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
           return 'Record Butchering';
         case ArchiveReason.stud:
           return 'Archive as Stud';
+        case ArchiveReason.donated:
+          return 'Confirm Donation';
       }
     }
     return 'Archive Rabbit';
@@ -233,14 +234,16 @@ class _ArchiveModalState extends State<ArchiveModal> {
   Widget build(BuildContext context) {
     final isLockedReason = widget.preselectedReason != null;
 
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
+      height: screenHeight * 0.85,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Header banner (matches NEW TASK modal style)
           Container(
@@ -302,8 +305,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
           ),
 
           // Modal body fields
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -329,6 +333,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
                       Expanded(child: _buildCategoryRadio('Butchered', ArchiveReason.butchered)),
                       const SizedBox(width: 6),
                       Expanded(child: _buildCategoryRadio('Stud', ArchiveReason.stud)),
+                      const SizedBox(width: 6),
+                      Expanded(child: _buildCategoryRadio('Donated', ArchiveReason.donated)),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -429,6 +435,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               ],
             ),
           ),
+          ),
         ],
       ),
     );
@@ -494,17 +501,90 @@ class _ArchiveModalState extends State<ArchiveModal> {
     switch (_selectedReason!) {
       case ArchiveReason.sold:
         return [
-          // Sale Price
-          TextField(
-            controller: _salePriceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          // Sale Price with Add as Income checkbox beside it
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 130,
+                child: TextField(
+                  controller: _salePriceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Sale Price',
+                    prefixText: ' ',
+                    prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
+                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kLilacLight),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _addToIncome = !_addToIncome;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _addToIncome,
+                          onChanged: (val) {
+                            setState(() {
+                              _addToIncome = val ?? false;
+                            });
+                          },
+                          activeColor: const Color(0xFF7B6BA0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Flexible(
+                        child: Text(
+                          'Add as Income',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Buyer Name (Simple TextField: removed triangle and contacts list)
+          TextField(
+            controller: _buyerController,
             decoration: InputDecoration(
-              labelText: 'Sale Price',
-              prefixText: '${FormatUtils.currencySymbol} ',
-              prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
+              labelText: 'Buyer Name',
               labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -520,54 +600,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               filled: true,
               fillColor: Colors.white,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
-
-          // Buyer Autocomplete
-          Autocomplete<String>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return _contacts.map((c) => c['name'] as String).toList();
-              }
-              return _contacts
-                  .map((c) => c['name'] as String)
-                  .where((String option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-            },
-            onSelected: (String selection) {
-              _buyerController.text = selection;
-            },
-            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-              if (_buyerController.text.isNotEmpty && controller.text.isEmpty) {
-                controller.text = _buyerController.text;
-              }
-              controller.addListener(() {
-                _buyerController.text = controller.text;
-              });
-              return TextField(
-                controller: controller,
-                focusNode: focusNode,
-                decoration: InputDecoration(
-                  labelText: 'Buyer Name',
-                  labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                  floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kLilacLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4A3E6D)),
-                ),
-                style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
-              );
-            },
+            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -662,7 +695,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             ],
             decoration: InputDecoration(
               labelText: 'Processing Cost',
-              prefixText: '${FormatUtils.currencySymbol} ',
+              prefixText: ' ',
               prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
               labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
@@ -686,17 +719,90 @@ class _ArchiveModalState extends State<ArchiveModal> {
 
       case ArchiveReason.stud:
         return [
-          // Stud Fee (Optional)
-          TextField(
-            controller: _salePriceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          // Stud Fee (Optional removed) with Add as Expense checkbox beside it
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 130,
+                child: TextField(
+                  controller: _salePriceController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Stud Fee',
+                    prefixText: ' ',
+                    prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
+                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kLilacLight),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _addToExpense = !_addToExpense;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _addToExpense,
+                          onChanged: (val) {
+                            setState(() {
+                              _addToExpense = val ?? false;
+                            });
+                          },
+                          activeColor: const Color(0xFF7B6BA0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Flexible(
+                        child: Text(
+                          'Add as Expense',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4A3E6D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Client / Doe Owner: Simple TextField (removed Optional, triangle, and contacts list)
+          TextField(
+            controller: _buyerController,
             decoration: InputDecoration(
-              labelText: 'Stud Fee (Optional)',
-              prefixText: '${FormatUtils.currencySymbol} ',
-              prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
+              labelText: 'Client / Doe Owner',
               labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -712,54 +818,34 @@ class _ArchiveModalState extends State<ArchiveModal> {
               filled: true,
               fillColor: Colors.white,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
+        ];
 
-          // Client / Doe Owner Autocomplete
-          Autocomplete<String>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) {
-                return _contacts.map((c) => c['name'] as String).toList();
-              }
-              return _contacts
-                  .map((c) => c['name'] as String)
-                  .where((String option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-            },
-            onSelected: (String selection) {
-              _buyerController.text = selection;
-            },
-            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-              if (_buyerController.text.isNotEmpty && controller.text.isEmpty) {
-                controller.text = _buyerController.text;
-              }
-              controller.addListener(() {
-                _buyerController.text = controller.text;
-              });
-              return TextField(
-                controller: controller,
-                focusNode: focusNode,
-                decoration: InputDecoration(
-                  labelText: 'Client / Doe Owner (Optional)',
-                  labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                  floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kLilacLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4A3E6D)),
-                ),
-                style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
-              );
-            },
+      case ArchiveReason.donated:
+        return [
+          // Recipient / Organization
+          TextField(
+            controller: _buyerController,
+            decoration: InputDecoration(
+              labelText: 'Recipient / Organization',
+              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kLilacLight),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -861,15 +947,15 @@ class _ArchiveModalState extends State<ArchiveModal> {
         archiveDate: _archiveDate,
       );
 
-      if (_selectedReason == ArchiveReason.sold && salePrice != null && salePrice > 0) {
+      if (_selectedReason == ArchiveReason.sold && _addToIncome && salePrice != null && salePrice > 0) {
         final transaction = finance.Transaction(
-          id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+          id: 'txn_',
           type: finance.TransactionType.income,
           category: finance.TransactionCategory.soldKit,
           amount: salePrice,
           date: _archiveDate,
-          description: 'Sold ${widget.rabbit.name} (${widget.rabbit.id})',
-          notes: buyer != null ? 'Buyer: $buyer' : null,
+          description: 'Sold  ()',
+          notes: buyer != null ? 'Buyer: ' : null,
           linkType: finance.LinkType.rabbit,
           rabbitId: widget.rabbit.id,
           buyerInfo: buyer,
@@ -877,18 +963,17 @@ class _ArchiveModalState extends State<ArchiveModal> {
         await _db.insertTransaction(transaction);
       }
 
-      if (_selectedReason == ArchiveReason.stud && salePrice != null && salePrice > 0) {
+      if (_selectedReason == ArchiveReason.stud && _addToExpense && salePrice != null && salePrice > 0) {
         final transaction = finance.Transaction(
-          id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
-          type: finance.TransactionType.income,
-          category: finance.TransactionCategory.studFee,
+          id: 'txn_exp_',
+          type: finance.TransactionType.expense,
+          category: finance.TransactionCategory.otherExpense,
           amount: salePrice,
           date: _archiveDate,
-          description: 'Stud fee for ${widget.rabbit.name} (${widget.rabbit.id})',
-          notes: buyer != null ? 'Client: $buyer' : null,
+          description: 'Stud fee for  ()',
+          notes: buyer != null ? 'Client / Doe Owner: ' : null,
           linkType: finance.LinkType.rabbit,
           rabbitId: widget.rabbit.id,
-          buyerInfo: buyer,
         );
         await _db.insertTransaction(transaction);
       }

@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:printing/printing.dart';
 import '../models/rabbit.dart';
@@ -238,6 +238,15 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
   void initState() {
     super.initState();
     _option = widget.initialOption;
+    _resolveDocsDir();
+  }
+
+  Future<void> _resolveDocsDir() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      CertificateLayout.setCachedPhotosDir(dir.path);
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   void _setOption(CertificateOption opt) {
@@ -263,11 +272,24 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
         ? widget.dam!.name.trim()
         : (rabbit.damId?.trim().isNotEmpty == true ? rabbit.damId!.trim() : 'Unknown');
 
-    final photo = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
+    String? photo;
+    if (rabbit.photos != null && rabbit.photos!.isNotEmpty) {
+      for (final p in rabbit.photos!) {
+        final trimmed = p.trim();
+        if (trimmed.isNotEmpty && trimmed != 'null') {
+          photo = trimmed;
+          break;
+        }
+      }
+    }
+
+    final farmCity = SettingsService.instance.farmCity.trim();
+    final farmState = SettingsService.instance.farmState.trim();
+    final farmAddress = SettingsService.instance.farmAddress.trim();
 
     final location = (rabbit.location?.trim().isNotEmpty == true)
         ? rabbit.location!.trim()
-        : SettingsService.instance.farmAddress.trim();
+        : (farmAddress.isNotEmpty ? farmAddress : (farmCity.isNotEmpty ? farmCity : null));
 
     return CertificateData(
       name: rabbit.name.trim().isNotEmpty ? rabbit.name.trim() : '—',
@@ -278,6 +300,8 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
       damName: damName,
       sireName: sireName,
       location: location,
+      city: farmCity.isNotEmpty ? farmCity : null,
+      province: farmState.isNotEmpty ? farmState : null,
       photoPath: photo,
       option: _option,
     );
@@ -484,9 +508,8 @@ class CertificatePreviewWidget extends StatelessWidget {
 
   // ─── COLOR WITH PHOTO LAYOUT (Matches reference PDF) ──────────────────────
   Widget _buildColorWithPhotoLayout(BuildContext context, double W, double H) {
-    final hasPhotoFile = data.photoPath != null &&
-        data.photoPath!.isNotEmpty &&
-        File(data.photoPath!).existsSync();
+    final photoFile = CertificateLayout.resolvePhotoFile(data.photoPath);
+    final isAssetPhoto = data.photoPath != null && data.photoPath!.trim().startsWith('assets/');
 
     final scale = W / CertificateLayout.pageColorPhotoWidthPt;
     final detailsFontSize = W * CertificateLayout.detailsFontRatio;
@@ -520,18 +543,23 @@ class CertificatePreviewWidget extends StatelessWidget {
               color: const Color(0xFFF7F5FA),
             ),
             clipBehavior: Clip.antiAlias,
-            child: hasPhotoFile
+            child: photoFile != null
                 ? Image.file(
-                    File(data.photoPath!),
+                    photoFile,
                     fit: BoxFit.cover,
                   )
-                : Center(
-                    child: Icon(
-                      PhosphorIcons.rabbit(PhosphorIconsStyle.duotone),
-                      size: 48.0 * scale,
-                      color: const Color(0xFF9686BF).withValues(alpha: 0.6),
-                    ),
-                  ),
+                : (isAssetPhoto
+                    ? Image.asset(
+                        data.photoPath!.trim(),
+                        fit: BoxFit.cover,
+                      )
+                    : Center(
+                        child: Icon(
+                          PhosphorIcons.rabbit(PhosphorIconsStyle.duotone),
+                          size: 48.0 * scale,
+                          color: const Color(0xFF9686BF).withValues(alpha: 0.6),
+                        ),
+                      )),
           ),
         ),
 
@@ -625,21 +653,39 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Layer 8: Row 6 - Dam X Sire
+        // Layer 8: Row 6 - Dam & Sire
         Positioned(
           left: detailsLeft,
-          top: H * CertificateLayout.row6TopRatio,
+          top: (H * CertificateLayout.row6TopRatio) - (2.0 * scale),
           width: rowWidth,
-          child: Text(
-            data.parentsSentence,
-            style: TextStyle(
-              fontFamily: CertificateLayout.fontFamilyDetails,
-              fontSize: detailsFontSize,
-              fontWeight: FontWeight.w400,
-              color: detailsTextColor,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                data.damSentence,
+                style: TextStyle(
+                  fontFamily: CertificateLayout.fontFamilyDetails,
+                  fontSize: detailsFontSize * (data.cleanDam.length > 20 ? 0.85 : 1.0),
+                  fontWeight: FontWeight.w400,
+                  color: detailsTextColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 1.5 * scale),
+              Text(
+                data.sireSentence,
+                style: TextStyle(
+                  fontFamily: CertificateLayout.fontFamilyDetails,
+                  fontSize: detailsFontSize * (data.cleanSire.length > 20 ? 0.85 : 1.0),
+                  fontWeight: FontWeight.w400,
+                  color: detailsTextColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ],

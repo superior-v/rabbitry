@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../widgets/certificate_layout.dart';
@@ -16,13 +16,23 @@ class CertificatePdfService {
     final fontDetailsData = await rootBundle.load(CertificateLayout.fontDetailsAsset);
     final fontDetails = pw.Font.ttf(fontDetailsData);
 
-    // ─── 2. Load Photo (if enabled) ─────────────────────────────────────────
+    // ─── 2. Resolve cached photo directory & Load Photo (if enabled) ───────
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      CertificateLayout.setCachedPhotosDir(dir.path);
+    } catch (_) {}
+
     pw.MemoryImage? photo;
     if (data.hasPhoto && data.photoPath != null && data.photoPath!.isNotEmpty) {
-      final file = File(data.photoPath!);
-      if (await file.exists()) {
+      final file = CertificateLayout.resolvePhotoFile(data.photoPath);
+      if (file != null && await file.exists()) {
         try {
           photo = pw.MemoryImage(await file.readAsBytes());
+        } catch (_) {}
+      } else if (data.photoPath!.trim().startsWith('assets/')) {
+        try {
+          final byteData = await rootBundle.load(data.photoPath!.trim());
+          photo = pw.MemoryImage(byteData.buffer.asUint8List());
         } catch (_) {}
       }
     }
@@ -49,28 +59,39 @@ class CertificatePdfService {
                   child: pw.Image(bgImage, fit: pw.BoxFit.fill),
                 ),
 
-                // Layer 2: Photo inside Rounded Rectangle Frame
-                if (photo != null)
-                  pw.Positioned(
-                    left: CertificateLayout.photoLeftPt,
-                    top: CertificateLayout.photoTopPt,
-                    child: pw.Container(
-                      width: CertificateLayout.photoWidthPt,
-                      height: CertificateLayout.photoHeightPt,
-                      decoration: pw.BoxDecoration(
-                        borderRadius: pw.BorderRadius.circular(CertificateLayout.photoRadiusPt),
-                        border: pw.Border.all(
-                          color: CertificateLayout.pdfColorPhotoFrameBorder,
-                          width: 2.0,
-                        ),
-                      ),
-                      child: pw.ClipRRect(
-                        horizontalRadius: 13.0,
-                        verticalRadius: 13.0,
-                        child: pw.Image(photo, fit: pw.BoxFit.cover),
+                // Layer 2: Photo inside Rounded Rectangle Frame (Always covers background placeholder)
+                pw.Positioned(
+                  left: CertificateLayout.photoLeftPt,
+                  top: CertificateLayout.photoTopPt,
+                  child: pw.Container(
+                    width: CertificateLayout.photoWidthPt,
+                    height: CertificateLayout.photoHeightPt,
+                    decoration: pw.BoxDecoration(
+                      color: const PdfColor(0.97, 0.96, 0.98),
+                      borderRadius: pw.BorderRadius.circular(CertificateLayout.photoRadiusPt),
+                      border: pw.Border.all(
+                        color: CertificateLayout.pdfColorPhotoFrameBorder,
+                        width: 2.0,
                       ),
                     ),
+                    child: photo != null
+                        ? pw.ClipRRect(
+                            horizontalRadius: 13.0,
+                            verticalRadius: 13.0,
+                            child: pw.Image(photo, fit: pw.BoxFit.cover),
+                          )
+                        : pw.Center(
+                            child: pw.Text(
+                              'Photo',
+                              style: pw.TextStyle(
+                                font: fontDetails,
+                                fontSize: 13,
+                                color: const PdfColor(0.65, 0.60, 0.72),
+                              ),
+                            ),
+                          ),
                   ),
+                ),
 
                 // Layer 3: Row 1 - Name
                 pw.Positioned(
@@ -142,16 +163,35 @@ class CertificatePdfService {
                   ),
                 ),
 
-                // Layer 8: Row 6 - Dam X Sire
+                // Layer 8: Row 6 - Dam & Sire
                 pw.Positioned(
                   left: CertificateLayout.detailsLeftPt,
-                  top: CertificateLayout.row6TopPt,
-                  child: pw.Text(
-                    data.parentsSentence,
-                    style: pw.TextStyle(
-                      font: fontDetails,
-                      fontSize: CertificateLayout.detailsFontSizePt,
-                      color: CertificateLayout.pdfColorDetailsPhoto,
+                  top: CertificateLayout.row6TopPt - 2.0,
+                  child: pw.Container(
+                    width: CertificateLayout.pageColorPhotoWidthPt - CertificateLayout.detailsLeftPt - 28.0,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          data.damSentence,
+                          style: pw.TextStyle(
+                            font: fontDetails,
+                            fontSize: CertificateLayout.detailsFontSizePt * (data.cleanDam.length > 20 ? 0.85 : 1.0),
+                            color: CertificateLayout.pdfColorDetailsPhoto,
+                          ),
+                          maxLines: 1,
+                        ),
+                        pw.SizedBox(height: 2.0),
+                        pw.Text(
+                          data.sireSentence,
+                          style: pw.TextStyle(
+                            font: fontDetails,
+                            fontSize: CertificateLayout.detailsFontSizePt * (data.cleanSire.length > 20 ? 0.85 : 1.0),
+                            color: CertificateLayout.pdfColorDetailsPhoto,
+                          ),
+                          maxLines: 1,
+                        ),
+                      ],
                     ),
                   ),
                 ),

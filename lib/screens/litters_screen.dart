@@ -12,6 +12,7 @@ import '../models/rabbit.dart';
 import '../models/breed.dart';
 import 'rabbit_detail_screen.dart';
 import 'kit_detail_screen.dart';
+import 'add_rabbit_screen.dart';
 import 'pedigree_screen.dart';
 import '../widgets/certificate_card.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,7 +44,18 @@ class LittersScreenState extends State<LittersScreen> {
   }
 
   Future<void> refresh() async {
+    collapseAllLitters();
     await _refreshLitters();
+  }
+
+  void collapseAllLitters() {
+    if (mounted) {
+      setState(() {
+        _expandedLitters.clear();
+      });
+    } else {
+      _expandedLitters.clear();
+    }
   }
 
   final DatabaseService _db = DatabaseService();
@@ -349,13 +361,18 @@ class LittersScreenState extends State<LittersScreen> {
             continue;
           }
 
+          final bool isPromoted = st == 'promoted' || st == 'herd' || st == 'added to herd';
+          if (isPromoted) {
+            continue;
+          }
+
           // Check if this kit is in Grow-Out
-          final bool isKitGrowOut = isLitterGrowOut ||
+          final bool isKitGrowOut = !isPromoted && (isLitterGrowOut ||
               st == 'growout' ||
               st == 'grow out' ||
               st == 'grow-out' ||
               (kit.details != null &&
-                  (kit.details!.toLowerCase().contains('grow-out') || kit.details!.toLowerCase().contains('grow out')));
+                  (kit.details!.toLowerCase().contains('grow-out') || kit.details!.toLowerCase().contains('grow out'))));
           if (isKitGrowOut) {
             // Kits in Grow-out are NOT weaned kits and NOT nursing kits.
             continue;
@@ -432,7 +449,7 @@ class LittersScreenState extends State<LittersScreen> {
             children: [
               _buildMetricCard(
                 count: '$doesInNursingCount',
-                label: 'Nursing litters',
+                label: 'Nursing Does',
               ),
               _buildMetricCard(
                 count: '$nursingKits',
@@ -739,12 +756,18 @@ class LittersScreenState extends State<LittersScreen> {
     if (isLeftSwipe) {
       if (currentIndex < stages.length - 1) {
         FocusScope.of(context).unfocus();
-        setState(() => _currentStage = stages[currentIndex + 1]);
+        setState(() {
+          _currentStage = stages[currentIndex + 1];
+          _expandedLitters.clear();
+        });
       }
     } else {
       if (currentIndex > 0) {
         FocusScope.of(context).unfocus();
-        setState(() => _currentStage = stages[currentIndex - 1]);
+        setState(() {
+          _currentStage = stages[currentIndex - 1];
+          _expandedLitters.clear();
+        });
       }
     }
   }
@@ -784,7 +807,10 @@ class LittersScreenState extends State<LittersScreen> {
           return GestureDetector(
             onTap: () {
               FocusScope.of(context).unfocus();
-              setState(() => _currentStage = stage);
+              setState(() {
+                _currentStage = stage;
+                _expandedLitters.clear();
+              });
             },
             child: Container(
               margin: const EdgeInsets.only(right: 20),
@@ -1107,10 +1133,10 @@ class LittersScreenState extends State<LittersScreen> {
     if (litter.kits.isNotEmpty) {
       return List<Kit>.from(litter.kits);
     }
-    final int count = (litter.totalKits != null && litter.totalKits! > 0)
-        ? litter.totalKits!
-        : (litter.aliveKits != null && litter.aliveKits! > 0
-            ? litter.aliveKits!
+    final int count = (litter.aliveKits != null && litter.aliveKits! > 0)
+        ? litter.aliveKits!
+        : ((litter.totalKits != null && litter.totalKits! > 0)
+            ? litter.totalKits!
             : (litter.totalKitsCount > 0 ? litter.totalKitsCount : 1));
     final String defaultStatus = litter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing';
     return List.generate(
@@ -1236,7 +1262,15 @@ class LittersScreenState extends State<LittersScreen> {
         (lStatus == 'died' || lStatus == 'dead' || allKitsDead);
 
     // In ALL, NURSING, WEANED, ARCHIVE: when Litter ID is clicked, ALL THE KITS SHOULD BE SHOWN
-    final List<Kit> displayKits = allKits;
+    // In WEANED stage or weaned litter: Foster Mom must have only her own kits under her, NOT fostered kits.
+    final List<Kit> displayKits = (_currentStage.toLowerCase() == 'weaned' || litter.status.toLowerCase() == 'weaned')
+        ? allKits.where((k) {
+            final bool isFosteredIn = k.id.startsWith('foster_') ||
+                k.id.startsWith('F-') ||
+                (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+            return !isFosteredIn;
+          }).toList()
+        : allKits;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
@@ -2099,54 +2133,44 @@ class LittersScreenState extends State<LittersScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Index Pill (matches top tile corner radius)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              height: 24,
-              constraints: const BoxConstraints(minWidth: 40),
-              decoration: BoxDecoration(
-                color: isFosteredIn
-                    ? const Color(0xFF3A3A3C) // Dark grey base for foster kits
-                    : (isOutcome ? kNeutral200 : kLilacWash),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
+            // Clean kit label: NO border box, moved to the left
+            SizedBox(
+              width: 32,
+              child: Text(
+                displayKitId,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                   color: isFosteredIn
-                      ? const Color(0xFF55555A)
-                      : (isOutcome ? kNeutral300 : kLilacLight),
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  displayKitId,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: isFosteredIn
-                        ? const Color(0xFFE2BFFB) // Light purple number
-                        : (isOutcome ? kNeutral600 : kLilacText),
-                    letterSpacing: 0.2,
-                  ),
+                      ? const Color(0xFF7B6BA0)
+                      : (isOutcome ? kNeutral600 : const Color(0xFF4A4A4E)),
+                  letterSpacing: -0.2,
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
+            // Kit details: flexible and allows color on one line
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    runSpacing: 2,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        kit.color.isNotEmpty ? kit.color : 'Unknown',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isOutcome ? kNeutral600 : const Color(0xFF37352F),
+                      Flexible(
+                        child: Text(
+                          kit.color.isNotEmpty ? kit.color : 'Unknown',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isOutcome ? kNeutral600 : const Color(0xFF37352F),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 4),
                       Icon(
                         kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
                         size: 14,
@@ -2156,7 +2180,7 @@ class LittersScreenState extends State<LittersScreen> {
                   ),
                   if (kit.weight > 0)
                     Text(
-                      'Weight: ${FormatUtils.formatWeight(kit.weight)}',
+                      'Weight: ',
                       style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                     ),
                   if (kit.details != null && kit.details!.isNotEmpty) ...[
@@ -2164,21 +2188,24 @@ class LittersScreenState extends State<LittersScreen> {
                     Text(
                       FormatUtils.formatDisplayKitDetails(kit.details),
                       style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            // Right badge and actions: moved slightly to the right with compact spacing
             if (showBadge) ...[
               _buildOutcomeBadge(kit.status, litter, kit),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
             ],
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _showKitActions(litter, kit),
               child: const Padding(
-                padding: EdgeInsets.only(left: 4, right: 2, top: 2, bottom: 2),
+                padding: EdgeInsets.only(left: 2, right: 0, top: 2, bottom: 2),
                 child: Icon(Icons.chevron_right, size: 22, color: Color(0xFF787774)),
               ),
             ),
@@ -2205,7 +2232,7 @@ class LittersScreenState extends State<LittersScreen> {
               border: Border.all(color: const Color(0xFFD6C2F7), width: 0.8),
             ),
             child: const Text(
-              'GROW-OUT',
+              'GROW',
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w900,
@@ -2279,7 +2306,7 @@ class LittersScreenState extends State<LittersScreen> {
           border: Border.all(color: const Color(0xFFD6C2F7), width: 0.8),
         ),
         child: const Text(
-          'GROW-OUT',
+          'GROW',
           style: TextStyle(
             fontSize: 9.5,
             fontWeight: FontWeight.w900,
@@ -2776,6 +2803,10 @@ class LittersScreenState extends State<LittersScreen> {
     // Archived kits must NEVER appear in active stages
     if (isArchiveStatus) return false;
 
+    // Kits moved to Herd must NEVER appear in Nursery active stages (Grow-Out, Weaned, Nursing, Quarantine)
+    final bool isPromoted = status == 'promoted' || status == 'herd' || status == 'added to herd';
+    if (isPromoted) return false;
+
     // Kit explicitly assigned to a stage
     if (status == 'quarantine') return stage == 'quarantine';
     if (status == 'growout' || status == 'grow out' || status == 'grow-out') {
@@ -2878,6 +2909,7 @@ class LittersScreenState extends State<LittersScreen> {
       final kitTag = _getKitDisplayTag(litter, kit);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+            duration: const Duration(milliseconds: 800),
           content: Text(mark ? 'Kit $kitTag marked for Grow-out' : 'Grow-out cancelled for Kit $kitTag'),
           backgroundColor: const Color(0xFF7B6BA0),
           behavior: SnackBarBehavior.floating,
@@ -2901,13 +2933,21 @@ class LittersScreenState extends State<LittersScreen> {
 
     String effectiveStage = _currentStage.toLowerCase();
     if (effectiveStage == 'all') {
-      if (lStatus == 'archived' || lStatus == 'cull' || lStatus == 'died' || lStatus == 'sold') {
+      final doe = _rabbitMap[litter.doeId];
+      final int weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
+      final int weanDays = weanWeeks * 7;
+      final bool isWeanPassed = (litter.weanDate != null
+              ? litter.weanDate!.isBefore(DateTime.now())
+              : litter.ageDays >= weanDays) ||
+          lStatus == 'weaned';
+
+      if (lStatus == 'archived' || lStatus == 'cull' || lStatus == 'died' || lStatus == 'sold' || _isLitterArchived(litter)) {
         effectiveStage = 'archive';
-      } else if (lStatus == 'quarantine') {
+      } else if (lStatus == 'quarantine' || litter.kits.any((k) => k.status.toLowerCase() == 'quarantine')) {
         effectiveStage = 'quarantine';
-      } else if (lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out') {
+      } else if (lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out' || (litter.kits.isNotEmpty && litter.kits.every((k) => k.status.toLowerCase().contains('grow')))) {
         effectiveStage = 'growout';
-      } else if (lStatus == 'weaned') {
+      } else if (lStatus == 'weaned' || isWeanPassed || litter.kits.any((k) => k.status.toLowerCase() == 'weaned')) {
         effectiveStage = 'weaned';
       } else {
         effectiveStage = 'nursing';
@@ -3935,6 +3975,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Litter ${litter.id} moved to $targetStage'),
             backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
@@ -3945,6 +3986,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Error moving litter: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -4047,7 +4089,8 @@ class LittersScreenState extends State<LittersScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -4089,6 +4132,7 @@ class LittersScreenState extends State<LittersScreen> {
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
+            duration: const Duration(milliseconds: 800),
               content: Text('Litter ${litter.id} marked as died'),
               backgroundColor: const Color(0xFF7B6BA0),
               behavior: SnackBarBehavior.floating,
@@ -4098,7 +4142,8 @@ class LittersScreenState extends State<LittersScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -4140,6 +4185,7 @@ class LittersScreenState extends State<LittersScreen> {
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
+            duration: const Duration(milliseconds: 800),
               content: Text('Litter ${litter.id} marked as culled'),
               backgroundColor: const Color(0xFF7B6BA0),
               behavior: SnackBarBehavior.floating,
@@ -4149,7 +4195,8 @@ class LittersScreenState extends State<LittersScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -5100,6 +5147,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Error moving kit: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -5125,6 +5173,7 @@ class LittersScreenState extends State<LittersScreen> {
       sireId: litter.buckId,
       damId: litter.doeId,
       status: RabbitStatus.open,
+      photos: (kit.imagePath != null && kit.imagePath!.trim().isNotEmpty) ? [kit.imagePath!.trim()] : null,
     );
 
     showModalBottomSheet(
@@ -5186,6 +5235,7 @@ class LittersScreenState extends State<LittersScreen> {
       sireId: litter.buckId,
       damId: litter.doeId,
       status: RabbitStatus.open,
+      photos: (kit.imagePath != null && kit.imagePath!.trim().isNotEmpty) ? [kit.imagePath!.trim()] : null,
     );
 
     Navigator.push(
@@ -5455,7 +5505,8 @@ class LittersScreenState extends State<LittersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cancelling foster: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error cancelling foster: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -5545,6 +5596,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Sale cancelled. Kit restored to $restoredStatus.'),
             backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
@@ -5554,7 +5606,8 @@ class LittersScreenState extends State<LittersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cancelling sale: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error cancelling sale: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -5651,6 +5704,7 @@ class LittersScreenState extends State<LittersScreen> {
         final kitTag = _getKitDisplayTag(litter, kit);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Kit $kitTag restored to $restoredStatus.'),
             backgroundColor: const Color(0xFF2E7B32),
             behavior: SnackBarBehavior.floating,
@@ -5660,456 +5714,30 @@ class LittersScreenState extends State<LittersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error restoring kit: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+          SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error restoring kit: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
         );
       }
     }
   }
 
   void _promoteKitToMature(Litter litter, Kit kit, {bool isGrowOut = false}) async {
-    // Generate next rabbit ID
-    String nextId = '';
-    try {
-      final allRabbits = await _db.getAllRabbits();
-      final archivedRabbits = await _db.getArchivedRabbits();
-      final allIds = [
-        ...allRabbits,
-        ...archivedRabbits
-      ].map((r) => r.id).toList();
-      int maxNum = 0;
-      for (final id in allIds) {
-        final match = RegExp(r'^R-(\d+)$').firstMatch(id);
-        if (match != null) {
-          final num = int.tryParse(match.group(1)!) ?? 0;
-          if (num > maxNum) maxNum = num;
-        }
-      }
-      nextId = 'R-${(maxNum + 1).toString().padLeft(4, '0')}';
-    } catch (_) {
-      nextId = 'R-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    }
-
-    // Load breeds for autocomplete
-    List<Breed> availableBreeds = [];
-    try {
-      availableBreeds = await _db.getAllBreeds();
-    } catch (_) {}
-
-    bool isBuck = kit.sex == 'M';
-    final nameController = TextEditingController(text: 'Kit ${kit.id}');
-    final idController = TextEditingController(text: nextId);
-    final breedController = TextEditingController(text: litter.breed);
-    final colorController = TextEditingController(text: kit.color);
-    final weightController = TextEditingController(text: kit.weight > 0 ? kit.weight.toString() : '');
-    final notesController = TextEditingController(text: 'Promoted from litter ${litter.id}');
-    String? selectedLocation = litter.location.isNotEmpty ? litter.location : null;
-    String? selectedCage = litter.cage.isNotEmpty ? litter.cage : null;
-    DateTime? dateOfBirth = litter.dob;
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            // Build cage list from selected location
-            List<String> cageNames = [];
-            if (selectedLocation != null) {
-              final matchingBarn = _barns.where((b) => b.name == selectedLocation).toList();
-              if (matchingBarn.isNotEmpty) {
-                for (final row in matchingBarn.first.rows) {
-                  cageNames.addAll(row.cages);
-                }
-              }
-            }
-            if (selectedCage != null && !cageNames.contains(selectedCage)) {
-              selectedCage = null;
-            }
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.92,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 8, 12),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.star, color: Color(0xFF7B6BA0), size: 22),
-                            SizedBox(width: 10),
-                            Text(
-                              'Promote to ${isBuck ? 'Buck' : 'Doe'}',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF37352F)),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: isSaving
-                                  ? null
-                                  : () async {
-                                      // Validation
-                                      if (nameController.text.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFD44C47)),
-                                        );
-                                        return;
-                                      }
-                                      if (breedController.text.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please enter a breed'), backgroundColor: Color(0xFFD44C47)),
-                                        );
-                                        return;
-                                      }
-
-                                      setSheetState(() => isSaving = true);
-
-                                      try {
-                                        final newRabbit = await _db.promoteKitToBreeder(
-                                          litter,
-                                          kit,
-                                          customName: nameController.text,
-                                          customId: idController.text.isNotEmpty ? idController.text : null,
-                                          type: isBuck ? RabbitType.buck : RabbitType.doe,
-                                          breed: breedController.text,
-                                          status: isGrowOut ? RabbitStatus.growout : RabbitStatus.open,
-                                          location: selectedLocation,
-                                          cage: selectedCage,
-                                          dateOfBirth: dateOfBirth,
-                                          color: colorController.text.isNotEmpty ? colorController.text : null,
-                                          weight: weightController.text.isNotEmpty ? double.tryParse(weightController.text) : null,
-                                          notes: notesController.text.isNotEmpty ? notesController.text : null,
-                                        );
-
-                                        await _refreshLitters();
-
-                                        if (mounted) {
-                                          Navigator.pop(context); // close sheet
-
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('${newRabbit?.name ?? "Kit"} moved to Breeders Directory as ${isGrowOut ? 'Grow Out' : (isBuck ? 'Buck' : 'Doe')}!'),
-                                              backgroundColor: const Color(0xFF7B6BA0),
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-
-                                          // Navigate to the new rabbit's detail screen
-                                          if (newRabbit != null) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => RabbitDetailScreen(rabbit: newRabbit),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      } catch (e) {
-                                        setSheetState(() => isSaving = false);
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Error: $e'),
-                                              backgroundColor: Colors.red,
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                              child: isSaving ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7B6BA0))) : Text('SAVE', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 15)),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 22),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Form body
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Kit info banner
-                          Container(
-                            padding: EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Color(0xFFF7EDE3),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Color(0xFF7B6BA0).withOpacity(0.2)),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: isBuck ? Color(0xFF2E7BB5).withOpacity(0.15) : Color(0xFF9C6ADE).withOpacity(0.15),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    isBuck ? Icons.male : Icons.female,
-                                    color: isBuck ? Color(0xFF2E7BB5) : Color(0xFF9C6ADE),
-                                    size: 26,
-                                  ),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Kit ${_getKitDisplayTag(litter, kit)}',
-                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF37352F)),
-                                      ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        '${isBuck ? 'Male (Buck)' : 'Female (Doe)'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
-                                      ),
-                                      Text(
-                                        'Sire: ${litter.buckName} • Dam: ${litter.doeName}',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 24),
-
-                          // Rabbit Type
-                          Text('Rabbit Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setSheetState(() => isBuck = false),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    decoration: BoxDecoration(
-                                      color: !isBuck ? kFemaleColor : Colors.white,
-                                      border: Border.all(color: !isBuck ? kFemaleColor : Color(0xFFE9E9E7)),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.female, color: !isBuck ? Colors.white : kFemaleColor, size: 20),
-                                        SizedBox(width: 6),
-                                        Text('Doe', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: !isBuck ? Colors.white : kFemaleColor)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setSheetState(() => isBuck = true),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    decoration: BoxDecoration(
-                                      color: isBuck ? Color(0xFF2E7BB5) : Colors.white,
-                                      border: Border.all(color: isBuck ? Color(0xFF2E7BB5) : Color(0xFFE9E9E7)),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.male, color: isBuck ? Colors.white : Color(0xFF2E7BB5), size: 20),
-                                        SizedBox(width: 6),
-                                        Text('Buck', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isBuck ? Colors.white : Color(0xFF2E7BB5))),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20),
-
-                          // Rabbit ID
-                          _buildPromoteTextField(idController, 'Rabbit ID', Icons.tag, readOnly: true),
-                          SizedBox(height: 16),
-
-                          // Name
-                          _buildPromoteTextField(nameController, 'Name *', Icons.pets, hint: 'Enter rabbit name'),
-                          SizedBox(height: 16),
-
-                          // Breed
-                          Text('Breed *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          Autocomplete<String>(
-                            optionsBuilder: (TextEditingValue val) {
-                              final names = availableBreeds.map((b) => b.name).toList();
-                              if (val.text.isEmpty) return names;
-                              return names.where((n) => n.toLowerCase().contains(val.text.toLowerCase()));
-                            },
-                            initialValue: TextEditingValue(text: breedController.text),
-                            fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
-                              ctrl.addListener(() => breedController.text = ctrl.text);
-                              return TextField(
-                                controller: ctrl,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  hintText: 'e.g., New Zealand White',
-                                  prefixIcon: Icon(Icons.category, color: Color(0xFF787774)),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2)),
-                                ),
-                              );
-                            },
-                            onSelected: (v) => breedController.text = v,
-                          ),
-                          SizedBox(height: 16),
-
-                          // Location
-                          Text('Location', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _barns.any((b) => b.name == selectedLocation) ? selectedLocation : null,
-                            decoration: InputDecoration(
-                              prefixIcon: Icon(Icons.location_on, color: Color(0xFF787774)),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-                            ),
-                            hint: Text(_barns.isEmpty ? 'No barns added yet' : 'Select Location'),
-                            items: _barns.map((b) => DropdownMenuItem(value: b.name, child: Text(b.name))).toList(),
-                            onChanged: (v) {
-                              setSheetState(() {
-                                selectedLocation = v;
-                                selectedCage = null;
-                              });
-                            },
-                          ),
-                          SizedBox(height: 16),
-
-                          // Cage
-                          Text('Cage', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            key: ValueKey(selectedLocation),
-                            value: selectedCage,
-                            decoration: InputDecoration(
-                              prefixIcon: Icon(Icons.home, color: Color(0xFF787774)),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-                            ),
-                            hint: Text(selectedLocation == null
-                                ? 'Select a location first'
-                                : cageNames.isEmpty
-                                    ? 'No cages in this barn'
-                                    : 'Select Cage'),
-                            items: cageNames.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                            onChanged: (v) => setSheetState(() => selectedCage = v),
-                          ),
-                          SizedBox(height: 16),
-
-                          // Date of Birth
-                          Text('Date of Birth', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: dateOfBirth ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime.now(),
-                              );
-                              if (date != null) {
-                                setSheetState(() => dateOfBirth = date);
-                              }
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Color(0xFFE9E9E7)),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.cake, color: Color(0xFF787774)),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    dateOfBirth != null ? FormatUtils.formatDate(dateOfBirth!) : 'Not set',
-                                    style: TextStyle(fontSize: 15, color: Colors.black87),
-                                  ),
-                                  Spacer(),
-                                  Icon(Icons.calendar_today, color: Color(0xFF787774), size: 20),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 16),
-
-                          // Color
-                          _buildPromoteTextField(colorController, 'Color', Icons.palette, hint: 'e.g., White, Black'),
-                          SizedBox(height: 16),
-
-                          // Weight
-                          _buildPromoteTextField(weightController, FormatUtils.weightLabel(), Icons.monitor_weight, hint: '0.0', keyboardType: TextInputType.number),
-                          SizedBox(height: 16),
-
-                          // Notes
-                          _buildPromoteTextField(notesController, 'Notes', Icons.notes, hint: 'Optional notes'),
-                          SizedBox(height: 32),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRabbitScreen(
+          isAddToHerd: true,
+          sourceLitter: litter,
+          sourceKit: kit,
+          onRabbitAdded: () {
+            _refreshLitters();
           },
-        );
-      },
-    );
-  }
-
-
-
-  Widget _buildPromoteTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    String? hint,
-    bool readOnly = false,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      readOnly: readOnly,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Color(0xFF787774)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFFE9E9E7))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2)),
+        ),
       ),
     );
+    if (result == true) {
+      await _refreshLitters();
+    }
   }
 
   void _showSellLitterDialog(Litter litter) {
@@ -6372,6 +6000,7 @@ class LittersScreenState extends State<LittersScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
+            duration: const Duration(milliseconds: 800),
                               content: Text('Litter marked as sold'),
                               backgroundColor: Color(0xFF6B2D6D),
                               behavior: SnackBarBehavior.floating,
@@ -6458,7 +6087,7 @@ class LittersScreenState extends State<LittersScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Reservation cancelled for Kit $kitTag.'),
-              duration: const Duration(seconds: 2),
+              duration: const Duration(milliseconds: 800),
             ),
           );
         }
@@ -6932,7 +6561,7 @@ class LittersScreenState extends State<LittersScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(isEditing ? 'Kit $kitTag reservation updated.' : 'Kit $kitTag marked as Reserved.'),
-                            duration: const Duration(seconds: 2),
+                            duration: const Duration(milliseconds: 800),
                           ),
                         );
                       }
@@ -7402,6 +7031,7 @@ class LittersScreenState extends State<LittersScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
+            duration: const Duration(milliseconds: 800),
                               content: Text('Kit marked as sold'),
                               backgroundColor: Color(0xFF6B2D6D),
                               behavior: SnackBarBehavior.floating,
@@ -7982,6 +7612,7 @@ class LittersScreenState extends State<LittersScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
+            duration: const Duration(milliseconds: 800),
                     content: Text('Kit harvest recorded'),
                     backgroundColor: Color(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
@@ -8039,6 +7670,7 @@ class LittersScreenState extends State<LittersScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
+            duration: const Duration(milliseconds: 800),
                     content: Text('Kit moved to quarantine'),
                     backgroundColor: Color(0xFFD97706),
                     behavior: SnackBarBehavior.floating,
@@ -8350,6 +7982,7 @@ class LittersScreenState extends State<LittersScreen> {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
+            duration: const Duration(milliseconds: 800),
                                       content: Text('Weight updated'),
                                       backgroundColor: Color(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
@@ -8724,6 +8357,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('No active kits to foster in this litter'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Color(0xFF7B6BA0),
@@ -8985,6 +8619,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('${kitsToMove.length} kit${kitsToMove.length > 1 ? 's' : ''} fostered to $targetDoeName'),
             backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
@@ -8995,6 +8630,7 @@ class LittersScreenState extends State<LittersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Error fostering kits: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
@@ -9071,6 +8707,7 @@ class LittersScreenState extends State<LittersScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Kit $kitTag deleted'),
             backgroundColor: const Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
@@ -9080,7 +8717,8 @@ class LittersScreenState extends State<LittersScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -9183,6 +8821,7 @@ class LittersScreenState extends State<LittersScreen> {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
+            duration: const Duration(milliseconds: 800),
                 content: Text('Kit $kitTag marked as culled'),
                 backgroundColor: const Color(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
@@ -9291,6 +8930,7 @@ class LittersScreenState extends State<LittersScreen> {
             ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
+            duration: const Duration(milliseconds: 800),
                 content: Text('Kit $kitTag marked as died'),
                 backgroundColor: const Color(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
@@ -9765,6 +9405,10 @@ class LittersScreenState extends State<LittersScreen> {
                               );
 
                               await _db.updateLitter(updatedLitter);
+                              await _db.handleWeanFosteredKits(
+                                weanedLitter: updatedLitter,
+                                weanedKitIds: selectedKitIds.toList(),
+                              );
                               await _refreshLitters();
                             }
 
@@ -9774,6 +9418,7 @@ class LittersScreenState extends State<LittersScreen> {
                                   content: Text('${selectedKitIds.length} kit${selectedKitIds.length == 1 ? '' : 's'} weaned successfully'),
                                   backgroundColor: const Color(0xFF7B6BA0),
                                   behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(milliseconds: 800),
                                 ),
                               );
                             }
@@ -9952,6 +9597,7 @@ class LittersScreenState extends State<LittersScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
+            duration: const Duration(milliseconds: 800),
                         content: Text('Health record added'),
                         backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
@@ -10118,6 +9764,7 @@ class LittersScreenState extends State<LittersScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
+            duration: const Duration(milliseconds: 800),
                         content: Text('Weight recorded successfully'),
                         backgroundColor: Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
@@ -10339,6 +9986,7 @@ class LittersScreenState extends State<LittersScreen> {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
+            duration: const Duration(milliseconds: 800),
                             content: Text('Cage moved successfully'),
                             backgroundColor: Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
@@ -10374,6 +10022,7 @@ class LittersScreenState extends State<LittersScreen> {
   void _printCageCard(Litter litter) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
+            duration: const Duration(milliseconds: 800),
         content: Text('ÃƒÂ°Ã…Â¸â‚¬â€œÂ¨ÃƒÂ¯Â¸Â Printing cage card...'),
         backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
@@ -10401,6 +10050,7 @@ class LittersScreenState extends State<LittersScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
+            duration: const Duration(milliseconds: 800),
                       content: Text('Litter deleted'),
                       backgroundColor: Color(0xFFD44C47),
                       behavior: SnackBarBehavior.floating,
@@ -10411,6 +10061,7 @@ class LittersScreenState extends State<LittersScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
+            duration: const Duration(milliseconds: 800),
                       content: Text('Error deleting litter: $e'),
                       backgroundColor: Colors.red,
                       behavior: SnackBarBehavior.floating,
@@ -10526,6 +10177,7 @@ class LittersScreenState extends State<LittersScreen> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
+            duration: const Duration(milliseconds: 800),
                         content: Text('Kit restored to $restoredStatus'),
                         backgroundColor: const Color(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
@@ -10549,6 +10201,7 @@ class LittersScreenState extends State<LittersScreen> {
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
+            duration: const Duration(milliseconds: 800),
                       content: Text('Kit deleted'),
                       backgroundColor: Color(0xFFD44C47),
                       behavior: SnackBarBehavior.floating,
@@ -10581,6 +10234,10 @@ class LittersScreenState extends State<LittersScreen> {
 
                       final updatedLitter = litters[litterIndex].copyWith(kits: updatedKits);
                       await _db.updateLitter(updatedLitter);
+                      await _db.handleWeanFosteredKits(
+                        weanedLitter: updatedLitter,
+                        weanedKitIds: [kit.id],
+                      );
                       await _refreshLitters();
                     }
 
@@ -10590,6 +10247,7 @@ class LittersScreenState extends State<LittersScreen> {
                           content: Text('Kit weaned'),
                           backgroundColor: Color(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
+                          duration: Duration(milliseconds: 800),
                         ),
                       );
                     }
@@ -10633,6 +10291,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
+            duration: const Duration(milliseconds: 800),
                             content: Text('Kit moved to grow out'),
                             backgroundColor: Color(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
@@ -10646,6 +10305,7 @@ class LittersScreenState extends State<LittersScreen> {
                         Navigator.pop(context); // Close loading
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
+            duration: const Duration(milliseconds: 800),
                             content: Text('Error: $e'),
                             backgroundColor: Colors.red,
                             behavior: SnackBarBehavior.floating,
@@ -11367,7 +11027,8 @@ class LittersScreenState extends State<LittersScreen> {
     if (_countLittersInBarn(barn) > 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot delete barn with active litters')),
+          const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Cannot delete barn with active litters')),
         );
       }
       return;
@@ -11400,7 +11061,8 @@ class LittersScreenState extends State<LittersScreen> {
     if (_countLittersInLocation(row.name) > 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot delete row with active litters')),
+          const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Cannot delete row with active litters')),
         );
       }
       return;
@@ -11435,7 +11097,8 @@ class LittersScreenState extends State<LittersScreen> {
     if (_countLittersInLocation(row.name, cage) > 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cage has active litters')),
+          const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Cage has active litters')),
         );
       }
       return;
@@ -11716,6 +11379,7 @@ class LittersScreenState extends State<LittersScreen> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
+            duration: const Duration(milliseconds: 800),
           content: Text('Litter added successfully'),
           backgroundColor: Color(0xFF7B6BA0),
           behavior: SnackBarBehavior.floating,
@@ -12298,6 +11962,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -12747,31 +12412,36 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDoeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a doe'), backgroundColor: Colors.red),
+        const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Please select a doe'), backgroundColor: Colors.red),
       );
       return;
     }
     if (_selectedBuckId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a buck'), backgroundColor: Colors.red),
+        const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Please select a buck'), backgroundColor: Colors.red),
       );
       return;
     }
     if (_breedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a Bred Date'), backgroundColor: Colors.red),
+        const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Please select a Bred Date'), backgroundColor: Colors.red),
       );
       return;
     }
     if (_dob == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Date of Birth'), backgroundColor: Colors.red),
+        const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Please select Date of Birth'), backgroundColor: Colors.red),
       );
       return;
     }
     if (_dob!.isBefore(_breedDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Date of Birth cannot be before Bred Date'), backgroundColor: Colors.red),
+        const SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Date of Birth cannot be before Bred Date'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -12930,6 +12600,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            duration: const Duration(milliseconds: 800),
             content: Text('Error: $e'),
             backgroundColor: const Color(0xFFD44C47),
           ),
@@ -13164,43 +12835,23 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       final litterIndex = litters.indexWhere((l) => l.id == widget.litter.id);
       if (litterIndex != -1) {
         final currentLitter = litters[litterIndex];
-        final totalNeeded = [
-          currentLitter.totalKits ?? 0,
-          currentLitter.aliveKits ?? 0,
-          currentLitter.kits.length,
-          1,
-        ].reduce((a, b) => a > b ? a : b);
-
         List<Kit> kitsList = List<Kit>.from(currentLitter.kits);
         if (kitsList.isEmpty) {
+          final count = (currentLitter.aliveKits != null && currentLitter.aliveKits! > 0)
+              ? currentLitter.aliveKits!
+              : ((currentLitter.totalKits != null && currentLitter.totalKits! > 0)
+                  ? currentLitter.totalKits!
+                  : 1);
           kitsList = List.generate(
-            totalNeeded,
+            count,
             (i) => Kit(
-              id: 'K-${i + 1}',
+              id: 'K-',
               sex: 'U',
               color: 'Unknown',
               weight: 0.0,
               status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
             ),
           );
-        } else if (kitsList.length < totalNeeded) {
-          final existingNums = kitsList
-              .map((k) => int.tryParse(k.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
-              .toSet();
-          int nextNum = 1;
-          while (kitsList.length < totalNeeded) {
-            while (existingNums.contains(nextNum)) {
-              nextNum++;
-            }
-            existingNums.add(nextNum);
-            kitsList.add(Kit(
-              id: 'K-$nextNum',
-              sex: 'U',
-              color: 'Unknown',
-              weight: 0.0,
-              status: currentLitter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing',
-            ));
-          }
         }
 
         final double lbsVal = double.tryParse(_lbsController.text.trim()) ?? 0.0;
@@ -13254,6 +12905,19 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
         final updatedLitter = currentLitter.copyWith(kits: updatedKits);
         await db.updateLitter(updatedLitter);
 
+        // Synchronize updates with counterpart foster kit if fostered
+        await db.syncFosterKitEdit(
+          widget.litter.id,
+          widget.kit.copyWith(
+            name: nameVal,
+            sex: _selectedSex,
+            color: colorVal,
+            weight: weightVal,
+            details: notesVal,
+            imagePath: _localImagePath,
+          ),
+        );
+
         // Update corresponding finance transaction if this kit has one
         final existingTxn = await db.getTransactionForKit(widget.litter.id, widget.kit.id.toString());
         if (existingTxn != null) {
@@ -13275,6 +12939,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             content: Text('Kit details updated'),
             backgroundColor: Color(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
+            duration: Duration(milliseconds: 800),
           ),
         );
       }
@@ -13282,7 +12947,8 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       setState(() => _isSaving = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            duration: const Duration(milliseconds: 800),content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -13548,5 +13214,6 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
     );
   }
 }
+
 
 

@@ -125,7 +125,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
           const SnackBar(
             content: Text('Profile picture updated'),
             backgroundColor: Color(0xFF7B6BA0),
-            duration: Duration(seconds: 2),
+            duration: Duration(milliseconds: 800),
           ),
         );
       }

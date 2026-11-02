@@ -239,7 +239,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
           const SnackBar(
             content: Text('Profile picture updated successfully'),
             backgroundColor: Color(0xFF7B6BA0),
-            duration: Duration(seconds: 2),
+            duration: Duration(milliseconds: 800),
           ),
         );
       }
@@ -581,6 +581,26 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     );
   }
 
+  double _calculateTabHorizontalPadding(double availableWidth) {
+    const style = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.2,
+    );
+    const tabs = ['PROFILE', 'BREEDING', 'TASKS', 'STATS', 'RECORDS'];
+    double totalTextWidth = 0.0;
+    for (final text in tabs) {
+      final textPainter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout();
+      totalTextWidth += textPainter.width;
+    }
+    final remainingWidth = availableWidth - totalTextWidth;
+    return (remainingWidth / 10).clamp(4.0, 24.0);
+  }
+
   // Tab Bar
   Widget _buildTabBar() {
     return SliverPersistentHeader(
@@ -588,40 +608,46 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
       delegate: _TabBarDelegate(
         PreferredSize(
           preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: _detailTabGray,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: false,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicator: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.white, width: 3),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding = _calculateTabHorizontalPadding(constraints.maxWidth);
+              return Container(
+                color: _detailTabGray,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicator: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white, width: 3),
+                    ),
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: _detailTabInactive,
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                  labelPadding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.zero,
+                  indicatorPadding: EdgeInsets.zero,
+                  tabs: const [
+                    Tab(text: 'PROFILE'),
+                    Tab(text: 'BREEDING'),
+                    Tab(text: 'TASKS'),
+                    Tab(text: 'STATS'),
+                    Tab(text: 'RECORDS'),
+                  ],
                 ),
-              ),
-              labelColor: Colors.white,
-              unselectedLabelColor: _detailTabInactive,
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
-              ),
-              labelPadding: EdgeInsets.zero,
-              padding: EdgeInsets.zero,
-              indicatorPadding: EdgeInsets.zero,
-              tabs: const [
-                Tab(text: 'PROFILE'),
-                Tab(text: 'BREEDING'),
-                Tab(text: 'TASKS'),
-                Tab(text: 'STATS'),
-                Tab(text: 'RECORDS'),
-              ],
-            ),
+              );
+            },
           ),
         ),
         showShadow: _showTabShadow,
@@ -1290,15 +1316,9 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                         _buildMenuItem('Tag for Sale', () {
                           _tagForSale();
                         }),
-                      _buildMenuItem('Sell', () {
-                        _showArchiveModalWithReason(ArchiveReason.sold);
+                      _buildMenuItem('Archive', () {
+                        _showArchiveModal();
                       }),
-                      _buildMenuItem('Cull', () {
-                        _showArchiveModalWithReason(ArchiveReason.cull);
-                      }, isDangerous: true),
-                      _buildMenuItem('Died', () {
-                        _showArchiveModalWithReason(ArchiveReason.dead);
-                      }, isDangerous: true),
                       _buildMenuItem('Delete', () {
                         _confirmDeleteRabbit();
                       }, isDestructive: true),

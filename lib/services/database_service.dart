@@ -1859,6 +1859,7 @@ class DatabaseService {
         weanDate: DateTime.now(),
       );
       await updateLitter(updatedLitter);
+      await handleWeanFosteredKits(weanedLitter: updatedLitter);
     }
 
     // Mark all pending weaning tasks for this rabbit as complete
@@ -2474,6 +2475,17 @@ class DatabaseService {
         }
       }
 
+      // Auto-heal weaned litters with fostered kits:
+      // Fostered kits must be returned to Actual Mom as Weaned, and Foster Mom should have only her kits.
+      final weanedLittersWithFoster = litters.where((l) =>
+        (l.status.toLowerCase() == 'weaned' || (l.weanDate != null && l.weanDate!.isBefore(DateTime.now()))) &&
+        l.kits.any((k) => k.id.startsWith('foster_') || (k.details != null && k.details!.toLowerCase().contains('fostered from')))
+      ).toList();
+
+      for (final fLitter in weanedLittersWithFoster) {
+        handleWeanFosteredKits(weanedLitter: fLitter).ignore();
+      }
+
       return litters;
     } catch (e, stackTrace) {
       print('❌ Error getting litters: $e');
@@ -2849,6 +2861,9 @@ class DatabaseService {
       await updateLitter(updatedLitter);
     }
 
+    // Synchronize updates with counterpart foster kit if this kit is fostered
+    await syncFosterKitEdit(litterId, kit);
+
     print(
         '✅ Updated kit ${kit.id} in litter $litterId ${allKitsDeadOrFostered ? '(All kits dead/fostered, doe reset to Open)' : ''}');
   }
@@ -2984,6 +2999,399 @@ class DatabaseService {
       }
     } catch (e) {
       print('⚠️ Error in checkAndUpdateDoeStatusIfLitterEmpty: $e');
+    }
+  }
+
+  /// Synchronizes edits (name, sex, color, weight, notes/details, imagePath)
+  /// between a fostered kit in the surrogate doe's litter and its counterpart
+  /// in the biological mother's litter.
+  Future<void> syncFosterKitEdit(String litterId, Kit updatedKit) async {
+    try {
+      final allLitters = await getLitters();
+      final currentLitter = allLitters.where((l) => l.id == litterId).firstOrNull;
+      if (currentLitter == null) return;
+
+      final detailsText = updatedKit.details ?? '';
+      final bool isCurrentSurrogate = updatedKit.id.startsWith('foster_') ||
+          updatedKit.id.startsWith('F-') ||
+          detailsText.toLowerCase().contains('fostered from');
+      final bool isCurrentBiological = updatedKit.status.toLowerCase() == 'fostered' ||
+          detailsText.toLowerCase().contains('fostered to');
+
+      if (!isCurrentSurrogate && !isCurrentBiological) return;
+
+      // Extract pure user notes excluding any foster direction tags
+      String extractUserNote(String raw) {
+        return raw
+            .replaceAll(RegExp(r'Fostered (from|to) [^\n•]+', caseSensitive: false), '')
+            .replaceAll(RegExp(r'^[•\s\-\:]+|[•\s\-\:]+$'), '')
+            .trim();
+      }
+
+      final userNote = extractUserNote(detailsText);
+
+      if (isCurrentSurrogate) {
+        // Kit being edited is in surrogate litter -> find biological mother's litter
+        Litter? birthLitter;
+        String? originalKitId;
+
+        if (updatedKit.id.startsWith('foster_')) {
+          for (final l in allLitters.where((l) => l.id != currentLitter.id)) {
+            if (updatedKit.id.startsWith('foster_${l.id}_')) {
+              birthLitter = l;
+              originalKitId = updatedKit.id.substring('foster_${l.id}_'.length);
+              break;
+            }
+          }
+        }
+
+        if (birthLitter == null) {
+          final matchFrom = RegExp(r'Fostered from ([^\n•\[]+)', caseSensitive: false).firstMatch(detailsText);
+          if (matchFrom != null) {
+            final origName = matchFrom.group(1)?.trim().toLowerCase();
+            if (origName != null && origName.isNotEmpty) {
+              birthLitter = allLitters.where((l) =>
+                l.id != currentLitter.id &&
+                (l.doeName.toLowerCase() == origName ||
+                 l.dam.toLowerCase() == origName ||
+                 l.doeName.toLowerCase().contains(origName) ||
+                 origName.contains(l.doeName.toLowerCase()))
+              ).firstOrNull;
+            }
+          }
+        }
+
+        birthLitter ??= allLitters.where((l) =>
+          l.id != currentLitter.id &&
+          l.kits.any((k) => k.status.toLowerCase() == 'fostered')
+        ).firstOrNull;
+
+        if (birthLitter != null) {
+          final fosterDoeName = currentLitter.doeName.isNotEmpty ? currentLitter.doeName : currentLitter.dam;
+          final birthDetails = userNote.isNotEmpty
+              ? 'Fostered to $fosterDoeName • $userNote'
+              : 'Fostered to $fosterDoeName';
+
+          bool matched = false;
+          final updatedBirthKits = birthLitter.kits.map((k) {
+            final bool isMatch = !matched && (
+              (originalKitId != null && k.id == originalKitId) ||
+              k.id == updatedKit.id ||
+              k.status.toLowerCase() == 'fostered'
+            );
+            if (isMatch) {
+              matched = true;
+              return k.copyWith(
+                name: updatedKit.name,
+                sex: updatedKit.sex,
+                color: updatedKit.color,
+                weight: updatedKit.weight,
+                imagePath: updatedKit.imagePath,
+                details: birthDetails,
+              );
+            }
+            return k;
+          }).toList();
+
+          if (matched) {
+            await updateLitter(birthLitter.copyWith(kits: updatedBirthKits));
+          }
+        }
+      } else if (isCurrentBiological) {
+        // Kit being edited is in biological mother's litter -> find surrogate mother's litter
+        Litter? surrogateLitter;
+        final expectedFosterId = 'foster_${currentLitter.id}_${updatedKit.id}';
+
+        surrogateLitter = allLitters.where((l) =>
+          l.id != currentLitter.id &&
+          l.kits.any((k) => k.id == expectedFosterId || k.id == updatedKit.id)
+        ).firstOrNull;
+
+        if (surrogateLitter == null) {
+          final matchTo = RegExp(r'Fostered to ([^\n•\[]+)', caseSensitive: false).firstMatch(detailsText);
+          if (matchTo != null) {
+            final targetName = matchTo.group(1)?.trim().toLowerCase();
+            if (targetName != null && targetName.isNotEmpty) {
+              surrogateLitter = allLitters.where((l) =>
+                l.id != currentLitter.id &&
+                (l.doeName.toLowerCase() == targetName ||
+                 l.dam.toLowerCase() == targetName ||
+                 l.doeName.toLowerCase().contains(targetName) ||
+                 targetName.contains(l.doeName.toLowerCase()))
+              ).firstOrNull;
+            }
+          }
+        }
+
+        if (surrogateLitter == null) {
+          final birthDamName = currentLitter.doeName.isNotEmpty ? currentLitter.doeName : currentLitter.dam;
+          surrogateLitter = allLitters.where((l) =>
+            l.id != currentLitter.id &&
+            l.kits.any((k) =>
+              (k.id.startsWith('foster_') || k.id.startsWith('F-')) &&
+              k.details != null &&
+              k.details!.toLowerCase().contains('fostered from') &&
+              (birthDamName.isEmpty || k.details!.toLowerCase().contains(birthDamName.toLowerCase()))
+            )
+          ).firstOrNull;
+        }
+
+        if (surrogateLitter != null) {
+          final birthDamName = currentLitter.doeName.isNotEmpty ? currentLitter.doeName : currentLitter.dam;
+          final surrogateDetails = userNote.isNotEmpty
+              ? 'Fostered from $birthDamName • $userNote'
+              : 'Fostered from $birthDamName';
+
+          bool matched = false;
+          final updatedSurrogateKits = surrogateLitter.kits.map((k) {
+            final bool isMatch = !matched && (
+              k.id == expectedFosterId ||
+              k.id == updatedKit.id ||
+              (k.details != null && k.details!.toLowerCase().contains('fostered from'))
+            );
+            if (isMatch) {
+              matched = true;
+              return k.copyWith(
+                name: updatedKit.name,
+                sex: updatedKit.sex,
+                color: updatedKit.color,
+                weight: updatedKit.weight,
+                imagePath: updatedKit.imagePath,
+                details: surrogateDetails,
+              );
+            }
+            return k;
+          }).toList();
+
+          if (matched) {
+            await updateLitter(surrogateLitter.copyWith(kits: updatedSurrogateKits));
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error syncing foster kit edit: $e');
+    }
+  }
+
+  /// When a litter with fostered kits is weaned, ensures:
+  /// 1. Fostered kit is returned to the actual mother's litter with status 'Weaned'.
+  /// 2. The foster mother's litter only retains her own kits (fostered kit removed).
+  Future<void> handleWeanFosteredKits({
+    required Litter weanedLitter,
+    List<String>? weanedKitIds,
+  }) async {
+    try {
+      final allLitters = await getLitters();
+
+      String extractUserNote(String raw) {
+        return raw
+            .replaceAll(RegExp(r'Fostered (from|to) [^\n•]+', caseSensitive: false), '')
+            .replaceAll(RegExp(r'^[•\s\-\:]+|[•\s\-\:]+$'), '')
+            .trim();
+      }
+
+      // Case 1: weanedLitter has fostered-in kits (it's the foster mother's litter)
+      final fosteredInKits = weanedLitter.kits.where((k) {
+        final isFIn = k.id.startsWith('foster_') ||
+            k.id.startsWith('F-') ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+        if (!isFIn) return false;
+        if (weanedKitIds != null) return weanedKitIds.contains(k.id);
+        return true;
+      }).toList();
+
+      if (fosteredInKits.isNotEmpty) {
+        for (final fKit in fosteredInKits) {
+          Litter? birthLitter;
+          String? origKitId;
+
+          if (fKit.id.startsWith('foster_')) {
+            for (final l in allLitters.where((l) => l.id != weanedLitter.id)) {
+              if (fKit.id.startsWith('foster_${l.id}_')) {
+                birthLitter = l;
+                origKitId = fKit.id.substring('foster_${l.id}_'.length);
+                break;
+              }
+            }
+          }
+
+          if (birthLitter == null) {
+            final matchFrom = RegExp(r'Fostered from ([^\n•\[]+)', caseSensitive: false).firstMatch(fKit.details ?? '');
+            if (matchFrom != null) {
+              final damName = matchFrom.group(1)?.trim().toLowerCase();
+              if (damName != null && damName.isNotEmpty) {
+                birthLitter = allLitters.where((l) =>
+                  l.id != weanedLitter.id &&
+                  (l.doeName.toLowerCase() == damName ||
+                   l.dam.toLowerCase() == damName ||
+                   l.doeName.toLowerCase().contains(damName) ||
+                   damName.contains(l.doeName.toLowerCase()))
+                ).firstOrNull;
+              }
+            }
+          }
+
+          birthLitter ??= allLitters.where((l) =>
+            l.id != weanedLitter.id &&
+            l.kits.any((k) => k.status.toLowerCase() == 'fostered')
+          ).firstOrNull;
+
+          if (birthLitter != null) {
+            final userNote = extractUserNote(fKit.details ?? '');
+            bool matched = false;
+            final updatedBirthKits = birthLitter.kits.map((k) {
+              final bool isMatch = !matched && (
+                (origKitId != null && k.id == origKitId) ||
+                k.id == fKit.id ||
+                k.status.toLowerCase() == 'fostered'
+              );
+              if (isMatch) {
+                matched = true;
+                return k.copyWith(
+                  status: 'Weaned',
+                  name: fKit.name ?? k.name,
+                  sex: (fKit.sex.isNotEmpty && fKit.sex != 'U') ? fKit.sex : k.sex,
+                  color: (fKit.color.isNotEmpty && fKit.color != 'Unknown') ? fKit.color : k.color,
+                  weight: fKit.weight > 0 ? fKit.weight : k.weight,
+                  imagePath: fKit.imagePath ?? k.imagePath,
+                  details: userNote.isNotEmpty ? userNote : null,
+                );
+              }
+              return k;
+            }).toList();
+
+            if (!matched) {
+              updatedBirthKits.add(fKit.copyWith(
+                id: origKitId ?? 'K-${birthLitter.kits.length + 1}',
+                status: 'Weaned',
+                details: userNote.isNotEmpty ? userNote : null,
+              ));
+            }
+
+            final birthAlive = updatedBirthKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              return !k.isArchived &&
+                  s != 'dead' &&
+                  s != 'died' &&
+                  s != 'deceased' &&
+                  s != 'cull' &&
+                  s != 'culled' &&
+                  s != 'sold' &&
+                  s != 'butchered';
+            }).length;
+
+            await updateLitter(birthLitter.copyWith(
+              kits: updatedBirthKits,
+              aliveKits: birthAlive,
+            ));
+          }
+        }
+
+        // Remove the fostered kits from the foster mother's litter
+        final fosteredIdsToRemove = fosteredInKits.map((k) => k.id).toSet();
+        final currentLittersNow = await getLitters();
+        final freshWeaned = currentLittersNow.where((l) => l.id == weanedLitter.id).firstOrNull ?? weanedLitter;
+        final remainingKits = freshWeaned.kits.where((k) => !fosteredIdsToRemove.contains(k.id)).toList();
+        final ownAlive = remainingKits.where((k) {
+          final s = k.status.toLowerCase().trim();
+          return !k.isArchived &&
+              s != 'dead' &&
+              s != 'died' &&
+              s != 'deceased' &&
+              s != 'cull' &&
+              s != 'culled' &&
+              s != 'sold' &&
+              s != 'butchered';
+        }).length;
+
+        await updateLitter(freshWeaned.copyWith(
+          kits: remainingKits,
+          aliveKits: ownAlive,
+        ));
+      }
+
+      // Case 2: weanedLitter is the biological mother and has kits marked 'Fostered'
+      final freshLitters = await getLitters();
+      final freshBio = freshLitters.where((l) => l.id == weanedLitter.id).firstOrNull ?? weanedLitter;
+      final fosteredOutKits = freshBio.kits.where((k) {
+        final isFOut = k.status.toLowerCase() == 'fostered' ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered to'));
+        if (!isFOut) return false;
+        if (weanedKitIds != null) return weanedKitIds.contains(k.id);
+        return true;
+      }).toList();
+
+      if (fosteredOutKits.isNotEmpty) {
+        final updatedBioKits = List<Kit>.from(freshBio.kits);
+
+        for (final bioKit in fosteredOutKits) {
+          final expectedFosterId = 'foster_${freshBio.id}_${bioKit.id}';
+          Litter? surrogateLitter = freshLitters.where((l) =>
+            l.id != freshBio.id &&
+            l.kits.any((k) => k.id == expectedFosterId || k.id == bioKit.id)
+          ).firstOrNull;
+
+          Kit? surrogateKit;
+          if (surrogateLitter != null) {
+            surrogateKit = surrogateLitter.kits.where((k) => k.id == expectedFosterId || k.id == bioKit.id).firstOrNull;
+            // Remove from surrogate litter
+            final updatedSurrogateKits = surrogateLitter.kits.where((k) => k.id != expectedFosterId && k.id != bioKit.id).toList();
+            final surrAlive = updatedSurrogateKits.where((k) {
+              final s = k.status.toLowerCase().trim();
+              final bool isFIn = k.id.startsWith('foster_') ||
+                  k.id.startsWith('F-') ||
+                  (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+              return !k.isArchived &&
+                  s != 'dead' &&
+                  s != 'died' &&
+                  s != 'deceased' &&
+                  s != 'cull' &&
+                  s != 'culled' &&
+                  s != 'sold' &&
+                  s != 'butchered' &&
+                  !isFIn;
+            }).length;
+
+            await updateLitter(surrogateLitter.copyWith(
+              kits: updatedSurrogateKits,
+              aliveKits: surrAlive,
+            ));
+          }
+
+          final userNote = extractUserNote(surrogateKit?.details ?? bioKit.details ?? '');
+          final kIndex = updatedBioKits.indexWhere((k) => k.id == bioKit.id);
+          if (kIndex != -1) {
+            updatedBioKits[kIndex] = updatedBioKits[kIndex].copyWith(
+              status: 'Weaned',
+              name: surrogateKit?.name ?? bioKit.name,
+              sex: (surrogateKit?.sex != null && surrogateKit!.sex.isNotEmpty && surrogateKit.sex != 'U') ? surrogateKit.sex : bioKit.sex,
+              color: (surrogateKit?.color != null && surrogateKit!.color.isNotEmpty && surrogateKit.color != 'Unknown') ? surrogateKit.color : bioKit.color,
+              weight: (surrogateKit != null && surrogateKit.weight > 0) ? surrogateKit.weight : bioKit.weight,
+              imagePath: surrogateKit?.imagePath ?? bioKit.imagePath,
+              details: userNote.isNotEmpty ? userNote : null,
+            );
+          }
+        }
+
+        final bioAlive = updatedBioKits.where((k) {
+          final s = k.status.toLowerCase().trim();
+          return !k.isArchived &&
+              s != 'dead' &&
+              s != 'died' &&
+              s != 'deceased' &&
+              s != 'cull' &&
+              s != 'culled' &&
+              s != 'sold' &&
+              s != 'butchered';
+        }).length;
+
+        await updateLitter(freshBio.copyWith(
+          kits: updatedBioKits,
+          aliveKits: bioAlive,
+        ));
+      }
+    } catch (e) {
+      print('⚠️ Error in handleWeanFosteredKits: $e');
     }
   }
 

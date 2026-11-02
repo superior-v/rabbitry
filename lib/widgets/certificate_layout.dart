@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
+import '../services/settings_service.dart';
 
 /// Centralized layout specification for Birth Certificate PDF and Flutter Preview.
 /// Matches the reference layout (US Letter Landscape adjusted to 792 x 576 pt, aspect ratio 1.375).
@@ -132,6 +134,38 @@ class CertificateLayout {
 
   static const double row6TopPt = 469.2;
   static const double row6TopRatio = row6TopPt / pageColorPhotoHeightPt; // ~0.76667
+
+  static String? _cachedPhotosDir;
+  static String? get cachedPhotosDir => _cachedPhotosDir;
+  static void setCachedPhotosDir(String path) {
+    _cachedPhotosDir = path;
+  }
+
+  static File? resolvePhotoFile(String? photoPath) {
+    if (photoPath == null || photoPath.trim().isEmpty || photoPath.trim() == 'null') {
+      return null;
+    }
+    String path = photoPath.trim();
+    if (path.startsWith('file://')) {
+      try {
+        path = Uri.parse(path).toFilePath();
+      } catch (_) {
+        path = path.replaceFirst('file://', '');
+      }
+    }
+    final file = File(path);
+    if (file.existsSync()) {
+      return file;
+    }
+    if (_cachedPhotosDir != null) {
+      final fileName = path.split(RegExp(r'[\\/]')).last;
+      final f1 = File('$_cachedPhotosDir/rabbit_photos/$fileName');
+      if (f1.existsSync()) return f1;
+      final f2 = File('$_cachedPhotosDir/$fileName');
+      if (f2.existsSync()) return f2;
+    }
+    return null;
+  }
 }
 
 /// 3 Certificate display / generation options
@@ -151,6 +185,8 @@ class CertificateData {
   final String damName;
   final String sireName;
   final String? location;
+  final String? city;
+  final String? province;
   final String? photoPath;
   final CertificateOption option;
 
@@ -163,6 +199,8 @@ class CertificateData {
     required this.damName,
     required this.sireName,
     this.location,
+    this.city,
+    this.province,
     this.photoPath,
     this.option = CertificateOption.colorWithPhoto,
   });
@@ -180,27 +218,110 @@ class CertificateData {
   }
 
   String get locationSentence {
-    final cleanLoc = location?.trim();
-    if (cleanLoc != null && cleanLoc.isNotEmpty && cleanLoc != '—') {
-      final city = _extractCity(cleanLoc);
-      return 'at $city';
+    String effectiveCity = city?.trim() ?? '';
+    String effectiveProvince = province?.trim() ?? '';
+
+    if (effectiveCity.isEmpty || effectiveProvince.isEmpty) {
+      final cleanLoc = location?.trim();
+      if (cleanLoc != null && cleanLoc.isNotEmpty && cleanLoc != '—' && cleanLoc != '-') {
+        final (extractedCity, extractedProv) = _extractCityAndProvince(cleanLoc);
+        if (effectiveCity.isEmpty) effectiveCity = extractedCity;
+        if (effectiveProvince.isEmpty) effectiveProvince = extractedProv;
+      }
     }
-    return 'at Amaranth';
+
+    if (effectiveCity.isEmpty) {
+      final farmCity = SettingsService.instance.farmCity.trim();
+      effectiveCity = farmCity.isNotEmpty ? farmCity : 'Amaranth';
+    }
+
+    if (effectiveProvince.isEmpty) {
+      final farmState = SettingsService.instance.farmState.trim();
+      effectiveProvince = farmState.isNotEmpty ? normalizeProvince(farmState) : 'ON';
+    } else {
+      effectiveProvince = normalizeProvince(effectiveProvince);
+    }
+
+    return 'at $effectiveCity, $effectiveProvince';
   }
 
-  static String _extractCity(String input) {
-    final parts = input.split(RegExp(r'[,;\n]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-    if (parts.isEmpty) return 'Amaranth';
-    // If first component is a street number/address, use second component
-    if (parts.length > 1 && RegExp(r'^\d+').hasMatch(parts.first)) {
-      return parts[1];
+  static String normalizeProvince(String input) {
+    final clean = input.trim().replaceAll('.', '');
+    final lower = clean.toLowerCase();
+    const map = {
+      'ontario': 'ON',
+      'quebec': 'QC',
+      'british columbia': 'BC',
+      'alberta': 'AB',
+      'manitoba': 'MB',
+      'saskatchewan': 'SK',
+      'nova scotia': 'NS',
+      'new brunswick': 'NB',
+      'newfoundland': 'NL',
+      'newfoundland and labrador': 'NL',
+      'prince edward island': 'PE',
+      'pei': 'PE',
+      'northwest territories': 'NT',
+      'yukon': 'YT',
+      'nunavut': 'NU',
+    };
+    if (map.containsKey(lower)) {
+      return map[lower]!;
     }
-    return parts.first;
+    if (clean.length == 2) {
+      return clean.toUpperCase();
+    }
+    final match = RegExp(r'^([a-zA-Z]{2})\b').firstMatch(clean);
+    if (match != null) {
+      return match.group(1)!.toUpperCase();
+    }
+    return clean.isNotEmpty ? clean : 'ON';
+  }
+
+  static (String, String) _extractCityAndProvince(String input) {
+    final parts = input.split(RegExp(r'[,;\n]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    if (parts.isEmpty) return ('Amaranth', 'ON');
+
+    String c = 'Amaranth';
+    String p = 'ON';
+
+    if (parts.length == 1) {
+      c = parts.first;
+      final farmState = SettingsService.instance.farmState.trim();
+      p = farmState.isNotEmpty ? normalizeProvince(farmState) : 'ON';
+    } else if (parts.length == 2) {
+      if (RegExp(r'^\d+').hasMatch(parts[0])) {
+        c = parts[1];
+        final farmState = SettingsService.instance.farmState.trim();
+        p = farmState.isNotEmpty ? normalizeProvince(farmState) : 'ON';
+      } else {
+        c = parts[0];
+        p = normalizeProvince(parts[1]);
+      }
+    } else {
+      if (RegExp(r'^\d+').hasMatch(parts[0])) {
+        c = parts[1];
+        p = normalizeProvince(parts[2]);
+      } else {
+        c = parts[0];
+        p = normalizeProvince(parts[1]);
+      }
+    }
+
+    return (c, p);
+  }
+
+  String get cleanDam => (damName.trim().isNotEmpty && damName != '—' && damName != '-') ? damName.trim() : 'Unknown';
+  String get cleanSire => (sireName.trim().isNotEmpty && sireName != '—' && sireName != '-') ? sireName.trim() : 'Unknown';
+
+  bool get areParentsTooLong {
+    return (cleanDam.length + cleanSire.length > 18) || cleanDam.length > 12 || cleanSire.length > 12;
   }
 
   String get parentsSentence {
-    final cleanDam = (damName.trim().isNotEmpty && damName != '—') ? damName.trim() : 'Unknown';
-    final cleanSire = (sireName.trim().isNotEmpty && sireName != '—') ? sireName.trim() : 'Unknown';
-    return 'Dam $cleanDam X Sire $cleanSire';
+    return 'Dam $cleanDam\nSire $cleanSire';
   }
+
+  String get damSentence => 'Dam $cleanDam';
+  String get sireSentence => 'Sire $cleanSire';
 }

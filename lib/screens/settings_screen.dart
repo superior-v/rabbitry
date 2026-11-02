@@ -3735,7 +3735,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         content: Text('Task deleted'),
         backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+        duration: Duration(milliseconds: 800),
       ),
     );
   }
@@ -3752,7 +3752,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         content: Text('Task removed from directory'),
         backgroundColor: Color(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+        duration: Duration(milliseconds: 800),
       ),
     );
   }

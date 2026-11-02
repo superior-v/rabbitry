@@ -72,7 +72,7 @@ class ToastUtils {
             ],
           ),
         ),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 800),
       ),
     );
   }

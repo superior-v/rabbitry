@@ -362,7 +362,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
+      height: screenHeight * 0.85,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -370,10 +373,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: Column(
+        children: [
             // Top Lilac Header Banner (matches consistency.jpg)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -437,10 +438,12 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
-            // Inner Lilac Wash Box
-            Padding(
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Form(
                 key: _formKey,
@@ -759,9 +762,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                 ),
               ),
             ),
+              ),
+            ),
           ],
         ),
-      ),
     );
   }
 }
