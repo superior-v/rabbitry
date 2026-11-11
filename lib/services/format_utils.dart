@@ -280,7 +280,17 @@ class FormatUtils {
   /// If the kit is reserved, only the purchaser name is displayed (e.g. "Reserved: John Doe" or preserved fostered prefix).
   static String formatDisplayKitDetails(String? details) {
     if (details == null || details.trim().isEmpty) return '';
-    final trimmed = details.trim();
+    String trimmed = details.trim();
+
+    // Remove Added to Herd
+    trimmed = trimmed
+        .replaceAll(RegExp(r'•?\s*Added to Herd\s*(\([^)]*\))?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'•?\s*Added to herd\s*(\([^)]*\))?', caseSensitive: false), '')
+        .replaceAll(RegExp(r'^[•\s\-\:]+|[•\s\-\:]+$'), '')
+        .trim();
+
+    if (trimmed.isEmpty) return '';
+
     if (!trimmed.toLowerCase().contains('reserved:')) {
       return trimmed;
     }

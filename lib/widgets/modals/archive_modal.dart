@@ -249,9 +249,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             decoration: const BoxDecoration(
-              color: kLilacLight,
+              color: Color(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              border: Border(bottom: BorderSide(color: kLilac, width: 1)),
             ),
             child: Column(
               children: [
@@ -330,7 +329,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: _buildCategoryRadio('Butchered', ArchiveReason.butchered)),
+                      Expanded(child: _buildCategoryRadio('Butcher', ArchiveReason.butchered)),
                       const SizedBox(width: 6),
                       Expanded(child: _buildCategoryRadio('Stud', ArchiveReason.stud)),
                       const SizedBox(width: 6),

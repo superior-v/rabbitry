@@ -35,7 +35,8 @@ class PedigreeLayout {
   static const String fontTitleAsset = 'assets/fonts/MrDeHaviland-Regular.ttf';
   static const String fontBadgeAsset = 'assets/fonts/EBGaramond-Regular.ttf';
   static const String fontDetailsAsset = 'assets/fonts/PT_Sans-Web-Regular.ttf';
-  static const String fontDetailsBoldAsset = 'assets/fonts/PT_Sans-Web-Bold.ttf';
+  // No bold anywhere on the pedigree: the "bold" slot maps to the regular face
+  static const String fontDetailsBoldAsset = 'assets/fonts/PT_Sans-Web-Regular.ttf';
   static const String fontSignatureAsset = 'assets/fonts/MrsSaintDelafield-Regular.ttf';
 
   // Font family names registered in pubspec.yaml
@@ -97,6 +98,8 @@ class PedigreeLayout {
 
   // ─── HEADER SPEC ────────────────────────────────────────────────────────────
   static const double farmTitleLeft = 0.0262;
+  // Shared left edge for farm name + contact lines (aligned with subject box)
+  static const double pedigreeHeaderLeft = 0.0313;
   static const double farmTitleCenterY = 0.0697;
   static const double farmTitleBoxHeight = 0.0650;
   static const double farmTitleMaxWidth = 0.3500;
@@ -219,6 +222,8 @@ class PedigreeData {
   final String farmAddress;
   final String farmEmail;
   final String farmPhone;
+  final String farmWebsite;
+  final String farmSocialLink;
   final String ownerName;
 
   // Subject rabbit
@@ -231,6 +236,9 @@ class PedigreeData {
   final String subjectWeight;
   final String subjectRegNo;
   final String subjectLegs;
+  final String subjectGenotype;
+  final String soldTo;
+  final String soldOn;
   final String? subjectPhotoPath;
 
   // 4-Generation Pedigree Tree Root
@@ -244,6 +252,8 @@ class PedigreeData {
     required this.farmAddress,
     required this.farmEmail,
     required this.farmPhone,
+    this.farmWebsite = '',
+    this.farmSocialLink = '',
     required this.ownerName,
     required this.subjectName,
     required this.subjectBreed,
@@ -254,6 +264,9 @@ class PedigreeData {
     required this.subjectWeight,
     required this.subjectRegNo,
     required this.subjectLegs,
+    this.subjectGenotype = '',
+    this.soldTo = '',
+    this.soldOn = '',
     this.subjectPhotoPath,
     this.tree,
     this.orientation = PedigreeOrientation.landscape,
@@ -266,6 +279,8 @@ class PedigreeData {
     String? farmAddress,
     String? farmEmail,
     String? farmPhone,
+    String? farmWebsite,
+    String? farmSocialLink,
     String? ownerName,
     String? subjectName,
     String? subjectBreed,
@@ -276,6 +291,9 @@ class PedigreeData {
     String? subjectWeight,
     String? subjectRegNo,
     String? subjectLegs,
+    String? subjectGenotype,
+    String? soldTo,
+    String? soldOn,
     String? subjectPhotoPath,
     PedigreeRabbit? tree,
     PedigreeOrientation? orientation,
@@ -285,6 +303,8 @@ class PedigreeData {
       farmAddress: farmAddress ?? this.farmAddress,
       farmEmail: farmEmail ?? this.farmEmail,
       farmPhone: farmPhone ?? this.farmPhone,
+      farmWebsite: farmWebsite ?? this.farmWebsite,
+      farmSocialLink: farmSocialLink ?? this.farmSocialLink,
       ownerName: ownerName ?? this.ownerName,
       subjectName: subjectName ?? this.subjectName,
       subjectBreed: subjectBreed ?? this.subjectBreed,
@@ -295,6 +315,9 @@ class PedigreeData {
       subjectWeight: subjectWeight ?? this.subjectWeight,
       subjectRegNo: subjectRegNo ?? this.subjectRegNo,
       subjectLegs: subjectLegs ?? this.subjectLegs,
+      subjectGenotype: subjectGenotype ?? this.subjectGenotype,
+      soldTo: soldTo ?? this.soldTo,
+      soldOn: soldOn ?? this.soldOn,
       subjectPhotoPath: subjectPhotoPath ?? this.subjectPhotoPath,
       tree: tree ?? this.tree,
       orientation: orientation ?? this.orientation,
@@ -310,6 +333,7 @@ class PedigreeData {
   }) async {
     final database = db ?? DatabaseService();
     final appSettings = settings ?? SettingsService.instance;
+    await appSettings.init();
 
     final tree = await database.buildPedigreeTree(rabbit.id,
         maxGenerations: 4, initialRabbit: rabbit);
@@ -328,12 +352,42 @@ class PedigreeData {
         : '';
     final photo = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
 
+    final showAddress = appSettings.pedigreeShowAddress;
+    final showCityStatePostal = appSettings.pedigreeShowCityStatePostal;
+    final street = appSettings.farmStreetAddress;
+    final cityStateZip = appSettings.farmCityStateZip;
+    String resolvedAddress = [
+      if (showAddress && street.isNotEmpty) street,
+      if (showCityStatePostal && cityStateZip.isNotEmpty) cityStateZip,
+    ].join(', ');
+    if (resolvedAddress.isEmpty && showAddress && showCityStatePostal) {
+      resolvedAddress = appSettings.farmAddress.trim();
+    }
+
+    final isSold = rabbit.archiveReason == ArchiveReason.sold ||
+        (rabbit.buyerInfo?.trim().isNotEmpty ?? false);
+    final soldToVal =
+        appSettings.pedigreeShowSoldTo ? (rabbit.buyerInfo?.trim() ?? '') : '';
+    final soldOnVal = (appSettings.pedigreeShowSoldOn &&
+            isSold &&
+            rabbit.archiveDate != null)
+        ? FormatUtils.formatCertificateDate(rabbit.archiveDate!)
+        : '';
+
     return PedigreeData(
       farmName: appSettings.farmName.trim(),
-      farmAddress: appSettings.farmAddress.trim(),
-      farmEmail: appSettings.farmEmail.trim(),
-      farmPhone: appSettings.farmPhone.trim(),
-      ownerName: appSettings.ownerName.trim(),
+      farmAddress: resolvedAddress,
+      farmEmail:
+          appSettings.pedigreeShowEmail ? appSettings.farmEmail.trim() : '',
+      farmPhone:
+          appSettings.pedigreeShowPhone ? appSettings.farmPhone.trim() : '',
+      farmWebsite:
+          appSettings.pedigreeShowWebsite ? appSettings.farmWebsite.trim() : '',
+      farmSocialLink: appSettings.pedigreeShowSocialLink
+          ? appSettings.farmSocialLink.trim()
+          : '',
+      ownerName:
+          appSettings.pedigreeShowOwnerName ? appSettings.ownerName.trim() : '',
       subjectName: rabbit.name.trim(),
       subjectBreed: rabbit.breed.trim(),
       subjectColor: rabbit.color?.trim() ?? '',
@@ -343,6 +397,11 @@ class PedigreeData {
       subjectWeight: weight,
       subjectRegNo: regNo,
       subjectLegs: legs,
+      subjectGenotype: appSettings.pedigreeShowGenotype
+          ? (rabbit.genetics?.trim() ?? '')
+          : '',
+      soldTo: soldToVal,
+      soldOn: soldOnVal,
       subjectPhotoPath: photo,
       tree: tree,
       orientation: orientation,

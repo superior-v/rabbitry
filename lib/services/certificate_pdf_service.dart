@@ -135,12 +135,12 @@ class CertificatePdfService {
                   ),
                 ),
 
-                // Layer 6: Row 4 - DOB
+                // Layer 6: Row 4 - Date of birth
                 pw.Positioned(
                   left: CertificateLayout.detailsLeftPt,
                   top: CertificateLayout.row4TopPt,
                   child: pw.Text(
-                    'DOB: ${data.dob}',
+                    'Date of birth: ${data.dob}',
                     style: pw.TextStyle(
                       font: fontDetails,
                       fontSize: CertificateLayout.detailsFontSizePt,
@@ -149,10 +149,24 @@ class CertificatePdfService {
                   ),
                 ),
 
-                // Layer 7: Row 5 - Sex
+                // Layer 7: Row 5 - Place of birth
                 pw.Positioned(
                   left: CertificateLayout.detailsLeftPt,
                   top: CertificateLayout.row5TopPt,
+                  child: pw.Text(
+                    'Place of birth: ${data.placeOfBirth}',
+                    style: pw.TextStyle(
+                      font: fontDetails,
+                      fontSize: CertificateLayout.detailsFontSizePt,
+                      color: CertificateLayout.pdfColorDetailsPhoto,
+                    ),
+                  ),
+                ),
+
+                // Layer 8: Row 6 - Sex
+                pw.Positioned(
+                  left: CertificateLayout.detailsLeftPt,
+                  top: CertificateLayout.row6TopPt,
                   child: pw.Text(
                     'Sex: ${data.sex}',
                     style: pw.TextStyle(
@@ -163,33 +177,65 @@ class CertificatePdfService {
                   ),
                 ),
 
-                // Layer 8: Row 6 - Dam & Sire
+                // Layer 9: Row 7 - Dam & Sire (names aligned under each other)
                 pw.Positioned(
                   left: CertificateLayout.detailsLeftPt,
-                  top: CertificateLayout.row6TopPt - 2.0,
+                  top: CertificateLayout.row7TopPt,
                   child: pw.Container(
                     width: CertificateLayout.pageColorPhotoWidthPt - CertificateLayout.detailsLeftPt - 28.0,
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text(
-                          data.damSentence,
-                          style: pw.TextStyle(
-                            font: fontDetails,
-                            fontSize: CertificateLayout.detailsFontSizePt * (data.cleanDam.length > 20 ? 0.85 : 1.0),
-                            color: CertificateLayout.pdfColorDetailsPhoto,
-                          ),
-                          maxLines: 1,
+                        pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.SizedBox(
+                              width: CertificateLayout.parentLabelWidthPt,
+                              child: pw.Text(
+                                'Dam:',
+                                style: pw.TextStyle(
+                                  font: fontDetails,
+                                  fontSize: CertificateLayout.detailsFontSizePt,
+                                  color: CertificateLayout.pdfColorDetailsPhoto,
+                                ),
+                              ),
+                            ),
+                            pw.Text(
+                              data.cleanDam,
+                              style: pw.TextStyle(
+                                font: fontDetails,
+                                fontSize: CertificateLayout.detailsFontSizePt * (data.cleanDam.length > 20 ? 0.85 : 1.0),
+                                color: CertificateLayout.pdfColorDetailsPhoto,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                         pw.SizedBox(height: 2.0),
-                        pw.Text(
-                          data.sireSentence,
-                          style: pw.TextStyle(
-                            font: fontDetails,
-                            fontSize: CertificateLayout.detailsFontSizePt * (data.cleanSire.length > 20 ? 0.85 : 1.0),
-                            color: CertificateLayout.pdfColorDetailsPhoto,
-                          ),
-                          maxLines: 1,
+                        pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.SizedBox(
+                              width: CertificateLayout.parentLabelWidthPt,
+                              child: pw.Text(
+                                'Sire:',
+                                style: pw.TextStyle(
+                                  font: fontDetails,
+                                  fontSize: CertificateLayout.detailsFontSizePt,
+                                  color: CertificateLayout.pdfColorDetailsPhoto,
+                                ),
+                              ),
+                            ),
+                            pw.Text(
+                              data.cleanSire,
+                              style: pw.TextStyle(
+                                font: fontDetails,
+                                fontSize: CertificateLayout.detailsFontSizePt * (data.cleanSire.length > 20 ? 0.85 : 1.0),
+                                color: CertificateLayout.pdfColorDetailsPhoto,
+                              ),
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                       ],
                     ),

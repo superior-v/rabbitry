@@ -51,6 +51,8 @@ class SettingsService {
   String get currency => _prefs?.getString('currency') ?? 'usd';
   String get dateFormat => _prefs?.getString('dateFormat') ?? 'MMM dd, yyyy';
   String get sortDoeBuck => _prefs?.getString('sortDoeBuck') ?? 'Ear Number';
+  String get defaultHerdFilter => _prefs?.getString('defaultHerdFilter') ?? 'All';
+  String get defaultNurseryStage => _prefs?.getString('defaultNurseryStage') ?? 'All';
   bool get darkMode => _prefs?.getBool('darkMode') ?? false;
   bool get notificationsEnabled => _prefs?.getBool('notificationsEnabled') ?? true;
   String get digestTime => _prefs?.getString('digestTime') ?? '07:00';
@@ -61,6 +63,13 @@ class SettingsService {
 
   // Farm info
   String get farmName => _prefs?.getString('farmName') ?? 'Dynasty';
+  String get rabbitryPrefix {
+    final prefix = _prefs?.getString('rabbitryPrefix');
+    if (prefix != null && prefix.trim().isNotEmpty) {
+      return prefix.trim();
+    }
+    return 'SBS';
+  }
   String get ownerName => _prefs?.getString('ownerName') ?? '';
   String? get farmLogo => _prefs?.getString('farmLogo');
   String get farmAddressLine1 => _prefs?.getString('farmAddressLine1') ?? '';
@@ -90,6 +99,35 @@ class SettingsService {
 
   String get farmPhone => _prefs?.getString('farmPhone') ?? '';
   String get farmEmail => _prefs?.getString('farmEmail') ?? '';
+  String get farmWebsite => _prefs?.getString('farmWebsite') ?? '';
+  String get farmSocialLink => _prefs?.getString('farmSocialLink') ?? '';
+
+  String get farmStreetAddress {
+    final parts = <String>[];
+    if (farmAddressLine1.trim().isNotEmpty) parts.add(farmAddressLine1.trim());
+    if (farmAddressLine2.trim().isNotEmpty) parts.add(farmAddressLine2.trim());
+    return parts.join(', ');
+  }
+
+  String get farmCityStateZip {
+    final parts = <String>[];
+    if (farmCity.trim().isNotEmpty) parts.add(farmCity.trim());
+    final stateZip = [farmState.trim(), farmZip.trim()].where((e) => e.isNotEmpty).join(' ');
+    if (stateZip.isNotEmpty) parts.add(stateZip);
+    return parts.join(', ');
+  }
+
+  // Pedigree display toggles
+  bool get pedigreeShowGenotype => _prefs?.getBool('pedigreeShowGenotype') ?? true;
+  bool get pedigreeShowOwnerName => _prefs?.getBool('pedigreeShowOwnerName') ?? true;
+  bool get pedigreeShowAddress => _prefs?.getBool('pedigreeShowAddress') ?? true;
+  bool get pedigreeShowCityStatePostal => _prefs?.getBool('pedigreeShowCityStatePostal') ?? true;
+  bool get pedigreeShowPhone => _prefs?.getBool('pedigreeShowPhone') ?? true;
+  bool get pedigreeShowEmail => _prefs?.getBool('pedigreeShowEmail') ?? true;
+  bool get pedigreeShowWebsite => _prefs?.getBool('pedigreeShowWebsite') ?? true;
+  bool get pedigreeShowSocialLink => _prefs?.getBool('pedigreeShowSocialLink') ?? true;
+  bool get pedigreeShowSoldTo => _prefs?.getBool('pedigreeShowSoldTo') ?? true;
+  bool get pedigreeShowSoldOn => _prefs?.getBool('pedigreeShowSoldOn') ?? true;
 
   // Breeds - stored as JSON array
   static const List<Map<String, String>> _defaultBreeds = [
@@ -423,6 +461,14 @@ class SettingsService {
     await _prefs?.setString('sortDoeBuck', sortOrder);
   }
 
+  Future<void> setDefaultHerdFilter(String filter) async {
+    await _prefs?.setString('defaultHerdFilter', filter);
+  }
+
+  Future<void> setDefaultNurseryStage(String stage) async {
+    await _prefs?.setString('defaultNurseryStage', stage);
+  }
+
   Future<void> setDarkMode(bool enabled) async {
     await _prefs?.setBool('darkMode', enabled);
   }
@@ -446,6 +492,10 @@ class SettingsService {
   // Setters for farm info
   Future<void> setFarmName(String name) async {
     await _prefs?.setString('farmName', name);
+  }
+
+  Future<void> setRabbitryPrefix(String prefix) async {
+    await _prefs?.setString('rabbitryPrefix', prefix.trim());
   }
 
   Future<void> setOwnerName(String name) async {
@@ -496,6 +546,55 @@ class SettingsService {
 
   Future<void> setFarmEmail(String email) async {
     await _prefs?.setString('farmEmail', email);
+  }
+
+  Future<void> setFarmWebsite(String website) async {
+    await _prefs?.setString('farmWebsite', website.trim());
+  }
+
+  Future<void> setFarmSocialLink(String link) async {
+    await _prefs?.setString('farmSocialLink', link.trim());
+  }
+
+  // Pedigree display visibility setters
+  Future<void> setPedigreeShowGenotype(bool show) async {
+    await _prefs?.setBool('pedigreeShowGenotype', show);
+  }
+
+  Future<void> setPedigreeShowOwnerName(bool show) async {
+    await _prefs?.setBool('pedigreeShowOwnerName', show);
+  }
+
+  Future<void> setPedigreeShowAddress(bool show) async {
+    await _prefs?.setBool('pedigreeShowAddress', show);
+  }
+
+  Future<void> setPedigreeShowCityStatePostal(bool show) async {
+    await _prefs?.setBool('pedigreeShowCityStatePostal', show);
+  }
+
+  Future<void> setPedigreeShowPhone(bool show) async {
+    await _prefs?.setBool('pedigreeShowPhone', show);
+  }
+
+  Future<void> setPedigreeShowEmail(bool show) async {
+    await _prefs?.setBool('pedigreeShowEmail', show);
+  }
+
+  Future<void> setPedigreeShowWebsite(bool show) async {
+    await _prefs?.setBool('pedigreeShowWebsite', show);
+  }
+
+  Future<void> setPedigreeShowSocialLink(bool show) async {
+    await _prefs?.setBool('pedigreeShowSocialLink', show);
+  }
+
+  Future<void> setPedigreeShowSoldTo(bool show) async {
+    await _prefs?.setBool('pedigreeShowSoldTo', show);
+  }
+
+  Future<void> setPedigreeShowSoldOn(bool show) async {
+    await _prefs?.setBool('pedigreeShowSoldOn', show);
   }
 
   // Task Screen Notepad Notes
@@ -560,6 +659,18 @@ class SettingsService {
       'farmZip': farmZip,
       'farmPhone': farmPhone,
       'farmEmail': farmEmail,
+      'farmWebsite': farmWebsite,
+      'farmSocialLink': farmSocialLink,
+      'pedigreeShowGenotype': pedigreeShowGenotype,
+      'pedigreeShowOwnerName': pedigreeShowOwnerName,
+      'pedigreeShowAddress': pedigreeShowAddress,
+      'pedigreeShowCityStatePostal': pedigreeShowCityStatePostal,
+      'pedigreeShowPhone': pedigreeShowPhone,
+      'pedigreeShowEmail': pedigreeShowEmail,
+      'pedigreeShowWebsite': pedigreeShowWebsite,
+      'pedigreeShowSocialLink': pedigreeShowSocialLink,
+      'pedigreeShowSoldTo': pedigreeShowSoldTo,
+      'pedigreeShowSoldOn': pedigreeShowSoldOn,
     };
   }
 
@@ -598,5 +709,17 @@ class SettingsService {
     if (settings['farmZip'] != null) await setFarmZip(settings['farmZip']);
     if (settings['farmPhone'] != null) await setFarmPhone(settings['farmPhone']);
     if (settings['farmEmail'] != null) await setFarmEmail(settings['farmEmail']);
+    if (settings['farmWebsite'] != null) await setFarmWebsite(settings['farmWebsite']);
+    if (settings['farmSocialLink'] != null) await setFarmSocialLink(settings['farmSocialLink']);
+    if (settings['pedigreeShowGenotype'] != null) await setPedigreeShowGenotype(settings['pedigreeShowGenotype']);
+    if (settings['pedigreeShowOwnerName'] != null) await setPedigreeShowOwnerName(settings['pedigreeShowOwnerName']);
+    if (settings['pedigreeShowAddress'] != null) await setPedigreeShowAddress(settings['pedigreeShowAddress']);
+    if (settings['pedigreeShowCityStatePostal'] != null) await setPedigreeShowCityStatePostal(settings['pedigreeShowCityStatePostal']);
+    if (settings['pedigreeShowPhone'] != null) await setPedigreeShowPhone(settings['pedigreeShowPhone']);
+    if (settings['pedigreeShowEmail'] != null) await setPedigreeShowEmail(settings['pedigreeShowEmail']);
+    if (settings['pedigreeShowWebsite'] != null) await setPedigreeShowWebsite(settings['pedigreeShowWebsite']);
+    if (settings['pedigreeShowSocialLink'] != null) await setPedigreeShowSocialLink(settings['pedigreeShowSocialLink']);
+    if (settings['pedigreeShowSoldTo'] != null) await setPedigreeShowSoldTo(settings['pedigreeShowSoldTo']);
+    if (settings['pedigreeShowSoldOn'] != null) await setPedigreeShowSoldOn(settings['pedigreeShowSoldOn']);
   }
 }

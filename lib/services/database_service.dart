@@ -650,6 +650,7 @@ class DatabaseService {
         'breederPrefix': 'TEXT',
         'grandChampionNumber': 'TEXT',
         'grandChampionLegs': 'INTEGER',
+        'winnings': 'TEXT',
         'activeInRabbitry': 'INTEGER DEFAULT 1',
       };
       for (final entry in newColumns.entries) {
@@ -1386,6 +1387,7 @@ class DatabaseService {
         'breederPrefix': 'TEXT',
         'grandChampionNumber': 'TEXT',
         'grandChampionLegs': 'INTEGER',
+        'winnings': 'TEXT',
         'activeInRabbitry': 'INTEGER DEFAULT 1',
         'customPalpationDay': 'INTEGER',
         'customNestBoxDay': 'INTEGER',
@@ -1479,19 +1481,26 @@ class DatabaseService {
       whereArgs: [doeId],
     );
 
-    // Delete any obsolete open_breeding / previous breeding tasks for this doe
+    // Delete any obsolete open_breeding / previous breeding tasks for this doe.
+    // If the doe has an active nursing litter, do NOT delete her 'wean' task!
+    final allLitters = await getLitters();
+    final bool isStillNursing = allLitters.any((l) =>
+      l.doeId == doeId &&
+      l.status.toLowerCase() == 'nursing'
+    );
+    final tasksToDelete = [
+      'palpation',
+      'nestbox',
+      'kindle',
+      'open_breeding',
+      'resting',
+      if (!isStillNursing) 'wean',
+    ];
+    final placeholders = List.filled(tasksToDelete.length, '?').join(', ');
     await db.delete(
       'tasks',
-      where: 'rabbitId = ? AND taskType IN (?, ?, ?, ?, ?, ?)',
-      whereArgs: [
-        doeId,
-        'palpation',
-        'nestbox',
-        'kindle',
-        'wean',
-        'open_breeding',
-        'resting',
-      ],
+      where: 'rabbitId = ? AND taskType IN ($placeholders)',
+      whereArgs: [doeId, ...tasksToDelete],
     );
 
     // Create tasks based on pipeline settings
@@ -1619,6 +1628,8 @@ class DatabaseService {
           'lastBreedBuckId': null,
           'palpationDate': null,
           'dueDate': null,
+          'fallOffs': null,
+          'breedingNotes': null,
           'updatedAt': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
@@ -1900,6 +1911,8 @@ class DatabaseService {
         'kindleDate': null,
         'currentLitterSize': null,
         'weanDate': null,
+        'fallOffs': null,
+        'breedingNotes': null,
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
@@ -1925,6 +1938,8 @@ class DatabaseService {
         'kindleDate': null,
         'currentLitterSize': null,
         'weanDate': null,
+        'fallOffs': null,
+        'breedingNotes': null,
         'updatedAt': DateTime.now().toIso8601String(),
       },
       where: 'id = ?',
@@ -1958,6 +1973,12 @@ class DatabaseService {
   ) async {
     final db = await database;
     final endDate = DateTime.now().add(Duration(days: days));
+
+    final existing = await getRabbit(rabbitId);
+    if (existing != null && existing.status != RabbitStatus.quarantine) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pre_quarantine_status_$rabbitId', existing.status.toString());
+    }
 
     await db.update(
       'rabbits',
@@ -2005,6 +2026,7 @@ class DatabaseService {
     final db = await database;
     final updates = <String, dynamic>{
       'status': newStatus.toString(),
+      'activeInRabbitry': 1,
       'quarantineStartDate': null,
       'quarantineEndDate': null,
       'quarantineReason': null,
@@ -2016,6 +2038,9 @@ class DatabaseService {
     }
 
     await db.update('rabbits', updates, where: 'id = ?', whereArgs: [rabbitId]);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('pre_quarantine_status_$rabbitId');
+    notifyDataChanged();
     print('✅ Ended quarantine for $rabbitId');
   }
 
@@ -2255,9 +2280,11 @@ class DatabaseService {
     final rabbitName = customName ?? 'Kit ${kit.id}';
 
     // Create the new rabbit
+    final savedPrefix = SettingsService.instance.rabbitryPrefix.trim();
     final newRabbit = Rabbit(
       id: newRabbitId,
       name: rabbitName,
+      breederPrefix: savedPrefix.isNotEmpty ? savedPrefix.toUpperCase() : 'SBS',
       type: rabbitType,
       status: status ?? RabbitStatus.open, // Default to Active breeder if not specified
       breed: breed ?? litter.breed,
@@ -3015,8 +3042,27 @@ class DatabaseService {
       final bool isCurrentSurrogate = updatedKit.id.startsWith('foster_') ||
           updatedKit.id.startsWith('F-') ||
           detailsText.toLowerCase().contains('fostered from');
-      final bool isCurrentBiological = updatedKit.status.toLowerCase() == 'fostered' ||
+      bool isCurrentBiological = updatedKit.status.toLowerCase() == 'fostered' ||
           detailsText.toLowerCase().contains('fostered to');
+
+      // Also check if any other litter in database has a kit fostered from this kit in this litter
+      if (!isCurrentSurrogate && !isCurrentBiological) {
+        final hasFosterCounterpart = allLitters.any((l) =>
+          l.id != currentLitter.id &&
+          l.kits.any((k) =>
+            k.id.toLowerCase() == 'foster_${currentLitter.id.toLowerCase()}_${updatedKit.id.toLowerCase()}' ||
+            (k.id.toLowerCase().startsWith('foster_${currentLitter.id.toLowerCase()}_') &&
+             k.id.replaceAll(RegExp(r'[^0-9]'), '') == updatedKit.id.replaceAll(RegExp(r'[^0-9]'), '')) ||
+            (k.details != null &&
+             k.details!.toLowerCase().contains('fostered from') &&
+             (k.details!.toLowerCase().contains(currentLitter.doeName.toLowerCase()) ||
+              k.details!.toLowerCase().contains(currentLitter.id.toLowerCase())))
+          )
+        );
+        if (hasFosterCounterpart) {
+          isCurrentBiological = true;
+        }
+      }
 
       if (!isCurrentSurrogate && !isCurrentBiological) return;
 
@@ -3030,35 +3076,67 @@ class DatabaseService {
 
       final userNote = extractUserNote(detailsText);
 
+      bool kitIdsMatch(String id1, String id2, [String? sourceLitterId]) {
+        final clean1 = id1.trim().toLowerCase();
+        final clean2 = id2.trim().toLowerCase();
+        if (clean1 == clean2) return true;
+
+        String stripFoster(String id) {
+          if (id.startsWith('foster_')) {
+            final parts = id.split('_');
+            if (parts.length >= 3) {
+              return parts.sublist(2).join('_').toLowerCase();
+            }
+            return id.replaceFirst('foster_', '').toLowerCase();
+          }
+          return id.toLowerCase();
+        }
+
+        final s1 = stripFoster(clean1);
+        final s2 = stripFoster(clean2);
+        if (s1 == s2) return true;
+
+        final num1 = s1.replaceAll(RegExp(r'[^0-9]'), '');
+        final num2 = s2.replaceAll(RegExp(r'[^0-9]'), '');
+        if (num1.isNotEmpty && num2.isNotEmpty && num1 == num2) {
+          return true;
+        }
+        return false;
+      }
+
       if (isCurrentSurrogate) {
         // Kit being edited is in surrogate litter -> find biological mother's litter
         Litter? birthLitter;
-        String? originalKitId;
-
         if (updatedKit.id.startsWith('foster_')) {
-          for (final l in allLitters.where((l) => l.id != currentLitter.id)) {
-            if (updatedKit.id.startsWith('foster_${l.id}_')) {
-              birthLitter = l;
-              originalKitId = updatedKit.id.substring('foster_${l.id}_'.length);
-              break;
-            }
+          final parts = updatedKit.id.split('_');
+          if (parts.length >= 3) {
+            final birthLitterId = parts[1];
+            birthLitter = allLitters.where((l) => l.id == birthLitterId && l.id != currentLitter.id).firstOrNull;
           }
         }
 
         if (birthLitter == null) {
           final matchFrom = RegExp(r'Fostered from ([^\n•\[]+)', caseSensitive: false).firstMatch(detailsText);
           if (matchFrom != null) {
-            final origName = matchFrom.group(1)?.trim().toLowerCase();
-            if (origName != null && origName.isNotEmpty) {
+            final origName = matchFrom.group(1)?.trim().toLowerCase() ?? '';
+            if (origName.isNotEmpty) {
               birthLitter = allLitters.where((l) =>
                 l.id != currentLitter.id &&
-                (l.doeName.toLowerCase() == origName ||
+                (l.id.toLowerCase() == origName ||
+                 l.doeName.toLowerCase() == origName ||
                  l.dam.toLowerCase() == origName ||
                  l.doeName.toLowerCase().contains(origName) ||
                  origName.contains(l.doeName.toLowerCase()))
               ).firstOrNull;
             }
           }
+        }
+
+        if (birthLitter == null) {
+          birthLitter = allLitters.where((l) =>
+            l.id != currentLitter.id &&
+            l.kits.any((k) => kitIdsMatch(k.id, updatedKit.id, l.id))
+          ).firstOrNull;
         }
 
         birthLitter ??= allLitters.where((l) =>
@@ -3072,52 +3150,57 @@ class DatabaseService {
               ? 'Fostered to $fosterDoeName • $userNote'
               : 'Fostered to $fosterDoeName';
 
-          bool matched = false;
-          final updatedBirthKits = birthLitter.kits.map((k) {
-            final bool isMatch = !matched && (
-              (originalKitId != null && k.id == originalKitId) ||
-              k.id == updatedKit.id ||
-              k.status.toLowerCase() == 'fostered'
-            );
-            if (isMatch) {
-              matched = true;
-              return k.copyWith(
-                name: updatedKit.name,
-                sex: updatedKit.sex,
-                color: updatedKit.color,
-                weight: updatedKit.weight,
-                imagePath: updatedKit.imagePath,
-                details: birthDetails,
-              );
+          int targetKitIndex = birthLitter.kits.indexWhere((k) => kitIdsMatch(k.id, updatedKit.id, birthLitter!.id));
+          if (targetKitIndex == -1) {
+            final fosteredKits = birthLitter.kits.where((k) => k.status.toLowerCase() == 'fostered').toList();
+            if (fosteredKits.length == 1) {
+              targetKitIndex = birthLitter.kits.indexOf(fosteredKits.first);
             }
-            return k;
-          }).toList();
+          }
 
-          if (matched) {
+          if (targetKitIndex != -1) {
+            final oldKit = birthLitter.kits[targetKitIndex];
+            final updatedBirthKits = List<Kit>.from(birthLitter.kits);
+            updatedBirthKits[targetKitIndex] = oldKit.copyWith(
+              name: updatedKit.name,
+              sex: updatedKit.sex,
+              color: updatedKit.color,
+              weight: updatedKit.weight,
+              imagePath: updatedKit.imagePath,
+              details: birthDetails,
+            );
             await updateLitter(birthLitter.copyWith(kits: updatedBirthKits));
           }
         }
       } else if (isCurrentBiological) {
         // Kit being edited is in biological mother's litter -> find surrogate mother's litter
         Litter? surrogateLitter;
-        final expectedFosterId = 'foster_${currentLitter.id}_${updatedKit.id}';
 
+        // Strategy 1: Check for exact foster ID: foster_<currentLitter.id>_<updatedKit.id>
+        final expectedFosterId = 'foster_${currentLitter.id}_${updatedKit.id}'.toLowerCase();
         surrogateLitter = allLitters.where((l) =>
           l.id != currentLitter.id &&
-          l.kits.any((k) => k.id == expectedFosterId || k.id == updatedKit.id)
+          l.kits.any((k) => k.id.trim().toLowerCase() == expectedFosterId)
         ).firstOrNull;
 
+        // Strategy 2: Check by target doe name in details (Fostered to <name>)
         if (surrogateLitter == null) {
           final matchTo = RegExp(r'Fostered to ([^\n•\[]+)', caseSensitive: false).firstMatch(detailsText);
           if (matchTo != null) {
-            final targetName = matchTo.group(1)?.trim().toLowerCase();
-            if (targetName != null && targetName.isNotEmpty) {
+            final targetName = matchTo.group(1)?.trim().toLowerCase() ?? '';
+            if (targetName.isNotEmpty) {
               surrogateLitter = allLitters.where((l) =>
                 l.id != currentLitter.id &&
-                (l.doeName.toLowerCase() == targetName ||
+                (l.id.toLowerCase() == targetName ||
+                 l.doeName.toLowerCase() == targetName ||
                  l.dam.toLowerCase() == targetName ||
                  l.doeName.toLowerCase().contains(targetName) ||
-                 targetName.contains(l.doeName.toLowerCase()))
+                 targetName.contains(l.doeName.toLowerCase())) &&
+                l.kits.any((k) =>
+                  k.id.startsWith('foster_') ||
+                  k.id.startsWith('F-') ||
+                  (k.details != null && k.details!.toLowerCase().contains('fostered from'))
+                )
               ).firstOrNull;
             }
           }
@@ -3131,7 +3214,9 @@ class DatabaseService {
               (k.id.startsWith('foster_') || k.id.startsWith('F-')) &&
               k.details != null &&
               k.details!.toLowerCase().contains('fostered from') &&
-              (birthDamName.isEmpty || k.details!.toLowerCase().contains(birthDamName.toLowerCase()))
+              (birthDamName.isEmpty ||
+               k.details!.toLowerCase().contains(birthDamName.toLowerCase()) ||
+               k.details!.toLowerCase().contains(currentLitter.id.toLowerCase()))
             )
           ).firstOrNull;
         }
@@ -3142,29 +3227,56 @@ class DatabaseService {
               ? 'Fostered from $birthDamName • $userNote'
               : 'Fostered from $birthDamName';
 
-          bool matched = false;
-          final updatedSurrogateKits = surrogateLitter.kits.map((k) {
-            final bool isMatch = !matched && (
-              k.id == expectedFosterId ||
-              k.id == updatedKit.id ||
-              (k.details != null && k.details!.toLowerCase().contains('fostered from'))
-            );
-            if (isMatch) {
-              matched = true;
-              return k.copyWith(
-                name: updatedKit.name,
-                sex: updatedKit.sex,
-                color: updatedKit.color,
-                weight: updatedKit.weight,
-                imagePath: updatedKit.imagePath,
-                details: surrogateDetails,
-              );
-            }
-            return k;
-          }).toList();
+          final targetNum = updatedKit.id.replaceAll(RegExp(r'[^0-9]'), '');
 
-          if (matched) {
+          // IMPORTANT: Only match kits in surrogate litter that are ACTUALLY FOSTERED-IN!
+          int targetKitIndex = surrogateLitter.kits.indexWhere((k) {
+            final isFosteredIn = k.id.startsWith('foster_') ||
+                k.id.startsWith('F-') ||
+                (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+            if (!isFosteredIn) return false;
+
+            final kIdLower = k.id.trim().toLowerCase();
+            if (kIdLower == expectedFosterId) return true;
+            if (kIdLower == updatedKit.id.trim().toLowerCase()) return true;
+
+            // Check if foster prefix stripped matches
+            if (k.id.startsWith('foster_')) {
+              final parts = k.id.split('_');
+              final origId = parts.length >= 3 ? parts.sublist(2).join('_').toLowerCase() : k.id.replaceFirst('foster_', '').toLowerCase();
+              if (origId == updatedKit.id.trim().toLowerCase()) return true;
+              final num = origId.replaceAll(RegExp(r'[^0-9]'), '');
+              if (num.isNotEmpty && targetNum.isNotEmpty && num == targetNum) return true;
+            }
+            return false;
+          });
+
+          if (targetKitIndex == -1) {
+            // If only one fostered-in kit exists in surrogate litter from this mother, match it
+            final surrogateFosteredKits = surrogateLitter.kits.where((k) =>
+              k.id.toLowerCase().startsWith('foster_${currentLitter.id.toLowerCase()}_') ||
+              (k.details != null &&
+               k.details!.toLowerCase().contains('fostered from') &&
+               (birthDamName.isEmpty || k.details!.toLowerCase().contains(birthDamName.toLowerCase())))
+            ).toList();
+            if (surrogateFosteredKits.length == 1) {
+              targetKitIndex = surrogateLitter.kits.indexOf(surrogateFosteredKits.first);
+            }
+          }
+
+          if (targetKitIndex != -1) {
+            final oldKit = surrogateLitter.kits[targetKitIndex];
+            final updatedSurrogateKits = List<Kit>.from(surrogateLitter.kits);
+            updatedSurrogateKits[targetKitIndex] = oldKit.copyWith(
+              name: updatedKit.name,
+              sex: updatedKit.sex,
+              color: updatedKit.color,
+              weight: updatedKit.weight,
+              imagePath: updatedKit.imagePath,
+              details: surrogateDetails,
+            );
             await updateLitter(surrogateLitter.copyWith(kits: updatedSurrogateKits));
+            print('✅ Synchronized foster kit edit to surrogate litter ${surrogateLitter.id} kit ${oldKit.id}');
           }
         }
       }
@@ -5904,6 +6016,7 @@ class DatabaseService {
       registrationNumber: rabbit.registrationNumber,
       earNumber: rabbit.earNumber,
       legs: rabbit.grandChampionLegs,
+      winnings: rabbit.winnings,
       dateOfBirth: rabbit.dateOfBirth,
       sex: rabbit.type == RabbitType.doe ? 'Doe' : 'Buck',
       profileImage: (rabbit.photos != null && rabbit.photos!.isNotEmpty)

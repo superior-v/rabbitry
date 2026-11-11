@@ -1323,14 +1323,14 @@ class TaskScreenState extends State<TaskScreen> {
     Color headerBg = const Color(0xFFF2F2F7);
     Color headerBorder = const Color(0xFFE5E5EA);
     if (title.toUpperCase().contains('TODAY')) {
-      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
-      headerBorder = const Color(0xFFC0EFC0);
+      headerBg = const Color(0xFFFFBCE7); // Pink color from Home page
+      headerBorder = const Color(0xFFFFBCE7);
     } else if (title.toUpperCase().contains('UPCOMING')) {
       headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
       headerBorder = const Color(0xFFBAE5FD);
     } else if (title.toUpperCase().contains('ARCHIVE')) {
-      headerBg = const Color(0xFFFFBCE7); // Light pink from Home page (kHeaderPink)
-      headerBorder = const Color(0xFFFFBCE7);
+      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
+      headerBorder = const Color(0xFFC0EFC0);
     }
 
     return GestureDetector(
@@ -1557,6 +1557,18 @@ class TaskScreenState extends State<TaskScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Auto Saved',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF787774),
+              ),
+            ),
+          ),
           const SizedBox(height: 100),
         ],
       ),
@@ -1591,231 +1603,192 @@ class TaskScreenState extends State<TaskScreen> {
     // 4 Class calculations
     final senior4Breed = _formatCalDate(_subtractMonths(_breedingShowDate, 7));
 
+    Widget buildCalItem(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF3A3A3C),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+              ),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF787774),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildClassCard(String title, List<Widget> items) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              color: const Color(0xFFEADBEE),
+              child: Center(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF2C2C2E),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: items,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       color: Colors.white,
       child: ListView(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
-          // Header Bar matching BreedingCal.jpg
+          // Header Bar matching Breeding Calculator.jpg: Home Page Pink
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF65D8F7),
-              borderRadius: BorderRadius.circular(6),
+              color: const Color(0xFFFFBCE7), // Home Page Pink
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Text(
-              'When to Breed',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1C1C1E),
-                letterSpacing: 0.2,
+            child: const Center(
+              child: Text(
+                'Breeding Date Calculator',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
+                  letterSpacing: 0.2,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
-          // Date Selector Field (Show Date)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _breedingShowDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2040),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: Color(0xFF65D8F7),
-                          onPrimary: Colors.white,
-                          onSurface: Color(0xFF2C2C2E),
+          // Date Selector Field (Show Date) matching Breeding Calculator.jpg
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Enter show date',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2C2C2E),
+                ),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _breedingShowDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2040),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: Color(0xFFEADBEE),
+                            onPrimary: Color(0xFF2C2C2E),
+                            onSurface: Color(0xFF2C2C2E),
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    setState(() => _breedingShowDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        DateFormat('MM-dd-yyyy').format(_breedingShowDate),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2C2C2E),
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (picked != null) {
-                  setState(() => _breedingShowDate = picked);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      DateFormat('MM-dd-yyyy').format(_breedingShowDate),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C2C2E),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF787774)),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF787774)),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-
-          // Informational Text
-          const Text(
-            'Select the date of an upcoming show to see when breedings need to be done to have rabbits of each class for that show.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF3A3A3C),
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Dates are calculated assuming the litter is born on the due date. Adjust dates for does that normally go early or late.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF3A3A3C),
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // 6 Class Card
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(
-                  child: Text(
-                    '6 Class',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5EA)),
-                const SizedBox(height: 10),
-
-                // For Seniors
-                const Text(
-                  'For Seniors:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed before $senior6Breed',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-                const SizedBox(height: 10),
-
-                // For Intermediates
-                const Text(
-                  'For Intermediates:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed between $intermediate6Start & $intermediate6End',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-                const SizedBox(height: 10),
-
-                // For Juniors 4 - 5 months old
-                const Text(
-                  'For Juniors 4 – 5 months old:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed between $juniorStart & $juniorEnd',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-                const SizedBox(height: 10),
-
-                // For Meat Pens within 10 weeks old
-                const Text(
-                  'For Meat Pens within 10 weeks old:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed beginning $meatPenBreed',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-              ],
-            ),
+          buildClassCard(
+            '6 Class',
+            [
+              buildCalItem('Seniors', 'Before : $senior6Breed'),
+              buildCalItem('Intermediates', 'Between : $intermediate6Start & $intermediate6End'),
+              buildCalItem('Juniors 4 – 5 mon', 'Between : $juniorStart & $juniorEnd'),
+              buildCalItem('Meat Pens under 10 wks', 'Starting : $meatPenBreed'),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // 4 Class Card
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(
-                  child: Text(
-                    '4 Class',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5EA)),
-                const SizedBox(height: 10),
-
-                // For Seniors
-                const Text(
-                  'For Seniors:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed before $senior4Breed',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-                const SizedBox(height: 10),
-
-                // For Juniors 4 - 5 months old
-                const Text(
-                  'For Juniors 4 – 5 months old:',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Breed between $juniorStart & $juniorEnd',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3A3A3C)),
-                ),
-              ],
-            ),
+          buildClassCard(
+            '4 Class',
+            [
+              buildCalItem('Seniors', 'Before : $senior4Breed'),
+              buildCalItem('Juniors 4 – 5 mon', 'Between : $juniorStart & $juniorEnd'),
+              buildCalItem('Meat Pens under 10 wks', 'Starting : $meatPenBreed'),
+            ],
           ),
           const SizedBox(height: 100),
         ],
@@ -3209,14 +3182,17 @@ class TaskScreenState extends State<TaskScreen> {
 
     for (final item in _waitlist) {
       final breedStr = (item['breed']?.toString() ?? '').trim();
-      var displayBreed = breedStr.isNotEmpty ? breedStr : 'General / Any Breed';
-      final lower = displayBreed.toLowerCase();
-      if (lower == 'netherlands' || lower == 'netherland dwarfs' || lower == 'netherland dwarf') {
-        displayBreed = 'Netherland Dwarf';
+      var breeds = breedStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (breeds.isEmpty) breeds = ['General / Any Breed'];
+      for (var displayBreed in breeds) {
+        final lower = displayBreed.toLowerCase();
+        if (lower == 'netherlands' || lower == 'netherland dwarfs' || lower == 'netherland dwarf') {
+          displayBreed = 'Netherland Dwarf';
+        }
+        final normKey = displayBreed.toLowerCase();
+        canonicalBreedNames.putIfAbsent(normKey, () => displayBreed);
+        waitlistByBreed.putIfAbsent(normKey, () => []).add(item);
       }
-      final normKey = displayBreed.toLowerCase();
-      canonicalBreedNames.putIfAbsent(normKey, () => displayBreed);
-      waitlistByBreed.putIfAbsent(normKey, () => []).add(item);
     }
 
     final sortedKeys = waitlistByBreed.keys.toList()
@@ -3362,7 +3338,13 @@ class TaskScreenState extends State<TaskScreen> {
                     if (deposit.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        deposit.toLowerCase().startsWith('deposit') ? deposit : 'Deposit: ',
+                        () {
+                          final clean = deposit.replaceFirst(RegExp(r'^deposit:?\s*', caseSensitive: false), '').trim();
+                          final amount = clean.startsWith(FormatUtils.currencySymbol) || clean.startsWith('\$')
+                              ? clean
+                              : '${FormatUtils.currencySymbol}$clean';
+                          return 'Deposit: $amount';
+                        }(),
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -3407,8 +3389,8 @@ class TaskScreenState extends State<TaskScreen> {
                 child: const Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(
-                    Icons.delete_outline,
-                    size: 18,
+                    Icons.delete,
+                    size: 19,
                     color: Color(0xFFDC2626),
                   ),
                 ),
@@ -3523,13 +3505,21 @@ class TaskScreenState extends State<TaskScreen> {
                     children: [
                       _buildWaitlistDetailRow('Name', name.isNotEmpty ? name : '—', isBold: true),
                       if (userName.isNotEmpty) _buildWaitlistDetailRow('User Name', userName),
-                      if (phone.isNotEmpty) _buildWaitlistDetailRow('Phone', phone),
+                      if (phone.isNotEmpty) _buildWaitlistDetailRow('Phone', FormatUtils.formatPhoneNumber(phone)),
                       if (email.isNotEmpty) _buildWaitlistDetailRow('Email', email),
                       _buildWaitlistDetailRow('Breed Preferred', breed.isNotEmpty ? breed : 'General / Any'),
                       _buildWaitlistDetailRow('Gender', gender.isNotEmpty ? gender : 'Any'),
                       _buildWaitlistDetailRow('Color Preferred', colorPref.isNotEmpty ? colorPref : 'Any'),
                       if (deposit.isNotEmpty)
-                        _buildWaitlistDetailRow('Deposit Paid', deposit.toLowerCase().startsWith('deposit') ? deposit : 'Deposit: $deposit'),
+                        _buildWaitlistDetailRow(
+                          'Deposit Paid',
+                          () {
+                            final clean = deposit.replaceFirst(RegExp(r'^deposit:?\s*', caseSensitive: false), '').trim();
+                            return clean.startsWith(FormatUtils.currencySymbol) || clean.startsWith('\$')
+                                ? clean
+                                : '${FormatUtils.currencySymbol}$clean';
+                          }(),
+                        ),
                       _buildWaitlistDetailRow('Date Added', dateStr),
                       if (notes.isNotEmpty) ...[
                         const SizedBox(height: 10),
@@ -3629,7 +3619,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Future<void> _showAddWaitlistDialog({Map<String, dynamic>? existing}) async {
     final nameController = TextEditingController(text: existing?['name'] ?? '');
-    final phoneController = TextEditingController(text: existing?['phone'] ?? '');
+    final phoneController = TextEditingController(text: FormatUtils.formatPhoneNumber(existing?['phone'] ?? ''));
     final emailController = TextEditingController(text: existing?['email'] ?? '');
     final userNameController = TextEditingController(text: existing?['userName'] ?? '');
     final colorController = TextEditingController(text: existing?['colorPreferred'] ?? '');
@@ -3668,7 +3658,9 @@ class TaskScreenState extends State<TaskScreen> {
       addBreed(b['name']);
     }
     if (existing?['breed'] != null && existing!['breed'].toString().trim().isNotEmpty) {
-      addBreed(existing['breed'].toString());
+      for (final part in existing['breed'].toString().split(',')) {
+        addBreed(part);
+      }
     }
 
     final breedList = normalizedBreeds.values.toList()
@@ -3678,13 +3670,14 @@ class TaskScreenState extends State<TaskScreen> {
         return a.toLowerCase().compareTo(b.toLowerCase());
       });
 
-    String selectedBreed = existing?['breed'] ?? (breedList.contains('Netherland Dwarf') ? 'Netherland Dwarf' : breedList.first);
-    final keyLower = selectedBreed.trim().toLowerCase();
-    if (keyLower == 'netherlands' || keyLower == 'netherland dwarfs' || keyLower == 'netherland dwarf') {
-      selectedBreed = 'Netherland Dwarf';
-    }
-    if (!normalizedBreeds.containsKey(selectedBreed.toLowerCase())) {
-      addBreed(selectedBreed);
+    final rawBreedStr = existing?['breed']?.toString() ?? '';
+    List<String> selectedBreeds = rawBreedStr
+        .split(',')
+        .map((b) => b.trim())
+        .where((b) => b.isNotEmpty)
+        .toList();
+    if (selectedBreeds.isEmpty) {
+      selectedBreeds = [breedList.contains('Netherland Dwarf') ? 'Netherland Dwarf' : breedList.first];
     }
 
     await showModalBottomSheet(
@@ -3699,12 +3692,14 @@ class TaskScreenState extends State<TaskScreen> {
               if (b == 'General') return 1;
               return a.toLowerCase().compareTo(b.toLowerCase());
             });
-          final dropdownOptions = [...sortedBreeds, '+ Custom'];
 
           return Container(
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -3716,294 +3711,371 @@ class TaskScreenState extends State<TaskScreen> {
                 children: [
                   _buildModalHeader(context, existing != null ? 'Edit Waitlist' : 'Add to Waitlist'),
 
-                  // Compact form - fits entirely on one screen with NO scroll
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Row 1: Name & Phone
-                        Row(
-                          children: [
-                            Expanded(child: _buildWaitlistField('Name', nameController)),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildWaitlistField(
-                                'Phone',
-                                phoneController,
-                                keyboardType: TextInputType.phone,
-                                inputFormatters: [PhoneNumberFormatter()],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
+                  // Spacious form matching WL3.jpg and Contacts / Tasks field styles
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name (full width)
+                          _buildWaitlistField('Name', nameController),
+                          const SizedBox(height: 14),
 
-                        // Row 2: Email & User Name
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildWaitlistField(
-                                'Email',
-                                emailController,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(child: _buildWaitlistField('User Name', userNameController)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
+                          // Phone (full width)
+                          _buildWaitlistField(
+                            'Phone',
+                            phoneController,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [PhoneNumberFormatter()],
+                          ),
+                          const SizedBox(height: 14),
 
-                        // Row 3: Breed Preferred & Gender
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Breed Preferred',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4A3E6D),
-                                    ),
+                          // Row: Email & User Name
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildWaitlistField(
+                                  'Email',
+                                  emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildWaitlistField('User Name', userNameController)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Breed Preferred (full width, multi-select supported per WL3.jpg)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Breed Preferred',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () async {
+                                  final picked = await _showMultiBreedPicker(context, selectedBreeds, sortedBreeds);
+                                  if (picked != null && picked.isNotEmpty) {
+                                    setModalState(() {
+                                      selectedBreeds = picked;
+                                    });
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFD6CEE2)),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    height: 38,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFFD6CEE2)),
-                                    ),
-                                    child: DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: dropdownOptions.contains(selectedBreed) ? selectedBreed : dropdownOptions.first,
-                                        isExpanded: true,
-                                        dropdownColor: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 20),
-                                        selectedItemBuilder: (BuildContext context) {
-                                          return dropdownOptions.map((b) => Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              b,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF4F4F56),
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          )).toList();
-                                        },
-                                        items: dropdownOptions.asMap().entries.map((entry) {
-                                          final idx = entry.key;
-                                          final b = entry.value;
-                                          final isAlt = idx % 2 == 1;
-                                          return DropdownMenuItem<String>(
-                                            value: b,
-                                            child: Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                              decoration: BoxDecoration(
-                                                color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                b,
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontStyle: b == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                                  color: b == '+ Custom' ? const Color(0xFF7B6BA0) : const Color(0xFF4F4F56),
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                        onChanged: (val) async {
-                                          if (val == '+ Custom') {
-                                            final custom = await _showCustomBreedPrompt(context);
-                                            if (custom != null && custom.trim().isNotEmpty) {
-                                              final trimmed = custom.trim();
-                                              addBreed(trimmed);
-                                              setModalState(() {
-                                                selectedBreed = trimmed;
-                                              });
-                                            }
-                                          } else if (val != null) {
-                                            setModalState(() => selectedBreed = val);
-                                          }
-                                        },
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          selectedBreeds.isEmpty ? 'Select breed(s)' : selectedBreeds.join(', '),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: selectedBreeds.isEmpty ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
+                                      const Icon(Icons.arrow_drop_down, color: Color(0xFF4A3E6D), size: 24),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Gender',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4A3E6D),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    height: 38,
-                                    alignment: Alignment.centerLeft,
-                                    child: Row(
-                                      children: ['Any', 'Buck', 'Doe'].map((g) {
-                                        final isSel = selectedGender.toLowerCase() == g.toLowerCase();
-                                        return GestureDetector(
-                                          onTap: () => setModalState(() => selectedGender = g),
-                                          behavior: HitTestBehavior.opaque,
-                                          child: Container(
-                                            margin: const EdgeInsets.only(right: 14),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  isSel ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                                                  size: 18,
-                                                  color: isSel ? const Color(0xFF7B6BA0) : const Color(0xFF9E9E9E),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  g,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                                    color: isSel ? const Color(0xFF4A3E6D) : const Color(0xFF4F4F56),
-                                                  ),
-                                                ),
-                                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Gender Radio Row matching WL3.jpg
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Gender',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: ['Any', 'Buck', 'Doe'].map((g) {
+                                  final isSel = selectedGender.toLowerCase() == g.toLowerCase();
+                                  return GestureDetector(
+                                    onTap: () => setModalState(() => selectedGender = g),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 28, top: 4, bottom: 4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isSel ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                            size: 20,
+                                            color: isSel ? const Color(0xFF7B6BA0) : const Color(0xFF9E9E9E),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            g,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                              color: isSel ? const Color(0xFF4A3E6D) : const Color(0xFF4F4F56),
                                             ),
                                           ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Row 4: Color Preferred & Deposit Paid
-                        Row(
-                          children: [
-                            Expanded(child: _buildWaitlistField('Color Preferred', colorController)),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildWaitlistField(
-                                'Deposit Paid',
-                                depositController,
-                                keyboardType: TextInputType.text,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Row 5: Special Notes
-                        _buildWaitlistField('Special Notes', notesController),
-                        const SizedBox(height: 14),
-
-                        // Save button matching Tasks - Contacts - Add new contacts
-                        SizedBox(
-                          width: double.infinity,
-                          height: 46,
-                          child: ElevatedButton(
-                            onPressed: isSaving ? null : () async {
-                              final name = nameController.text.trim();
-                              if (name.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFDC2626)),
-                                );
-                                return;
-                              }
-                              setModalState(() => isSaving = true);
-                              try {
-                                final entry = {
-                                  'id': existing?['id'] ?? 'wl_${DateTime.now().millisecondsSinceEpoch}',
-                                  'name': name,
-                                  'phone': phoneController.text.trim(),
-                                  'email': emailController.text.trim(),
-                                  'userName': userNameController.text.trim(),
-                                  'breed': selectedBreed.trim().isEmpty ? 'General' : selectedBreed.trim(),
-                                  'gender': selectedGender,
-                                  'colorPreferred': colorController.text.trim(),
-                                  'deposit': depositController.text.trim(),
-                                  'specialNotes': notesController.text.trim(),
-                                  'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
-                                };
-                                if (existing != null) {
-                                  await _db.updateWaitlistEntry(entry);
-                                } else {
-                                  await _db.insertWaitlistEntry(entry);
-                                }
-                                await _loadWaitlist();
-                                if (ctx.mounted) {
-                                  Navigator.pop(ctx);
-                                }
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(existing != null ? 'Waitlist entry updated' : 'Added to waitlist'),
-                                      backgroundColor: const Color(0xFF2C2C2E),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ],
+                                      ),
                                     ),
                                   );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFDC2626)),
-                                  );
-                                }
-                              } finally {
-                                if (ctx.mounted) setModalState(() => isSaving = false);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE6BEFE), // Matching Add Contact
-                              foregroundColor: const Color(0xFF4A3E6D),
-                              disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: isSaving
-                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4A3E6D)))
-                                : Text(
-                                    existing != null ? 'Update Waitlist' : 'Add to Waitlist',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4A3E6D),
-                                    ),
-                                  ),
+                                }).toList(),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 14),
+
+                          // Row: Color Preferred & Deposit Paid
+                          Row(
+                            children: [
+                              Expanded(child: _buildWaitlistField('Color Preferred', colorController)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildWaitlistField(
+                                  'Deposit Paid',
+                                  depositController,
+                                  keyboardType: TextInputType.text,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Special Notes (full width)
+                          _buildWaitlistField('Special Notes', notesController, maxLines: 2),
+                          const SizedBox(height: 22),
+
+                          // Full-width Add to Waitlist button matching WL3.jpg
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: isSaving ? null : () async {
+                                final name = nameController.text.trim();
+                                if (name.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFDC2626)),
+                                  );
+                                  return;
+                                }
+                                setModalState(() => isSaving = true);
+                                try {
+                                  final entry = {
+                                    'id': existing?['id'] ?? 'wl_${DateTime.now().millisecondsSinceEpoch}',
+                                    'name': name,
+                                    'phone': phoneController.text.trim(),
+                                    'email': emailController.text.trim(),
+                                    'userName': userNameController.text.trim(),
+                                    'breed': selectedBreeds.isEmpty ? 'General' : selectedBreeds.join(', '),
+                                    'gender': selectedGender,
+                                    'colorPreferred': colorController.text.trim(),
+                                    'deposit': depositController.text.trim(),
+                                    'specialNotes': notesController.text.trim(),
+                                    'createdAt': existing?['createdAt'] ?? DateTime.now().toIso8601String(),
+                                  };
+                                  if (existing != null) {
+                                    await _db.updateWaitlistEntry(entry);
+                                  } else {
+                                    await _db.insertWaitlistEntry(entry);
+                                  }
+                                  await _loadWaitlist();
+                                  if (ctx.mounted) {
+                                    Navigator.pop(ctx);
+                                  }
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(existing != null ? 'Waitlist entry updated' : 'Added to waitlist'),
+                                        backgroundColor: const Color(0xFF2C2C2E),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFDC2626)),
+                                    );
+                                  }
+                                } finally {
+                                  if (ctx.mounted) setModalState(() => isSaving = false);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE6BEFE), // Soft lilac matching WL3.jpg
+                                foregroundColor: const Color(0xFF4A3E6D),
+                                disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              child: isSaving
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4A3E6D)))
+                                  : Text(
+                                      existing != null ? 'Update Waitlist' : 'Add to Waitlist',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF4A3E6D),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<List<String>?> _showMultiBreedPicker(
+    BuildContext context,
+    List<String> initialSelected,
+    List<String> allBreeds,
+  ) async {
+    final selected = Set<String>.from(initialSelected);
+    final availableBreeds = List<String>.from(allBreeds);
+
+    return showDialog<List<String>>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            contentPadding: EdgeInsets.zero,
+            titlePadding: EdgeInsets.zero,
+            title: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFECDDFB),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select Breeds',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(dialogCtx),
+                    child: const Icon(Icons.close, size: 20, color: Color(0xFF4A3477)),
+                  ),
+                ],
+              ),
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.55,
+                ),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    ...availableBreeds.map((breed) {
+                      final isChecked = selected.contains(breed);
+                      return CheckboxListTile(
+                        value: isChecked,
+                        dense: true,
+                        activeColor: const Color(0xFF7B6BA0),
+                        title: Text(
+                          breed,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isChecked ? FontWeight.w700 : FontWeight.w500,
+                            color: const Color(0xFF2C2C2E),
+                          ),
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (val) {
+                          setPickerState(() {
+                            if (val == true) {
+                              selected.add(breed);
+                            } else {
+                              selected.remove(breed);
+                            }
+                          });
+                        },
+                      );
+                    }),
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.add, color: Color(0xFF7B6BA0)),
+                      title: const Text(
+                        'Add Custom Breed...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF7B6BA0),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      onTap: () async {
+                        final custom = await _showCustomBreedPrompt(context);
+                        if (custom != null && custom.trim().isNotEmpty) {
+                          final trimmed = custom.trim();
+                          setPickerState(() {
+                            if (!availableBreeds.contains(trimmed)) {
+                              availableBreeds.add(trimmed);
+                            }
+                            selected.add(trimmed);
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A), fontWeight: FontWeight.w600)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogCtx, selected.toList()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7B6BA0),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
           );
         },
       ),
@@ -4094,6 +4166,7 @@ class TaskScreenState extends State<TaskScreen> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
     String? hintText,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4101,37 +4174,35 @@ class TaskScreenState extends State<TaskScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w700,
             color: Color(0xFF4A3E6D),
           ),
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 38,
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            inputFormatters: inputFormatters,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-              ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
             ),
           ),
         ),
@@ -4633,7 +4704,7 @@ class TaskScreenState extends State<TaskScreen> {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         color: isSelected ? const Color(0xFF4A3E6D) : const Color(0xFF475569),
                       ),
@@ -4753,8 +4824,13 @@ class TaskScreenState extends State<TaskScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'CATEGORY',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
+                            'Category',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F4F56),
+                              letterSpacing: 0.2,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           Row(
@@ -5504,8 +5580,8 @@ class TaskScreenState extends State<TaskScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFF4A3E6D),
                   letterSpacing: -0.2,
                 ),

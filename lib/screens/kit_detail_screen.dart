@@ -8,6 +8,7 @@ import '../models/litter.dart';
 import '../services/format_utils.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
+import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 
 class KitDetailScreen extends StatefulWidget {
@@ -106,11 +107,13 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         return;
       }
 
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+      final XFile? image = await runExternalActivity(
+        () => _imagePicker.pickImage(
+          source: source,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        ),
       );
 
       if (image != null) {

@@ -22,11 +22,17 @@ class CertificateLayout {
   static const String fontDetailsBoldAsset = 'assets/fonts/PT_Sans-Web-Bold.ttf';
   static const String fontScriptAsset = 'assets/fonts/DancingScript-VariableFont_wght.ttf';
   static const String fontShakiesAsset = 'assets/fonts/Shakies-OpenType-TT.ttf';
+  static const String fontAscenderAsset = 'assets/fonts/Ascender-Regular.ttf';
+  static const String fontQuicksandRegularAsset = 'assets/fonts/Quicksand-Regular.ttf';
+  static const String fontQuicksandMediumAsset = 'assets/fonts/Quicksand-Medium.ttf';
+  static const String fontQuicksandBoldAsset = 'assets/fonts/Quicksand-Bold.ttf';
 
   // Font family names registered in pubspec.yaml
   static const String fontFamilyDetails = 'CertificateDetails';
   static const String fontFamilyScript = 'CertificateScript';
   static const String fontFamilyShakies = 'Shakies';
+  static const String fontFamilyAscender = 'Ascender';
+  static const String fontFamilyQuicksand = 'Quicksand';
 
   // ─── COLORS ─────────────────────────────────────────────────────────────────
   // Flutter UI Colors
@@ -93,21 +99,24 @@ class CertificateLayout {
   static const String templateColorPhotoAsset = 'assets/images/birth_cert_template_color_photo.png';
 
   // Photo Frame
-  static const double photoLeftPt = 170.67;
-  static const double photoTopPt = 216.75;
-  static const double photoWidthPt = 300.65;
-  static const double photoHeightPt = 235.03;
-  static const double photoRadiusPt = 15.0;
+  static const double photoLeftPt = 168.05;
+  static const double photoTopPt = 218.08;
+  static const double photoWidthPt = 293.28;
+  static const double photoHeightPt = 229.71;
+  static const double photoRadiusPt = 17.0;
 
   static const double photoLeftRatio = photoLeftPt / pageColorPhotoWidthPt;      // ~0.21549
   static const double photoTopRatio = photoTopPt / pageColorPhotoHeightPt;        // ~0.35417
   static const double photoWidthRatio = photoWidthPt / pageColorPhotoWidthPt;    // ~0.37961
   static const double photoHeightRatio = photoHeightPt / pageColorPhotoHeightPt; // ~0.38404
 
-  // Right Details Column (starts after bunny icons at X = 532.4 pt)
-  static const double detailsLeftPt = 532.4;
+  // Right Details Column (starts after bunny icons at X = 519.4 pt)
+  static const double detailsLeftPt = 519.4;
   static const double detailsLeftRatio = detailsLeftPt / pageColorPhotoWidthPt;  // ~0.67222
   static const double detailsFontSizePt = 19.0;
+
+  // Width reserved for the "Dam:" / "Sire:" labels so both names line up
+  static const double parentLabelWidthPt = 43.6;
   static const double detailsFontRatio = detailsFontSizePt / pageColorPhotoWidthPt; // ~0.02399
 
   // Colors
@@ -116,24 +125,27 @@ class CertificateLayout {
   static const Color colorPhotoFrameBorder = Color(0xFF58595B);
   static const PdfColor pdfColorPhotoFrameBorder = PdfColor(0.345, 0.348, 0.356); // #58595B
 
-  // Row Y positions
-  static const double row1TopPt = 194.0;
-  static const double row1TopRatio = row1TopPt / pageColorPhotoHeightPt; // ~0.31699
+  // Row Y positions (Name, Breed, Color, Date of birth, Place of birth, Sex, Dam/Sire)
+  static const double row1TopPt = 191.2;
+  static const double row1TopRatio = row1TopPt / pageColorPhotoHeightPt;
 
-  static const double row2TopPt = 244.6;
-  static const double row2TopRatio = row2TopPt / pageColorPhotoHeightPt; // ~0.39967
+  static const double row2TopPt = 234.4;
+  static const double row2TopRatio = row2TopPt / pageColorPhotoHeightPt;
 
-  static const double row3TopPt = 297.6;
-  static const double row3TopRatio = row3TopPt / pageColorPhotoHeightPt; // ~0.48627
+  static const double row3TopPt = 276.4;
+  static const double row3TopRatio = row3TopPt / pageColorPhotoHeightPt;
 
-  static const double row4TopPt = 355.4;
-  static const double row4TopRatio = row4TopPt / pageColorPhotoHeightPt; // ~0.58072
+  static const double row4TopPt = 319.1;
+  static const double row4TopRatio = row4TopPt / pageColorPhotoHeightPt;
 
-  static const double row5TopPt = 413.1;
-  static const double row5TopRatio = row5TopPt / pageColorPhotoHeightPt; // ~0.67500
+  static const double row5TopPt = 360.6;
+  static const double row5TopRatio = row5TopPt / pageColorPhotoHeightPt;
 
-  static const double row6TopPt = 469.2;
-  static const double row6TopRatio = row6TopPt / pageColorPhotoHeightPt; // ~0.76667
+  static const double row6TopPt = 403.8;
+  static const double row6TopRatio = row6TopPt / pageColorPhotoHeightPt;
+
+  static const double row7TopPt = 447.0;
+  static const double row7TopRatio = row7TopPt / pageColorPhotoHeightPt;
 
   static String? _cachedPhotosDir;
   static String? get cachedPhotosDir => _cachedPhotosDir;
@@ -216,6 +228,9 @@ class CertificateData {
     }
     return 'a rabbit was born on $dob';
   }
+
+  /// Place of birth as "City, PR" (used by the colour-with-photo certificate)
+  String get placeOfBirth => locationSentence.replaceFirst(RegExp(r'^at\s+'), '');
 
   String get locationSentence {
     String effectiveCity = city?.trim() ?? '';

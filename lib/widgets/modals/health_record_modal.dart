@@ -310,8 +310,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
         hintText: hint,
         hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
@@ -335,24 +335,30 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
   }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
           filled: true,
           fillColor: Colors.white,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
-            const SizedBox(width: 8),
-            Text(
-              FormatUtils.formatDate(value),
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
+            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 16),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                FormatUtils.formatDate(value),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -419,18 +425,13 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       Expanded(
                         child: _buildRabbitHeaderWidget(),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 42),
-                          child: Text(
-                            FormatUtils.formatDate(_selectedDate),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A3E6D),
-                            ),
-                          ),
+                      const SizedBox(width: 8),
+                      Text(
+                        FormatUtils.formatDate(_selectedDate),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF4A3E6D),
                         ),
                       ),
                     ],
@@ -579,16 +580,16 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                           Row(
                             children: [
                               Expanded(
-                                flex: 5,
+                                flex: 6,
                                 child: _buildDatePickerField(
                                   label: 'Date',
                                   value: _selectedDate,
                                   onTap: _selectDate,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               Expanded(
-                                flex: 5,
+                                flex: 4,
                                 child: _buildOutlinedField(
                                   label: 'Cost',
                                   controller: _costController,

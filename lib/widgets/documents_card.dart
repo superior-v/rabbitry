@@ -11,6 +11,7 @@ import '../models/rabbit.dart';
 import '../models/rabbit_document.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
+import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 import '../utils/toast_utils.dart';
 import 'purple_dialog.dart';
@@ -606,17 +607,21 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
   }
 
   Future<void> _pickFromCamera() async {
-    final XFile? photo = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    final XFile? photo = await runExternalActivity(
+      () => _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85),
+    );
     if (photo != null) await _pickAndSave(File(photo.path), photo.name);
   }
 
   Future<void> _pickFromGallery() async {
-    final XFile? photo = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final XFile? photo = await runExternalActivity(
+      () => _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85),
+    );
     if (photo != null) await _pickAndSave(File(photo.path), photo.name);
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles();
+    final result = await runExternalActivity(() => FilePicker.platform.pickFiles());
     if (result != null && result.files.single.path != null) {
       await _pickAndSave(File(result.files.single.path!), result.files.single.name);
     }

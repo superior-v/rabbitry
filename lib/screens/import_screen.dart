@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
+import '../services/app_event_service.dart';
 
 
 class ImportScreen extends StatefulWidget {
@@ -29,9 +30,11 @@ class _ImportScreenState extends State<ImportScreen> {
     });
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
+      FilePickerResult? result = await runExternalActivity(
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['csv'],
+        ),
       );
 
       if (result == null || result.files.single.path == null) {

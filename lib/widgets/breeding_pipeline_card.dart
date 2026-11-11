@@ -981,6 +981,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                     backgroundColor: Colors.transparent,
                     builder: (_) => LogBreedingModal(
                       doe: widget.rabbit,
+                      isEditing: true,
                       onComplete: () { widget.onRefresh?.call(); },
                     ),
                   );

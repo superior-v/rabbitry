@@ -7,6 +7,7 @@ class PedigreeRabbit {
   final String? registrationNumber;
   final String? earNumber;
   final int? legs;
+  final String? winnings;
   final DateTime? dateOfBirth;
   final String? sex;
   String? profileImage;
@@ -24,6 +25,7 @@ class PedigreeRabbit {
     this.registrationNumber,
     this.earNumber,
     this.legs,
+    this.winnings,
     this.dateOfBirth,
     this.sex,
     this.profileImage,
@@ -46,6 +48,7 @@ class PedigreeRabbit {
     String? registrationNumber,
     String? earNumber,
     int? legs,
+    String? winnings,
     DateTime? dateOfBirth,
     String? sex,
     String? profileImage,
@@ -63,6 +66,7 @@ class PedigreeRabbit {
       registrationNumber: registrationNumber ?? this.registrationNumber,
       earNumber: earNumber ?? this.earNumber,
       legs: legs ?? this.legs,
+      winnings: winnings ?? this.winnings,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       sex: sex ?? this.sex,
       profileImage: profileImage ?? this.profileImage,
@@ -83,6 +87,7 @@ class PedigreeRabbit {
       'registrationNumber': registrationNumber,
       'earNumber': earNumber,
       'legs': legs,
+      'winnings': winnings,
       'dateOfBirth': dateOfBirth?.toIso8601String(),
       'sex': sex,
       'profileImage': profileImage,
@@ -103,6 +108,7 @@ class PedigreeRabbit {
       registrationNumber: json['registrationNumber'],
       earNumber: json['earNumber'],
       legs: json['legs'] is int ? json['legs'] : int.tryParse(json['legs']?.toString() ?? ''),
+      winnings: json['winnings'],
       dateOfBirth: json['dateOfBirth'] != null ? DateTime.tryParse(json['dateOfBirth']) : null,
       sex: json['sex'],
       profileImage: json['profileImage'],

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
+import '../../services/settings_service.dart';
+import '../../services/app_event_service.dart';
 import '../../screens/rabbit_detail_screen.dart';
 import 'package:rearticle_app/widgets/modals/log_breeding_modal.dart';
 import '../modals/confirm_pregnancy_modal.dart';
@@ -29,6 +32,9 @@ class RabbitActionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDoe = rabbit.type == RabbitType.doe;
     final earNum = rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim();
+    final bool isQuarantined = rabbit.status == RabbitStatus.quarantine ||
+        !rabbit.activeInRabbitry ||
+        (rabbit.quarantineEndDate != null && DateTime.now().isBefore(rabbit.quarantineEndDate!));
 
     return Container(
       decoration: const BoxDecoration(
@@ -104,90 +110,107 @@ class RabbitActionSheet extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Column(
-                  children: [
-                    // 1. Breeding actions: NONE for Resting / Archived
-                    if (rabbit.status != RabbitStatus.resting && rabbit.status != RabbitStatus.archived) ...[
-                      if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue) ...[
-                        _buildOption(
-                          'Log Palpation',
-                          () => _showConfirmPregnancyModal(context),
-                        ),
-                        _buildOption(
-                          'Log Birth',
-                          () => _showLogBirthModal(context),
-                        ),
-                      ] else ...[
-                        _buildOption(
-                          'Log Breeding',
-                          () => rabbit.type == RabbitType.buck
-                              ? _showLogBreedingFromBuckModal(context)
-                              : _showLogBreedingModal(context),
-                        ),
-                      ],
-                    ],
-                    // 2. Log weight
-                    _buildOption(
-                      'Log Weight',
-                      () => _showLogWeightModal(context),
-                    ),
-                    // 3. Log Health
-                    _buildOption(
-                      'Log Health',
-                      () => _showHealthRecordModal(context),
-                    ),
-                    // Options below Log Health
-                    if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue) ...[
-                      _buildOption(
-                        'Quarantine',
-                        () => _showQuarantineModal(context),
-                      ),
-                      _buildOption(
-                        'Archive',
-                        () => _showArchiveModal(context),
-                      ),
-                      _buildOption(
-                        'Cancel Breeding',
-                        () => _showCancelPregnancyDialog(context),
-                        isDangerous: true,
-                      ),
-                    ] else if (rabbit.status == RabbitStatus.resting) ...[
-                      _buildOption(
-                        rabbit.type == RabbitType.buck ? 'Move to Active' : 'Move to Open',
-                        () => _moveToOpen(context),
-                      ),
-                      _buildOption(
-                        'Quarantine',
-                        () => _showQuarantineModal(context),
-                      ),
-                      _buildOption(
-                        'Archive',
-                        () => _showArchiveModal(context),
-                      ),
-                    ] else if (rabbit.status == RabbitStatus.quarantine) ...[
-                      _buildOption(
-                        rabbit.type == RabbitType.buck ? 'Move to Active' : 'Move to Open',
-                        () => _moveToOpen(context),
-                      ),
-                      _buildOption(
-                        'Archive',
-                        () => _showArchiveModal(context),
-                      ),
-                    ] else ...[
-                      // OPEN, NURSING, Active Bucks, etc.
-                      _buildOption(
-                        'Move to Resting',
-                        () => _moveToResting(context),
-                      ),
-                      _buildOption(
-                        'Quarantine',
-                        () => _showQuarantineModal(context),
-                      ),
-                      _buildOption(
-                        'Archive',
-                        () => _showArchiveModal(context),
-                      ),
-                    ],
-                  ],
+                  children: isQuarantined
+                      ? [
+                          _buildOption(
+                            'Log Breeding',
+                            () => rabbit.type == RabbitType.buck
+                                ? _showLogBreedingFromBuckModal(context)
+                                : _showLogBreedingModal(context),
+                          ),
+                          _buildOption(
+                            'Log Weight',
+                            () => _showLogWeightModal(context),
+                          ),
+                          _buildOption(
+                            'Log Health',
+                            () => _showHealthRecordModal(context),
+                          ),
+                          _buildOption(
+                            'Move to Active',
+                            () => _moveToOpen(context),
+                          ),
+                          _buildOption(
+                            'Archive',
+                            () => _showArchiveModal(context),
+                          ),
+                        ]
+                      : [
+                          // 1. Breeding actions: NONE for Resting / Archived
+                          if (rabbit.status != RabbitStatus.resting && rabbit.status != RabbitStatus.archived) ...[
+                            if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue) ...[
+                              _buildOption(
+                                'Log Palpation',
+                                () => _showConfirmPregnancyModal(context),
+                              ),
+                              _buildOption(
+                                'Log Birth',
+                                () => _showLogBirthModal(context),
+                              ),
+                            ] else ...[
+                              _buildOption(
+                                'Log Breeding',
+                                () => rabbit.type == RabbitType.buck
+                                    ? _showLogBreedingFromBuckModal(context)
+                                    : _showLogBreedingModal(context),
+                              ),
+                            ],
+                          ],
+                          // 2. Log weight
+                          _buildOption(
+                            'Log Weight',
+                            () => _showLogWeightModal(context),
+                          ),
+                          // 3. Log Health
+                          _buildOption(
+                            'Log Health',
+                            () => _showHealthRecordModal(context),
+                          ),
+                          // Options below Log Health
+                          if (rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue) ...[
+                            _buildOption(
+                              'Quarantine',
+                              () => _showQuarantineModal(context),
+                            ),
+                            _buildOption(
+                              'Archive',
+                              () => _showArchiveModal(context),
+                            ),
+                            _buildOption(
+                              'Cancel Breeding',
+                              () => _showCancelPregnancyDialog(context),
+                              isDangerous: true,
+                            ),
+                          ] else if (rabbit.status == RabbitStatus.resting) ...[
+                            _buildOption(
+                              rabbit.type == RabbitType.buck ? 'Move to Active' : 'Move to Open',
+                              () => _moveToOpen(context),
+                            ),
+                            _buildOption(
+                              'Quarantine',
+                              () => _showQuarantineModal(context),
+                            ),
+                            _buildOption(
+                              'Archive',
+                              () => _showArchiveModal(context),
+                            ),
+                          ] else ...[
+                            // OPEN, NURSING, Active Bucks, etc.
+                            if (rabbit.type != RabbitType.buck)
+                              _buildOption(
+                                'Move to Resting',
+                                () => _moveToResting(context),
+                              ),
+                            _buildOption(
+                              'Quarantine',
+                              () => _showQuarantineModal(context),
+                            ),
+                            _buildOption(
+                              'Archive',
+                              () => _showArchiveModal(context),
+                            ),
+                          ],
+                        ],
                 ),
               ),
             ),
@@ -285,17 +308,17 @@ class RabbitActionSheet extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
-                      // If resting or quarantine -> Move back to OPEN
-                      if (rabbit.status == RabbitStatus.resting || rabbit.status == RabbitStatus.quarantine)
+                      // If resting or quarantine -> Move back to Active
+                      if (rabbit.status == RabbitStatus.resting || rabbit.status == RabbitStatus.quarantine || !rabbit.activeInRabbitry)
                         _buildOption(
-                          'Move to Open',
+                          'Move to Active',
                           () async {
                             Navigator.pop(moveCtx);
                             Navigator.pop(context);
                             await _moveToOpen(context);
                           },
                         ),
-                      if (rabbit.status != RabbitStatus.resting && rabbit.status != RabbitStatus.pregnant && rabbit.status != RabbitStatus.palpateDue)
+                      if (rabbit.type != RabbitType.buck && rabbit.status != RabbitStatus.resting && rabbit.status != RabbitStatus.pregnant && rabbit.status != RabbitStatus.palpateDue)
                         _buildOption(
                           'Resting',
                           () async {
@@ -333,23 +356,98 @@ class RabbitActionSheet extends StatelessWidget {
     );
   }
 
+  Future<RabbitStatus> _resolveActiveStatus(DatabaseService db) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (rabbit.type == RabbitType.doe) {
+      // 1. Check active breeding (Bred / Palpate Due)
+      if (rabbit.dueDate != null) {
+        final dueDate = rabbit.dueDate!;
+        final dueDay = DateTime(dueDate.year, dueDate.month, dueDate.day);
+        final isUpcomingDue = !today.isAfter(dueDay.add(const Duration(days: 5)));
+        final isRecentlyBred =
+            rabbit.lastBreedDate == null || today.difference(rabbit.lastBreedDate!).inDays <= 38;
+        final notYetKindled = rabbit.kindleDate == null ||
+            rabbit.lastBreedDate == null ||
+            rabbit.kindleDate!.isBefore(rabbit.lastBreedDate!);
+        if (isUpcomingDue && isRecentlyBred && notYetKindled) {
+          if (rabbit.palpationResult == null &&
+              rabbit.palpationDate != null &&
+              SettingsService.instance.palpationEnabled) {
+            return RabbitStatus.palpateDue;
+          }
+          return RabbitStatus.pregnant;
+        }
+      }
+
+      // 2. Check active nursing litter (Nursing)
+      final litters = await db.getLitters();
+      final doeLitters = litters.where((l) => l.doeId == rabbit.id).toList();
+      for (final litter in doeLitters) {
+        final s = litter.status.toLowerCase().trim();
+        if (s.contains('archived') || s.contains('weaned') || s.contains('missed') || s.contains('died')) {
+          continue;
+        }
+        if (litter.ageDays >= 49) continue;
+        final hasActiveKits = litter.kits.any((k) {
+          final ks = k.status.toLowerCase().trim();
+          return ks != 'dead' &&
+              ks != 'died' &&
+              ks != 'deceased' &&
+              ks != 'fostered' &&
+              ks != 'archived' &&
+              ks != 'sold' &&
+              ks != 'butchered' &&
+              ks != 'cull' &&
+              ks != 'weaned';
+        });
+        final aliveCount = litter.aliveKits ?? 0;
+        final totalCount = litter.totalKits ?? 0;
+        if ((litter.kits.isNotEmpty && hasActiveKits) ||
+            aliveCount > 0 ||
+            totalCount > 0 ||
+            s == 'nursing') {
+          return RabbitStatus.nursing;
+        }
+      }
+      if (rabbit.currentLitterSize != null &&
+          rabbit.currentLitterSize! > 0 &&
+          (rabbit.kindleDate == null || now.difference(rabbit.kindleDate!).inDays < 49)) {
+        return RabbitStatus.nursing;
+      }
+    }
+
+    // 3. Check Grow-Out (< 5 months old or previously growout)
+    bool isUnderFiveMonths = false;
+    if (rabbit.dateOfBirth != null) {
+      final dob = rabbit.dateOfBirth!;
+      final fiveMonthsDate = DateTime(dob.year, dob.month + 5, dob.day);
+      isUnderFiveMonths = now.isBefore(fiveMonthsDate);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final savedStatusStr = prefs.getString('pre_quarantine_status_${rabbit.id}');
+    if (isUnderFiveMonths || (rabbit.dateOfBirth == null && savedStatusStr == RabbitStatus.growout.toString())) {
+      return RabbitStatus.growout;
+    }
+
+    // 4. Default active adult status
+    return rabbit.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
+  }
+
   Future<void> _moveToOpen(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
     try {
       final db = DatabaseService();
-      final newStatus = rabbit.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
-      final updated = rabbit.copyWith(
-        status: newStatus,
-        quarantineStartDate: null,
-        quarantineEndDate: null,
-        quarantineReason: null,
-      );
-      await db.updateRabbit(updated);
+      final newStatus = await _resolveActiveStatus(db);
+      await db.endQuarantine(rabbit.id, newStatus, null);
+      await db.cancelQuarantineTasks(rabbit.id);
+      notifyDataChanged();
       onActionComplete();
       messenger.showSnackBar(
         SnackBar(
-          content: Text('${rabbit.name} moved to OPEN'),
+          content: Text('${rabbit.name} moved to Active'),
           backgroundColor: const Color(0xFF7B6BA0),
         ),
       );
@@ -429,100 +527,105 @@ class RabbitActionSheet extends StatelessWidget {
   }
 
   // Action handlers
-  void _showLogBreedingModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
+  Future<void> _openActionModal(
+    BuildContext sheetContext,
+    Widget Function(VoidCallback complete) builder, {
+    bool enableDrag = true,
+  }) async {
+    bool didComplete = false;
+    await showModalBottomSheet(
+      context: sheetContext,
       isScrollControlled: true,
+      enableDrag: enableDrag,
       backgroundColor: Colors.transparent,
-      builder: (context) => LogBreedingModal(
+      builder: (modalCtx) => builder(() {
+        didComplete = true;
+        onActionComplete();
+      }),
+    );
+    if (didComplete && sheetContext.mounted) {
+      Navigator.pop(sheetContext);
+    }
+  }
+
+  void _showLogBreedingModal(BuildContext context) {
+    _openActionModal(
+      context,
+      (complete) => LogBreedingModal(
         doe: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
 
   void _showLogBreedingFromBuckModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => LogBreedingFromBuckModal(
+    _openActionModal(
+      context,
+      (complete) => LogBreedingFromBuckModal(
         buck: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
 
   void _showConfirmPregnancyModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ConfirmPregnancyModal(
+    _openActionModal(
+      context,
+      (complete) => ConfirmPregnancyModal(
         doe: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
+      enableDrag: false,
     );
   }
 
   void _showLogBirthModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) => LogBirthModal(
+    _openActionModal(
+      context,
+      (complete) => LogBirthModal(
         doe: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
+      enableDrag: false,
     );
   }
 
   void _showWeanLitterModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => WeanLitterModal(
+    _openActionModal(
+      context,
+      (complete) => WeanLitterModal(
         doe: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
 
   void _showLogWeightModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => LogWeightModal(
+    _openActionModal(
+      context,
+      (complete) => LogWeightModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
 
   void _showHealthRecordModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => HealthRecordModal(
+    _openActionModal(
+      context,
+      (complete) => HealthRecordModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
 
   void _showMoveCageModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => MoveCageModal(
+    _openActionModal(
+      context,
+      (complete) => MoveCageModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }
@@ -545,13 +648,11 @@ class RabbitActionSheet extends StatelessWidget {
   }
 
   void _showStopQuarantineModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StopQuarantineModal(
+    _openActionModal(
+      context,
+      (complete) => StopQuarantineModal(
         rabbit: rabbit,
-        onComplete: onActionComplete,
+        onComplete: complete,
       ),
     );
   }

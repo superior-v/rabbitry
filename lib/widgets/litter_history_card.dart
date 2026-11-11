@@ -12,6 +12,7 @@ import '../constants/app_colors.dart';
 import '../screens/litters_screen.dart';
 import '../screens/rabbit_detail_screen.dart';
 import '../screens/pedigree_screen.dart';
+import '../screens/add_rabbit_screen.dart';
 import 'certificate_card.dart';
 import 'purple_dialog.dart';
 import '../screens/home_dashboard_screen.dart' show HomeDashboardScreen;
@@ -602,10 +603,32 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       style: const TextStyle(fontSize: 11, color: Color(0xFFAEAEB2), fontWeight: FontWeight.w500),
                     ),
                   if (kit.details != null && kit.details!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      FormatUtils.formatDisplayKitDetails(kit.details),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                    Builder(
+                      builder: (context) {
+                        final displayDetails = FormatUtils.formatDisplayKitDetails(kit.details);
+                        if (displayDetails.isEmpty ||
+                            (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold')) {
+                          return const SizedBox.shrink();
+                        }
+                        final detailParts = displayDetails
+                            .split('•')
+                            .map((p) => p.trim())
+                            .where((p) => p.isNotEmpty)
+                            .toList();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: detailParts
+                                .map((part) => Text(
+                                      '• $part',
+                                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                    ))
+                                .toList(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ],
@@ -615,12 +638,89 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             if (isOutcome) ...[
               _buildOutcomeBadge(kStatus, litter, kit),
               const SizedBox(width: 6),
+            ] else if (_isKitPromoted(kit)) ...[
+              _buildUniformKitBadge(
+                label: 'HERD',
+                bgColor: (kit.sex.toUpperCase() == 'M' || kit.sex.toLowerCase() == 'buck')
+                    ? const Color(0xFF4AA8E8)
+                    : const Color(0xFFEC6FA7),
+                textColor: Colors.white,
+              ),
+              const SizedBox(width: 6),
+            ] else if (_isKitGrowOut(kit)) ...[
+              _buildUniformKitBadge(
+                label: 'GROW',
+                bgColor: const Color(0xFF7B6BA0),
+                textColor: Colors.white,
+              ),
+              const SizedBox(width: 6),
             ],
-            const Icon(PhosphorIconsRegular.caretRight, size: 16, color: Color(0xFFE5E5EA)),
+            Visibility(
+              visible: !_isKitPromoted(kit),
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: const Icon(PhosphorIconsRegular.caretRight, size: 16, color: Color(0xFFE5E5EA)),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  bool _isKitPromoted(Kit kit) {
+    final s = kit.status.toLowerCase().trim();
+    final d = (kit.details ?? '').toLowerCase();
+    return s == 'promoted' || s == 'herd' || s == 'added to herd' || d.contains('added to herd');
+  }
+
+  bool _isKitGrowOut(Kit kit) {
+    final s = kit.status.toLowerCase().trim();
+    return s == 'growout' || s == 'grow out' || s == 'grow-out';
+  }
+
+  Widget _buildUniformKitBadge({
+    required String label,
+    required Color bgColor,
+    Color textColor = Colors.white,
+    VoidCallback? onTap,
+  }) {
+    final badge = Container(
+      width: 56,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w900,
+          color: textColor,
+          letterSpacing: 0.4,
+          height: 1.0,
+        ),
+      ),
+    );
+    if (onTap == null) return badge;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: badge,
+    );
+  }
+
+  Widget _buildStageBadge(String label, Color bg, Color border, Color fg) {
+    return _buildUniformKitBadge(label: label, bgColor: bg, textColor: fg);
   }
 
   String _getKitDisplayTag(Litter litter, Kit kit) {
@@ -717,7 +817,98 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final String kitTag = _getKitDisplayTag(litter, currentKit);
     final List<Widget> actions = [];
 
-    if (isSold) {
+    // Kits already added to the Herd have NO options in Litter History.
+    if (_isKitPromoted(currentKit)) return;
+
+    if (_isKitGrowOut(currentKit) && !isSold && !isReserved) {
+      actions.add(_buildKitActionPill(
+        label: 'Edit Kit Info',
+        onTap: () {
+          Navigator.pop(context);
+          _showEditKitDetails(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Move to Herd',
+        onTap: () {
+          Navigator.pop(context);
+          _promoteKitToMature(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Sell Kit',
+        onTap: () {
+          Navigator.pop(context);
+          _showSellKitDialog(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Reserve Kit',
+        onTap: () {
+          Navigator.pop(context);
+          _showReserveKitDialog(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Record Health',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitHealthRecord(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Log Weight',
+        onTap: () {
+          Navigator.pop(context);
+          _logKitWeight(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Pedigree',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitPedigree(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Birth Certificate',
+        onTap: () {
+          Navigator.pop(context);
+          _showKitBirthCertificate(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Quarantine',
+        onTap: () {
+          Navigator.pop(context);
+          _confirmMoveKitToQuarantine(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Kit Died',
+        isDestructive: true,
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Cull Kit',
+        isDestructive: true,
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsCulled(litter, currentKit);
+        },
+      ));
+      actions.add(_buildKitActionPill(
+        label: 'Delete Kit',
+        isDestructive: true,
+        onTap: () {
+          Navigator.pop(context);
+          _showDeleteKitConfirm(litter, currentKit);
+        },
+      ));
+    } else if (isSold) {
       // 1. Edit Kit Info
       actions.add(_buildKitActionPill(
         label: 'Edit Kit Info',
@@ -1218,11 +1409,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Top Header matching Nursery Lilac theme
+                // Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEADBEE),
+                    color: Color(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -1231,9 +1422,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       Text(
                         isEditing ? 'Edit Reservation' : 'Reserve Kit',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
+                          color: Color(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -1245,7 +1436,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             color: Colors.white.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -1262,38 +1453,30 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         // Kit Summary Info Box
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F2FA),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: const Color(0xFFE8DFFA)),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE5FA),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  _getKitDisplayTag(litter, kit),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF7B6BA0),
-                                  ),
+                              Text(
+                                'Kit ${_getKitDisplayTag(litter, kit)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color}${kit.weight > 0 ? ' • ${FormatUtils.formatWeight(kit.weight)}' : ''}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF555555),
-                                  ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF787774),
                                 ),
                               ),
                             ],
@@ -1301,9 +1484,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 1. BUYER NAME
+                        // 1. Buyer name
                         const Text(
-                          'BUYER NAME',
+                          'Buyer name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1332,9 +1515,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 2. PHONE NUMBER
+                        // 2. Phone number
                         const Text(
-                          'PHONE NUMBER',
+                          'Phone number',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1364,9 +1547,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 3. USER NAME
+                        // 3. User name
                         const Text(
-                          'USER NAME',
+                          'User name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1394,7 +1577,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 4 & 5. SALES AMOUNT & DEPOSIT AMOUNT
+                        // 4 & 5. Sales amount & Deposit amount
                         Row(
                           children: [
                             Expanded(
@@ -1402,7 +1585,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'SALES AMOUNT',
+                                    'Sales amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -1438,7 +1621,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'DEPOSIT AMOUNT',
+                                    'Deposit amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -1472,9 +1655,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 6. PICK UP DATE
+                        // 6. Pick up date
                         const Text(
-                          'PICK UP DATE',
+                          'Pick up date',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -1887,7 +2070,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                 decoration: const BoxDecoration(
                   color: Color(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1895,17 +2078,25 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Log Weight - ${_getKitDisplayTag(litter, kit)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                    const Text(
+                      'Log Weight',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
                         color: Color(0xFF2C2C2E),
+                        letterSpacing: 0.3,
                       ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, size: 22, color: Color(0xFF2C2C2E)),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                      ),
                     ),
                   ],
                 ),
@@ -1916,8 +2107,47 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Kit Summary Info Box
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F2FA),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Kit ${_getKitDisplayTag(litter, kit)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF787774),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     const Text(
-                      'DATE OF ENTRY',
+                      'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -1981,7 +2211,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'WEIGHT',
+                      'Weight',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -1996,14 +2226,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           child: TextField(
                             controller: lbsController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixText: 'lbs',
-                              suffixStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF8E8E93),
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.only(right: 14),
+                                child: Center(
+                                  widthFactor: 1.0,
+                                  child: Text(
+                                    'lbs',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF8E8E93),
+                                    ),
+                                  ),
+                                ),
                               ),
+                              suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
@@ -2029,14 +2269,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           child: TextField(
                             controller: ozController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixText: 'oz',
-                              suffixStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF8E8E93),
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.only(right: 14),
+                                child: Center(
+                                  widthFactor: 1.0,
+                                  child: Text(
+                                    'oz',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF8E8E93),
+                                    ),
+                                  ),
+                                ),
                               ),
+                              suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
@@ -2167,7 +2417,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                 decoration: const BoxDecoration(
                   color: Color(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -2175,29 +2425,25 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Record Health',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    const Text(
+                      'Record Health',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF2C2C2E),
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        width: 28,
-                        height: 28,
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: Colors.white.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
                       ),
                     ),
                   ],
@@ -2209,8 +2455,47 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Kit Summary Info Box
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F2FA),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Kit ${_getKitDisplayTag(litter, kit)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF787774),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     const Text(
-                      'DATE OF ENTRY',
+                      'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -2274,7 +2559,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'TYPE',
+                      'Type',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -2319,7 +2604,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'CONDITION / DIAGNOSIS',
+                      'Condition / diagnosis',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -2354,7 +2639,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'NOTES',
+                      'Notes',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -2458,6 +2743,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final TextEditingController priceController = TextEditingController();
     final TextEditingController buyerController = TextEditingController();
     DateTime soldDate = DateTime.now();
+    bool markAsSold = false;
 
     showModalBottomSheet(
       context: context,
@@ -2549,10 +2835,35 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+
+                        // Mark as sold Toggle
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Mark as sold',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2C2C2E),
+                              ),
+                            ),
+                            Switch(
+                              value: markAsSold,
+                              activeColor: const Color(0xFF8B5CF6),
+                              onChanged: (val) {
+                                setModalState(() {
+                                  markAsSold = val;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
                         const Text(
-                          'DATE SOLD',
+                          'Date sold',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -2614,98 +2925,99 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        const Text(
-                          'SALE PRICE',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: priceController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            hintText: '0.00',
-                            prefixText: '${FormatUtils.currencySymbol} ',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                        if (!markAsSold) ...[
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Sale price',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F4F56),
+                              letterSpacing: 0.5,
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
-                                width: 2,
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: priceController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: InputDecoration(
+                              hintText: '0.00',
+                              prefixText: '${FormatUtils.currencySymbol} ',
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF7B6BA0),
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'BUYER NAME',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
-                            letterSpacing: 0.5,
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Buyer name',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F4F56),
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: _db.getContacts(),
-                          builder: (context, snapshot) {
-                            final contacts = snapshot.data ?? [];
-                            return Autocomplete<String>(
-                              initialValue: TextEditingValue(text: buyerController.text),
-                              optionsBuilder: (TextEditingValue textEditingValue) {
-                                if (textEditingValue.text.isEmpty) {
-                                  return const Iterable<String>.empty();
-                                }
-                                return contacts
-                                    .map((c) => c['name'] as String)
-                                    .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                              },
-                              onSelected: (String selection) {
-                                buyerController.text = selection;
-                              },
-                              fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
-                                fieldController.addListener(() {
-                                  buyerController.text = fieldController.text;
-                                });
-                                return TextField(
-                                  controller: fieldController,
-                                  focusNode: focusNode,
-                                  onSubmitted: (value) => onFieldSubmitted(),
-                                  decoration: InputDecoration(
-                                    hintText: 'Select or enter buyer',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF7B6BA0),
-                                        width: 2,
+                          const SizedBox(height: 8),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: _db.getContacts(),
+                            builder: (context, snapshot) {
+                              final contacts = snapshot.data ?? [];
+                              return Autocomplete<String>(
+                                initialValue: TextEditingValue(text: buyerController.text),
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) {
+                                    return const Iterable<String>.empty();
+                                  }
+                                  return contacts
+                                      .map((c) => c['name'] as String)
+                                      .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                                },
+                                onSelected: (String selection) {
+                                  buyerController.text = selection;
+                                },
+                                fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+                                  fieldController.addListener(() {
+                                    buyerController.text = fieldController.text;
+                                  });
+                                  return TextField(
+                                    controller: fieldController,
+                                    focusNode: focusNode,
+                                    onSubmitted: (value) => onFieldSubmitted(),
+                                    decoration: InputDecoration(
+                                      hintText: 'Select or enter buyer',
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF7B6BA0),
+                                          width: 2,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -2724,6 +3036,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           final currentLitter = _litters[litterIndex];
                           final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                           bool updated = false;
+                          final bool isDirectSold = markAsSold;
                           final updatedKits = currentLitter.kits.map((k) {
                             final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
                             final bool isExactId = k.id == kit.id;
@@ -2734,8 +3047,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               updated = true;
                               return k.copyWith(
                                 status: 'Sold',
-                                details: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold',
-                                price: double.tryParse(priceController.text),
+                                details: isDirectSold
+                                    ? 'Sold'
+                                    : (buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold'),
+                                price: isDirectSold ? null : double.tryParse(priceController.text),
                               );
                             }
                             return k;
@@ -2744,19 +3059,22 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           final updatedLitter = currentLitter.copyWith(kits: updatedKits);
                           await _db.updateLitter(updatedLitter);
 
-                          final double? salePrice = double.tryParse(priceController.text.trim());
-                          if (salePrice != null && salePrice > 0) {
-                            final transaction = finance.Transaction(
-                              id: 'TX-${DateTime.now().millisecondsSinceEpoch}',
-                              type: finance.TransactionType.income,
-                              category: finance.TransactionCategory.soldKit,
-                              amount: salePrice,
-                              date: soldDate,
-                              notes: 'Sale of Kit ${_getKitDisplayTag(litter, kit)} (Litter ${litter.id})${buyerController.text.isNotEmpty ? ' to ' + buyerController.text.trim() : ''}',
-                              rabbitId: kit.id,
-                              litterId: litter.id,
-                            );
-                            await _db.insertTransaction(transaction);
+                          if (!isDirectSold) {
+                            final double? salePrice = double.tryParse(priceController.text.trim());
+                            if (salePrice != null && salePrice > 0) {
+                              final transaction = finance.Transaction(
+                                id: 'TX-${DateTime.now().millisecondsSinceEpoch}',
+                                type: finance.TransactionType.income,
+                                category: finance.TransactionCategory.soldKit,
+                                amount: salePrice,
+                                date: soldDate,
+                                notes: 'Sale of Kit ${_getKitDisplayTag(litter, kit)} (Litter ${litter.id})${buyerController.text.isNotEmpty ? ' to ' + buyerController.text.trim() : ''}',
+                                rabbitId: kit.id,
+                                litterId: litter.id,
+                                kitId: kit.id,
+                              );
+                              await _db.insertTransaction(transaction);
+                            }
                           }
 
                           await _loadLitterHistory();
@@ -2921,9 +3239,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       });
 
       final int weanDays = SettingsService.instance.weanAge * 7;
+      final birthDate = _litters[index].dob ?? _litters[index].kindleDate;
       final DateTime? updatedWeanDate = targetStage == 'Weaned'
           ? (_litters[index].weanDate ?? DateTime.now())
-          : (targetStage == 'Nursing' ? DateTime.now().add(Duration(days: weanDays)) : _litters[index].weanDate);
+          : (targetStage == 'Nursing'
+              ? (birthDate != null ? birthDate.add(Duration(days: weanDays)) : DateTime.now().add(Duration(days: weanDays)))
+              : _litters[index].weanDate);
 
       final updatedLitter = _litters[index].copyWith(
         kits: updatedKits,
@@ -2956,53 +3277,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   }
 
   Future<void> _promoteKitToMature(Litter litter, Kit kit, {bool isGrowOut = false}) async {
-    final String rabbitName = (kit.name != null && kit.name!.trim().isNotEmpty)
-        ? kit.name!.trim()
-        : (kit.id.startsWith('K-') || kit.id.startsWith('F-') ? 'Kit ${kit.id}' : kit.id);
-
-    final RabbitStatus newStatus = isGrowOut ? RabbitStatus.inactive : RabbitStatus.active;
-    final matureRabbit = Rabbit(
-      id: kit.id,
-      name: rabbitName,
-      breed: litter.breed,
-      type: kit.sex == 'M' ? RabbitType.buck : RabbitType.doe,
-      color: kit.color,
-      dateOfBirth: litter.dob ?? litter.kindleDate,
-      weight: kit.weight > 0 ? kit.weight : null,
-      sireId: litter.buckId,
-      damId: litter.doeId,
-      status: newStatus,
-      cage: isGrowOut ? 'Grow-Out' : null,
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddRabbitScreen(
+          isAddToHerd: true,
+          sourceLitter: litter,
+          sourceKit: kit,
+          onRabbitAdded: () {
+            _loadLitterHistory();
+          },
+        ),
+      ),
     );
-
-    try {
-      await _db.insertRabbit(matureRabbit);
-
-      final litterIndex = _litters.indexWhere((l) => l.id == litter.id);
-      if (litterIndex != -1) {
-        final currentLitter = _litters[litterIndex];
-        final updatedKits = currentLitter.kits.where((k) => k.id != kit.id).toList();
-        final updatedLitter = currentLitter.copyWith(kits: updatedKits);
-        await _db.updateLitter(updatedLitter);
-        await _loadLitterHistory();
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${matureRabbit.name} moved to Herd (${isGrowOut ? "Inactive / Grow-Out" : "Active"})'),
-            backgroundColor: const Color(0xFF7B6BA0),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error promoting kit: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
+    if (mounted) await _loadLitterHistory();
   }
 
   void _showFosterKitDialog(Litter litter, Kit kit) {
@@ -3803,123 +4091,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       );
     }
     if (s == 'sold') {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (litter != null && kit != null) {
-            _showKitActions(litter, kit);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E24),
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(PhosphorIconsFill.tag, size: 10, color: Colors.white),
-              SizedBox(width: 3),
-              Text(
-                'SOLD',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'SOLD',
+        bgColor: const Color(0xFF1E1E24),
+        onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     if (s == 'cull' || s == 'culled') {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (litter != null && kit != null) {
-            _showKitActions(litter, kit);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.close, size: 10, color: Colors.white),
-              SizedBox(width: 3),
-              Text(
-                'CULL',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'CULL',
+        bgColor: const Color(0xFFD32F2F),
+        onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     if (s == 'dead' || s == 'died' || s == 'deceased') {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (litter != null && kit != null) {
-            _showKitActions(litter, kit);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.close, size: 10, color: Colors.white),
-              SizedBox(width: 3),
-              Text(
-                'DIED',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'DIED',
+        bgColor: const Color(0xFFD32F2F),
+        onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     return Container(

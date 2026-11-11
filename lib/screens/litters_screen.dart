@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/litter.dart';
 import '../models/barn.dart';
 import '../models/transaction.dart' as finance;
@@ -24,6 +25,7 @@ import '../widgets/modals/rabbit_picker_modal.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 import '../widgets/purple_dialog.dart';
+import '../utils/toast_utils.dart';
 import 'dart:developer' as developer;
 
 class LittersScreen extends StatefulWidget {
@@ -52,9 +54,26 @@ class LittersScreenState extends State<LittersScreen> {
     if (mounted) {
       setState(() {
         _expandedLitters.clear();
+        _expandedStethoscopeLitterId = null;
       });
     } else {
       _expandedLitters.clear();
+      _expandedStethoscopeLitterId = null;
+    }
+  }
+
+  void openDefaultPage() {
+    _searchFocusNode.unfocus();
+    _searchFocusNode.canRequestFocus = false;
+    final defaultStage = SettingsService.instance.defaultNurseryStage;
+    if (mounted) {
+      setState(() {
+        _currentStage = defaultStage;
+        _searchQuery = '';
+        _locationFilter = null;
+        _expandedLitters.clear();
+        _expandedStethoscopeLitterId = null;
+      });
     }
   }
 
@@ -69,6 +88,8 @@ class LittersScreenState extends State<LittersScreen> {
     'weight': 'all',
   };
   Map<String, bool> _expandedLitters = {};
+  String? _expandedStethoscopeLitterId;
+  final Map<String, Set<String>> _litterMedChecks = {};
   Map<String, Rabbit> _rabbitMap = {};
 
   List<Litter> litters = [];
@@ -81,6 +102,7 @@ class LittersScreenState extends State<LittersScreen> {
   @override
   void initState() {
     super.initState();
+    _currentStage = SettingsService.instance.defaultNurseryStage;
     _searchFocusNode.addListener(() {
       if (!_searchFocusNode.hasFocus && _searchFocusNode.canRequestFocus) {
         _searchFocusNode.canRequestFocus = false;
@@ -119,6 +141,7 @@ class LittersScreenState extends State<LittersScreen> {
         _rabbitMap = rMap;
         _isLoading = false;
       });
+      await _loadLitterMedChecks(existingLitters);
       print(' Loaded ${litters.length} litters from database');
     } catch (e, stackTrace) {
       print('Error loading litters: $e');
@@ -128,6 +151,38 @@ class LittersScreenState extends State<LittersScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadLitterMedChecks(List<Litter> targetLitters) async {
+    final prefs = await SharedPreferences.getInstance();
+    final Map<String, Set<String>> loaded = {};
+    for (final l in targetLitters) {
+      final list = prefs.getStringList('litter_med_checks_${l.id}');
+      if (list != null) {
+        loaded[l.id] = list.toSet();
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _litterMedChecks
+          ..clear()
+          ..addAll(loaded);
+      });
+    }
+  }
+
+  Future<void> _toggleLitterMedCheck(String litterId, String medKey) async {
+    final current = Set<String>.from(_litterMedChecks[litterId] ?? const <String>{});
+    if (current.contains(medKey)) {
+      current.remove(medKey);
+    } else {
+      current.add(medKey);
+    }
+    setState(() {
+      _litterMedChecks[litterId] = current;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('litter_med_checks_$litterId', current.toList());
   }
 
   Future<void> _refreshLitters() async {
@@ -141,6 +196,17 @@ class LittersScreenState extends State<LittersScreen> {
         _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
         _rabbitMap = rMap;
       });
+      await _loadLitterMedChecks(loadedLitters);
+
+      // Self-heal: ensure nursing litters have their weanDate aligned with setting
+      for (final l in loadedLitters) {
+        if (l.status.toLowerCase() == 'nursing') {
+          final effective = _getEffectiveWeanDate(l);
+          if (l.weanDate == null || l.weanDate!.difference(effective).inDays.abs() >= 1) {
+            _db.updateLitter(l.copyWith(weanDate: effective));
+          }
+        }
+      }
       print('Refreshed: ${litters.length} litters');
     } catch (e) {
       print('Error refreshing litters: $e');
@@ -187,6 +253,7 @@ class LittersScreenState extends State<LittersScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFEEDAFE),
+      resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -301,13 +368,22 @@ class LittersScreenState extends State<LittersScreen> {
     if (litter.kits.isNotEmpty) {
       final hasActiveKit = litter.kits.any((k) {
         final st = k.status.toLowerCase().trim();
-        return !k.isArchived &&
-            st != 'dead' &&
-            st != 'died' &&
-            st != 'deceased' &&
-            st != 'sold' &&
-            st != 'butchered' &&
-            st != 'cull';
+        final details = (k.details ?? '').toLowerCase();
+        final bool isTerminal = st == 'dead' ||
+            st == 'died' ||
+            st == 'deceased' ||
+            st == 'sold' ||
+            st == 'butchered' ||
+            st == 'cull' ||
+            st == 'culled';
+        final bool isIndependent = st.contains('grow') ||
+            st == 'promoted' ||
+            st == 'herd' ||
+            st == 'added to herd' ||
+            details.contains('grow-out') ||
+            details.contains('grow out');
+        final bool isFosteredOut = st == 'fostered' || details.contains('fostered to');
+        return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
       });
       if (!hasActiveKit) return true;
     } else {
@@ -323,6 +399,15 @@ class LittersScreenState extends State<LittersScreen> {
     int nursingKits = 0;
     int weanedKitsCount = 0;
     final Set<String> nursingDoes = {};
+
+    // Foster copies live in the foster mom's litter with id 'foster_<sourceLitterId>_<kitId>'.
+    // A kit whose copy exists elsewhere is nursing with the foster mom, never with its birth mom.
+    final Set<String> fosterCopyIds = {};
+    for (final l in litters) {
+      for (final k in l.kits) {
+        if (k.id.startsWith('foster_')) fosterCopyIds.add(k.id);
+      }
+    }
 
     for (final litter in litters) {
       if (_isLitterArchived(litter)) continue;
@@ -356,6 +441,7 @@ class LittersScreenState extends State<LittersScreen> {
           // Fostered-out kits are nursing with the foster doe, NOT with this biological doe.
           // They must not be counted under the biological mother's litter.
           final bool isFosteredOut = st == 'fostered' ||
+              fosterCopyIds.contains('foster_${litter.id}_${kit.id}') ||
               (kit.details != null && kit.details!.toLowerCase().contains('fostered to'));
           if (isFosteredOut) {
             continue;
@@ -812,6 +898,18 @@ class LittersScreenState extends State<LittersScreen> {
                 _expandedLitters.clear();
               });
             },
+            onLongPress: () async {
+              await SettingsService.instance.setDefaultNurseryStage(stage);
+              setState(() {
+                _currentStage = stage;
+              });
+              if (context.mounted) {
+                ToastUtils.showSuccess(
+                  context,
+                  'Default Nursery page set to ${displayLabels[stage] ?? stage.toUpperCase()}',
+                );
+              }
+            },
             child: Container(
               margin: const EdgeInsets.only(right: 20),
               decoration: BoxDecoration(
@@ -1040,12 +1138,21 @@ class LittersScreenState extends State<LittersScreen> {
 
 
   DateTime _getEffectiveWeanDate(Litter litter) {
-    if (litter.weanDate != null) {
-      return litter.weanDate!;
-    }
     final doe = _rabbitMap[litter.doeId];
     final int weanWeeks = doe?.customWeanWeek ?? SettingsService.instance.weanAge;
     final birth = litter.dob ?? litter.kindleDate;
+
+    // For active nursing litters (or in Nursing stage), expected wean date is always calculated from birth + weanAge weeks
+    if (litter.status.toLowerCase() == 'nursing' || _currentStage.toLowerCase() == 'nursing') {
+      if (birth != null) {
+        return birth.add(Duration(days: weanWeeks * 7));
+      }
+      return litter.breedDate.add(Duration(days: 31 + weanWeeks * 7));
+    }
+
+    if (litter.weanDate != null) {
+      return litter.weanDate!;
+    }
     if (birth != null) {
       return birth.add(Duration(days: weanWeeks * 7));
     }
@@ -1093,7 +1200,7 @@ class LittersScreenState extends State<LittersScreen> {
     return '${weeks}w ${remDays}d';
   }
 
-  Widget _buildParentNameText(Rabbit? rabbit, String fallbackName, bool isDoe) {
+  Widget _buildParentNameText(Rabbit? rabbit, String fallbackName, bool isDoe, {TextAlign textAlign = TextAlign.center}) {
     final prefix = (rabbit?.breederPrefix ?? '').trim();
     final name = (rabbit?.name ?? fallbackName).trim();
     final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
@@ -1125,7 +1232,7 @@ class LittersScreenState extends State<LittersScreen> {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.center,
+      textAlign: textAlign,
     );
   }
 
@@ -1289,131 +1396,154 @@ class LittersScreenState extends State<LittersScreen> {
       padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
       child: Column(
         children: [
-          // 1. Top Section (Doe avatar, center info, Buck avatar)
+          // 1. Top Section: Full-width Doe name above, [Doe photo | Info | Buck photo], Full-width Buck name below
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Doe (Mother) Avatar - Left (Larger photo size)
-                _buildCircularAvatar(litter.doeId),
-                const SizedBox(width: 8),
-                // Center Info: Doe name, Buck name, and (Age/Wean OR Missed Litter OR Litter Died OR Litter Sold)
-                Expanded(
-                  child: Column(
-                    children: [
-                      _buildParentNameText(doeRabbit, litter.dam, true),
-                      const SizedBox(height: 1),
-                      _buildParentNameText(buckRabbit, litter.sire, false),
-                      const SizedBox(height: 3),
-                      if (isMissedLitter)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Missed Litter',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF555555),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildParentNameText(doeRabbit, litter.dam, true, textAlign: TextAlign.left),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Doe (Mother) Avatar - Left
+                    _buildCircularAvatar(litter.doeId),
+                    const SizedBox(width: 8),
+                    // Center Info: DOB, Born/Alive, Age/Wean OR Missed/Culled/Died
+                    Expanded(
+                      child: Column(
+                        children: [
+                          if (isMissedLitter)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Missed Litter',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF555555),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else if (isLitterCulled)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Litter Culled',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF555555),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else if (isLitterDied)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Litter Died',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF555555),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else ...[
+                            Text(
+                              'DOB: ${_formatNurseryDate(litter.kindleDate ?? litter.dob)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF555555),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      else if (isLitterCulled)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Litter Culled',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF555555),
+                            const SizedBox(height: 1),
+                            Text(
+                              'Born: $born  Alive: $alive',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF555555),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      else if (isLitterDied)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Litter Died',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF555555),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      else if (isLitterSold ||
-                          _currentStage.toLowerCase() == 'archive' ||
-                          _currentStage.toLowerCase() == 'weaned' ||
-                          _currentStage.toLowerCase() == 'growout' ||
-                          _currentStage.toLowerCase() == 'grow out' ||
-                          _currentStage.toLowerCase() == 'grow-out' ||
-                          _currentStage.toLowerCase() == 'quarantine' ||
-                          isWeanPassed) ...[
-                        Text(
-                          'Age: ${_formatNurseryAge(litter)}',
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF555555),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ]
-                      else ...[
-                        Text(
-                          'Age: ${_formatNurseryAge(litter)}',
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF555555),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 1),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Wean: ',
-                              style: TextStyle(
-                                fontSize: 12.5,
+                            const SizedBox(height: 1),
+                            Text(
+                              'Age: ${_formatNurseryAge(litter)}',
+                              style: const TextStyle(
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF555555),
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            Text(
-                              _formatNurseryDate(weanDate),
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color: !isWeanPassed
-                                    ? const Color(0xFFE53935) // Red before wean date
-                                    : const Color(0xFF2E7B32), // Green after wean date
+                            if (!(isLitterSold ||
+                                _currentStage.toLowerCase() == 'archive' ||
+                                _currentStage.toLowerCase() == 'weaned' ||
+                                _currentStage.toLowerCase() == 'growout' ||
+                                _currentStage.toLowerCase() == 'grow out' ||
+                                _currentStage.toLowerCase() == 'grow-out' ||
+                                _currentStage.toLowerCase() == 'quarantine' ||
+                                isWeanPassed)) ...[
+                              const SizedBox(height: 1),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Wean: ',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF555555),
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatNurseryDate(weanDate),
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: !isWeanPassed
+                                          ? const Color(0xFFE53935)
+                                          : const Color(0xFF2E7B32),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            ],
                           ],
-                        ),
-                      ],
-                    ],
-                  ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Buck (Father) Avatar - Right
+                    _buildCircularAvatar(litter.buckId),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                // Buck (Father) Avatar - Right (Larger photo size)
-                _buildCircularAvatar(litter.buckId),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildParentNameText(buckRabbit, litter.sire, false, textAlign: TextAlign.right),
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 2),
 
-          // 2. Info Section (Born/Alive, DOB, Bred, Cage, 3 dots, Litter ID expander)
+          // 2. Info Section (Bred/Cage/Stethoscope, 3 dots, Litter ID expander)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -1428,14 +1558,14 @@ class LittersScreenState extends State<LittersScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Left Column: 4 lines (or 3 lines for missed litter)
+                      // Left Column: Bred, Due (if missed), Cage, Stethoscope button
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (!isMissedLitter) ...[
+                            if (isMissedLitter) ...[
                               Text(
-                                'Born: $born  Alive: $alive',
+                                'Due: ${_formatNurseryDate(litter.dueDate ?? litter.kindleDate ?? litter.dob)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -1443,25 +1573,7 @@ class LittersScreenState extends State<LittersScreen> {
                                 ),
                               ),
                               const SizedBox(height: 1),
-                              Text(
-                                'DOB: ${_formatNurseryDate(litter.dob ?? litter.kindleDate)}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF555555),
-                                ),
-                              ),
-                            ] else ...[
-                              Text(
-                                'Due: ${_formatNurseryDate(litter.dueDate ?? litter.dob ?? litter.kindleDate)}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF555555),
-                                ),
-                              ),
                             ],
-                            const SizedBox(height: 1),
                             Text(
                               'Bred: ${_formatNurseryDate(litter.breedDate)}',
                               style: const TextStyle(
@@ -1479,10 +1591,38 @@ class LittersScreenState extends State<LittersScreen> {
                                 color: Color(0xFF555555),
                               ),
                             ),
+                            if (!isMissedLitter) ...[
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  FocusScope.of(context).unfocus();
+                                  setState(() {
+                                    _expandedStethoscopeLitterId =
+                                        _expandedStethoscopeLitterId == litter.id ? null : litter.id;
+                                  });
+                                },
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF1D5EA8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      PhosphorIcons.stethoscope(PhosphorIconsStyle.bold),
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
-                      // Right Column: 3 dots at top, Litter ID pill at bottom aligned with Cage
+                      // Right Column: 3 dots at top, Litter ID pill at bottom aligned with Stethoscope
                       Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1560,6 +1700,106 @@ class LittersScreenState extends State<LittersScreen> {
               ],
             ),
           ),
+          if (_expandedStethoscopeLitterId == litter.id) _buildLitterMedicationDropdown(litter),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLitterMedicationDropdown(Litter litter) {
+    final DateTime dob = litter.kindleDate ?? litter.dob;
+    final Set<String> checkedKeys = _litterMedChecks[litter.id] ?? const <String>{};
+    const items = <({String key, String label, int offsetDays})>[
+      (key: 'deworming_4w', label: 'Deworming 4 Wks', offsetDays: 28),
+      (key: 'coccidiosis_4w', label: 'Coccidiosis 4 Wks', offsetDays: 28),
+      (key: 'mites_4w', label: 'Mites 4 Wks', offsetDays: 28),
+      (key: 'deworming_8w', label: 'Deworming 8 Wks', offsetDays: 56),
+      (key: 'coccidiosis_8w', label: 'Coccidiosis 8 Wks', offsetDays: 56),
+      (key: 'mites_8w', label: 'Mites 8 Wks', offsetDays: 56),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEDAFE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD6C2EC)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _expandedStethoscopeLitterId = null),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Icon(Icons.close, size: 16, color: Color(0xFF4A3E6D)),
+                ),
+              ),
+            ],
+          ),
+          ...items.map((item) {
+            final bool isDone = checkedKeys.contains(item.key);
+            final String scheduledDate = FormatUtils.formatDate(dob.add(Duration(days: item.offsetDays)));
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _toggleLitterMedCheck(litter.id, item.key),
+              child: Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE5DEEC)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Text(
+                        item.label,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF3A3A3C),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        scheduledDate,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF3A3A3C),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDone ? const Color(0xFF9E5EB4) : Colors.transparent,
+                        border: Border.all(
+                          color: const Color(0xFF9E5EB4),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: isDone
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -1701,10 +1941,14 @@ class LittersScreenState extends State<LittersScreen> {
                                 style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                               ),
                             if (kit.details != null && kit.details!.isNotEmpty)
-                              Text(
-                                FormatUtils.formatDisplayKitDetails(kit.details),
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
-                              ),
+                              ...FormatUtils.formatDisplayKitDetails(kit.details)
+                                  .split('•')
+                                  .map((p) => p.trim())
+                                  .where((p) => p.isNotEmpty)
+                                  .map((part) => Text(
+                                        '• $part',
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                      )),
                           ],
                         ),
                       ),
@@ -1899,8 +2143,8 @@ class LittersScreenState extends State<LittersScreen> {
         final rabbit = snapshot.data;
         if (rabbit != null && rabbit.photos != null && rabbit.photos!.isNotEmpty) {
           return Container(
-            width: 72,
-            height: 72,
+            width: 62,
+            height: 62,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
@@ -1915,8 +2159,8 @@ class LittersScreenState extends State<LittersScreen> {
           );
         }
         return Container(
-          width: 72,
-          height: 72,
+          width: 62,
+          height: 62,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -2106,7 +2350,8 @@ class LittersScreenState extends State<LittersScreen> {
     ].contains(kStatus);
     final bool isGrowOut = kStatus == 'growout' || kStatus == 'grow out' || kStatus == 'grow-out';
     final bool isQuarantine = kStatus == 'quarantine';
-    final bool showBadge = isOutcome || isGrowOut || isQuarantine || isReserved;
+    final bool isPromoted = _isKitPromoted(kit);
+    final bool showBadge = isOutcome || isGrowOut || isQuarantine || isReserved || isPromoted;
 
     String displayKitId;
     if (isFosteredIn) {
@@ -2184,12 +2429,34 @@ class LittersScreenState extends State<LittersScreen> {
                       style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                     ),
                   if (kit.details != null && kit.details!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      FormatUtils.formatDisplayKitDetails(kit.details),
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Builder(
+                      builder: (context) {
+                        final displayDetails = FormatUtils.formatDisplayKitDetails(kit.details);
+                        if (displayDetails.isEmpty ||
+                            (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold')) {
+                          return const SizedBox.shrink();
+                        }
+                        final detailParts = displayDetails
+                            .split('•')
+                            .map((p) => p.trim())
+                            .where((p) => p.isNotEmpty)
+                            .toList();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: detailParts
+                                .map((part) => Text(
+                                      '• $part',
+                                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ))
+                                .toList(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ],
@@ -2215,6 +2482,48 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  Widget _buildUniformKitBadge({
+    required String label,
+    required Color bgColor,
+    Color textColor = Colors.white,
+    VoidCallback? onTap,
+    VoidCallback? onLongPress,
+  }) {
+    final badge = Container(
+      width: 56,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w900,
+          color: textColor,
+          letterSpacing: 0.4,
+          height: 1.0,
+        ),
+      ),
+    );
+    if (onTap == null && onLongPress == null) return badge;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: badge,
+    );
+  }
+
   Widget _buildOutcomeBadge(String status, [Litter? litter, Kit? kit]) {
     final s = status.toLowerCase();
     final bool isReserved = s == 'reserved' || (kit != null && kit.details != null && kit.details!.toLowerCase().contains('reserved:'));
@@ -2224,22 +2533,10 @@ class LittersScreenState extends State<LittersScreen> {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDE5FA),
-              borderRadius: BorderRadius.circular(5),
-              border: Border.all(color: const Color(0xFFD6C2F7), width: 0.8),
-            ),
-            child: const Text(
-              'GROW',
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF7B6BA0),
-                letterSpacing: 0.4,
-              ),
-            ),
+          _buildUniformKitBadge(
+            label: 'GROW',
+            bgColor: const Color(0xFF7B6BA0),
+            textColor: Colors.white,
           ),
           const SizedBox(width: 4),
           GestureDetector(
@@ -2298,22 +2595,10 @@ class LittersScreenState extends State<LittersScreen> {
     }
 
     if (isGrowOut) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEDE5FA),
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: const Color(0xFFD6C2F7), width: 0.8),
-        ),
-        child: const Text(
-          'GROW',
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF7B6BA0),
-            letterSpacing: 0.4,
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'GROW',
+        bgColor: const Color(0xFF7B6BA0),
+        textColor: Colors.white,
       );
     }
 
@@ -2337,125 +2622,38 @@ class LittersScreenState extends State<LittersScreen> {
       );
     }
     if (s == 'sold') {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (litter != null && kit != null) {
-            _showKitActions(litter, kit);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E24), // Solid dark tag
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(PhosphorIcons.tag(PhosphorIconsStyle.fill), size: 10, color: Colors.white),
-              const SizedBox(width: 3),
-              const Text(
-                'SOLD',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'SOLD',
+        bgColor: const Color(0xFF1E1E24),
+        onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
 
     if (s == 'cull' || s == 'culled') {
-      return GestureDetector(
-        onLongPress: (litter != null && kit != null)
-            ? () => _showReverseKitDiedDialog(litter, kit)
-            : null,
-        onTap: (litter != null && kit != null)
-            ? () => _showReverseKitDiedDialog(litter, kit)
-            : null,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.close, size: 10, color: Colors.white),
-              SizedBox(width: 3),
-              Text(
-                'CULL',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'CULL',
+        bgColor: const Color(0xFFD32F2F),
+        onTap: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
+        onLongPress: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
+      );
+    }
+
+    if (kit != null && _isKitPromoted(kit)) {
+      final bool isBuck = (kit.sex.toUpperCase() == 'M' || kit.sex.toLowerCase() == 'buck');
+      final Color bgColor = isBuck ? const Color(0xFF4AA8E8) : const Color(0xFFEC6FA7);
+      return _buildUniformKitBadge(
+        label: 'HERD',
+        bgColor: bgColor,
+        textColor: Colors.white,
       );
     }
 
     if (s == 'dead' || s == 'died' || s == 'deceased') {
-      return GestureDetector(
-        onLongPress: (litter != null && kit != null)
-            ? () => _showReverseKitDiedDialog(litter, kit)
-            : null,
-        onTap: (litter != null && kit != null)
-            ? () => _showReverseKitDiedDialog(litter, kit)
-            : null,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD32F2F), // Solid red box matching SOLD
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.close, size: 10, color: Colors.white),
-              SizedBox(width: 3),
-              Text(
-                'DIED',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildUniformKitBadge(
+        label: 'DIED',
+        bgColor: const Color(0xFFD32F2F),
+        onTap: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
+        onLongPress: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
       );
     }
     final config = _getStatusConfig(status);
@@ -2464,6 +2662,12 @@ class LittersScreenState extends State<LittersScreen> {
       decoration: BoxDecoration(color: config.bgColor, borderRadius: BorderRadius.circular(6)),
       child: Text(status.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: config.textColor)),
     );
+  }
+
+  bool _isKitPromoted(Kit kit) {
+    final s = kit.status.toLowerCase().trim();
+    final d = (kit.details ?? '').toLowerCase();
+    return s == 'promoted' || s == 'herd' || s == 'added to herd' || d.contains('added to herd');
   }
 
   Widget _buildStandardKitCard(Litter litter, Kit kit) {
@@ -3841,8 +4045,8 @@ class LittersScreenState extends State<LittersScreen> {
                         label: 'Move to Herd',
                         onTap: () {
                           Navigator.pop(context);
-                          final bool isUnder6Months = kitAgeDays < 180;
-                          _promoteKitToMature(litter, kit, isGrowOut: isUnder6Months);
+                          final bool isUnder5Months = kitAgeDays < 150;
+                          _promoteKitToMature(litter, kit, isGrowOut: isUnder5Months);
                         },
                       ),
                       const SizedBox(height: 10),
@@ -3914,7 +4118,14 @@ class LittersScreenState extends State<LittersScreen> {
             st == 'butchered' ||
             st == 'cull' ||
             st == 'culled';
-        if (!isTerminalOutcome) {
+        final bool isIndependentStatus = st == 'growout' ||
+            st == 'grow out' ||
+            st == 'grow-out' ||
+            st == 'quarantine' ||
+            st == 'promoted' ||
+            st == 'herd' ||
+            st == 'added to herd';
+        if (!isTerminalOutcome && !isIndependentStatus) {
           return k.copyWith(
             status: targetStage == 'Archived' ? 'Archived' : targetStage,
           );
@@ -3932,7 +4143,14 @@ class LittersScreenState extends State<LittersScreen> {
       if (aliveCount == 0 && targetStage != 'Archived') {
         updatedKits = kitsList.map<Kit>((k) {
           final st = k.status.toLowerCase().trim();
-          if (st != 'sold' && st != 'butchered') {
+          final bool isIndependentStatus = st == 'growout' ||
+              st == 'grow out' ||
+              st == 'grow-out' ||
+              st == 'quarantine' ||
+              st == 'promoted' ||
+              st == 'herd' ||
+              st == 'added to herd';
+          if (st != 'sold' && st != 'butchered' && !isIndependentStatus) {
             return k.copyWith(status: targetStage);
           }
           return k;
@@ -3944,9 +4162,12 @@ class LittersScreenState extends State<LittersScreen> {
         }).length;
       }
 
+      final birthDate = currentLitter.dob ?? currentLitter.kindleDate;
       final DateTime? updatedWeanDate = targetStage == 'Weaned'
           ? (currentLitter.weanDate ?? DateTime.now())
-          : (targetStage == 'Nursing' ? DateTime.now().add(Duration(days: weanDays)) : currentLitter.weanDate);
+          : (targetStage == 'Nursing'
+              ? (birthDate != null ? birthDate.add(Duration(days: weanDays)) : DateTime.now().add(Duration(days: weanDays)))
+              : currentLitter.weanDate);
 
       final updatedLitter = currentLitter.copyWith(
         status: targetStage,
@@ -4243,7 +4464,14 @@ class LittersScreenState extends State<LittersScreen> {
 
     final currentStageLower = _currentStage.toLowerCase().trim();
     String kitStage = 'nursing';
-    if (currentStageLower == 'nursing') {
+    final bool isKitExplicitGrowOut = kStatus == 'growout' || kStatus == 'grow out' || kStatus == 'grow-out';
+    final bool isKitExplicitQuarantine = kStatus == 'quarantine';
+
+    if (isKitExplicitGrowOut) {
+      kitStage = 'growout';
+    } else if (isKitExplicitQuarantine) {
+      kitStage = 'quarantine';
+    } else if (currentStageLower == 'nursing') {
       kitStage = 'nursing';
     } else if (currentStageLower == 'weaned') {
       kitStage = 'weaned';
@@ -4252,10 +4480,6 @@ class LittersScreenState extends State<LittersScreen> {
     } else if (currentStageLower == 'archive') {
       kitStage = 'archive';
     } else if (currentStageLower == 'growout' || currentStageLower == 'grow out' || currentStageLower == 'grow-out') {
-      kitStage = 'growout';
-    } else if (kStatus == 'quarantine' || (kStatus.isEmpty && lStatus == 'quarantine')) {
-      kitStage = 'quarantine';
-    } else if (kStatus == 'growout' || kStatus == 'grow out' || kStatus == 'grow-out' || (kStatus.isEmpty && (lStatus == 'growout' || lStatus == 'grow out' || lStatus == 'grow-out'))) {
       kitStage = 'growout';
     } else if (kStatus == 'weaned' || (kStatus.isEmpty && (lStatus == 'weaned' || (litter.weanDate != null && DateTime.now().isAfter(litter.weanDate!)) || isWeanAgeReached))) {
       kitStage = 'weaned';
@@ -4676,8 +4900,8 @@ class LittersScreenState extends State<LittersScreen> {
         label: 'Move to Herd',
         onTap: () {
           Navigator.pop(context);
-          final bool isUnder6Months = kitAgeDays < 180;
-          _promoteKitToMature(litter, kit, isGrowOut: isUnder6Months);
+          final bool isUnder5Months = kitAgeDays < 150;
+          _promoteKitToMature(litter, kit, isGrowOut: isUnder5Months);
         },
       ));
 
@@ -5108,15 +5332,47 @@ class LittersScreenState extends State<LittersScreen> {
       });
 
       final int weanDays = SettingsService.instance.weanAge * 7;
+      final birthDate = litters[index].dob ?? litters[index].kindleDate;
       final DateTime? updatedWeanDate = targetStage == 'Weaned'
           ? (litters[index].weanDate ?? DateTime.now())
-          : (targetStage == 'Nursing' ? DateTime.now().add(Duration(days: weanDays)) : litters[index].weanDate);
+          : (targetStage == 'Nursing'
+              ? (birthDate != null ? birthDate.add(Duration(days: weanDays)) : DateTime.now().add(Duration(days: weanDays)))
+              : litters[index].weanDate);
+
+      final bool hasActiveNestKit = updatedKits.any((k) {
+        final st = k.status.toLowerCase().trim();
+        final details = (k.details ?? '').toLowerCase();
+        final bool isTerminal = st == 'dead' ||
+            st == 'died' ||
+            st == 'deceased' ||
+            st == 'sold' ||
+            st == 'butchered' ||
+            st == 'cull' ||
+            st == 'culled';
+        final bool isIndependent = st.contains('grow') ||
+            st == 'promoted' ||
+            st == 'herd' ||
+            st == 'added to herd' ||
+            details.contains('grow-out') ||
+            details.contains('grow out');
+        final bool isFosteredOut = st == 'fostered' || details.contains('fostered to');
+        return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
+      });
+
+      String newLitterStatus;
+      if (!hasActiveNestKit) {
+        newLitterStatus = 'archived';
+      } else if (allKitsInTargetOrOutcome) {
+        newLitterStatus = targetStage;
+      } else if (hasAnyNursing) {
+        newLitterStatus = 'Nursing';
+      } else {
+        newLitterStatus = targetStage;
+      }
 
       final updatedLitter = litters[index].copyWith(
         kits: updatedKits,
-        status: allKitsInTargetOrOutcome
-            ? targetStage
-            : (hasAnyNursing ? 'Nursing' : targetStage),
+        status: newLitterStatus,
         weanDate: updatedWeanDate,
       );
 
@@ -6171,11 +6427,11 @@ class LittersScreenState extends State<LittersScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Top Header matching Nursery Lilac theme
+                // Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEADBEE),
+                    color: Color(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -6183,12 +6439,12 @@ class LittersScreenState extends State<LittersScreen> {
                     children: [
                       Text(
                         isEditing
-                            ? 'Edit Reservation - ${_getKitDisplayTag(litter, kit)}'
-                            : 'Reserve Kit - ${_getKitDisplayTag(litter, kit)}',
+                            ? 'Edit Reservation'
+                            : 'Reserve Kit',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
+                          color: Color(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -6204,7 +6460,7 @@ class LittersScreenState extends State<LittersScreen> {
                             color: Colors.white.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -6221,38 +6477,35 @@ class LittersScreenState extends State<LittersScreen> {
                         // Kit Summary Info Box
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F2FA),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: const Color(0xFFE8DFFA)),
                           ),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE5FA),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  _getKitDisplayTag(litter, kit),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF7B6BA0),
-                                  ),
+                              Text(
+                                'Kit ${_getKitDisplayTag(litter, kit)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
+                              const SizedBox(width: 8),
+                              Flexible(
                                 child: Text(
-                                  '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color}${kit.weight > 0 ? ' • ${FormatUtils.formatWeight(kit.weight)}' : ''}',
+                                  '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
                                   style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF555555),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF787774),
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right,
                                 ),
                               ),
                             ],
@@ -6260,9 +6513,9 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 1. BUYER NAME
+                        // 1. Buyer name
                         const Text(
-                          'BUYER NAME',
+                          'Buyer name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -6291,9 +6544,9 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 2. PHONE NUMBER
+                        // 2. Phone number
                         const Text(
-                          'PHONE NUMBER',
+                          'Phone number',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -6323,9 +6576,9 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 3. USER NAME
+                        // 3. User name
                         const Text(
-                          'USER NAME',
+                          'User name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -6353,7 +6606,7 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 4 & 5. SALES AMOUNT & DEPOSIT AMOUNT
+                        // 4 & 5. Sales amount & Deposit amount
                         Row(
                           children: [
                             Expanded(
@@ -6361,7 +6614,7 @@ class LittersScreenState extends State<LittersScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'SALES AMOUNT',
+                                    'Sales amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -6397,7 +6650,7 @@ class LittersScreenState extends State<LittersScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'DEPOSIT AMOUNT',
+                                    'Deposit amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
@@ -6431,9 +6684,9 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // 6. PICK UP DATE
+                        // 6. Pick up date
                         const Text(
-                          'PICK UP DATE',
+                          'Pick up date',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -6691,6 +6944,7 @@ class LittersScreenState extends State<LittersScreen> {
       }
     }
     DateTime soldDate = DateTime.now();
+    bool markAsSold = false;
 
     showModalBottomSheet(
       context: context,
@@ -6754,28 +7008,28 @@ class LittersScreenState extends State<LittersScreen> {
                       children: [
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: const Color(0xFFE8DFFA)),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
                                 style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF4A3E6D),
                                 ),
                               ),
-                              const SizedBox(height: 6),
                               Text(
                                 '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
                                 style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                   color: Color(0xFF787774),
                                 ),
@@ -6783,11 +7037,36 @@ class LittersScreenState extends State<LittersScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+
+                        // Mark as sold Toggle
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Mark as sold',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2C2C2E),
+                              ),
+                            ),
+                            Switch(
+                              value: markAsSold,
+                              activeColor: const Color(0xFF8B5CF6),
+                              onChanged: (val) {
+                                setModalState(() {
+                                  markAsSold = val;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
                         // Date Sold Calendar Picker
                         const Text(
-                          'DATE SOLD',
+                          'Date sold',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -6849,98 +7128,96 @@ class LittersScreenState extends State<LittersScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        const Text(
-                          'SALE PRICE',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: priceController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            hintText: '0.00',
-                            prefixText: '${FormatUtils.currencySymbol} ',
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                        if (!markAsSold) ...[
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Sale price',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F4F56),
+                              letterSpacing: 0.5,
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
-                                width: 2,
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: priceController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF7B6BA0),
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'BUYER NAME',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
-                            letterSpacing: 0.5,
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Buyer name',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F4F56),
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: _db.getContacts(),
-                          builder: (context, snapshot) {
-                            final contacts = snapshot.data ?? [];
-                            return Autocomplete<String>(
-                              initialValue: TextEditingValue(text: buyerController.text),
-                              optionsBuilder: (TextEditingValue textEditingValue) {
-                                if (textEditingValue.text.isEmpty) {
-                                  return const Iterable<String>.empty();
-                                }
-                                return contacts
-                                    .map((c) => c['name'] as String)
-                                    .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                              },
-                              onSelected: (String selection) {
-                                buyerController.text = selection;
-                              },
-                              fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
-                                fieldController.addListener(() {
-                                  buyerController.text = fieldController.text;
-                                });
-                                return TextField(
-                                  controller: fieldController,
-                                  focusNode: focusNode,
-                                  onSubmitted: (value) => onFieldSubmitted(),
-                                  decoration: InputDecoration(
-                                    hintText: 'Select or enter buyer',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF7B6BA0),
-                                        width: 2,
+                          const SizedBox(height: 8),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: _db.getContacts(),
+                            builder: (context, snapshot) {
+                              final contacts = snapshot.data ?? [];
+                              return Autocomplete<String>(
+                                initialValue: TextEditingValue(text: buyerController.text),
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.isEmpty) {
+                                    return const Iterable<String>.empty();
+                                  }
+                                  return contacts
+                                      .map((c) => c['name'] as String)
+                                      .where((name) => name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                                },
+                                onSelected: (String selection) {
+                                  buyerController.text = selection;
+                                },
+                                fieldViewBuilder: (context, fieldController, focusNode, onFieldSubmitted) {
+                                  fieldController.addListener(() {
+                                    buyerController.text = fieldController.text;
+                                  });
+                                  return TextField(
+                                    controller: fieldController,
+                                    focusNode: focusNode,
+                                    onSubmitted: (value) => onFieldSubmitted(),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF7B6BA0),
+                                          width: 2,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -6961,6 +7238,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                           final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
                           bool updated = false;
+                          final bool isDirectSold = markAsSold;
                           final updatedKits = kitsList.map((k) {
                             final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
                             final bool isExactId = k.id == kit.id;
@@ -6971,8 +7249,10 @@ class LittersScreenState extends State<LittersScreen> {
                               updated = true;
                               return k.copyWith(
                                 status: 'Sold',
-                                details: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold',
-                                price: double.tryParse(priceController.text),
+                                details: isDirectSold
+                                    ? 'Sold'
+                                    : (buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : 'Sold'),
+                                price: isDirectSold ? null : double.tryParse(priceController.text),
                               );
                             }
                             return k;
@@ -6983,44 +7263,67 @@ class LittersScreenState extends State<LittersScreen> {
                             return s != 'dead' && s != 'died' && s != 'deceased';
                           }).length;
 
+                          final bool hasActiveNestKit = updatedKits.any((k) {
+                            final st = k.status.toLowerCase().trim();
+                            final details = (k.details ?? '').toLowerCase();
+                            final bool isTerminal = st == 'dead' ||
+                                st == 'died' ||
+                                st == 'deceased' ||
+                                st == 'sold' ||
+                                st == 'butchered' ||
+                                st == 'cull' ||
+                                st == 'culled';
+                            final bool isIndependent = st.contains('grow') ||
+                                st == 'promoted' ||
+                                st == 'herd' ||
+                                st == 'added to herd' ||
+                                details.contains('grow-out') ||
+                                details.contains('grow out');
+                            final bool isFosteredOut = st == 'fostered' || details.contains('fostered to');
+                            return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
+                          });
+
                           final updatedLitter = currentLitter.copyWith(
                             kits: updatedKits,
                             aliveKits: liveCount,
+                            status: !hasActiveNestKit ? 'archived' : currentLitter.status,
                           );
                           await _db.updateLitter(updatedLitter);
                           await _db.checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
 
-                          // Create or update finance transaction for kit sale with selected date
-                          final salePrice = double.tryParse(priceController.text);
-                          if (salePrice != null && salePrice > 0) {
-                            final existingTxn = await _db.getTransactionForKit(litter.id, kit.id.toString());
-                            if (existingTxn != null) {
-                              final updatedTxn = existingTxn.copyWith(
-                                amount: salePrice,
-                                date: soldDate,
-                                notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
-                                buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
-                                kitColor: kit.color,
-                                kitSex: kit.sex,
-                              );
-                              await _db.updateTransaction(updatedTxn);
-                            } else {
-                              final transaction = finance.Transaction(
-                                id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
-                                type: finance.TransactionType.income,
-                                category: finance.TransactionCategory.soldKit,
-                                amount: salePrice,
-                                date: soldDate,
-                                description: 'Sold Kit ${litter.id}-${kit.id}',
-                                notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
-                                linkType: finance.LinkType.litter,
-                                litterId: litter.id,
-                                kitId: kit.id.toString(),
-                                kitColor: kit.color,
-                                kitSex: kit.sex,
-                                buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
-                              );
-                              await _db.insertTransaction(transaction);
+                          // Create or update finance transaction for kit sale with selected date if not direct sold
+                          if (!isDirectSold) {
+                            final salePrice = double.tryParse(priceController.text);
+                            if (salePrice != null && salePrice > 0) {
+                              final existingTxn = await _db.getTransactionForKit(litter.id, kit.id.toString());
+                              if (existingTxn != null) {
+                                final updatedTxn = existingTxn.copyWith(
+                                  amount: salePrice,
+                                  date: soldDate,
+                                  notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
+                                  buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
+                                  kitColor: kit.color,
+                                  kitSex: kit.sex,
+                                );
+                                await _db.updateTransaction(updatedTxn);
+                              } else {
+                                final transaction = finance.Transaction(
+                                  id: 'txn_${DateTime.now().millisecondsSinceEpoch}',
+                                  type: finance.TransactionType.income,
+                                  category: finance.TransactionCategory.soldKit,
+                                  amount: salePrice,
+                                  date: soldDate,
+                                  description: 'Sold Kit ${litter.id}-${kit.id}',
+                                  notes: buyerController.text.isNotEmpty ? 'Sold to ${buyerController.text}' : null,
+                                  linkType: finance.LinkType.litter,
+                                  litterId: litter.id,
+                                  kitId: kit.id.toString(),
+                                  kitColor: kit.color,
+                                  kitSex: kit.sex,
+                                  buyerInfo: buyerController.text.isNotEmpty ? buyerController.text : null,
+                                );
+                                await _db.insertTransaction(transaction);
+                              }
                             }
                           }
 
@@ -7107,56 +7410,36 @@ class LittersScreenState extends State<LittersScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 1. Top Heather/Lavender Header Banner (matches Consistency.jpg NEW TASK style, different from Save button)
+                // 1. Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEADBEE),
+                    color: Color(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Center(
-                        child: Container(
-                          width: 36,
-                          height: 4,
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4A3E6D).withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                      const Text(
+                        'Record Health',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2C2C2E),
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Record Health - ${_getKitDisplayTag(litter, kit)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF4A3E6D),
-                                letterSpacing: 0.3,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.6),
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 18),
-                            ),
-                          ),
-                        ],
+                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                        ),
                       ),
                     ],
                   ),
@@ -7170,9 +7453,48 @@ class LittersScreenState extends State<LittersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // DATE OF ENTRY
+                        // Kit Summary Info Box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F2FA),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Kit ${_getKitDisplayTag(litter, kit)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4A3E6D),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF787774),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Date of entry
                         const Text(
-                          'DATE OF ENTRY',
+                          'Date of entry',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -7238,7 +7560,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                         // CONDITION (Instead of Type)
                         const Text(
-                          'CONDITION',
+                          'Condition',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -7321,7 +7643,7 @@ class LittersScreenState extends State<LittersScreen> {
                         if (selectedCondition == '+ Custom') ...[
                           const SizedBox(height: 12),
                           const Text(
-                            'CUSTOM CONDITION',
+                            'Custom condition',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -7359,7 +7681,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                         // TREATMENT (Replaces Condition/issue)
                         const Text(
-                          'TREATMENT',
+                          'Treatment',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -7396,7 +7718,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                         // NOTES
                         const Text(
-                          'NOTES',
+                          'Notes',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -7731,51 +8053,36 @@ class LittersScreenState extends State<LittersScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. Heather / Lavender Header Banner (matches Consistency.jpg NEW TASK style, different from Save button)
+              // 1. Top Header matching Log Birth purple theme
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEADBEE),
+                  color: Color(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                child: Column(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4A3E6D).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                    const Text(
+                      'Log Weight',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF2C2C2E),
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Log Weight - ${_getKitDisplayTag(litter, kit)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF4A3E6D),
-                            letterSpacing: 0.3,
-                          ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.6),
+                          shape: BoxShape.circle,
                         ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
-                          ),
-                        ),
-                      ],
+                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                      ),
                     ),
                   ],
                 ),
@@ -7788,9 +8095,48 @@ class LittersScreenState extends State<LittersScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Kit Summary Info Box
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F2FA),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Kit ${_getKitDisplayTag(litter, kit)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF787774),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     // Date of Entry with Calendar Picker
                     const Text(
-                      'DATE OF ENTRY',
+                      'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -7856,7 +8202,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                     // Weight Label
                     const Text(
-                      'WEIGHT',
+                      'Weight',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -7873,14 +8219,24 @@ class LittersScreenState extends State<LittersScreen> {
                           child: TextField(
                             controller: lbsController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixText: 'lbs',
-                              suffixStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF8E8E93),
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.only(right: 14),
+                                child: Center(
+                                  widthFactor: 1.0,
+                                  child: Text(
+                                    'lbs',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF8E8E93),
+                                    ),
+                                  ),
+                                ),
                               ),
+                              suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
@@ -7906,14 +8262,24 @@ class LittersScreenState extends State<LittersScreen> {
                           child: TextField(
                             controller: ozController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixText: 'oz',
-                              suffixStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF8E8E93),
+                              suffixIcon: const Padding(
+                                padding: EdgeInsets.only(right: 14),
+                                child: Center(
+                                  widthFactor: 1.0,
+                                  child: Text(
+                                    'oz',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF8E8E93),
+                                    ),
+                                  ),
+                                ),
                               ),
+                              suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
@@ -7975,6 +8341,7 @@ class LittersScreenState extends State<LittersScreen> {
 
                                   final updatedLitter = currentLitter.copyWith(kits: updatedKits);
                                   await _db.updateLitter(updatedLitter);
+                                  await _db.syncFosterKitEdit(litter.id, kit.copyWith(weight: weightVal));
                                   await _refreshLitters();
                                 }
 
@@ -8806,10 +9173,31 @@ class LittersScreenState extends State<LittersScreen> {
               return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
             }).length;
 
+            final bool hasActiveNestKit = updatedKits.any((k) {
+              final st = k.status.toLowerCase().trim();
+              final details = (k.details ?? '').toLowerCase();
+              final bool isTerminal = st == 'dead' ||
+                  st == 'died' ||
+                  st == 'deceased' ||
+                  st == 'sold' ||
+                  st == 'butchered' ||
+                  st == 'cull' ||
+                  st == 'culled';
+              final bool isIndependent = st.contains('grow') ||
+                  st == 'promoted' ||
+                  st == 'herd' ||
+                  st == 'added to herd' ||
+                  details.contains('grow-out') ||
+                  details.contains('grow out');
+              final bool isFosteredOut = st == 'fostered' || details.contains('fostered to');
+              return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
+            });
+
             final updatedLitter = currentLitter.copyWith(
               kits: updatedKits,
               aliveKits: newAlive,
               deadKits: deadCount,
+              status: !hasActiveNestKit ? 'archived' : currentLitter.status,
             );
 
             await _db.updateLitter(updatedLitter);
@@ -8915,10 +9303,31 @@ class LittersScreenState extends State<LittersScreen> {
               return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
             }).length;
 
+            final bool hasActiveNestKit = updatedKits.any((k) {
+              final st = k.status.toLowerCase().trim();
+              final details = (k.details ?? '').toLowerCase();
+              final bool isTerminal = st == 'dead' ||
+                  st == 'died' ||
+                  st == 'deceased' ||
+                  st == 'sold' ||
+                  st == 'butchered' ||
+                  st == 'cull' ||
+                  st == 'culled';
+              final bool isIndependent = st.contains('grow') ||
+                  st == 'promoted' ||
+                  st == 'herd' ||
+                  st == 'added to herd' ||
+                  details.contains('grow-out') ||
+                  details.contains('grow out');
+              final bool isFosteredOut = st == 'fostered' || details.contains('fostered to');
+              return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
+            });
+
             final updatedLitter = currentLitter.copyWith(
               kits: updatedKits,
               aliveKits: newAlive,
               deadKits: deadCount,
+              status: !hasActiveNestKit ? 'archived' : currentLitter.status,
             );
 
             await _db.updateLitter(updatedLitter);
@@ -11995,7 +12404,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                     const Text(
                       'Add Past Litter',
                       style: TextStyle(
-                        fontSize: 19,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF4A3E6D),
                       ),
@@ -12703,7 +13112,9 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source, imageQuality: 80);
+    final XFile? image = await runExternalActivity(
+      () => picker.pickImage(source: source, imageQuality: 80),
+    );
     if (image != null) {
       setState(() => _localImagePath = image.path);
     }
@@ -12867,6 +13278,17 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             ? _notesController.text.trim()
             : null;
 
+        // Preserve any foster tag in details (e.g. "Fostered to Luna" or "Fostered from Bella")
+        String? combinedDetails = notesVal;
+        final origDetails = widget.kit.details ?? '';
+        final fosterTagMatch = RegExp(r'Fostered (from|to) [^\n•]+', caseSensitive: false).firstMatch(origDetails);
+        if (fosterTagMatch != null) {
+          final fosterTag = fosterTagMatch.group(0)!.trim();
+          combinedDetails = (notesVal != null && notesVal.isNotEmpty)
+              ? '$fosterTag • $notesVal'
+              : fosterTag;
+        }
+
         final targetId = widget.kit.id.trim().toLowerCase();
         final targetNum = widget.kit.id.replaceAll(RegExp(r'[^0-9]'), '');
         bool updated = false;
@@ -12879,12 +13301,20 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
           if ((isExactId || isNumericMatch) && !updated) {
             updated = true;
+            String? kitDetails = combinedDetails;
+            final kFosterMatch = RegExp(r'Fostered (from|to) [^\n•]+', caseSensitive: false).firstMatch(k.details ?? '');
+            if (kFosterMatch != null) {
+              final fTag = kFosterMatch.group(0)!.trim();
+              kitDetails = (notesVal != null && notesVal.isNotEmpty)
+                  ? '$fTag • $notesVal'
+                  : fTag;
+            }
             return k.copyWith(
               name: nameVal,
               sex: _selectedSex,
               color: colorVal,
               weight: weightVal,
-              details: notesVal,
+              details: kitDetails,
               imagePath: _localImagePath,
             );
           }
@@ -12897,7 +13327,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             sex: _selectedSex,
             color: colorVal,
             weight: weightVal,
-            details: notesVal,
+            details: combinedDetails,
             imagePath: _localImagePath,
           ));
         }
@@ -12913,7 +13343,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             sex: _selectedSex,
             color: colorVal,
             weight: weightVal,
-            details: notesVal,
+            details: combinedDetails,
             imagePath: _localImagePath,
           ),
         );

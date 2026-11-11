@@ -15,6 +15,7 @@ import 'package:open_filex/open_filex.dart'; // ✅ Add this
 import 'package:csv/csv.dart'; // ✅ Add this
 import 'package:share_plus/share_plus.dart';
 import '../services/notification_service.dart'; // ✅ Add this
+import '../services/app_event_service.dart';
 import 'dart:convert';
 import '../utils/toast_utils.dart';
 import '../widgets/purple_dialog.dart';
@@ -35,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool _isSaving = false;
 
   final TextEditingController _farmNameController = TextEditingController();
+  final TextEditingController _rabbitryPrefixController = TextEditingController();
   final TextEditingController _ownerNameController = TextEditingController();
   final TextEditingController _farmAddressController = TextEditingController();
   final TextEditingController _farmAddressLine1Controller = TextEditingController();
@@ -45,11 +47,25 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   final TextEditingController _farmZipController = TextEditingController();
   final TextEditingController _farmPhoneController = TextEditingController();
   final TextEditingController _farmEmailController = TextEditingController();
+  final TextEditingController _farmWebsiteController = TextEditingController();
+  final TextEditingController _farmSocialLinkController = TextEditingController();
 
   // State management
   bool meatProduction = true;
   bool showRabbitry = false;
   bool financeSales = true;
+
+  // Pedigree display toggles
+  bool pedigreeShowGenotype = true;
+  bool pedigreeShowOwnerName = true;
+  bool pedigreeShowAddress = true;
+  bool pedigreeShowCityStatePostal = true;
+  bool pedigreeShowPhone = true;
+  bool pedigreeShowEmail = true;
+  bool pedigreeShowWebsite = true;
+  bool pedigreeShowSocialLink = true;
+  bool pedigreeShowSoldTo = true;
+  bool pedigreeShowSoldOn = true;
   bool palpationEnabled = true;
   bool nestBoxEnabled = true;
   bool weaningEnabled = true;
@@ -203,6 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void dispose() {
     _tabController.dispose();
     _farmNameController.dispose();
+    _rabbitryPrefixController.dispose();
     _ownerNameController.dispose();
     _farmAddressController.dispose();
     _farmAddressLine1Controller.dispose();
@@ -213,6 +230,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _farmZipController.dispose();
     _farmPhoneController.dispose();
     _farmEmailController.dispose();
+    _farmWebsiteController.dispose();
+    _farmSocialLinkController.dispose();
     super.dispose();
   }
 
@@ -254,6 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       setState(() {
         // Farm Profile
         _farmNameController.text = _settings.farmName;
+        _rabbitryPrefixController.text = _settings.rabbitryPrefix;
         _ownerNameController.text = _settings.ownerName;
         _logoPath = loadedLogo;
         _farmAddressController.text = _settings.farmAddress;
@@ -273,6 +293,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
         _farmPhoneController.text = FormatUtils.formatPhoneNumber(_settings.farmPhone, countryCode: 'usd');
         _farmEmailController.text = _settings.farmEmail;
+        _farmWebsiteController.text = _settings.farmWebsite;
+        _farmSocialLinkController.text = _settings.farmSocialLink;
+
+        // Pedigree Display Toggles
+        pedigreeShowGenotype = _settings.pedigreeShowGenotype;
+        pedigreeShowOwnerName = _settings.pedigreeShowOwnerName;
+        pedigreeShowAddress = _settings.pedigreeShowAddress;
+        pedigreeShowCityStatePostal = _settings.pedigreeShowCityStatePostal;
+        pedigreeShowPhone = _settings.pedigreeShowPhone;
+        pedigreeShowEmail = _settings.pedigreeShowEmail;
+        pedigreeShowWebsite = _settings.pedigreeShowWebsite;
+        pedigreeShowSocialLink = _settings.pedigreeShowSocialLink;
+        pedigreeShowSoldTo = _settings.pedigreeShowSoldTo;
+        pedigreeShowSoldOn = _settings.pedigreeShowSoldOn;
 
         // Units and Formats
         weightUnit = _settings.weightUnit;
@@ -387,6 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     try {
       // Farm Profile
       await _settings.setFarmName(_farmNameController.text);
+      await _settings.setRabbitryPrefix(_rabbitryPrefixController.text);
       await _settings.setOwnerName(_ownerNameController.text);
       if (_logoPath != null) {
         await _settings.setFarmLogo(_logoPath!);
@@ -416,6 +451,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       final formattedPhone = FormatUtils.formatPhoneNumber(_farmPhoneController.text.trim(), countryCode: 'usd');
       await _settings.setFarmPhone(formattedPhone);
       await _settings.setFarmEmail(_farmEmailController.text.trim());
+      await _settings.setFarmWebsite(_farmWebsiteController.text.trim());
+      await _settings.setFarmSocialLink(_farmSocialLinkController.text.trim());
+
+      // Pedigree Display Toggles
+      await _settings.setPedigreeShowGenotype(pedigreeShowGenotype);
+      await _settings.setPedigreeShowOwnerName(pedigreeShowOwnerName);
+      await _settings.setPedigreeShowAddress(pedigreeShowAddress);
+      await _settings.setPedigreeShowCityStatePostal(pedigreeShowCityStatePostal);
+      await _settings.setPedigreeShowPhone(pedigreeShowPhone);
+      await _settings.setPedigreeShowEmail(pedigreeShowEmail);
+      await _settings.setPedigreeShowWebsite(pedigreeShowWebsite);
+      await _settings.setPedigreeShowSocialLink(pedigreeShowSocialLink);
+      await _settings.setPedigreeShowSoldTo(pedigreeShowSoldTo);
+      await _settings.setPedigreeShowSoldOn(pedigreeShowSoldOn);
 
       // Units and Formats
       await _settings.setWeightUnit(weightUnit);
@@ -494,11 +543,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         return;
       }
 
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 90,
+      final XFile? image = await runExternalActivity(
+        () => _imagePicker.pickImage(
+          source: source,
+          maxWidth: 512,
+          maxHeight: 512,
+          imageQuality: 90,
+        ),
       );
 
       if (image != null) {
@@ -771,6 +822,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
             ),
             _buildVerticalSetting(
+              'Rabbitry Prefix',
+              _buildStandardTextField(
+                controller: _rabbitryPrefixController,
+                hintText: 'e.g. SBS',
+              ),
+              description: 'Default prefix prefilled when kits are added to the herd.',
+            ),
+            _buildVerticalSetting(
               'Owner Name',
               _buildStandardTextField(
                 controller: _ownerNameController,
@@ -834,6 +893,22 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ],
               ),
               description: 'Formatted automatically as xxx-xxx-xxxx.',
+            ),
+            _buildVerticalSetting(
+              'Website',
+              _buildStandardTextField(
+                controller: _farmWebsiteController,
+                hintText: 'e.g. www.myrabbitry.com',
+                keyboardType: TextInputType.url,
+              ),
+            ),
+            _buildVerticalSetting(
+              'FB / Instagram Link',
+              _buildStandardTextField(
+                controller: _farmSocialLinkController,
+                hintText: 'e.g. fb.com/myrabbitry or @myrabbitry',
+                keyboardType: TextInputType.url,
+              ),
             ),
             _buildVerticalSetting(
               'Logo',
@@ -1001,6 +1076,102 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Enables GC legs, show wins, and registration numbers.',
               showRabbitry,
               (val) => setState(() => showRabbitry = val),
+            ),
+          ],
+        ),
+        _buildCard(
+          'Pedigree Details',
+          PhosphorIconsDuotone.treeStructure,
+          [
+            _buildSwitchRow(
+              'Genotype',
+              'Show the rabbit\'s genotype on generated pedigrees.',
+              pedigreeShowGenotype,
+              (val) {
+                setState(() => pedigreeShowGenotype = val);
+                _settings.setPedigreeShowGenotype(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Owner Name',
+              'Show owner signature on generated pedigrees.',
+              pedigreeShowOwnerName,
+              (val) {
+                setState(() => pedigreeShowOwnerName = val);
+                _settings.setPedigreeShowOwnerName(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Address',
+              'Show street address lines in the pedigree header.',
+              pedigreeShowAddress,
+              (val) {
+                setState(() => pedigreeShowAddress = val);
+                _settings.setPedigreeShowAddress(val);
+              },
+            ),
+            _buildSwitchRow(
+              'City, State, Postal Code',
+              'Show city, state, and postal code in the pedigree header.',
+              pedigreeShowCityStatePostal,
+              (val) {
+                setState(() => pedigreeShowCityStatePostal = val);
+                _settings.setPedigreeShowCityStatePostal(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Phone',
+              'Show farm phone number on generated pedigrees.',
+              pedigreeShowPhone,
+              (val) {
+                setState(() => pedigreeShowPhone = val);
+                _settings.setPedigreeShowPhone(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Email',
+              'Show farm email address on generated pedigrees.',
+              pedigreeShowEmail,
+              (val) {
+                setState(() => pedigreeShowEmail = val);
+                _settings.setPedigreeShowEmail(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Website',
+              'Show rabbitry website link on generated pedigrees.',
+              pedigreeShowWebsite,
+              (val) {
+                setState(() => pedigreeShowWebsite = val);
+                _settings.setPedigreeShowWebsite(val);
+              },
+            ),
+            _buildSwitchRow(
+              'FB / Instagram Link',
+              'Show Facebook or Instagram link on generated pedigrees.',
+              pedigreeShowSocialLink,
+              (val) {
+                setState(() => pedigreeShowSocialLink = val);
+                _settings.setPedigreeShowSocialLink(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Sold To',
+              'Show buyer name on pedigrees of sold rabbits.',
+              pedigreeShowSoldTo,
+              (val) {
+                setState(() => pedigreeShowSoldTo = val);
+                _settings.setPedigreeShowSoldTo(val);
+              },
+            ),
+            _buildSwitchRow(
+              'Sold On',
+              'Show sale date on pedigrees of sold rabbits.',
+              pedigreeShowSoldOn,
+              (val) {
+                setState(() => pedigreeShowSoldOn = val);
+                _settings.setPedigreeShowSoldOn(val);
+              },
             ),
           ],
         ),
@@ -4439,70 +4610,171 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final nameController = TextEditingController();
     final genotypeController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Add Breed', style: TextStyle(fontWeight: FontWeight.w600)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Breed Name',
-                hintText: 'e.g. Holland Lop',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: genotypeController,
-              decoration: InputDecoration(
-                labelText: 'Genotype Template',
-                hintText: 'e.g. aa B- C- D- E-',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              style: TextStyle(fontFamily: 'monospace'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.trim().isEmpty) return;
-              final newBreed = Breed(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                name: nameController.text.trim(),
-                genetics: genotypeController.text.split(',').map((g) => g.trim()).where((g) => g.isNotEmpty).toList(),
-              );
-              await _db.insertBreed(newBreed);
-              // Also sync to SettingsService for quick_info_card compatibility
-              await _settings.addBreed(newBreed.name, genotypeController.text.trim());
-              final refreshed = await _db.getAllBreeds();
-              setState(() => breeds = refreshed);
-              Navigator.pop(ctx);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${newBreed.name} added to breed library'),
-                    backgroundColor: Color(0xFF7B6BA0),
-                    behavior: SnackBarBehavior.floating,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header matching Consistency.jpg / Tasks Add Contact
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEADBEE), // Consistency.jpg top purple
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
+                ),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Add Breed',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF4A3E6D),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Breed Name',
+                          hintText: 'e.g. Holland Lop',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
+                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8DFFA))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: genotypeController,
+                        decoration: InputDecoration(
+                          labelText: 'Genotype Template',
+                          hintText: 'e.g. aa B- C- D- E-',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
+                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8DFFA))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        style: const TextStyle(fontSize: 15, fontFamily: 'monospace', color: Color(0xFF2C2C2E)),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (nameController.text.trim().isEmpty) return;
+                            final newBreed = Breed(
+                              id: DateTime.now().millisecondsSinceEpoch.toString(),
+                              name: nameController.text.trim(),
+                              genetics: genotypeController.text
+                                  .split(',')
+                                  .map((g) => g.trim())
+                                  .where((g) => g.isNotEmpty)
+                                  .toList(),
+                            );
+                            await _db.insertBreed(newBreed);
+                            await _settings.addBreed(newBreed.name, genotypeController.text.trim());
+                            final refreshed = await _db.getAllBreeds();
+                            setState(() => breeds = refreshed);
+                            Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${newBreed.name} added to breed library'),
+                                  backgroundColor: const Color(0xFF7B6BA0),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6BEFE), // Consistency.jpg button
+                            foregroundColor: const Color(0xFF4A3E6D),
+                            disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Add Breed',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4A3E6D),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('Add', style: TextStyle(color: kLilacText)),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -5149,43 +5421,216 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   void _showCages(Map<String, dynamic> barn) {
-    // Show a dialog to view cages in this barn (simplified)
+    final List<Map<String, dynamic>> rows = (jsonDecode(barn['rows'] ?? '[]') as List)
+        .map((r) => <String, dynamic>{
+              'name': (r['name'] ?? 'Row').toString(),
+              'cages': List<String>.from((r['cages'] as List? ?? const [])),
+            })
+        .toList();
+
+    Future<void> persistRows(StateSetter setModalState) async {
+      await _db.updateBarn({
+        'id': barn['id'],
+        'name': barn['name'],
+        'rows': rows,
+      });
+      notifyDataChanged();
+      await _loadBarns();
+      if (mounted) setModalState(() {});
+    }
+
+    Future<void> promptAddRow(StateSetter setModalState) async {
+      final rowCtrl = TextEditingController();
+      final name = await showDialog<String>(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Add Row / Section', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kNeutral900)),
+          content: TextField(
+            controller: rowCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: 'Row Name',
+              hintText: 'e.g. Row A, Breeding Row...',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dCtx, rowCtrl.text.trim()),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE6BEFE)),
+              child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      if (name != null && name.isNotEmpty) {
+        rows.add({'name': name, 'cages': <String>[]});
+        await persistRows(setModalState);
+      }
+    }
+
+    Future<void> promptAddCage(StateSetter setModalState, int rowIndex) async {
+      final cageCtrl = TextEditingController();
+      final input = await showDialog<String>(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Add Cage Number(s)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kNeutral900)),
+          content: TextField(
+            controller: cageCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              labelText: 'Cage Number(s)',
+              hintText: 'e.g. A1 or A1, A2, A3',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dCtx, cageCtrl.text.trim()),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE6BEFE)),
+              child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      if (input != null && input.isNotEmpty) {
+        final newCages = input
+            .split(',')
+            .map((c) => c.trim())
+            .where((c) => c.isNotEmpty)
+            .toList();
+        final List<String> cages = rows[rowIndex]['cages'] as List<String>;
+        for (final c in newCages) {
+          if (!cages.contains(c)) cages.add(c);
+        }
+        await persistRows(setModalState);
+      }
+    }
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        final List rows = jsonDecode(barn['rows'] ?? '[]') as List;
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${barn['name']} Cages',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900),
+        return StatefulBuilder(
+          builder: (modalCtx, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(modalCtx).viewInsets.bottom + 20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${barn['name']} Cages',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => promptAddRow(setModalState),
+                            icon: const Icon(Icons.add, size: 18, color: kLilacDeep),
+                            label: const Text('Add Row', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (rows.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Column(
+                              children: [
+                                const Text('No cages defined in this location.', style: TextStyle(color: kNeutral600)),
+                                const SizedBox(height: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    rows.add({'name': 'Main Row', 'cages': <String>[]});
+                                    await persistRows(setModalState);
+                                    if (mounted) await promptAddCage(setModalState, 0);
+                                  },
+                                  icon: const Icon(Icons.add, size: 18, color: kLilacText),
+                                  label: const Text('Add First Cage', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE6BEFE),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ...rows.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final row = entry.value;
+                          final cages = row['cages'] as List<String>;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        row['name'] as String,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kNeutral900),
+                                      ),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: () => promptAddCage(setModalState, idx),
+                                      icon: const Icon(Icons.add, size: 16, color: kLilacDeep),
+                                      label: const Text('Add Cage', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w600, fontSize: 13)),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                      onPressed: () async {
+                                        rows.removeAt(idx);
+                                        await persistRows(setModalState);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                if (cages.isEmpty)
+                                  const Text('No cages in this row yet.', style: TextStyle(fontSize: 12, color: kNeutral500))
+                                else
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: cages
+                                        .map((cage) => InputChip(
+                                              label: Text(cage),
+                                              onDeleted: () async {
+                                                cages.remove(cage);
+                                                await persistRows(setModalState);
+                                              },
+                                            ))
+                                        .toList(),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
-              if (rows.isEmpty)
-                const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('No cages defined in this location.'))),
-              ...rows.map((row) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(row['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 8,
-                          children: (row['cages'] as List).map((cage) => Chip(label: Text(cage as String))).toList(),
-                        ),
-                      ],
-                    ),
-                  )),
-              const SizedBox(height: 20),
-            ],
-          ),
+            );
+          },
         );
       },
     );

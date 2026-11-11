@@ -71,6 +71,17 @@ flutter:
     - family: Shakies
       fonts:
         - asset: assets/fonts/Shakies-OpenType-TT.ttf
+    - family: Ascender
+      fonts:
+        - asset: assets/fonts/Ascender-Regular.ttf
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Quicksand-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Quicksand-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: "launcher_icon"

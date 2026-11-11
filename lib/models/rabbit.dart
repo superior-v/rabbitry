@@ -116,6 +116,7 @@ class Rabbit {
   String? breederPrefix;
   String? grandChampionNumber;
   int? grandChampionLegs;
+  String? winnings;
   bool activeInRabbitry;
 
   // Breeding related fields
@@ -236,6 +237,7 @@ class Rabbit {
     this.breederPrefix,
     this.grandChampionNumber,
     this.grandChampionLegs,
+    this.winnings,
     this.activeInRabbitry = true,
     this.seller,
     this.purchaseRabbitry,
@@ -467,6 +469,7 @@ class Rabbit {
       'breederPrefix': breederPrefix,
       'grandChampionNumber': grandChampionNumber,
       'grandChampionLegs': grandChampionLegs,
+      'winnings': winnings,
       'activeInRabbitry': activeInRabbitry ? 1 : 0,
       'seller': seller,
       'purchaseRabbitry': purchaseRabbitry,
@@ -589,6 +592,7 @@ class Rabbit {
       breederPrefix: map['breederPrefix'],
       grandChampionNumber: map['grandChampionNumber'],
       grandChampionLegs: map['grandChampionLegs'] as int?,
+      winnings: map['winnings'] as String?,
       activeInRabbitry: map['activeInRabbitry'] == 1 || map['activeInRabbitry'] == null,
       seller: map['seller'] as String?,
       purchaseRabbitry: map['purchaseRabbitry'] as String?,
@@ -651,6 +655,7 @@ class Rabbit {
     String? breederPrefix,
     String? grandChampionNumber,
     int? grandChampionLegs,
+    String? winnings,
     bool? activeInRabbitry,
     String? seller,
     String? purchaseRabbitry,
@@ -715,6 +720,7 @@ class Rabbit {
       breederPrefix: breederPrefix ?? this.breederPrefix,
       grandChampionNumber: grandChampionNumber ?? this.grandChampionNumber,
       grandChampionLegs: grandChampionLegs ?? this.grandChampionLegs,
+      winnings: winnings ?? this.winnings,
       activeInRabbitry: activeInRabbitry ?? this.activeInRabbitry,
       seller: seller ?? this.seller,
       purchaseRabbitry: purchaseRabbitry ?? this.purchaseRabbitry,

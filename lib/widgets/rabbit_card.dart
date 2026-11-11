@@ -267,6 +267,19 @@ class RabbitCard extends StatelessWidget {
   }
 
   String _getStatusLetter(Rabbit rabbit) {
+    if (rabbit.type == RabbitType.doe &&
+        (rabbit.status == RabbitStatus.nursing || rabbit.status == RabbitStatus.pregnant || rabbit.status == RabbitStatus.palpateDue)) {
+      if (rabbit.dueDate != null && rabbit.lastBreedDate != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final dueDate = rabbit.dueDate!;
+        final isUpcomingDue = !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day).add(const Duration(days: 5)));
+        final isRecentlyBred = today.difference(rabbit.lastBreedDate!).inDays <= 38;
+        if (isUpcomingDue && isRecentlyBred && rabbit.status == RabbitStatus.nursing) {
+          return 'NB';
+        }
+      }
+    }
     switch (rabbit.status) {
       case RabbitStatus.open:
         return 'O';

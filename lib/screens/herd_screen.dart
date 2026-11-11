@@ -13,6 +13,7 @@ import '../widgets/action_sheets/rabbit_action_sheet.dart';
 import '../services/app_event_service.dart';
 import '../constants/app_colors.dart';
 import '../widgets/sale_ribbon_painter.dart';
+import '../utils/toast_utils.dart';
 
 // Re-defining for local scope consistency or using imported ones
 const kDoeTheme = Color(0xFFB5567A);
@@ -59,7 +60,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   bool _keyboardWasOpen = false;
 
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode(canRequestFocus: false, skipTraversal: true);
 
   final DatabaseService _db = DatabaseService();
   final SettingsService _settings = SettingsService.instance;
@@ -82,10 +83,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _currentFilter = _settings.defaultHerdFilter;
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {
-          _currentFilter = 'All';
+          _currentFilter = _tabController.index == 0 ? _settings.defaultHerdFilter : 'All';
           _breedFilter = 'All';
         });
       }
@@ -97,6 +99,21 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     dataChangeNotifier.addListener(_onDataChanged);
   }
 
+  void openDefaultPage() {
+    _searchFocusNode.unfocus();
+    _searchFocusNode.canRequestFocus = false;
+    final defaultFilter = _settings.defaultHerdFilter;
+    if (_tabController.index != 0 && (defaultFilter == 'Pregnant' || defaultFilter == 'Nursing')) {
+      _tabController.index = 0;
+    }
+    setState(() {
+      _currentFilter = _tabController.index == 0 ? defaultFilter : 'All';
+      _breedFilter = 'All';
+      _searchQuery = '';
+      _locationFilter = null;
+    });
+  }
+
   void _onDataChanged() {
     if (mounted) _refreshData();
   }
@@ -106,11 +123,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   void _handleSearchFocusChange() {
-    if (!_searchFocusNode.hasFocus && mounted && _isSearchEnabled) {
-      setState(() {
-        _isSearchEnabled = false;
+    if (!_searchFocusNode.hasFocus) {
+      if (_searchFocusNode.canRequestFocus) {
         _searchFocusNode.canRequestFocus = false;
-      });
+      }
+      if (mounted && _isSearchEnabled) {
+        setState(() {
+          _isSearchEnabled = false;
+        });
+      }
     }
   }
 
@@ -152,6 +173,20 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               'litter': litter,
               'age': DateTime.now().difference(litter.dob).inDays,
             });
+          }
+        }
+      }
+
+      for (int i = 0; i < rabbits.length; i++) {
+        final r = rabbits[i];
+        if (r.status == RabbitStatus.growout && r.dateOfBirth != null) {
+          final fiveMonthsDate = DateTime(r.dateOfBirth!.year, r.dateOfBirth!.month + 5, r.dateOfBirth!.day);
+          if (!DateTime.now().isBefore(fiveMonthsDate)) {
+            final newStatus = r.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
+            final updatedRabbit = r.copyWith(status: newStatus, activeInRabbitry: true);
+            rabbits[i] = updatedRabbit;
+            _rabbitCache[r.id] = updatedRabbit;
+            await _db.updateRabbit(updatedRabbit);
           }
         }
       }
@@ -478,15 +513,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: FloatingActionButton(
                 heroTag: 'herd_fab',
                 onPressed: () async {
+                  _searchFocusNode.unfocus();
                   _searchFocusNode.canRequestFocus = false;
                   FocusScope.of(context).unfocus();
                   final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddRabbitScreen()));
                   if (mounted) {
+                    _searchFocusNode.unfocus();
+                    _searchFocusNode.canRequestFocus = false;
+                    FocusScope.of(context).unfocus();
                     setState(() {
                       _isSearchEnabled = false;
-                      _searchFocusNode.canRequestFocus = false;
                     });
-                    FocusScope.of(context).unfocus();
                   }
                   if (result == true) {
                     await _refreshData();
@@ -624,7 +661,23 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       focusNode: _searchFocusNode,
                       autocorrect: false,
                       enableSuggestions: false,
+                      onTap: () {
+                        _searchFocusNode.canRequestFocus = true;
+                        _searchFocusNode.requestFocus();
+                      },
                       onChanged: (value) => setState(() => _searchQuery = value),
+                      onSubmitted: (_) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
+                      onTapOutside: (event) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
+                      onEditingComplete: () {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search by name or ID',
@@ -662,20 +715,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           ),
           const SizedBox(width: 6),
 
-          // Filter Button
-          _buildIconBtnMenu(
-            icon: PhosphorIcons.funnel(PhosphorIconsStyle.bold),
-            isActive: _breedFilter != 'All',
-            items: _getUniqueBreeds().map((f) => _buildPopupItem(
-              f,
-              f,
-              _breedFilter == f,
-            )).toList(),
-            onSelected: (v) => setState(() => _breedFilter = v),
-          ),
-          const SizedBox(width: 6),
-
-          // Sort Button
+          // Arrange / Sort Button
           _buildIconBtnMenu(
             icon: PhosphorIcons.arrowDown(PhosphorIconsStyle.bold),
             isActive: _sortQuery != 'default',
@@ -689,6 +729,19 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               _buildPopupItem('ID / Ear #', 'id', _sortQuery == 'id'),
             ],
             onSelected: (v) => setState(() => _sortQuery = v),
+          ),
+          const SizedBox(width: 6),
+
+          // Filter Button
+          _buildIconBtnMenu(
+            icon: PhosphorIcons.funnel(PhosphorIconsStyle.bold),
+            isActive: _breedFilter != 'All',
+            items: _getUniqueBreeds().map((f) => _buildPopupItem(
+              f,
+              f,
+              _breedFilter == f,
+            )).toList(),
+            onSelected: (v) => setState(() => _breedFilter = v),
           ),
         ],
       ),
@@ -888,10 +941,21 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             children: statuses.map((status) {
               final mappedStatus = _mapStatus(status);
               final isActive = _currentFilter == mappedStatus || (_currentFilter == 'All' && status == 'All');
+              final isDefault = _tabController.index == 0 && _settings.defaultHerdFilter == mappedStatus;
 
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _currentFilter = mappedStatus),
+                onLongPress: () async {
+                  await _settings.setDefaultHerdFilter(mappedStatus);
+                  setState(() => _currentFilter = mappedStatus);
+                  if (context.mounted) {
+                    ToastUtils.showSuccess(
+                      context,
+                      'Default Herd page set to ${status.toUpperCase()}',
+                    );
+                  }
+                },
                 child: Container(
                   height: 48,
                   alignment: Alignment.center,
@@ -904,15 +968,28 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       ),
                     ),
                   ),
-                  child: Text(
-                    status.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                      color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
-                      letterSpacing: 0.4,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        status.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                          color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                      if (isDefault && status != 'All') ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.home_rounded,
+                          size: 13,
+                          color: isActive ? Colors.white : Colors.white.withOpacity(0.65),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               );
@@ -1198,7 +1275,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final fullName = r.fullName.toLowerCase();
-        if (!r.name.toLowerCase().contains(query) && !r.id.toLowerCase().contains(query) && !fullName.contains(query)) {
+        final earNum = (r.earNumber ?? '').toLowerCase();
+        if (!r.name.toLowerCase().contains(query) &&
+            !fullName.contains(query) &&
+            !r.id.toLowerCase().contains(query) &&
+            !earNum.contains(query)) {
           return false;
         }
       }
@@ -1363,29 +1444,45 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       }
 
       final statusName = r.status.toString().split('.').last.toLowerCase();
-      final isGrowOut = statusName == 'growout' || statusName == 'weaned' || !r.activeInRabbitry;
+      final isQuarantined = statusName == 'quarantine' || !r.activeInRabbitry || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
+
+      bool isAge5MonthsOrMore = false;
+      if (r.dateOfBirth != null) {
+        final fiveMonthsDate = DateTime(r.dateOfBirth!.year, r.dateOfBirth!.month + 5, r.dateOfBirth!.day);
+        isAge5MonthsOrMore = !DateTime.now().isBefore(fiveMonthsDate);
+      }
+
+      final isGrowOut = (statusName == 'growout' || statusName == 'weaned') && !isAge5MonthsOrMore;
+
+      if (_currentFilter != 'Quarantine' && isQuarantined) return false;
 
       if (_currentFilter == 'GrowOut') {
         if (!isGrowOut) return false;
       } else if (_currentFilter == 'All') {
-        if (isGrowOut) return false;
+        // "ALL" tab includes ALL active herd members, including Grow-Out rabbits!
       } else {
         if (isGrowOut) return false;
 
         final filterName = _currentFilter.toLowerCase();
         if (filterName == 'bred' || filterName == 'pregnant') {
-          if (statusName != 'palpatedue' && statusName != 'pregnant') return false;
+          if (!_isDoeBred(r)) return false;
         } else if (filterName == 'quarantine') {
-          final isQuarantined = statusName == 'quarantine' || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
           if (!isQuarantined) return false;
         } else if (filterName == 'resting') {
           if (statusName != 'resting') return false;
         } else if (filterName == 'nursing') {
-          if (statusName != 'nursing') return false;
+          if (!_isDoeNursing(r)) return false;
         } else if (filterName == 'open') {
-          if (statusName != 'open') return false;
+          if (_isDoeBred(r) || _isDoeNursing(r) || isQuarantined) return false;
+          final effectiveStatus = (statusName == 'growout' && isAge5MonthsOrMore) ? 'open' : statusName;
+          if (effectiveStatus != 'open') return false;
         } else if (filterName == 'active') {
-          if (statusName != 'active') return false;
+          if (isQuarantined) return false;
+          if (r.type == RabbitType.buck) {
+            return r.activeInRabbitry && statusName != 'resting';
+          }
+          final effectiveStatus = (statusName == 'growout' && isAge5MonthsOrMore) ? 'active' : statusName;
+          if (effectiveStatus != 'active') return false;
         } else {
           return false;
         }
@@ -1401,7 +1498,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        if (!r.name.toLowerCase().contains(query) && !r.id.toLowerCase().contains(query)) return false;
+        final fullName = r.fullName.toLowerCase();
+        final earNum = (r.earNumber ?? '').toLowerCase();
+        if (!r.name.toLowerCase().contains(query) &&
+            !fullName.contains(query) &&
+            !r.id.toLowerCase().contains(query) &&
+            !earNum.contains(query)) {
+          return false;
+        }
       }
       return true;
     }).toList();
@@ -1524,11 +1628,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     padding: const EdgeInsets.only(top: 6, bottom: 4),
                     child: Text(
                       key.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade600,
-                        letterSpacing: 0.6,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: iTextLight,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.9,
                       ),
                     ),
                   ),
@@ -1696,132 +1800,163 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             ),
           ],
         ),
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(5),
         child: Column(
           children: [
-            // 1. Inset Colored Header
+            // 1. Header: Full-width Name line, followed by Photo + Breed / Color / Age & Weight
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Photo Avatar — taps go to Profile tab (tab 0)
-                  GestureDetector(
-                    onTap: () => _navigateToDetail(rabbit, tabIndex: 0),
-                    child: Container(
-                      width: 62,
-                      height: 62,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDoe
-                              ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-                              : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
-                          width: 2,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            isPhotoValid
-                                ? Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center)
-                                : Container(
-                                    color: Colors.white,
-                                    alignment: Alignment.center,
-                                    child: Image.asset('assets/images/profilelogo.png', fit: BoxFit.contain, alignment: Alignment.center),
-                                  ),
-                            if (rabbit.salePrice != null)
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: SaleRibbonPainter(),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Center Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Full-width Name line
+                  Text.rich(
+                    TextSpan(
                       children: [
-                        Text.rich(
+                        if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
                           TextSpan(
-                            children: [
-                              if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
-                                TextSpan(
-                                  text: '${rabbit.breederPrefix} ',
-                                  style: const TextStyle(color: Color(0xFF4A4A4D), fontWeight: FontWeight.w700),
+                            text: '${rabbit.breederPrefix} ',
+                            style: const TextStyle(color: Color(0xFF4A4A4D), fontWeight: FontWeight.w700),
+                          ),
+                        TextSpan(
+                          text: rabbit.name,
+                          style: TextStyle(
+                            color: isDoe
+                                ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+                                : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    style: const TextStyle(fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Photo Avatar — taps go to Profile tab (tab 0)
+                      GestureDetector(
+                        onTap: () => _navigateToDetail(rabbit, tabIndex: 0),
+                        child: Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDoe
+                                  ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
+                                  : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                isPhotoValid
+                                    ? Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center)
+                                    : Image.asset('assets/images/app_logo.png', fit: BoxFit.cover, alignment: Alignment.center),
+                                if (rabbit.salePrice != null)
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: SaleRibbonPainter(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Right Info: Breed (+ 3 dots), Color, Age • Weight (+ Status)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Line 1: Breed + 3-dots menu
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    rabbit.breed,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF4A4A4D),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              TextSpan(
-                                text: rabbit.name,
-                                style: TextStyle(
-                                  color: isDoe
-                                      ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-                                      : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
-                                  fontWeight: FontWeight.w700,
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
+                                  child: const SizedBox(
+                                    width: 30,
+                                    child: Align(
+                                      alignment: Alignment.center,
+                                      child: Icon(Icons.more_horiz, color: Color(0xFF4A4A4D), size: 22),
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            ),
+                            if (rabbit.color != null && rabbit.color!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              // Line 2: Color
+                              Text(
+                                rabbit.color!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF4A4A4D),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${rabbit.breed}${rabbit.color != null && rabbit.color!.isNotEmpty ? ' • ${rabbit.color}' : ''}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A4A4D),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          rabbit.weight != null
-                              ? '${rabbit.age} • ${FormatUtils.formatWeight(rabbit.weight!)}'
-                              : rabbit.age,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A4A4D),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Status and Menu
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_currentFilter.toLowerCase() == 'all' && _shouldShowStatusBadge(rabbit)) ...[
-                        _buildStatusBadge(rabbit),
-                        const SizedBox(height: 4),
-                      ],
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
-                        child: const Padding(
-                          // Larger tap area for 3-dots menu
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          child: Icon(Icons.more_horiz, color: Color(0xFF4A4A4D), size: 22),
+                            const SizedBox(height: 2),
+                            // Line 3: Age • Weight + Status letter directly under 3 dots (ALL tab & Archive only)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    rabbit.weight != null
+                                        ? '${rabbit.age} • ${FormatUtils.formatWeight(rabbit.weight!)}'
+                                        : rabbit.age,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF4A4A4D),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (_shouldShowStatusBadge(rabbit, isArchive: isArchive))
+                                  isArchive
+                                      ? _buildStatusBadge(rabbit, isArchive: true)
+                                      : SizedBox(
+                                          width: 30,
+                                          child: Center(
+                                            child: _buildStatusBadge(rabbit),
+                                          ),
+                                        ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1884,15 +2019,108 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     );
   }
 
-  bool _shouldShowStatusBadge(Rabbit rabbit) {
-    if (rabbit.status == RabbitStatus.archived) return true;
-    if (rabbit.type == RabbitType.buck) {
-      return rabbit.status == RabbitStatus.resting || rabbit.status == RabbitStatus.quarantine;
+  bool _isDoeNursing(Rabbit rabbit) {
+    if (rabbit.type != RabbitType.doe || rabbit.status == RabbitStatus.archived) return false;
+
+    final doeLitters = _litters.where((l) {
+      final matchesDoe = (l.doeId.isNotEmpty && l.doeId.trim() == rabbit.id.trim()) ||
+          (l.dam.isNotEmpty && l.dam.trim().toLowerCase() == rabbit.name.trim().toLowerCase()) ||
+          (l.doeName.isNotEmpty && l.doeName.trim().toLowerCase() == rabbit.name.trim().toLowerCase());
+      if (!matchesDoe) return false;
+      final st = l.status.toLowerCase().trim();
+      return st != 'archived' &&
+          st != 'history_only' &&
+          st != 'deleted_archive' &&
+          st != 'weaned' &&
+          st != 'not taken' &&
+          st != 'died' &&
+          st != 'dead';
+    }).toList();
+
+    if (doeLitters.isNotEmpty) {
+      for (final litter in doeLitters) {
+        // "Once the 7 week period is complete it can only be in the BRED page and not in Nursing any more."
+        if (litter.ageDays >= 49) continue;
+        final hasActiveKits = litter.kits.any((k) {
+          final s = k.status.toLowerCase().trim();
+          return s != 'dead' &&
+              s != 'died' &&
+              s != 'deceased' &&
+              s != 'fostered' &&
+              s != 'archived' &&
+              s != 'sold' &&
+              s != 'butchered' &&
+              s != 'cull' &&
+              s != 'weaned';
+        });
+        final aliveCount = litter.aliveKits ?? 0;
+        final totalCount = litter.totalKits ?? 0;
+        if ((litter.kits.isNotEmpty && hasActiveKits) ||
+            aliveCount > 0 ||
+            totalCount > 0 ||
+            litter.status.toLowerCase().trim() == 'nursing') {
+          return true;
+        }
+      }
+      return false;
     }
-    return true;
+
+    // Fallback if no litter record found but status is explicitly nursing or has current litter
+    if (rabbit.status == RabbitStatus.nursing || (rabbit.currentLitterSize != null && rabbit.currentLitterSize! > 0)) {
+      if (rabbit.kindleDate != null) {
+        if (DateTime.now().difference(rabbit.kindleDate!).inDays >= 49) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _isDoeBred(Rabbit rabbit) {
+    if (rabbit.type != RabbitType.doe || rabbit.status == RabbitStatus.archived) return false;
+    final statusName = rabbit.status.toString().split('.').last.toLowerCase();
+    if (statusName == 'pregnant' || statusName == 'palpatedue') {
+      return true;
+    }
+    if (rabbit.dueDate != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final dueDate = rabbit.dueDate!;
+      final isUpcomingDue = !today.isAfter(DateTime(dueDate.year, dueDate.month, dueDate.day).add(const Duration(days: 5)));
+      final isRecentlyBred = rabbit.lastBreedDate == null || today.difference(rabbit.lastBreedDate!).inDays <= 38;
+      if (isUpcomingDue && isRecentlyBred) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isDoeNursingAndBred(Rabbit rabbit) {
+    return _isDoeNursing(rabbit) && _isDoeBred(rabbit);
+  }
+
+  bool _shouldShowStatusBadge(Rabbit rabbit, {bool isArchive = false}) {
+    if (isArchive || rabbit.status == RabbitStatus.archived) return true;
+    return _currentFilter == 'All';
   }
 
   String _getStatusLetter(Rabbit rabbit) {
+    if (rabbit.status == RabbitStatus.quarantine ||
+        !rabbit.activeInRabbitry ||
+        (rabbit.quarantineEndDate != null && DateTime.now().isBefore(rabbit.quarantineEndDate!))) {
+      return 'Q';
+    }
+    if (_isDoeNursingAndBred(rabbit)) {
+      return 'NB';
+    }
+    if (_isDoeNursing(rabbit)) {
+      return 'N';
+    }
+    if (_isDoeBred(rabbit)) {
+      return 'B';
+    }
     switch (rabbit.status) {
       case RabbitStatus.open:
         return 'O';
@@ -1923,36 +2151,41 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     }
   }
 
-  Widget _buildStatusBadge(Rabbit rabbit) {
-    if (!_shouldShowStatusBadge(rabbit)) {
+  Widget _buildStatusBadge(Rabbit rabbit, {bool isArchive = false}) {
+    if (!_shouldShowStatusBadge(rabbit, isArchive: isArchive)) {
       return const SizedBox.shrink();
     }
     final String letter = _getStatusLetter(rabbit);
-    final isArchived = rabbit.isArchived || rabbit.status == RabbitStatus.archived || _tabController.index == 2;
+    final isArchived = isArchive || rabbit.isArchived || rabbit.status == RabbitStatus.archived || _tabController.index == 2;
     final isDoe = rabbit.type == RabbitType.doe;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: isArchived
-            ? (isDoe ? const Color(0xFFFCE4EC) : const Color(0xFFE3F2FD))
-            : const Color(0xFFF2F2F7),
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: isArchived
-              ? (isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF))
-              : const Color(0xFFDCDCE0),
+    if (isArchived) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: isDoe ? const Color(0xFFFCE4EC) : const Color(0xFFE3F2FD),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF),
+          ),
         ),
-      ),
-      child: Text(
-        letter,
-        style: TextStyle(
-          fontSize: letter.length > 1 ? 10 : 11,
-          fontWeight: FontWeight.w800,
-          color: isArchived
-              ? (isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF))
-              : const Color(0xFF636366),
+        child: Text(
+          letter,
+          style: TextStyle(
+            fontSize: letter.length > 1 ? 10 : 11,
+            fontWeight: FontWeight.w800,
+            color: isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF),
+          ),
         ),
+      );
+    }
+
+    return Text(
+      letter,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF636366),
       ),
     );
   }

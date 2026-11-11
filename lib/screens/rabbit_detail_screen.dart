@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:printing/printing.dart';
+import '../services/coop_card_pdf_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -25,6 +28,7 @@ import '../widgets/notes_card.dart';
 import '../widgets/pedigree_inline_card.dart';
 import '../widgets/documents_card.dart';
 import '../widgets/certificate_card.dart';
+import '../widgets/coop_card_section.dart';
 import '../widgets/modals/log_weight_modal.dart';
 import '../widgets/modals/health_record_modal.dart';
 import '../widgets/modals/move_cage_modal.dart';
@@ -207,11 +211,13 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
         return;
       }
 
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+      final XFile? image = await runExternalActivity(
+        () => _imagePicker.pickImage(
+          source: source,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        ),
       );
 
       if (image != null) {
@@ -511,7 +517,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: Color(0xFF8E8E93),
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -896,6 +902,8 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             },
           ),
           const SizedBox(height: 24),
+          CoopCardSection(rabbit: _currentRabbit),
+          const SizedBox(height: 24),
           CertificateCard(rabbit: _currentRabbit),
           const SizedBox(height: 24),
           DocumentsCard(rabbit: _currentRabbit),
@@ -1214,13 +1222,15 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SingleChildScrollView(
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1278,23 +1288,23 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                 child: Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFEADBEE),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
                   ),
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
                     children: [
                       _buildMenuItem('Edit Profile', _showEditRabbitScreen),
                       _buildMenuItem('Move Cage', () {
                         _showMoveCageModal();
                       }),
-                      _buildMenuItem('Cage Card', () {
+                      _buildMenuItem('Coop Card', () {
                         _showCageCardDialog();
                       }),
                       _buildMenuItem('Pedigree', () {
@@ -1326,7 +1336,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
                   ),
                 ),
               ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
             ],
           ),
         ),
@@ -1335,86 +1345,26 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
   }
 
   Future<void> _showCageCardDialog() async {
-    String sireName = '—';
-    String damName = '—';
+    Rabbit? sire;
+    Rabbit? dam;
     if (_currentRabbit.sireId != null && _currentRabbit.sireId!.isNotEmpty) {
-      final s = await _db.getRabbit(_currentRabbit.sireId!);
-      sireName = s != null ? (s.fullName.isNotEmpty ? s.fullName : s.name) : (!RegExp(r'^(R-|PED-|ped_|K-|F-|\d+|[0-9a-fA-F-]{8,})').hasMatch(_currentRabbit.sireId!) ? _currentRabbit.sireId! : '—');
+      sire = await _db.getRabbit(_currentRabbit.sireId!);
     }
     if (_currentRabbit.damId != null && _currentRabbit.damId!.isNotEmpty) {
-      final d = await _db.getRabbit(_currentRabbit.damId!);
-      damName = d != null ? (d.fullName.isNotEmpty ? d.fullName : d.name) : (!RegExp(r'^(R-|PED-|ped_|K-|F-|\d+|[0-9a-fA-F-]{8,})').hasMatch(_currentRabbit.damId!) ? _currentRabbit.damId! : '—');
+      dam = await _db.getRabbit(_currentRabbit.damId!);
     }
     if (!mounted) return;
 
-    showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.badge_outlined, color: Color(0xFF7B6BA0)),
-            const SizedBox(width: 8),
-            const Text('Cage Card', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9F6FC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E0F2)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _currentRabbit.fullName.isNotEmpty ? _currentRabbit.fullName : _currentRabbit.name,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text('Ear #: ${_currentRabbit.earNumber ?? _currentRabbit.id}   |   Cage #: ${_currentRabbit.cage ?? "—"}'),
-                  const SizedBox(height: 4),
-                  Text('Breed: ${_currentRabbit.breed}   |   Color: ${_currentRabbit.color ?? "—"}'),
-                  const SizedBox(height: 4),
-                  Text('DOB: ${_currentRabbit.dateOfBirth != null ? FormatUtils.formatDate(_currentRabbit.dateOfBirth!) : "—"}'),
-                  const SizedBox(height: 4),
-                  Text('Sire: $sireName   |   Dam: $damName'),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🖨️ Printing Cage Card...'),
-                  backgroundColor: Color(0xFF7B6BA0),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            icon: const Icon(Icons.print, size: 18),
-            label: const Text('Print'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => CoopCardPreviewModal(
+        initialSize: CoopCardSize.fourBySeven,
+        initialLandscape: true,
+        rabbit: _currentRabbit,
+        sire: sire,
+        dam: dam,
       ),
     );
   }
@@ -1598,7 +1548,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
     final Color textColor = isDanger ? const Color(0xFFD94452) : const Color(0xFF463466);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 3),
       width: double.infinity,
       child: InkWell(
         onTap: () {
@@ -1612,7 +1562,7 @@ class _RabbitDetailScreenState extends State<RabbitDetailScreen> with SingleTick
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE5E0F2), width: 0.8),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Text(
             label,
             style: TextStyle(

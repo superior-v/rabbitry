@@ -92,8 +92,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             child: Text(
               'New Transaction',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF2E2441),
               ),
             ),
           ),
@@ -111,12 +112,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TRANSACTION TYPE',
+          'Transaction Type',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
         SizedBox(height: 8),
@@ -187,13 +188,13 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'CATEGORY',
+        const Text(
+          'Category',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
         SizedBox(height: 8),
@@ -262,29 +263,34 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'AMOUNT',
+        const Text(
+          'Amount',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: amountController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF2E2441),
+          ),
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.attach_money, color: Color(0xFF787774)),
+            prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF787774)),
             hintText: '0.00',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -296,16 +302,16 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'DATE',
+        const Text(
+          'Date',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         InkWell(
           onTap: () async {
             final DateTime? picked = await showDatePicker(
@@ -316,7 +322,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
+                    colorScheme: const ColorScheme.light(
                       primary: Color(0xFF7B6BA0),
                     ),
                   ),
@@ -343,7 +349,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 Text(
                   FormatUtils.formatDate(selectedDate),
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF4F4F56),
                   ),
@@ -422,12 +428,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'LINK TO',
+          'Link to',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 8),
@@ -499,15 +505,15 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       children: [
         Text(
           selectedContext == TransactionContext.rabbit
-              ? 'SELECT RABBIT'
+              ? 'Select Rabbit'
               : selectedContext == TransactionContext.litter
-                  ? 'SELECT LITTER'
-                  : 'SELECT KIT',
+                  ? 'Select Litter'
+                  : 'Select Kit',
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 8),
@@ -525,8 +531,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 children: [
                   Expanded(
                     child: selRabbit != null
-                        ? _buildRabbitNameWidget(selRabbit, fontSize: 14)
-                        : const Text('Select rabbit', style: TextStyle(color: Color(0xFF787880))),
+                        ? _buildRabbitNameWidget(selRabbit, fontSize: 15)
+                        : const Text('Select rabbit', style: TextStyle(color: Color(0xFF787880), fontSize: 15)),
                   ),
                   const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
                 ],
@@ -547,11 +553,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
-            hint: const Text('Select...'),
+            hint: const Text('Select...', style: TextStyle(fontSize: 15)),
             items: widget.rabbits.map((rabbit) {
               return DropdownMenuItem(
                 value: rabbit.id,
-                child: Text('${rabbit.name} (${rabbit.id})'),
+                child: Text('${rabbit.name} (${rabbit.id})', style: const TextStyle(fontSize: 15)),
               );
             }).toList(),
             onChanged: (value) {
@@ -568,28 +574,30 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'NOTES',
+        const Text(
+          'Notes',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
-            letterSpacing: 0.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF4F4F56),
+            letterSpacing: 0.2,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextField(
           controller: notesController,
           maxLines: 3,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           decoration: InputDecoration(
             hintText: 'Add notes...',
+            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
             ),
           ),
         ),

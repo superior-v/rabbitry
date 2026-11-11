@@ -142,22 +142,61 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       _prefillFromRabbit(widget.editRabbit!);
     } else if (widget.isAddToHerd && widget.sourceKit != null && widget.sourceLitter != null) {
       _prefillFromKitAndLitter(widget.sourceLitter!, widget.sourceKit!);
+      _ensureRabbitryPrefixLoaded();
       _generateRabbitId();
     } else {
+      if (widget.isAddToHerd) {
+        _prefillRabbitryPrefix();
+        _ensureRabbitryPrefixLoaded();
+      }
       _generateRabbitId();
+    }
+  }
+
+  void _prefillRabbitryPrefix() {
+    final savedPrefix = SettingsService.instance.rabbitryPrefix.trim();
+    _breederPrefixController.text = (savedPrefix.isNotEmpty ? savedPrefix : 'SBS').toUpperCase();
+  }
+
+  Future<void> _ensureRabbitryPrefixLoaded() async {
+    await SettingsService.instance.init();
+    if (!mounted || !widget.isAddToHerd) return;
+    final savedPrefix = SettingsService.instance.rabbitryPrefix.trim();
+    final effectivePrefix = (savedPrefix.isNotEmpty ? savedPrefix : 'SBS').toUpperCase();
+    if (_breederPrefixController.text.trim().isEmpty || _breederPrefixController.text.trim() != effectivePrefix) {
+      setState(() {
+        _breederPrefixController.text = effectivePrefix;
+      });
     }
   }
 
   void _prefillFromKitAndLitter(Litter litter, Kit kit) {
     _selectedType = (kit.sex == 'M') ? RabbitType.buck : RabbitType.doe;
-    _selectedStatus = RabbitStatus.growout;
-    _activeInRabbitry = false;
+
+    // Kit aged 5 months or less -> NOT Active in Rabbitry (Grow Out in Herd).
+    // Over 5 months -> Active in Rabbitry (toggle ON).
+    final DateTime? kitDob = litter.dob ?? litter.kindleDate;
+    bool isOverFiveMonths = false;
+    if (kitDob != null) {
+      final fiveMonthsDate = DateTime(kitDob.year, kitDob.month + 5, kitDob.day);
+      isOverFiveMonths = !DateTime.now().isBefore(fiveMonthsDate);
+    }
+    if (isOverFiveMonths) {
+      _activeInRabbitry = true;
+      _selectedStatus = _selectedType == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
+    } else {
+      _activeInRabbitry = true;
+      _selectedStatus = RabbitStatus.growout;
+    }
 
     if (kit.name != null && kit.name!.isNotEmpty) {
       _nameController.text = kit.name!;
     } else {
       _nameController.text = 'Kit ${kit.id}';
     }
+
+    // Prefill Rabbitry Prefix automatically with farm's prefix
+    _prefillRabbitryPrefix();
 
     _breedController.text = litter.breed;
     _colorController.text = kit.color != 'Unknown' ? kit.color : '';
@@ -409,21 +448,30 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFE6BEFE),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: const Color(0xFF4A3E6D)),
-          onPressed: () => Navigator.pop(context),
-        ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFEEDAFE),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFE6BEFE),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: const Color(0xFF4A3E6D)),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              FocusScope.of(context).unfocus();
+              Navigator.pop(context);
+            },
+          ),
         title: Text(
-          _isEditing ? 'Edit Rabbit' : (widget.isAddToHerd ? 'ADD TO HERD' : 'Add New Rabbit'),
+          _isEditing ? 'Edit Rabbit' : (widget.isAddToHerd ? 'Add to Herd' : 'Add New Rabbit'),
           style: const TextStyle(
             color: Color(0xFF4A3E6D),
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
@@ -599,9 +647,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 setState(() {
                   _activeInRabbitry = val;
                   if (!_activeInRabbitry) {
-                    _selectedStatus = RabbitStatus.growout;
-                  } else if (_selectedStatus == RabbitStatus.growout) {
-                    _selectedStatus = RabbitStatus.open;
+                    _selectedStatus = RabbitStatus.quarantine;
+                  } else if (_selectedStatus == RabbitStatus.quarantine || _selectedStatus == RabbitStatus.growout) {
+                    _selectedStatus = _selectedType == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
                   }
                 });
               }),
@@ -640,8 +688,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProfilePictureSection() {
     final activeColor = _selectedType == RabbitType.doe ? doePink : buckBlue;
@@ -831,11 +880,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         return;
       }
 
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+      final XFile? image = await runExternalActivity(
+        () => _imagePicker.pickImage(
+          source: source,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        ),
       );
 
       if (image != null) {
@@ -897,6 +948,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildTypeToggle() {
+    final isBuck = _selectedType == RabbitType.buck;
+    final isDoe = _selectedType == RabbitType.doe;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -908,28 +962,33 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: _isEditing ? null : () => setState(() => _selectedType = RabbitType.buck),
+              onTap: _isEditing ? null : () => setState(() {
+                _selectedType = RabbitType.buck;
+                if (_selectedStatus == RabbitStatus.open) {
+                  _selectedStatus = RabbitStatus.active;
+                }
+              }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedType == RabbitType.buck ? const Color(0xFFE5E5EA) : Colors.transparent,
+                  color: isBuck ? buckBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: _selectedType == RabbitType.buck
-                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                  boxShadow: isBuck
+                      ? [BoxShadow(color: buckBlue.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))]
                       : null,
                 ),
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.male, size: 18, color: _selectedType == RabbitType.buck ? buckBlue : const Color(0xFF787880)),
+                      Icon(Icons.male, size: 18, color: isBuck ? Colors.white : const Color(0xFF787880)),
                       const SizedBox(width: 6),
                       Text(
                         'Buck',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: _selectedType == RabbitType.buck ? buckBlue : const Color(0xFF787880),
+                          color: isBuck ? Colors.white : const Color(0xFF787880),
                         ),
                       ),
                     ],
@@ -940,28 +999,33 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: _isEditing ? null : () => setState(() => _selectedType = RabbitType.doe),
+              onTap: _isEditing ? null : () => setState(() {
+                _selectedType = RabbitType.doe;
+                if (_selectedStatus == RabbitStatus.active) {
+                  _selectedStatus = RabbitStatus.open;
+                }
+              }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: _selectedType == RabbitType.doe ? const Color(0xFFE5E5EA) : Colors.transparent,
+                  color: isDoe ? doePink : Colors.transparent,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: _selectedType == RabbitType.doe
-                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                  boxShadow: isDoe
+                      ? [BoxShadow(color: doePink.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))]
                       : null,
                 ),
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.female, size: 18, color: _selectedType == RabbitType.doe ? doePink : const Color(0xFF787880)),
+                      Icon(Icons.female, size: 18, color: isDoe ? Colors.white : const Color(0xFF787880)),
                       const SizedBox(width: 6),
                       Text(
                         'Doe',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: _selectedType == RabbitType.doe ? doePink : const Color(0xFF787880),
+                          color: isDoe ? Colors.white : const Color(0xFF787880),
                         ),
                       ),
                     ],
@@ -1310,135 +1374,51 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Breed',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        RawAutocomplete<String>(
-          textEditingController: _breedController,
-          focusNode: _breedFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            final query = textEditingValue.text.trim().toLowerCase();
-            if (query.isEmpty) {
-              return const Iterable<String>.empty();
-            }
-            final all = _availableBreeds.map((b) => b.name).toList();
-            final startsWith = all.where((b) => b.toLowerCase().startsWith(query)).toList();
-            final contains = all.where((b) => !b.toLowerCase().startsWith(query) && b.toLowerCase().contains(query)).toList();
-            return [...startsWith, ...contains];
-          },
-          onSelected: (String breedName) {
-            _breedController.text = breedName;
-            final matched = _availableBreeds.where((b) => b.name == breedName);
-            if (matched.isNotEmpty) {
-              final geneticsStr = matched.first.genetics.join(', ');
-              _autoGenetics = geneticsStr;
-              _parseGeneticsToMap(geneticsStr);
-            }
-            setState(() {});
-          },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textCapitalization: TextCapitalization.words,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-              onChanged: (val) {
-                final matched = _availableBreeds.where((b) => b.name.toLowerCase() == val.trim().toLowerCase());
-                if (matched.isNotEmpty) {
-                  final geneticsStr = matched.first.genetics.join(', ');
-                  _autoGenetics = geneticsStr;
-                  _parseGeneticsToMap(geneticsStr);
-                  setState(() {});
-                }
-              },
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Select Breed',
-                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                ),
-                suffixIcon: GestureDetector(
-                  onTap: _showBreedPickerModal,
-                  behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
-                  ),
-                ),
-                suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
-              ),
-            );
-          },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
+        InkWell(
+          onTap: _showBreedPickerModal,
+          borderRadius: BorderRadius.circular(14),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Select Breed',
+              hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                color: Colors.white,
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 220),
-                  width: MediaQuery.of(context).size.width - 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFD6CEE2)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options.elementAt(index);
-                        final isAlt = index % 2 == 1;
-                        return InkWell(
-                          onTap: () => onSelected(option),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  option,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF4F4F56),
-                                  ),
-                                ),
-                                if (_breedController.text.trim().toLowerCase() == option.toLowerCase())
-                                  const Icon(Icons.check, size: 16, color: Color(0xFF7B6BA0)),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
               ),
-            );
-          },
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              ),
+              suffixIcon: const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+              ),
+              suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
+            ),
+            child: Text(
+              _breedController.text.isNotEmpty ? _breedController.text : 'Select Breed',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _breedController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -1451,120 +1431,51 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Color',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
-        RawAutocomplete<String>(
-          textEditingController: _colorController,
-          focusNode: _colorFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            final query = textEditingValue.text.trim().toLowerCase();
-            if (query.isEmpty) {
-              return const Iterable<String>.empty();
-            }
-            final all = SettingsService.instance.colors;
-            final startsWith = all.where((c) => c.toLowerCase().startsWith(query)).toList();
-            final contains = all.where((c) => !c.toLowerCase().startsWith(query) && c.toLowerCase().contains(query)).toList();
-            return [...startsWith, ...contains];
-          },
-          onSelected: (String color) {
-            _colorController.text = color;
-            setState(() {});
-          },
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              textCapitalization: TextCapitalization.words,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Select Color',
-                hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
-                ),
-                suffixIcon: GestureDetector(
-                  onTap: _showColorPickerModal,
-                  behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
-                  ),
-                ),
-                suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
-              ),
-            );
-          },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
+        InkWell(
+          onTap: _showColorPickerModal,
+          borderRadius: BorderRadius.circular(14),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Select Color',
+              hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                color: Colors.white,
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 220),
-                  width: MediaQuery.of(context).size.width - 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFD6CEE2)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options.elementAt(index);
-                        final isAlt = index % 2 == 1;
-                        return InkWell(
-                          onTap: () => onSelected(option),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  option,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF4F4F56),
-                                  ),
-                                ),
-                                if (_colorController.text.trim().toLowerCase() == option.toLowerCase())
-                                  const Icon(Icons.check, size: 16, color: Color(0xFF7B6BA0)),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
               ),
-            );
-          },
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              ),
+              suffixIcon: const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+              ),
+              suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
+            ),
+            child: Text(
+              _colorController.text.isNotEmpty ? _colorController.text : 'Select Color',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _colorController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -1604,7 +1515,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 ),
               )
             : Text(
-                _isEditing ? 'Update Rabbit' : (widget.isAddToHerd ? 'ADD TO HERD' : 'Save Rabbit'),
+                _isEditing ? 'Update Rabbit' : (widget.isAddToHerd ? 'Add to Herd' : 'Save Rabbit'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -1693,7 +1604,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Text(
                   'Select Genotype',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? doePink : buckBlue) : const Color(0xFF636366),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1805,8 +1716,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -1819,13 +1730,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           textCapitalization: textCapitalization,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           decoration: InputDecoration(
             isDense: true,
             hintText: hintText,
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
             prefixText: prefixText,
-            prefixStyle: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+            prefixStyle: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
             fillColor: Colors.white,
@@ -1870,14 +1781,21 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   }
 
   Widget _buildStatusDropdown() {
-    final List<RabbitStatus> statusOptions = [
-      RabbitStatus.open,
-      RabbitStatus.pregnant,
-      RabbitStatus.nursing,
-      RabbitStatus.growout,
-      RabbitStatus.resting,
-      RabbitStatus.quarantine,
-    ];
+    final List<RabbitStatus> statusOptions = _selectedType == RabbitType.buck
+        ? [
+            RabbitStatus.active,
+            RabbitStatus.growout,
+            RabbitStatus.resting,
+            RabbitStatus.quarantine,
+          ]
+        : [
+            RabbitStatus.open,
+            RabbitStatus.pregnant,
+            RabbitStatus.nursing,
+            RabbitStatus.growout,
+            RabbitStatus.resting,
+            RabbitStatus.quarantine,
+          ];
     if (!statusOptions.contains(_selectedStatus)) {
       statusOptions.add(_selectedStatus);
     }
@@ -1888,8 +1806,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Status',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -1909,14 +1827,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
               dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
               selectedItemBuilder: (context) {
                 return statusOptions.map((status) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       _getStatusDisplayLabel(status),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -1939,7 +1857,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     child: Text(
                       _getStatusDisplayLabel(status),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -1948,7 +1866,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 if (value != null) {
                   setState(() {
                     _selectedStatus = value;
-                    if (value == RabbitStatus.growout) {
+                    if (value == RabbitStatus.quarantine) {
                       _activeInRabbitry = false;
                     } else {
                       _activeInRabbitry = true;
@@ -1976,8 +1894,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Location',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -1997,10 +1915,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
               dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
               hint: Text(
                 locationNames.isEmpty ? 'No barns' : 'Location',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                style: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
               ),
               selectedItemBuilder: (context) {
                 return locationNames.map((loc) {
@@ -2008,7 +1926,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       loc,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -2028,7 +1946,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     child: Text(
                       location,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -2067,8 +1985,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Cage',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -2089,14 +2007,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
               dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
               hint: Text(
                 _selectedLocation == null
                     ? 'Select Location'
                     : cageNames.isEmpty
                         ? 'No cages'
                         : 'Cage',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                style: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
               ),
               selectedItemBuilder: (context) {
                 return cageNames.map((cage) {
@@ -2104,7 +2022,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       cage,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -2124,7 +2042,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     ),
                     child: Text(
                       cage,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -2149,8 +2067,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             const Text(
               'Purchase Details',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
                 color: Color(0xFF4F4F56),
               ),
             ),
@@ -2203,8 +2121,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     const Text(
                       'Date of purchase',
                       style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF4F4F56),
                         letterSpacing: 0.2,
                       ),
@@ -2241,7 +2159,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                               child: Text(
                                 _purchaseDate != null ? FormatUtils.formatDate(_purchaseDate!) : 'Select Date of Purchase',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 15,
                                   fontWeight: _purchaseDate != null ? FontWeight.w600 : FontWeight.w400,
                                   color: _purchaseDate != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
                                 ),
@@ -2297,7 +2215,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           child: Text(
                             'Add as Expense',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF4F4F56),
                             ),
@@ -2322,8 +2240,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Date of birth',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -2359,7 +2277,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: Text(
                     _dateOfBirth != null ? FormatUtils.formatDate(_dateOfBirth!) : 'Select Date of Birth',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: _dateOfBirth != null ? FontWeight.w600 : FontWeight.w400,
                       color: _dateOfBirth != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
                     ),
@@ -2448,7 +2366,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         if (label.isNotEmpty) ...[
           Text(
             label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           ),
           const SizedBox(width: 6),
         ],
@@ -2504,8 +2422,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -2540,7 +2458,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: Text(
                     hasSelection ? (selectedName ?? '') : 'Select $label',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
                       color: hasSelection ? const Color(0xFF4F4F56) : const Color(0xFF787880),
                     ),
@@ -2768,8 +2686,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         const Text(
           'Notes',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
@@ -2778,7 +2696,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         TextFormField(
           controller: _notesController,
           maxLines: 3,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -3048,6 +2966,26 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
           purchaseDate: purchaseDate,
         );
 
+        if (widget.isAddToHerd && widget.sourceKit != null && widget.sourceLitter != null) {
+          // Prevent adding the same kit to the Herd more than once
+          final guardLitters = await _db.getLitters();
+          final guardLitter = guardLitters.where((l) => l.id == widget.sourceLitter!.id).firstOrNull;
+          final guardKit = guardLitter?.kits.where((k) => k.id == widget.sourceKit!.id).firstOrNull;
+          final guardStatus = guardKit?.status.toLowerCase().trim() ?? '';
+          if (guardStatus == 'promoted' || guardStatus == 'herd' || guardStatus == 'added to herd') {
+            if (mounted) {
+              setState(() => _isSaving = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This kit has already been added to the Herd'),
+                  backgroundColor: Color(0xFF7B6BA0),
+                ),
+              );
+            }
+            return;
+          }
+        }
+
         await _db.insertRabbit(rabbit);
         notifyDataChanged();
 
@@ -3069,7 +3007,18 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
               return k;
             }).toList();
 
-            await _db.updateLitter(targetLitter.copyWith(kits: updatedKits));
+            final bool hasActiveNestKit = updatedKits.any((k) {
+              final st = k.status.toLowerCase().trim();
+              final det = (k.details ?? '').toLowerCase();
+              final isTerminal = st == 'dead' || st == 'died' || st == 'deceased' || st == 'sold' || st == 'butchered' || st == 'cull' || st == 'culled';
+              final isIndependent = st.contains('grow') || st == 'promoted' || st == 'herd' || st == 'added to herd' || det.contains('grow-out') || det.contains('grow out');
+              final isFosteredOut = st == 'fostered' || det.contains('fostered to');
+              return !k.isArchived && !isTerminal && !isIndependent && !isFosteredOut;
+            });
+
+            final newStatus = !hasActiveNestKit ? 'archived' : targetLitter.status;
+            await _db.updateLitter(targetLitter.copyWith(kits: updatedKits, status: newStatus));
+            await _db.checkAndUpdateDoeStatusIfLitterEmpty(targetLitter.doeId);
             widget.onRabbitAdded?.call();
           } catch (e) {
             print('Error updating kit status on add to herd: $e');

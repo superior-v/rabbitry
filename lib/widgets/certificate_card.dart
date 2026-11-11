@@ -617,13 +617,13 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Layer 6: Row 4 - DOB
+        // Layer 6: Row 4 - Date of birth
         Positioned(
           left: detailsLeft,
           top: H * CertificateLayout.row4TopRatio,
           width: rowWidth,
           child: Text(
-            'DOB: ${data.dob}',
+            'Date of birth: ${data.dob}',
             style: TextStyle(
               fontFamily: CertificateLayout.fontFamilyDetails,
               fontSize: detailsFontSize,
@@ -635,10 +635,28 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Layer 7: Row 5 - Sex
+        // Layer 7: Row 5 - Place of birth
         Positioned(
           left: detailsLeft,
           top: H * CertificateLayout.row5TopRatio,
+          width: rowWidth,
+          child: Text(
+            'Place of birth: ${data.placeOfBirth}',
+            style: TextStyle(
+              fontFamily: CertificateLayout.fontFamilyDetails,
+              fontSize: detailsFontSize,
+              fontWeight: FontWeight.w400,
+              color: detailsTextColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+
+        // Layer 8: Row 6 - Sex
+        Positioned(
+          left: detailsLeft,
+          top: H * CertificateLayout.row6TopRatio,
           width: rowWidth,
           child: Text(
             'Sex: ${data.sex}',
@@ -653,37 +671,79 @@ class CertificatePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Layer 8: Row 6 - Dam & Sire
+        // Layer 9: Row 7 - Dam & Sire (names aligned under each other)
         Positioned(
           left: detailsLeft,
-          top: (H * CertificateLayout.row6TopRatio) - (2.0 * scale),
+          top: H * CertificateLayout.row7TopRatio,
           width: rowWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                data.damSentence,
-                style: TextStyle(
-                  fontFamily: CertificateLayout.fontFamilyDetails,
-                  fontSize: detailsFontSize * (data.cleanDam.length > 20 ? 0.85 : 1.0),
-                  fontWeight: FontWeight.w400,
-                  color: detailsTextColor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  SizedBox(
+                    width: CertificateLayout.parentLabelWidthPt * scale,
+                    child: Text(
+                      'Dam:',
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: detailsFontSize,
+                        fontWeight: FontWeight.w400,
+                        color: detailsTextColor,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      data.cleanDam,
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: detailsFontSize * (data.cleanDam.length > 20 ? 0.85 : 1.0),
+                        fontWeight: FontWeight.w400,
+                        color: detailsTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 1.5 * scale),
-              Text(
-                data.sireSentence,
-                style: TextStyle(
-                  fontFamily: CertificateLayout.fontFamilyDetails,
-                  fontSize: detailsFontSize * (data.cleanSire.length > 20 ? 0.85 : 1.0),
-                  fontWeight: FontWeight.w400,
-                  color: detailsTextColor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  SizedBox(
+                    width: CertificateLayout.parentLabelWidthPt * scale,
+                    child: Text(
+                      'Sire:',
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: detailsFontSize,
+                        fontWeight: FontWeight.w400,
+                        color: detailsTextColor,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      data.cleanSire,
+                      style: TextStyle(
+                        fontFamily: CertificateLayout.fontFamilyDetails,
+                        fontSize: detailsFontSize * (data.cleanSire.length > 20 ? 0.85 : 1.0),
+                        fontWeight: FontWeight.w400,
+                        color: detailsTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

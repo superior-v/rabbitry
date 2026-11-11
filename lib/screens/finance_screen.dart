@@ -84,7 +84,7 @@ class FinanceScreenState extends State<FinanceScreen> {
   // Expanded groups tracking
   Set<String> _expandedGroups = {};
 
-  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode(canRequestFocus: false, skipTraversal: true);
 
   @override
   void dispose() {
@@ -95,6 +95,11 @@ class FinanceScreenState extends State<FinanceScreen> {
 
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus && _searchFocusNode.canRequestFocus) {
+        _searchFocusNode.canRequestFocus = false;
+      }
+    });
     if (widget.initialRabbitId != null) {
       _groupingMode = GroupingMode.byRabbit;
       _expandedGroups.add(widget.initialRabbitId!);
@@ -514,7 +519,23 @@ class FinanceScreenState extends State<FinanceScreen> {
                   Expanded(
                     child: TextField(
                       focusNode: _searchFocusNode,
+                      onTap: () {
+                        _searchFocusNode.canRequestFocus = true;
+                        _searchFocusNode.requestFocus();
+                      },
                       onChanged: (value) => setState(() => _searchQuery = value),
+                      onSubmitted: (_) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
+                      onTapOutside: (event) {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
+                      onEditingComplete: () {
+                        _searchFocusNode.unfocus();
+                        _searchFocusNode.canRequestFocus = false;
+                      },
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search entries...',

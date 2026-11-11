@@ -146,7 +146,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           _isEditing ? 'Edit Transaction' : 'New Transaction',
           style: const TextStyle(
             color: kLilacText,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
@@ -288,12 +288,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'CATEGORY',
+          'Category',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -312,7 +312,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: const Text('Select category', style: TextStyle(color: Color(0xFF787880))),
+            hint: const Text('Select category', style: TextStyle(color: Color(0xFF787880), fontSize: 15)),
             selectedItemBuilder: (BuildContext context) {
               return _availableCategories.map((cat) {
                 final categoryName = Transaction(
@@ -326,7 +326,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     categoryName,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                   ),
                 );
               }).toList();
@@ -354,7 +354,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   child: Text(
                     categoryName,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                   ),
                 ),
               );
@@ -376,12 +376,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'LINK TO',
+          'Link to',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -429,7 +429,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected ? const Color(0xFF4F4F56) : const Color(0xFF787880),
               ),
@@ -457,7 +457,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 14}) {
+  Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
     final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
     final prefix = (rabbit.breederPrefix ?? '').trim();
@@ -512,12 +512,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'SELECT RABBIT',
+          'Select Rabbit',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -535,11 +535,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               children: [
                 Expanded(
                   child: selectedRabbit != null
-                      ? _buildRabbitNameWidget(selectedRabbit, fontSize: 14)
+                      ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
                       : const Text(
                           'Select rabbit',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.w400,
                             color: Color(0xFF787880),
                           ),
@@ -560,12 +560,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'SELECT WEANED KIT',
+          'Select Weaned Kit',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -584,14 +584,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            hint: const Text('Select weaned kit', style: TextStyle(color: Color(0xFF787880))),
+            hint: const Text('Select weaned kit', style: TextStyle(color: Color(0xFF787880), fontSize: 15)),
             selectedItemBuilder: (BuildContext context) {
               return kits.map((item) {
                 return Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     item['label'] as String,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
@@ -612,7 +612,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   child: Text(
                     item['label'] as String,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -639,12 +639,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'AMOUNT',
+          'Amount',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -703,12 +703,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'DATE',
+          'Date',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -729,7 +729,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   child: Text(
                     FormatUtils.formatDate(_date),
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF4F4F56),
                     ),
@@ -762,12 +762,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'DESCRIPTION',
+          'Description',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),
@@ -800,12 +800,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'NOTES',
+          'Notes',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF4F4F56),
-            letterSpacing: 0.8,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 4),

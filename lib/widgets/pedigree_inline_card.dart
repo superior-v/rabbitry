@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -836,6 +837,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   String _herdSearchQuery = '';
 
   // Manual Entry Controllers
+  final _prefixController = TextEditingController();
   final _nameController = TextEditingController();
   final _colorController = TextEditingController();
   final _lbsController = TextEditingController();
@@ -844,6 +846,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   final _regController = TextEditingController();
   final _gcController = TextEditingController();
   final _legsController = TextEditingController();
+  final _winningsController = TextEditingController();
   final _breedController = TextEditingController();
   final _champController = TextEditingController();
   final _genotypeController = TextEditingController();
@@ -864,6 +867,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
 
     if (hasExisting) {
       final r = widget.currentRabbit!;
+      _prefixController.text = (r.breederPrefix ?? '').toUpperCase();
       _nameController.text = r.name;
       _breedController.text = r.breed;
       _colorController.text = r.color ?? '';
@@ -882,6 +886,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       }
       _regController.text = r.registrationNumber ?? '';
       _gcController.text = r.grandChampionNumber ?? '';
+      _winningsController.text = r.winnings ?? '';
       _genotypeController.text = r.genetics ?? '';
       _isBroken = r.broken ?? false;
     } else {
@@ -895,6 +900,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   void dispose() {
     _tabController.dispose();
     _herdSearchController.dispose();
+    _prefixController.dispose();
     _nameController.dispose();
     _colorController.dispose();
     _lbsController.dispose();
@@ -903,6 +909,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     _regController.dispose();
     _gcController.dispose();
     _legsController.dispose();
+    _winningsController.dispose();
     _breedController.dispose();
     _champController.dispose();
     _genotypeController.dispose();
@@ -1199,8 +1206,20 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Name
-                _buildOutlinedField('Name', _nameController),
+                // Prefix (uppercase) & Name (title case)
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _buildOutlinedField('Prefix', _prefixController, isUpperCase: true),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 5,
+                      child: _buildOutlinedField('Name', _nameController),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 14),
 
                 // Breed
@@ -1211,14 +1230,14 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                 _buildOutlinedField('Color', _colorController),
                 const SizedBox(height: 14),
 
-                // Weight (divided into 2 boxes: Pounds & Ounces with light grey hint text)
+                // Weight (divided into 2 boxes: Pounds & Ounces with unit suffix on the right)
                 Row(
                   children: [
                     Expanded(
                       child: _buildOutlinedField(
                         'Pounds',
                         _lbsController,
-                        hintText: 'lbs',
+                        suffixText: 'lbs',
                         isNumber: true,
                       ),
                     ),
@@ -1227,7 +1246,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                       child: _buildOutlinedField(
                         'Ounces',
                         _ozController,
-                        hintText: 'oz',
+                        suffixText: 'oz',
                         isNumber: true,
                       ),
                     ),
@@ -1245,15 +1264,25 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                 ),
                 const SizedBox(height: 14),
 
-                // Legs | Reg # | GC #
+                // Legs | Reg #
                 Row(
                   children: [
-                    Expanded(flex: 1, child: _buildOutlinedField('Legs', _legsController, isNumber: true)),
-                    const SizedBox(width: 8),
-                    Expanded(flex: 1, child: _buildOutlinedField('Reg #', _regController)),
-                    const SizedBox(width: 8),
-                    Expanded(flex: 1, child: _buildOutlinedField('GC #', _gcController)),
+                    Expanded(child: _buildOutlinedField('Legs', _legsController, isNumber: true)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildOutlinedField('Reg #', _regController)),
                   ],
+                ),
+                const SizedBox(height: 14),
+
+                // GC # (own line)
+                _buildOutlinedField('GC #', _gcController),
+                const SizedBox(height: 14),
+
+                // Winnings (multi-line; Enter moves to the next line)
+                _buildOutlinedField(
+                  'Winnings',
+                  _winningsController,
+                  isMultiline: true,
                 ),
               ],
             ),
@@ -1334,11 +1363,12 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       registrationNumber: _regController.text.isNotEmpty ? _regController.text.trim() : null,
       grandChampionNumber: _gcController.text.isNotEmpty ? _gcController.text.trim() : null,
       grandChampionLegs: int.tryParse(_legsController.text) ?? 0,
+      winnings: _winningsController.text.trim().isNotEmpty ? _winningsController.text.trim() : null,
       genetics: _genotypeController.text.isNotEmpty ? _genotypeController.text.trim() : null,
       broken: _isBroken,
       sireId: existing?.sireId,
       damId: existing?.damId,
-      breederPrefix: existing?.breederPrefix,
+      breederPrefix: _prefixController.text.trim().isNotEmpty ? _prefixController.text.trim().toUpperCase() : null,
       cage: existing?.cage,
       notes: existing?.notes,
       createdAt: existing?.createdAt ?? DateTime.now(),
@@ -1360,11 +1390,28 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     String label,
     TextEditingController controller, {
     bool isNumber = false,
+    bool isMultiline = false,
+    bool isUpperCase = false,
     String? hintText,
+    String? suffixText,
   }) {
+    final List<TextInputFormatter>? formatters = isNumber
+        ? null
+        : [
+            isUpperCase ? _UpperCaseTextFormatter() : _WordTitleCaseFormatter(),
+          ];
     return TextField(
       controller: controller,
-      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      keyboardType: isMultiline
+          ? TextInputType.multiline
+          : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
+      textCapitalization: isNumber
+          ? TextCapitalization.none
+          : (isUpperCase ? TextCapitalization.characters : TextCapitalization.words),
+      inputFormatters: formatters,
+      textInputAction: isMultiline ? TextInputAction.newline : null,
+      minLines: isMultiline ? 2 : 1,
+      maxLines: isMultiline ? 6 : 1,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
       decoration: InputDecoration(
         labelText: label,
@@ -1372,6 +1419,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
         floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         hintText: hintText,
+        suffixText: suffixText,
+        suffixStyle: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         hintStyle: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         filled: true,
         fillColor: Colors.white,
@@ -1421,5 +1470,33 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
         ),
       ),
     );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
+class _WordTitleCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    final buf = StringBuffer();
+    bool capNext = true;
+    for (int i = 0; i < text.length; i++) {
+      final ch = text[i];
+      if (capNext && RegExp(r'[a-zA-Z]').hasMatch(ch)) {
+        buf.write(ch.toUpperCase());
+        capNext = false;
+      } else {
+        buf.write(ch);
+        capNext = ch == ' ' || ch == '\n' || ch == '\t' || ch == '-' || ch == '/';
+      }
+    }
+    return newValue.copyWith(text: buf.toString());
   }
 }

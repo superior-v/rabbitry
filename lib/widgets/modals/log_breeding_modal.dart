@@ -12,6 +12,8 @@ class LogBreedingModal extends StatefulWidget {
   final DateTime? initialBreedDate;
   final String? deleteBreedingPlanId;
   final VoidCallback onComplete;
+  final bool autoOpenDoePicker;
+  final bool isEditing;
 
   const LogBreedingModal({
     Key? key,
@@ -20,6 +22,8 @@ class LogBreedingModal extends StatefulWidget {
     this.initialBreedDate,
     this.deleteBreedingPlanId,
     required this.onComplete,
+    this.autoOpenDoePicker = false,
+    this.isEditing = false,
   }) : super(key: key);
 
   @override
@@ -36,6 +40,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
   DateTime _breedDate = DateTime.now();
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _hasAutoOpenedDoePicker = false;
 
   // Timeline days (loaded from settings, editable by user)
   int _palpationDays = 14;
@@ -80,9 +85,10 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       preselectedPalpation = doe.customPalpationDay ?? settings.palpationDays;
       preselectedNestBox = doe.customNestBoxDay ?? settings.nestBoxDays;
       preselectedGestation = doe.customGestationDay ?? settings.gestationDays;
-      preselectedDate = widget.initialBreedDate ?? doe.lastBreedDate ?? DateTime.now();
-      preselectedNotes = doe.breedingNotes ?? '';
-      preselectedFallOffs = doe.fallOffs?.toString() ?? '';
+      preselectedDate = widget.initialBreedDate ??
+          (widget.isEditing ? (doe.lastBreedDate ?? DateTime.now()) : DateTime.now());
+      preselectedNotes = widget.isEditing ? (doe.breedingNotes ?? '') : '';
+      preselectedFallOffs = widget.isEditing ? (doe.fallOffs?.toString() ?? '') : '';
 
       if (widget.buck != null) {
         preselectedBuck = bucks.firstWhere(
@@ -136,6 +142,27 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       _fallOffsController.text = preselectedFallOffs;
       _isLoading = false;
     });
+
+    if (widget.autoOpenDoePicker && widget.doe == null && !_hasAutoOpenedDoePicker && mounted) {
+      _hasAutoOpenedDoePicker = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final route = ModalRoute.of(context);
+        if (route != null && route.animation != null && !route.animation!.isCompleted) {
+          void listener(AnimationStatus status) {
+            if (status == AnimationStatus.completed) {
+              route.animation!.removeStatusListener(listener);
+              if (mounted) {
+                _pickDoe();
+              }
+            }
+          }
+          route.animation!.addStatusListener(listener);
+        } else {
+          _pickDoe();
+        }
+      });
+    }
   }
 
   @override
@@ -146,6 +173,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height * 0.88,
         maxHeight: MediaQuery.of(context).size.height * 0.95,
       ),
       padding: EdgeInsets.only(
@@ -201,9 +229,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                 children: [
                   // Doe Selection Dropdown (if widget.doe is null)
                   if (widget.doe == null) ...[
-                    if (_isLoading)
-                      const SizedBox.shrink()
-                    else if (_does.isEmpty)
+                    if (!_isLoading && _does.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(16),
                         margin: const EdgeInsets.only(bottom: 10),
@@ -221,7 +247,7 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
                       _buildRabbitSelectorField(
                         label: 'Select Doe',
                         selectedRabbit: _selectedDoe,
-                        onTap: _pickDoe,
+                        onTap: _isLoading ? () {} : _pickDoe,
                         prefixIcon: Icons.female_rounded,
                         prefixColor: const Color(0xFFE04F9F),
                       ),
@@ -581,9 +607,40 @@ class _LogBreedingModalState extends State<LogBreedingModal> {
       archivedSectionTitle: 'ARCHIVED DOES',
       selectedRabbit: _selectedDoe,
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
+      final settings = SettingsService.instance;
       setState(() {
         _selectedDoe = picked;
+        _palpationDays = picked.customPalpationDay ?? settings.palpationDays;
+        _nestBoxDays = picked.customNestBoxDay ?? settings.nestBoxDays;
+        _gestationDays = picked.customGestationDay ?? settings.gestationDays;
+        if (!widget.isEditing) {
+          _breedingNotesController.clear();
+          _fallOffsController.clear();
+        } else {
+          if (picked.breedingNotes != null && picked.breedingNotes!.isNotEmpty) {
+            _breedingNotesController.text = picked.breedingNotes!;
+          }
+          if (picked.fallOffs != null) {
+            _fallOffsController.text = picked.fallOffs.toString();
+          }
+        }
+        if (_selectedBuck == null && picked.lastBreedBuckId != null) {
+          final foundBuck = _bucks.firstWhere(
+            (b) => b.id == picked.lastBreedBuckId,
+            orElse: () => Rabbit(
+              id: picked.lastBreedBuckId!,
+              name: picked.lastBreedBuckId!,
+              type: RabbitType.buck,
+              status: RabbitStatus.active,
+              breed: '',
+            ),
+          );
+          if (!_bucks.any((b) => b.id == foundBuck.id)) {
+            _bucks.add(foundBuck);
+          }
+          _selectedBuck = foundBuck;
+        }
       });
     }
   }

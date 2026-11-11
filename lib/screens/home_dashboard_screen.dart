@@ -15,6 +15,7 @@ import '../services/format_utils.dart';
 import '../widgets/modals/log_birth_modal.dart';
 import '../widgets/modals/confirm_pregnancy_modal.dart';
 import '../widgets/modals/log_breeding_modal.dart';
+import '../widgets/modals/rabbit_picker_modal.dart';
 import '../services/app_event_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -76,8 +77,9 @@ class HomeDashboardScreen extends StatefulWidget {
   }
 }
 
-class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsBindingObserver {
   int _selectedNavIndex = 0;
+  bool _wasBackgrounded = false;
 
   final GlobalKey<KindleHomeScreenState> _homeTabKey = GlobalKey<KindleHomeScreenState>();
   final GlobalKey<HerdScreenState> _herdTabKey = GlobalKey<HerdScreenState>();
@@ -89,6 +91,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _navScreens = [
       KindleHomeScreen(key: _homeTabKey),
       HerdScreen(key: _herdTabKey),
@@ -98,7 +101,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     ];
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      if (isExternalActivityActive || !mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        _onNavTap(0);
+      });
+    }
+  }
+
   void _onNavTap(int index) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusScope.of(context).unfocus();
     if (_selectedNavIndex == 4 && index != 4) {
       _financeTabKey.currentState?.resetView();
     }
@@ -110,9 +136,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _homeTabKey.currentState?._loadData(showLoading: false);
       _homeTabKey.currentState?.scrollToTop();
     } else if (index == 1) {
+      _herdTabKey.currentState?.openDefaultPage();
       _herdTabKey.currentState?.refresh();
       _herdTabKey.currentState?.scrollToTop();
     } else if (index == 2) {
+      _littersTabKey.currentState?.openDefaultPage();
       _littersTabKey.currentState?.collapseAllLitters();
       _littersTabKey.currentState?.refresh();
       _littersTabKey.currentState?.scrollToTop();
@@ -134,6 +162,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
       bottomNavigationBar: _buildBottomNavBar(),
     );
@@ -415,16 +444,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
         height: 46,
         child: FloatingActionButton(
           heroTag: 'home_log_breeding_fab',
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => LogBreedingModal(
-                onComplete: _loadData,
-              ),
-            );
-          },
+          onPressed: _openLogBreedingFlow,
           backgroundColor: const Color(0xFFE6BEFE),
           shape: const CircleBorder(),
           elevation: 4,
@@ -434,6 +454,18 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             size: 20,
           ),
         ),
+      ),
+    );
+  }
+
+  void _openLogBreedingFlow() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => LogBreedingModal(
+        onComplete: _loadData,
+        autoOpenDoePicker: true,
       ),
     );
   }
@@ -646,7 +678,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           margin: EdgeInsets.only(
             left: 0,
             right: 0,
@@ -657,14 +689,35 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             color: kHeaderPink,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(
-            breed,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF4F4F56),
-            ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Text(
+                  breed,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF4F4F56),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                child: Text(
+                  '${entries.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF787880),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         Column(
@@ -832,6 +885,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                     backgroundColor: Colors.transparent,
                     builder: (_) => LogBreedingModal(
                       doe: doe,
+                      isEditing: true,
                       onComplete: _loadData,
                     ),
                   );

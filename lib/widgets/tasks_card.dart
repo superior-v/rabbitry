@@ -293,11 +293,14 @@ class _TasksCardState extends State<TasksCard> {
     Color headerBg = const Color(0xFFF2F2F7);
     Color headerBorder = const Color(0xFFE5E5EA);
     if (title.toUpperCase().contains('TODAY')) {
-      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
-      headerBorder = const Color(0xFFC0EFC0);
+      headerBg = const Color(0xFFFFBCE7); // Pink color from Home page
+      headerBorder = const Color(0xFFFFBCE7);
     } else if (title.toUpperCase().contains('UPCOMING')) {
       headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
       headerBorder = const Color(0xFFBAE5FD);
+    } else if (title.toUpperCase().contains('ARCHIVE')) {
+      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
+      headerBorder = const Color(0xFFC0EFC0);
     }
 
     return GestureDetector(

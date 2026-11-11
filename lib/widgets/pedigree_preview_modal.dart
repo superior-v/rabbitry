@@ -294,25 +294,42 @@ class PedigreePreviewWidget extends StatelessWidget {
         // Farm Contact Line
         Positioned(
           left: 16.0 * scaleW,
-          top: 62.0 * scaleH,
-          width: 480.0 * scaleW,
-          height: 18.0 * scaleH,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              [
-                if (data.farmAddress.isNotEmpty) data.farmAddress,
-                if (data.farmEmail.isNotEmpty) data.farmEmail,
-                if (data.farmPhone.isNotEmpty) data.farmPhone,
-              ].join('  •  '),
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: 10.0 * scaleW,
-                color: PedigreeLayout.colorHeaderContact,
+          top: 58.0 * scaleH,
+          width: 490.0 * scaleW,
+          height: 26.0 * scaleH,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                [
+                  if (data.farmAddress.isNotEmpty) data.farmAddress,
+                  if (data.farmEmail.isNotEmpty) data.farmEmail,
+                  if (data.farmPhone.isNotEmpty) data.farmPhone,
+                ].join('  •  '),
+                style: TextStyle(
+                  fontFamily: PedigreeLayout.fontFamilyDetails,
+                  fontSize: 9.5 * scaleW,
+                  color: PedigreeLayout.colorHeaderContact,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
+                Text(
+                  [
+                    if (data.farmWebsite.isNotEmpty) data.farmWebsite,
+                    if (data.farmSocialLink.isNotEmpty) data.farmSocialLink,
+                  ].join('  •  '),
+                  style: TextStyle(
+                    fontFamily: PedigreeLayout.fontFamilyDetails,
+                    fontSize: 8.5 * scaleW,
+                    color: PedigreeLayout.colorHeaderContact,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
           ),
         ),
 
@@ -358,7 +375,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                         text: 'Subject: ',
                         style: TextStyle(
                           fontFamily: PedigreeLayout.fontFamilyDetails,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                           fontSize: 13.0 * scaleW,
                           color: PedigreeLayout.colorSubjectText,
                         ),
@@ -367,7 +384,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                         text: data.subjectName,
                         style: TextStyle(
                           fontFamily: PedigreeLayout.fontFamilyDetails,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                           fontSize: 13.0 * scaleW,
                           color: PedigreeLayout.colorSubjectText,
                         ),
@@ -390,7 +407,13 @@ class PedigreePreviewWidget extends StatelessWidget {
                 _buildPortraitSubjectRow('Color:', data.subjectColor, 'Sex:', data.subjectSex, scaleW),
                 _buildPortraitSubjectRow('DOB:', data.subjectDob, 'Ear No.:', data.subjectEarNo, scaleW),
                 _buildPortraitSubjectRow('Weight:', data.subjectWeight, 'Reg No.:', data.subjectRegNo, scaleW),
-                _buildPortraitSubjectRow('Legs:', data.subjectLegs, '', '', scaleW),
+                _buildPortraitSubjectRow(
+                  'Legs:',
+                  data.subjectLegs,
+                  data.subjectGenotype.isNotEmpty ? 'Genotype:' : '',
+                  data.subjectGenotype,
+                  scaleW,
+                ),
               ],
             ),
           ),
@@ -482,6 +505,41 @@ class PedigreePreviewWidget extends StatelessWidget {
             ),
           ),
 
+        // Sold info (center footer)
+        if (data.soldTo.isNotEmpty || data.soldOn.isNotEmpty)
+          Positioned(
+            left: 210.0 * scaleW,
+            top: 738.0 * scaleH,
+            width: 230.0 * scaleW,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (data.soldTo.isNotEmpty)
+                  Text(
+                    'Sold To: ${data.soldTo}',
+                    style: TextStyle(
+                      fontFamily: PedigreeLayout.fontFamilyDetails,
+                      fontSize: 9.5 * scaleW,
+                      color: PedigreeLayout.colorFooterPhone,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (data.soldOn.isNotEmpty)
+                  Text(
+                    'Sold On: ${data.soldOn}',
+                    style: TextStyle(
+                      fontFamily: PedigreeLayout.fontFamilyDetails,
+                      fontSize: 9.5 * scaleW,
+                      color: PedigreeLayout.colorFooterPhone,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+
         // Phone
         if (data.farmPhone.trim().isNotEmpty)
           Positioned(
@@ -518,7 +576,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: '$label1 ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: 10.0 * scaleW,
                     color: PedigreeLayout.colorSubjectText,
                   ),
@@ -548,7 +606,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                     text: '$label2 ',
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 10.0 * scaleW,
                       color: PedigreeLayout.colorSubjectText,
                     ),
@@ -596,6 +654,7 @@ class PedigreePreviewWidget extends StatelessWidget {
     final String legs = (rabbit?.legs != null && rabbit!.legs! > 0)
         ? '${rabbit.legs}'
         : '';
+    final String winnings = (rabbit?.winnings ?? '').trim();
 
     final double titleSize = generation == 1
         ? 11.5 * scaleW
@@ -633,7 +692,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                       text: '$role: ',
                       style: TextStyle(
                         fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: titleSize,
                         color: PedigreeLayout.colorCardText,
                       ),
@@ -642,7 +701,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                       text: name,
                       style: TextStyle(
                         fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: titleSize,
                         color: PedigreeLayout.colorCardText,
                       ),
@@ -661,7 +720,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                       text: 'Color: ',
                       style: TextStyle(
                         fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: textSize,
                         color: PedigreeLayout.colorCardText,
                       ),
@@ -693,7 +752,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                             text: 'DOB: ',
                             style: TextStyle(
                               fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: textSize,
                               color: PedigreeLayout.colorCardText,
                             ),
@@ -722,7 +781,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                             text: 'Wt: ',
                             style: TextStyle(
                               fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: textSize,
                               color: PedigreeLayout.colorCardText,
                             ),
@@ -757,7 +816,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                             text: 'Ear No.: ',
                             style: TextStyle(
                               fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: textSize,
                               color: PedigreeLayout.colorCardText,
                             ),
@@ -786,7 +845,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                             text: 'Legs: ',
                             style: TextStyle(
                               fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: textSize,
                               color: PedigreeLayout.colorCardText,
                             ),
@@ -812,6 +871,20 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
       ),
+      if (winnings.isNotEmpty)
+        Positioned(
+          left: leftPt * scaleW,
+          top: (topPt + heightPt) * scaleH + 1.0,
+          width: widthPt * scaleW,
+          child: Text(
+            winnings,
+            style: TextStyle(
+              fontFamily: PedigreeLayout.fontFamilyDetails,
+              fontSize: (generation == 1 ? 5.0 : (generation == 2 ? 4.5 : 4.0)) * scaleW,
+              color: PedigreeLayout.colorCardText,
+            ),
+          ),
+        ),
     ];
   }
 
@@ -827,7 +900,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       children: [
         // Top Left: Farm Header
         Positioned(
-          left: W * PedigreeLayout.farmTitleLeft,
+          left: W * PedigreeLayout.pedigreeHeaderLeft,
           top: H * PedigreeLayout.farmTitleCenterY - (H * PedigreeLayout.farmTitleBoxHeight / 2),
           width: W * PedigreeLayout.farmTitleMaxWidth,
           height: H * PedigreeLayout.farmTitleBoxHeight,
@@ -848,31 +921,29 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Address & Email
+        // Address & Email (2 lines, smaller, no underline)
         if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
           Positioned(
-            left: W * PedigreeLayout.addressLeft,
-            top: H * PedigreeLayout.contactCenterY - (H * PedigreeLayout.contactBoxHeight / 2),
-            height: H * PedigreeLayout.contactBoxHeight,
-            child: Row(
+            left: W * PedigreeLayout.pedigreeHeaderLeft,
+            top: H * (PedigreeLayout.farmTitleCenterY + PedigreeLayout.farmTitleBoxHeight / 2) + 1.0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (data.farmAddress.isNotEmpty)
                   Text(
                     data.farmAddress,
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
+                      fontSize: W * PedigreeLayout.fontRatioHeaderContact * 0.82,
                       color: PedigreeLayout.colorHeaderContact,
                     ),
                   ),
-                if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
-                  SizedBox(width: W * 0.04),
                 if (data.farmEmail.isNotEmpty)
                   Text(
                     data.farmEmail,
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
+                      fontSize: W * PedigreeLayout.fontRatioHeaderContact * 0.82,
                       color: PedigreeLayout.colorHeaderContact,
                     ),
                   ),
@@ -880,14 +951,29 @@ class PedigreePreviewWidget extends StatelessWidget {
             ),
           ),
 
-        // Header Underline
-        Positioned(
-          left: W * PedigreeLayout.underlineX0,
-          top: H * PedigreeLayout.underlineY,
-          width: W * (PedigreeLayout.underlineX1 - PedigreeLayout.underlineX0),
-          height: 0.75,
-          child: Container(color: PedigreeLayout.colorHeaderUnderline),
-        ),
+        // Website & FB/Instagram link below the email line
+        if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
+          Positioned(
+            left: W * PedigreeLayout.pedigreeHeaderLeft,
+            top: H * (PedigreeLayout.farmTitleCenterY + PedigreeLayout.farmTitleBoxHeight / 2) +
+                1.0 +
+                (W * PedigreeLayout.fontRatioHeaderContact * 0.82 * 1.25 *
+                    ((data.farmAddress.isNotEmpty ? 1 : 0) + (data.farmEmail.isNotEmpty ? 1 : 0))),
+            width: W * 0.45,
+            child: Text(
+              [
+                if (data.farmWebsite.isNotEmpty) data.farmWebsite,
+                if (data.farmSocialLink.isNotEmpty) data.farmSocialLink,
+              ].join('  •  '),
+              style: TextStyle(
+                fontFamily: PedigreeLayout.fontFamilyDetails,
+                fontSize: W * (PedigreeLayout.fontRatioHeaderContact * 0.75),
+                color: PedigreeLayout.colorHeaderContact,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
 
         // "Bunny Pedigree" Logo Image
         Positioned(
@@ -920,6 +1006,25 @@ class PedigreePreviewWidget extends StatelessWidget {
         ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectDobCenterY, 'DOB:', data.subjectDob),
         ..._buildSubjectDualRow(W, H, PedigreeLayout.subjectEarWtCenterY, 'Ear No.:', data.subjectEarNo, 'Wt:', data.subjectWeight),
         ..._buildSubjectDualRow(W, H, PedigreeLayout.subjectRegLegsCenterY, 'Reg No.:', data.subjectRegNo, 'Legs:', data.subjectLegs),
+
+        // Genotype & Sale Details (below Subject Box)
+        if (data.subjectGenotype.isNotEmpty || data.soldTo.isNotEmpty || data.soldOn.isNotEmpty)
+          Positioned(
+            left: W * PedigreeLayout.subjectBoxLeft,
+            top: H * 0.658,
+            width: W * PedigreeLayout.subjectBoxWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (data.subjectGenotype.isNotEmpty)
+                  _buildMetadataLine(W, 'Genotype:', data.subjectGenotype),
+                if (data.soldTo.isNotEmpty)
+                  _buildMetadataLine(W, 'Sold To:', data.soldTo),
+                if (data.soldOn.isNotEmpty)
+                  _buildMetadataLine(W, 'Sold On:', data.soldOn),
+              ],
+            ),
+          ),
 
         // Subject Photo Ellipse
         Positioned(
@@ -1045,6 +1150,38 @@ class PedigreePreviewWidget extends StatelessWidget {
     );
   }
 
+  static Widget _buildMetadataLine(double W, String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: W * 0.004),
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: '$label ',
+              style: TextStyle(
+                fontFamily: PedigreeLayout.fontFamilyDetails,
+                fontWeight: FontWeight.w400,
+                fontSize: W * (PedigreeLayout.fontRatioSubject * 0.85),
+                color: PedigreeLayout.colorSubjectText,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                fontFamily: PedigreeLayout.fontFamilyDetails,
+                fontWeight: FontWeight.w400,
+                fontSize: W * (PedigreeLayout.fontRatioSubject * 0.85),
+                color: PedigreeLayout.colorSubjectText,
+              ),
+            ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
   static List<Widget> _buildSubjectSingleRow(
     double W,
     double H,
@@ -1068,7 +1205,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: '$label ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: W * PedigreeLayout.fontRatioSubject,
                     color: PedigreeLayout.colorSubjectText,
                   ),
@@ -1117,7 +1254,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: '$label1 ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: W * PedigreeLayout.fontRatioSubject,
                     color: PedigreeLayout.colorSubjectText,
                   ),
@@ -1152,7 +1289,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: '$label2 ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: W * PedigreeLayout.fontRatioSubject,
                     color: PedigreeLayout.colorSubjectText,
                   ),
@@ -1208,6 +1345,7 @@ class PedigreePreviewWidget extends StatelessWidget {
     final String wt = _formatCardWeight(rabbit?.weight);
     final String earNo = rabbit?.earNumber ?? '';
     final String legs = rabbit?.legs != null && rabbit!.legs! > 0 ? '${rabbit.legs}' : '';
+    final String winnings = (rabbit?.winnings ?? '').trim();
 
     final double rowHeight = H * (generation == 3 ? 0.0240 : 0.0280);
 
@@ -1244,7 +1382,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                     text: '$role: ',
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: baseFontSize,
                       color: PedigreeLayout.colorCardText,
                     ),
@@ -1281,7 +1419,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: 'Color: ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: baseFontSize,
                     color: PedigreeLayout.colorCardText,
                   ),
@@ -1318,7 +1456,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: 'DOB: ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: baseFontSize,
                     color: PedigreeLayout.colorCardText,
                   ),
@@ -1353,7 +1491,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: 'Wt: ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: baseFontSize,
                     color: PedigreeLayout.colorCardText,
                   ),
@@ -1390,7 +1528,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: 'Ear No.: ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: baseFontSize,
                     color: PedigreeLayout.colorCardText,
                   ),
@@ -1425,7 +1563,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   text: 'Legs: ',
                   style: TextStyle(
                     fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: baseFontSize,
                     color: PedigreeLayout.colorCardText,
                   ),
@@ -1446,6 +1584,20 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
       ),
+      if (winnings.isNotEmpty)
+        Positioned(
+          left: W * left,
+          top: H * (top + cardH) + 1.0,
+          width: W * cardW,
+          child: Text(
+            winnings,
+            style: TextStyle(
+              fontFamily: PedigreeLayout.fontFamilyDetails,
+              fontSize: baseFontSize * 0.55,
+              color: PedigreeLayout.colorCardText,
+            ),
+          ),
+        ),
     ];
   }
 
