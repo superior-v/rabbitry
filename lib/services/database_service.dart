@@ -1709,7 +1709,7 @@ class DatabaseService {
 
     // ✅ Encode kits to JSON string
     String kitsJson = '[]';
-    if (kits != null && kits.isNotEmpty) {
+    if (!isMissed && kits != null && kits.isNotEmpty) {
       kitsJson = jsonEncode(kits);
     }
 
@@ -2613,6 +2613,12 @@ class DatabaseService {
         'status': litter.status,
         'sire': litter.sire,
         'dam': litter.dam,
+        'missedLitter': litter.missedLitter == true ? 1 : 0,
+        'colorsProduced': litter.colorsProduced,
+        'patternsProduced': litter.patternsProduced,
+        'bucksProduced': litter.bucksProduced,
+        'doesProduced': litter.doesProduced,
+        'peanutsProduced': litter.peanutsProduced,
         'kits': kitsJson,
       };
 
@@ -2663,12 +2669,15 @@ class DatabaseService {
         // Check if doe has any active nursing litter in nursery
         final doeLitters = litters.where((l) =>
           l.doeId == doeId &&
+          l.missedLitter != true &&
           l.status.toLowerCase() != 'archived' &&
           l.status.toLowerCase() != 'history_only' &&
           l.status.toLowerCase() != 'deleted_archive' &&
           l.status.toLowerCase() != 'weaned' &&
+          l.status.toLowerCase() != 'missed' &&
           l.status.toLowerCase() != 'not taken' &&
-          l.status.toLowerCase() != 'died'
+          l.status.toLowerCase() != 'died' &&
+          l.status.toLowerCase() != 'dead'
         ).toList();
 
         bool hasActiveNursingKits = false;
@@ -6010,10 +6019,12 @@ class DatabaseService {
     PedigreeRabbit node = PedigreeRabbit(
       id: rabbit.id,
       name: rabbit.name,
+      breederPrefix: rabbit.breederPrefix,
       breed: rabbit.breed,
       color: rabbit.color,
       weight: rabbit.weight != null && rabbit.weight! > 0 ? rabbit.weight!.toString() : null,
       registrationNumber: rabbit.registrationNumber,
+      grandChampionNumber: rabbit.grandChampionNumber,
       earNumber: rabbit.earNumber,
       legs: rabbit.grandChampionLegs,
       winnings: rabbit.winnings,

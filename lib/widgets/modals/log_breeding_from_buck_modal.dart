@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
@@ -71,8 +72,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       constraints: BoxConstraints(
@@ -87,7 +88,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kLilacLight,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               border: Border(bottom: BorderSide(color: kLilac, width: 1)),
@@ -99,7 +100,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Record Breeding',
                         style: TextStyle(
                           fontSize: 20,
@@ -118,7 +119,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: kLilacText),
+                  icon: Icon(Icons.close_rounded, color: kLilacText),
                   onPressed: () => Navigator.pop(context),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -142,18 +143,18 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3CD),
+                        color: appSurface(0xFFFFF3CD),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFE58F)),
+                        border: Border.all(color: appSurface(0xFFFFE58F)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.warning_amber, color: Color(0xFF856404), size: 20),
+                          Icon(Icons.warning_amber, color: appColor(0xFF856404), size: 20),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'No does available for breeding. All does are either bred, nursing, or in quarantine.',
-                              style: TextStyle(color: Color(0xFF856404), fontSize: 13),
+                              style: TextStyle(color: appColor(0xFF856404), fontSize: 13),
                             ),
                           ),
                         ],
@@ -165,7 +166,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                       selectedRabbit: _selectedDoe,
                       onTap: _pickDoe,
                       prefixIcon: Icons.female_rounded,
-                      prefixColor: const Color(0xFFE04F9F),
+                      prefixColor: appColor(0xFFE04F9F),
                     ),
                   const SizedBox(height: 10),
 
@@ -219,16 +220,16 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.schedule, size: 16, color: Color(0xFF7B6BA0)),
+                                Icon(Icons.schedule, size: 16, color: appColor(0xFF7B6BA0)),
                                 SizedBox(width: 6),
                                 Text(
                                   'TIMELINE & REMINDERS',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF7B6BA0),
+                                    color: appColor(0xFF7B6BA0),
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -241,10 +242,10 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: _isCustomTimeline ? const Color(0xFF7B6BA0).withOpacity(0.1) : Colors.white,
+                                  color: _isCustomTimeline ? appSurface(0xFF7B6BA0).withOpacity(0.1) : kAppCardWhite,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                                    color: _isCustomTimeline ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
                                   ),
                                 ),
                                 child: Row(
@@ -253,7 +254,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                     Icon(
                                       _isCustomTimeline ? Icons.check_circle : Icons.edit,
                                       size: 14,
-                                      color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                      color: _isCustomTimeline ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -261,7 +262,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: _isCustomTimeline ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                        color: _isCustomTimeline ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
                                       ),
                                     ),
                                   ],
@@ -300,9 +301,9 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                                 _gestationDays = SettingsService.instance.gestationDays;
                               });
                             },
-                            child: const Text(
+                            child: Text(
                               'Reset to defaults',
-                              style: TextStyle(fontSize: 12, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500),
+                              style: TextStyle(fontSize: 12, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w500),
                             ),
                           ),
                         ] else ...[
@@ -342,8 +343,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
               child: ElevatedButton(
                 onPressed: _selectedDoe == null || _isSaving ? null : _saveBreeding,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6BEFE),
-                  foregroundColor: const Color(0xFF2C2C2E),
+                  backgroundColor: appSurface(0xFFE6BEFE),
+                  foregroundColor: appColor(0xFF2C2C2E),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -351,20 +352,20 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   elevation: 0,
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'SAVE',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
               ),
@@ -385,16 +386,16 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       margin: EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFFE9E9E7)),
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xDD000000, 0xFFF1F3F9)),
             ),
           ),
           // Day stepper
@@ -405,11 +406,11 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             child: Container(
               padding: EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Color(0xFFF7F7F5),
+                color: appSurface(0xFFF7F7F5),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Color(0xFFE9E9E7)),
+                border: Border.all(color: appSurface(0xFFE9E9E7)),
               ),
-              child: Icon(Icons.remove, size: 14, color: Color(0xFF787774)),
+              child: Icon(Icons.remove, size: 14, color: appColor(0xFF787774)),
             ),
           ),
           Container(
@@ -417,7 +418,7 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             alignment: Alignment.center,
             child: Text(
               '$days d',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF7B6BA0)),
             ),
           ),
           GestureDetector(
@@ -425,11 +426,11 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             child: Container(
               padding: EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Color(0xFFF7F7F5),
+                color: appSurface(0xFFF7F7F5),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Color(0xFFE9E9E7)),
+                border: Border.all(color: appSurface(0xFFE9E9E7)),
               ),
-              child: Icon(Icons.add, size: 14, color: Color(0xFF787774)),
+              child: Icon(Icons.add, size: 14, color: appColor(0xFF787774)),
             ),
           ),
           SizedBox(width: 8),
@@ -438,11 +439,11 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
             children: [
               Text(
                 _formatDate(date),
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black54),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: appColor(0x8A000000, 0xFFB4B9C8)),
               ),
               Text(
                 'in ${date.difference(DateTime.now()).inDays} days',
-                style: TextStyle(fontSize: 10, color: Color(0xFF787774)),
+                style: TextStyle(fontSize: 10, color: appColor(0xFF787774)),
               ),
             ],
           ),
@@ -458,9 +459,9 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       margin: EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHighlighted ? Color(0xFFFFFFFF) : Colors.transparent,
+        color: isHighlighted ? appSurface(0xFFFFFFFF) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlighted ? Border.all(color: Color(0xFF8B5CF6).withOpacity(0.3)) : null,
+        border: isHighlighted ? Border.all(color: appSurface(0xFF8B5CF6).withOpacity(0.3)) : null,
       ),
       child: Row(
         children: [
@@ -473,13 +474,13 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: appColor(0xDD000000, 0xFFF1F3F9),
                   ),
                 ),
                 SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                  style: TextStyle(fontSize: 12, color: appColor(0xFF787774)),
                 ),
               ],
             ),
@@ -492,14 +493,14 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: appColor(0xDD000000, 0xFFF1F3F9),
                 ),
               ),
               Text(
                 'in $daysFromNow days',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isHighlighted ? Color(0xFF8B5CF6) : Color(0xFF787774),
+                  color: isHighlighted ? appColor(0xFF8B5CF6) : appColor(0xFF787774),
                   fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -518,8 +519,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -533,8 +534,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -548,8 +549,8 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -579,16 +580,16 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       minLines: minLines,
       textInputAction: textInputAction,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
+        labelStyle: TextStyle(color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }
@@ -603,21 +604,21 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
             ),
           ],
         ),
@@ -656,21 +657,21 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
+          labelStyle: TextStyle(color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
-          suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7B6BA0)),
+          suffixIcon: Icon(Icons.arrow_drop_down, color: appColor(0xFF7B6BA0)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: selectedRabbit != null
             ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
             : Text(
                 label.startsWith('Select ') ? label : 'Select $label',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
               ),
       ),
     );
@@ -689,19 +690,19 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       items: items,
       selectedItemBuilder: selectedItemBuilder,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kNeutral900),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
+        labelStyle: TextStyle(color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w700, fontSize: 17),
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        prefixIcon: Icon(prefixIcon, color: const Color(0xFF7B6BA0), size: 20),
+        prefixIcon: Icon(prefixIcon, color: appColor(0xFF7B6BA0), size: 20),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
-      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF7B6BA0)),
+      icon: Icon(Icons.arrow_drop_down, color: appColor(0xFF7B6BA0)),
     );
   }
 
@@ -712,23 +713,24 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF8B5CF6),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF8B5CF6),
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Color(0xFF2C2C2E),
+              onSurface: appColor(0xFF2C2C2E),
             ),
             datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: const Color(0xFFE2BFFB),
-              headerForegroundColor: const Color(0xFF463466),
-              backgroundColor: Colors.white,
+              headerBackgroundColor: appSurface(0xFFE2BFFB),
+              headerForegroundColor: appColor(0xFF463466),
+              backgroundColor: kAppCardWhite,
               surfaceTintColor: Colors.transparent,
-              todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              todayBorder: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
               todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const Color(0xFF8B5CF6);
+                  return appColor(0xFF8B5CF6);
                 }
                 return null;
               }),
@@ -736,20 +738,20 @@ class _LogBreedingFromBuckModalState extends State<LogBreedingFromBuckModal> {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
                 }
-                return const Color(0xFF8B5CF6);
+                return appColor(0xFF8B5CF6);
               }),
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
                 }
                 if (states.contains(WidgetState.disabled)) {
-                  return const Color(0xFFC7C7CC);
+                  return appColor(0xFFC7C7CC);
                 }
-                return const Color(0xFF2C2C2E);
+                return appColor(0xFF2C2C2E);
               }),
               dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const Color(0xFF8B5CF6);
+                  return appColor(0xFF8B5CF6);
                 }
                 return null;
               }),

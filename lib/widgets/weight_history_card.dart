@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/settings_service.dart';
@@ -88,7 +89,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kNeutral200),
       ),
@@ -101,12 +102,12 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'LOG WEIGHT',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -116,7 +117,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6BEFE),
+                      color: appSurface(0xFFE6BEFE),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -129,14 +130,14 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
               ],
             ),
           ),
-          const Divider(height: 1, color: kNeutral100),
+          Divider(height: 1, color: kNeutral100),
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(24),
               child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep)),
             )
           else if (_weightLogs.isEmpty)
-            const Center(
+            Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Text(
@@ -144,7 +145,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                   ),
                 ),
               ),
@@ -166,9 +167,9 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: appSurface(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: appSurface(0xFFE5E7EB)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -177,10 +178,10 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF7B6BA0).withValues(alpha: 0.12),
+              color: appSurface(0xFF7B6BA0).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.monitor_weight_outlined, size: 18, color: Color(0xFF7B6BA0)),
+            child: Icon(Icons.monitor_weight_outlined, size: 18, color: appColor(0xFF7B6BA0)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -189,28 +190,28 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
               children: [
                 Text(
                   _formatWeight(log['weight']),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _formatDate(log['date']),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
                 if ((log['notes'] ?? '').toString().isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     log['notes'].toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF94A3B8),
+                      color: appColor(0xFF94A3B8),
                       fontStyle: FontStyle.italic,
                     ),
                     maxLines: 1,
@@ -222,7 +223,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
           ),
           GestureDetector(
             onTap: () => _showDeleteConfirm(log),
-            child: const Icon(Icons.more_horiz, size: 20, color: Color(0xFF787774)),
+            child: Icon(Icons.more_horiz, size: 20, color: appColor(0xFF787774)),
           ),
         ],
       ),
@@ -232,7 +233,7 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
   void _showDeleteConfirm(Map<String, dynamic> log) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Column(
@@ -241,11 +242,11 @@ class _WeightHistoryCardState extends State<WeightHistoryCard> {
             Container(
               width: 40, height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 16),
-              decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: appSurface(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Color(0xFFEF4444)),
-              title: const Text('Delete Entry', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+              leading: Icon(Icons.delete, color: appColor(0xFFEF4444)),
+              title: Text('Delete Entry', style: TextStyle(color: appColor(0xFFEF4444), fontWeight: FontWeight.w600)),
               subtitle: Text('${_formatWeight(log['weight'])} on ${_formatDate(log['date'])}'),
               onTap: () {
                 Navigator.pop(ctx);

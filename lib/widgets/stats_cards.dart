@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -35,20 +36,20 @@ class _StatsCardsState extends State<StatsCards> {
   bool _isLoading = true;
 
   // Consistent Figma colors
-  static const Color _kTextDark = Color(0xFF1E293B);
-  static const Color _kTextMuted = Color(0xFF64748B);
-  static const Color _kTextLight = Color(0xFF94A3B8);
-  static const Color _kCardBorder = Color(0xFFE2E8F0);
-  static const Color _kGreyTileBg = Color(0xFFF8FAFC);
-  static const Color _kBlueAccent = Color(0xFF0284C7);
-  static const Color _kBlueBadgeBg = Color(0xFFE1F3FE);
-  static const Color _kHeaderBannerBg = Color(0xFFD8EEFB);
+  static Color get _kTextDark => appColor(0xFF1E293B);
+  static Color get _kTextMuted => appColor(0xFF64748B);
+  static Color get _kTextLight => appColor(0xFF94A3B8);
+  static Color get _kCardBorder => appSurface(0xFFE2E8F0);
+  static Color get _kGreyTileBg => appSurface(0xFFF8FAFC);
+  static Color get _kBlueAccent => appColor(0xFF0284C7);
+  static Color get _kBlueBadgeBg => appSurface(0xFFE1F3FE);
+  static Color get _kHeaderBannerBg => appSurface(0xFFD8EEFB);
 
   // Segment colors for Kit Outcomes
-  static const Color _kColorSold = Color(0xFF0284C7);
-  static const Color _kColorBreeder = Color(0xFF38BDF8);
-  static const Color _kColorCull = Color(0xFF7DD3FC);
-  static const Color _kColorDied = Color(0xFFBAE6FD);
+  static Color get _kColorSold => appColor(0xFF0284C7);
+  static Color get _kColorBreeder => appColor(0xFF38BDF8);
+  static Color get _kColorCull => appColor(0xFF7DD3FC);
+  static Color get _kColorDied => appColor(0xFFBAE6FD);
 
   @override
   void initState() {
@@ -109,7 +110,7 @@ class _StatsCardsState extends State<StatsCards> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _kBlueAccent));
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: _kBlueAccent));
     }
 
     return Column(
@@ -208,7 +209,7 @@ class _StatsCardsState extends State<StatsCards> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kCardBorder),
       ),
@@ -222,7 +223,7 @@ class _StatsCardsState extends State<StatsCards> {
             children: [
               Text(
                 '$total',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: _kTextDark,
@@ -230,7 +231,7 @@ class _StatsCardsState extends State<StatsCards> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'total kits',
                 style: TextStyle(
                   fontSize: 14,
@@ -247,7 +248,7 @@ class _StatsCardsState extends State<StatsCards> {
                 ),
                 child: Text(
                   '$survivalRate% survival',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: _kBlueAccent,
@@ -268,7 +269,7 @@ class _StatsCardsState extends State<StatsCards> {
                   if (breeder > 0) Expanded(flex: breeder, child: Container(color: _kColorBreeder)),
                   if (cull > 0) Expanded(flex: cull, child: Container(color: _kColorCull)),
                   if (died > 0) Expanded(flex: died, child: Container(color: _kColorDied)),
-                  if (total == 0) Expanded(child: Container(color: const Color(0xFFE2E8F0))),
+                  if (total == 0) Expanded(child: Container(color: appSurface(0xFFE2E8F0))),
                 ],
               ),
             ),
@@ -277,7 +278,7 @@ class _StatsCardsState extends State<StatsCards> {
           // Legend
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               _LegendDot(label: 'Sold', color: _kColorSold),
               _LegendDot(label: 'Breeder', color: _kColorBreeder),
               _LegendDot(label: 'Culled', color: _kColorCull),
@@ -356,7 +357,7 @@ class _StatsCardsState extends State<StatsCards> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _kCardBorder),
         boxShadow: [
@@ -397,12 +398,12 @@ class _StatsCardsState extends State<StatsCards> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF86DAFF),
-            Color(0xFFF0F9FF),
+            appSurface(0xFF86DAFF),
+            appSurface(0xFFF0F9FF),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -414,10 +415,10 @@ class _StatsCardsState extends State<StatsCards> {
           Text(
             value,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: appColor(0xFF334155),
               letterSpacing: -0.3,
             ),
           ),
@@ -427,10 +428,10 @@ class _StatsCardsState extends State<StatsCards> {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: appColor(0xFF334155),
               letterSpacing: 0.3,
             ),
           ),
@@ -456,7 +457,7 @@ class _StatsCardsState extends State<StatsCards> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kCardBorder),
       ),
@@ -482,7 +483,7 @@ class _StatsCardsState extends State<StatsCards> {
             children: [
               Text(
                 avg.toStringAsFixed(1),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: _kTextDark,
@@ -490,7 +491,7 @@ class _StatsCardsState extends State<StatsCards> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'avg kits',
                 style: TextStyle(
                   fontSize: 14,
@@ -539,7 +540,7 @@ class _StatsCardsState extends State<StatsCards> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'L-0${i + 1}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       color: _kTextLight,
                       fontWeight: FontWeight.w600,
@@ -629,7 +630,7 @@ class _StatsCardsState extends State<StatsCards> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kCardBorder),
       ),
@@ -655,7 +656,7 @@ class _StatsCardsState extends State<StatsCards> {
             children: [
               Text(
                 current.toStringAsFixed(1),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
                   color: _kTextDark,
@@ -663,7 +664,7 @@ class _StatsCardsState extends State<StatsCards> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'lbs',
                 style: TextStyle(
                   fontSize: 14,
@@ -694,7 +695,7 @@ class _StatsCardsState extends State<StatsCards> {
           Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(PhosphorIconsFill.target, size: 14, color: _kBlueAccent),
                 SizedBox(width: 6),
                 Text(
@@ -743,7 +744,7 @@ class _StatsCardsState extends State<StatsCards> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     labels[i],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       color: _kTextLight,
                       fontWeight: FontWeight.w600,
@@ -807,7 +808,7 @@ class _StatsCardsState extends State<StatsCards> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _kCardBorder),
       ),
@@ -818,23 +819,23 @@ class _StatsCardsState extends State<StatsCards> {
           // Header Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: const Color(0xFFF6EEFC),
+            color: appSurface(0xFFF6EEFC),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'FINANCIALS',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: 0.5,
                   ),
                 ),
                 GestureDetector(
                   onTap: widget.onAddTransaction,
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'ADD',
                         style: TextStyle(
@@ -863,8 +864,8 @@ class _StatsCardsState extends State<StatsCards> {
                       child: _buildFinanceBox(
                         '+\$${income.toInt()}',
                         'INCOME',
-                        const Color(0xFFF0FDF4),
-                        const Color(0xFFDCFCE7),
+                        appSurface(0xFFF0FDF4),
+                        appSurface(0xFFDCFCE7),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -872,8 +873,8 @@ class _StatsCardsState extends State<StatsCards> {
                       child: _buildFinanceBox(
                         '-\$${expenses.toInt()}',
                         'EXPENSES',
-                        const Color(0xFFFEF2F2),
-                        const Color(0xFFFEE2E2),
+                        appSurface(0xFFFEF2F2),
+                        appSurface(0xFFFEE2E2),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -881,8 +882,8 @@ class _StatsCardsState extends State<StatsCards> {
                       child: _buildFinanceBox(
                         '${net >= 0 ? '+' : '-'}\$${net.abs().toInt()}',
                         'NET',
-                        const Color(0xFFF0F9FF),
-                        const Color(0xFFE0F2FE),
+                        appSurface(0xFFF0F9FF),
+                        appSurface(0xFFE0F2FE),
                       ),
                     ),
                   ],
@@ -891,7 +892,7 @@ class _StatsCardsState extends State<StatsCards> {
                 if (_transactions.isNotEmpty)
                   ..._transactions.take(2).map((t) => _buildTransactionItem(t))
                 else
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Center(
                       child: Text(
@@ -920,7 +921,7 @@ class _StatsCardsState extends State<StatsCards> {
         children: [
           Text(
             val,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: _kTextDark,
@@ -929,7 +930,7 @@ class _StatsCardsState extends State<StatsCards> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w800,
               color: _kTextMuted,
@@ -959,7 +960,7 @@ class _StatsCardsState extends State<StatsCards> {
             children: [
               Text(
                 t.description ?? t.categoryName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: _kTextDark,
@@ -968,7 +969,7 @@ class _StatsCardsState extends State<StatsCards> {
               const SizedBox(height: 2),
               Text(
                 FormatUtils.formatDateShort(t.date),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: _kTextLight,
@@ -981,7 +982,7 @@ class _StatsCardsState extends State<StatsCards> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: isIncome ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              color: isIncome ? appColor(0xFF16A34A) : appColor(0xFFDC2626),
             ),
           ),
         ],
@@ -1007,7 +1008,7 @@ class _StatsCardsState extends State<StatsCards> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: _kTextDark,
@@ -1016,7 +1017,7 @@ class _StatsCardsState extends State<StatsCards> {
               const SizedBox(height: 2),
               Text(
                 date,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: _kTextLight,
@@ -1029,7 +1030,7 @@ class _StatsCardsState extends State<StatsCards> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: isIncome ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              color: isIncome ? appColor(0xFF16A34A) : appColor(0xFFDC2626),
             ),
           ),
         ],
@@ -1043,10 +1044,10 @@ class _StatsCardsState extends State<StatsCards> {
   Widget _buildCardHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w800,
-        color: Color(0xFF4F4F56),
+        color: appColor(0xFF4F4F56),
         letterSpacing: 0.5,
       ),
     );
@@ -1064,7 +1065,7 @@ class _StatsCardsState extends State<StatsCards> {
         children: [
           Text(
             val,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: _kTextDark,
@@ -1073,7 +1074,7 @@ class _StatsCardsState extends State<StatsCards> {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w800,
               color: _kTextMuted,
@@ -1125,7 +1126,7 @@ class _StatsCardsState extends State<StatsCards> {
           const SizedBox(width: 4),
           Text(
             '${val >= 0 ? '+' : ''}$val',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
               color: _kBlueAccent,
@@ -1176,10 +1177,10 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF64748B),
+            color: appColor(0xFF64748B),
           ),
         ),
       ],

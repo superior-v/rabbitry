@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:intl/intl.dart';
 import '../models/finance_transaction.dart';
 import '../models/rabbit.dart';
@@ -42,7 +43,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -94,7 +95,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF2E2441),
+                color: appColor(0xFF2E2441),
               ),
             ),
           ),
@@ -116,7 +117,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -128,7 +129,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 'Income',
                 Icons.add_circle,
                 TransactionType.income,
-                Color(0xFF2F855A),
+                appColor(0xFF2F855A),
               ),
             ),
             SizedBox(width: 12),
@@ -137,7 +138,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 'Expense',
                 Icons.remove_circle,
                 TransactionType.expense,
-                Color(0xFFC53030),
+                appColor(0xFFC53030),
               ),
             ),
           ],
@@ -158,9 +159,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? color.withOpacity(0.1) : kAppCardWhite,
           border: Border.all(
-            color: isSelected ? color : Color(0xFFE9E9E7),
+            color: isSelected ? color : appSurface(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -168,14 +169,14 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? color : Color(0xFF787774), size: 20),
+            Icon(icon, color: isSelected ? color : appColor(0xFF787774), size: 20),
             SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? color : Color(0xFF37352F),
+                color: isSelected ? color : appColor(0xFF37352F),
               ),
             ),
           ],
@@ -188,12 +189,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Category',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -211,7 +212,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           itemBuilder: (context, index) {
             final category = availableCategories[index];
             bool isSelected = selectedCategory == category.key;
-            final color = selectedType == TransactionType.income ? Color(0xFF2F855A) : Color(0xFFC53030);
+            final color = selectedType == TransactionType.income ? appColor(0xFF2F855A) : appColor(0xFFC53030);
 
             return GestureDetector(
               onTap: () {
@@ -224,9 +225,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withOpacity(0.1) : Color(0xFFF7F7F5),
+                  color: isSelected ? color.withOpacity(0.1) : appSurface(0xFFF7F7F5),
                   border: Border.all(
-                    color: isSelected ? color : Color(0xFFE9E9E7),
+                    color: isSelected ? color : appSurface(0xFFE9E9E7),
                     width: isSelected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -236,7 +237,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   children: [
                     Icon(
                       _getCategoryIcon(category.icon),
-                      color: isSelected ? color : Color(0xFF787774),
+                      color: isSelected ? color : appColor(0xFF787774),
                       size: 28,
                     ),
                     SizedBox(height: 6),
@@ -245,7 +246,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? color : Color(0xFF37352F),
+                        color: isSelected ? color : appColor(0xFF37352F),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -263,12 +264,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Amount',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -276,21 +277,21 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
         TextField(
           controller: amountController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF2E2441),
+            color: appColor(0xFF2E2441),
           ),
           decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.attach_money, color: Color(0xFF787774)),
+            prefixIcon: Icon(Icons.attach_money, color: appColor(0xFF787774)),
             hintText: '0.00',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: BorderSide(color: appSurface(0xFFE9E9E7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -302,12 +303,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Date',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -320,10 +321,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               builder: (context, child) {
-                return Theme(
+                if (isAppDark) return child!;
+        return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.light(
-                      primary: Color(0xFF7B6BA0),
+                    colorScheme: ColorScheme.light(
+                      primary: appColor(0xFF7B6BA0),
                     ),
                   ),
                   child: child!,
@@ -339,19 +341,19 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE9E9E7)),
+              border: Border.all(color: appSurface(0xFFE9E9E7)),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
                 const SizedBox(width: 10),
                 Text(
                   FormatUtils.formatDate(selectedDate),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
               ],
@@ -381,7 +383,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 14}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final nameColor = isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3);
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -395,8 +397,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -410,8 +412,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -427,12 +429,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Link to',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -464,9 +466,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEDE9FE) : const Color(0xFFF7F7F5),
+          color: isSelected ? appSurface(0xFFEDE9FE) : appSurface(0xFFF7F7F5),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+            color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -476,7 +478,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             Icon(
               icon,
               size: 16,
-              color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+              color: isSelected ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
             ),
             const SizedBox(width: 6),
             Text(
@@ -484,7 +486,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF37352F),
+                color: isSelected ? appColor(0xFF7B6BA0) : appColor(0xFF37352F),
               ),
             ),
           ],
@@ -509,10 +511,10 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               : selectedContext == TransactionContext.litter
                   ? 'Select Litter'
                   : 'Select Kit',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -524,7 +526,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE9E9E7)),
+                border: Border.all(color: appSurface(0xFFE9E9E7)),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -532,9 +534,9 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   Expanded(
                     child: selRabbit != null
                         ? _buildRabbitNameWidget(selRabbit, fontSize: 15)
-                        : const Text('Select rabbit', style: TextStyle(color: Color(0xFF787880), fontSize: 15)),
+                        : Text('Select rabbit', style: TextStyle(color: appColor(0xFF787880), fontSize: 15)),
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+                  Icon(Icons.arrow_drop_down, color: appColor(0xFF4F4F56)),
                 ],
               ),
             ),
@@ -545,11 +547,11 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+                borderSide: BorderSide(color: appSurface(0xFFE9E9E7)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
@@ -574,12 +576,12 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Notes',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -587,17 +589,17 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
         TextField(
           controller: notesController,
           maxLines: 3,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           decoration: InputDecoration(
             hintText: 'Add notes...',
-            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880)),
+            hintStyle: TextStyle(fontSize: 15, color: appColor(0xFF787880)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE9E9E7)),
+              borderSide: BorderSide(color: appSurface(0xFFE9E9E7)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
@@ -609,7 +611,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Color(0xFFF7F7F5),
+        color: appSurface(0xFFF7F7F5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -623,7 +625,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF37352F),
+                    color: appColor(0xFF37352F),
                   ),
                 ),
                 SizedBox(height: 2),
@@ -631,7 +633,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   'Track value without affecting balance',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                   ),
                 ),
               ],
@@ -644,7 +646,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 isVirtual = value;
               });
             },
-            activeColor: Color(0xFF7B6BA0),
+            activeColor: appColor(0xFF7B6BA0),
           ),
         ],
       ),
@@ -655,7 +657,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Color(0xFFEDE9FE),
+        color: appSurface(0xFFEDE9FE),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -666,14 +668,14 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.layers, size: 16, color: Color(0xFF7B6BA0)),
+                    Icon(Icons.layers, size: 16, color: appColor(0xFF7B6BA0)),
                     SizedBox(width: 6),
                     Text(
                       'Batch Entry',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF7B6BA0),
+                        color: appColor(0xFF7B6BA0),
                       ),
                     ),
                   ],
@@ -683,7 +685,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                   'Apply to all kits in litter',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                   ),
                 ),
               ],
@@ -696,7 +698,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 enableBatch = value;
               });
             },
-            activeColor: Color(0xFF7B6BA0),
+            activeColor: appColor(0xFF7B6BA0),
           ),
         ],
       ),
@@ -709,8 +711,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFE9E9E7))),
-        color: Color(0xFFF7F7F5),
+        border: Border(top: BorderSide(color: appSurface(0xFFE9E9E7))),
+        color: appSurface(0xFFF7F7F5),
       ),
       child: Row(
         children: [
@@ -719,7 +721,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: Color(0xFFE9E9E7)),
+                side: BorderSide(color: appSurface(0xFFE9E9E7)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -729,7 +731,7 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF37352F),
+                  color: appColor(0xFF37352F),
                 ),
               ),
             ),
@@ -739,8 +741,8 @@ class _AddTransactionModalState extends State<AddTransactionModal> {
             child: ElevatedButton(
               onPressed: canSave ? _saveTransaction : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF7B6BA0),
-                disabledBackgroundColor: Color(0xFFE9E9E7),
+                backgroundColor: appSurface(0xFF7B6BA0),
+                disabledBackgroundColor: appSurface(0xFFE9E9E7),
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

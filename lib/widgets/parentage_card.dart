@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
 import '../services/format_utils.dart';
@@ -37,7 +38,7 @@ class _ParentageCardState extends State<ParentageCard> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
     }
 
     return IntrinsicHeight(
@@ -73,15 +74,15 @@ class _ParentageCardState extends State<ParentageCard> {
     required bool isMale,
   }) {
     final Gradient cardGradient = isMale
-        ? const LinearGradient(
+        ? LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+            colors: [appSurface(0xFF86DAFF), appSurface(0xFFF0F9FF)],
           )
-        : const LinearGradient(
+        : LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFBCE7), Color(0xFFFFF0F9)],
+            colors: [appSurface(0xFFFFBCE7), appSurface(0xFFFFF0F9)],
           );
 
     final bool hasDetails = rabbit != null || (fallbackId != null && fallbackId.isNotEmpty);
@@ -100,7 +101,7 @@ class _ParentageCardState extends State<ParentageCard> {
         decoration: BoxDecoration(
           gradient: cardGradient,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE), width: 0.8),
+          border: Border.all(color: isMale ? appSurface(0xFFBFE0F7) : appSurface(0xFFF7B4DE), width: 0.8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,22 +109,22 @@ class _ParentageCardState extends State<ParentageCard> {
             // SIRE / DAM label
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF55555C),
+                color: appColor(0xFF55555C),
                 letterSpacing: 1.4,
               ),
             ),
             const SizedBox(height: 8),
             // Prefix + Name or '-'
             if (!hasDetails)
-              const Text(
+              Text(
                 '-',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF55555C),
+                  color: appColor(0xFF55555C),
                 ),
               )
             else
@@ -133,10 +134,10 @@ class _ParentageCardState extends State<ParentageCard> {
                     if ((rabbit?.breederPrefix ?? '').isNotEmpty) ...[
                       TextSpan(
                         text: '${rabbit!.breederPrefix} ',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                         ),
                       ),
                     ],
@@ -144,10 +145,10 @@ class _ParentageCardState extends State<ParentageCard> {
                       text: (rabbit != null && rabbit.name.isNotEmpty && !FormatUtils.isSystemId(rabbit.name))
                           ? rabbit.name
                           : FormatUtils.cleanParentName(fallbackId),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF55555C),
+                        color: appColor(0xFF55555C),
                       ),
                     ),
                   ],
@@ -159,10 +160,10 @@ class _ParentageCardState extends State<ParentageCard> {
               const SizedBox(height: 4),
               Text(
                 rabbit!.color!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF6A6171),
+                  color: appColor(0xFF6A6171),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -171,24 +172,27 @@ class _ParentageCardState extends State<ParentageCard> {
             const Spacer(),
             const SizedBox(height: 14),
             // In Herd / External badge — corner radius matches rest of app (8)
+            if (!(rabbit != null && rabbit.type == RabbitType.pedigree))
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
+                  color: isMale ? appSurface(0xFFBFE0F7) : appSurface(0xFFF7B4DE),
                   width: 1,
                 ),
               ),
               child: Text(
                 !hasDetails
                     ? '-'
-                    : (rabbit != null ? 'In Herd' : 'External'),
-                style: const TextStyle(
+                    : (rabbit == null
+                        ? 'External'
+                        : (rabbit.type == RabbitType.pedigree ? '' : 'In Herd')),
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                 ),
               ),
             ),

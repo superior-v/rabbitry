@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'herd_screen.dart';
 import 'litters_screen.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'finance_screen.dart';
 import 'settings_screen.dart';
 import 'task_screen.dart';
@@ -17,44 +18,45 @@ import '../widgets/modals/confirm_pregnancy_modal.dart';
 import '../widgets/modals/log_breeding_modal.dart';
 import '../widgets/modals/rabbit_picker_modal.dart';
 import '../services/app_event_service.dart';
+import '../services/appearance_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// === EXACT HTML PALETTE ===
-const kLilac = Color(0xFFC3B1E1);
-const kLilacLight = Color(0xFFE8DFFA);
-const kLilacWash = Color(0xFFF4F0FA);
-const kLilacDeep = Color(0xFF5E4A8A);
-const kLilacText = Color(0xFF463466);
+// === EXACT HTML PALETTE (Light & Crafted Dark Mode) ===
+Color get kLilac => appSurface(0xFFC3B1E1, 0xFF352C4C);
+Color get kLilacLight => appSurface(0xFFE8DFFA, 0xFF2B263C);
+Color get kLilacWash => appSurface(0xFFF4F0FA, 0xFF232030);
+Color get kLilacDeep => appColor(0xFF5E4A8A, 0xFFA78BFA);
+Color get kLilacText => appColor(0xFF463466, 0xFFCFC6E6);
 
-const kPink = Color(0xFFF2B8C6);
-const kPinkLight = Color(0xFFFFBCE7);
-const kPinkWash = Color(0xFFFDF2F5);
-const kPinkDeep = Color(0xFFC47A8B);
+Color get kPink => appSurface(0xFFF2B8C6, 0xFF36232F);
+Color get kPinkLight => appSurface(0xFFFFBCE7, 0xFF332233);
+Color get kPinkWash => appSurface(0xFFFDF2F5, 0xFF28202A);
+Color get kPinkDeep => appColor(0xFFC47A8B, 0xFFF48FB1);
 
 // RESTORED BLUE COLORS FOR HERD SCREEN
-const kBlue = Color(0xFFA8D4F0);
-const kBlueLight = Color(0xFFD9EEFB);
-const kBlueWash = Color(0xFFF0F7FD);
+Color get kBlue => appSurface(0xFFA8D4F0, 0xFF243348);
+Color get kBlueLight => appSurface(0xFFD9EEFB, 0xFF202A3A);
+Color get kBlueWash => appSurface(0xFFF0F7FD, 0xFF1E2633);
 
-const kNeutral900 = Color(0xFF2C2C2E);
-const kNeutral800 = Color(0xFF3A3A3C);
-const kNeutral700 = Color(0xFF4F4F56);
-const kNeutral600 = Color(0xFF66666D);
-const kNeutral500 = Color(0xFF787880);
-const kNeutral400 = Color(0xFFC7C7CC);
-const kNeutral300 = Color(0xFFE5E5EA);
-const kNeutral200 = Color(0xFFF2F2F7);
-const kNeutral100 = Color(0xFFF9F9FB);
-const kNeutral50 = Color(0xFFFCFCFD);
+Color get kNeutral900 => appColor(0xFF2C2C2E, 0xFFF1F3F9);
+Color get kNeutral800 => appColor(0xFF3A3A3C, 0xFFECEDF4);
+Color get kNeutral700 => appColor(0xFF4F4F56, 0xFFC2C6D4);
+Color get kNeutral600 => appColor(0xFF66666D, 0xFFB0B5C4);
+Color get kNeutral500 => appColor(0xFF787880, 0xFF9095A6);
+Color get kNeutral400 => appColor(0xFFC7C7CC, 0xFF7E8494);
+Color get kNeutral300 => appSurface(0xFFE5E5EA, 0xFF2D303E);
+Color get kNeutral200 => appSurface(0xFFF2F2F7, 0xFF161820);
+Color get kNeutral100 => appSurface(0xFFF9F9FB, 0xFF1A1C25);
+Color get kNeutral50 => appSurface(0xFFFCFCFD, 0xFF1E2028);
 
-const kError = Color(0xFFE05263);
-const kErrorBg = Color(0xFFFDF2F4);
+Color get kError => appColor(0xFFE05263, 0xFFFB7185);
+Color get kErrorBg => appSurface(0xFFFDF2F4, 0xFF2B2026);
 
 // Custom colors based on the design provided
-const kAppBgPurple = Color(0xFFE6BEFE);
-const kFabPurple = Color(0xFFE2BFFB);
-const kHeaderPink = Color(0xFFFFBCE7); // A lighter, soft pastel pink
-const kLightLavender = Color(0xFFEEDAFE);
+Color get kAppBgPurple => appSurface(0xFFE6BEFE, 0xFF221C30);
+Color get kFabPurple => appSurface(0xFFE2BFFB, 0xFF7C52B8);
+Color get kHeaderPink => appSurface(0xFFFFBCE7, 0xFF332233); // A lighter, soft pastel pink / dark berry-plum
+Color get kLightLavender => appSurface(0xFFEEDAFE, 0xFF121318);
 
 class HomeDashboardScreen extends StatefulWidget {
   static final GlobalKey<_HomeDashboardScreenState> dashboardKey = GlobalKey<_HomeDashboardScreenState>();
@@ -160,54 +162,112 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> with WidgetsB
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
-      body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
-      bottomNavigationBar: _buildBottomNavBar(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppearanceService.instance.mode,
+      builder: (context, _, __) {
+        return Scaffold(
+          backgroundColor: kLightLavender,
+          resizeToAvoidBottomInset: false,
+          body: IndexedStack(index: _selectedNavIndex, children: _navScreens),
+          bottomNavigationBar: _buildBottomNavBar(),
+        );
+      },
     );
   }
 
   Widget _buildBottomNavBar() {
+    final dark = isAppDark;
+    final navItems = <({IconData icon, String label})>[
+      (icon: PhosphorIcons.house(PhosphorIconsStyle.duotone), label: 'Home'),
+      (icon: PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), label: 'Herd'),
+      (icon: PhosphorIcons.baby(PhosphorIconsStyle.duotone), label: 'Nursery'),
+      (icon: PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), label: 'Tasks'),
+      (icon: PhosphorIcons.money(PhosphorIconsStyle.duotone), label: 'Finance'),
+    ];
+
     return Container(
-      decoration: const BoxDecoration(
-        color: kNeutral200,
-        border: Border(top: BorderSide(color: kNeutral300, width: 1)),
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF161820) : const Color(0xFFF2F2F7),
+        border: Border(
+          top: BorderSide(
+            color: dark ? const Color(0xFF2D303E) : const Color(0xFFE5E5EA),
+            width: 1,
+          ),
+        ),
       ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF4A3477),
-        unselectedItemColor: const Color(0xFF4F4F56),
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        selectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
-        currentIndex: _selectedNavIndex,
-        onTap: _onNavTap,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        items: [
-          BottomNavigationBarItem(
-            icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.house(PhosphorIconsStyle.duotone))),
-            label: 'Home',
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(navItems.length, (index) {
+              final item = navItems[index];
+              final isSelected = _selectedNavIndex == index;
+              final fgColor = isSelected
+                  ? (dark ? const Color(0xFFF1F3F9) : const Color(0xFF2C2C2E))
+                  : (dark ? const Color(0xFF8C92A4) : const Color(0xFF4F4F56));
+
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _onNavTap(index),
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 60,
+                      height: 52,
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              gradient: RadialGradient(
+                                center: Alignment.center,
+                                radius: 0.78,
+                                colors: dark
+                                    ? const [
+                                        Color(0xFF393C4E),
+                                        Color(0xFF2A2D3B),
+                                        Color(0xFF1A1C26),
+                                      ]
+                                    : const [
+                                        Color(0xFFC2C2CA), // slightly darker grey in the middle
+                                        Color(0xFFD8D8E0), // mid grey transition
+                                        Color(0xFFEEEEF4), // fades to lighter grey on the outside
+                                      ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                            )
+                          : null,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (item.label == 'Finance')
+                            SvgPicture.asset(
+                              'assets/images/finance_icon.svg',
+                              width: 24,
+                              height: 24,
+                              colorFilter: ColorFilter.mode(fgColor, BlendMode.srcIn),
+                            )
+                          else
+                            Icon(item.icon, size: 24, color: fgColor),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.label,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: fgColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
-          BottomNavigationBarItem(
-            icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone))),
-            label: 'Herd',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.baby(PhosphorIconsStyle.duotone))),
-            label: 'Nursery',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone))),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone))),
-            label: 'Finance',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -413,7 +473,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: kLightLavender,
         body: Center(
           child: CircularProgressIndicator(color: kLilacDeep, strokeWidth: 2),
@@ -445,7 +505,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
         child: FloatingActionButton(
           heroTag: 'home_log_breeding_fab',
           onPressed: _openLogBreedingFlow,
-          backgroundColor: const Color(0xFFE6BEFE),
+          backgroundColor: appSurface(0xFFE6BEFE, 0xFF7C52B8),
           shape: const CircleBorder(),
           elevation: 4,
           child: Icon(
@@ -478,8 +538,8 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       toolbarHeight: 48,
       title: Text(
         SettingsService.instance.farmName.isNotEmpty ? SettingsService.instance.farmName : 'Silly Billy Silkies',
-        style: const TextStyle(
-          color: Color(0xFF2C2C2E),
+        style: TextStyle(
+          color: appColor(0xFF2C2C2E),
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -492,14 +552,14 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
             _loadData();
           },
-          icon: const Icon(PhosphorIconsRegular.chartBar, color: Color(0xFF3A3A3C), size: 24),
+          icon: Icon(PhosphorIconsRegular.chartBar, color: appColor(0xFF3A3A3C), size: 24),
         ),
         IconButton(
           onPressed: () async {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             _loadData();
           },
-          icon: const Icon(PhosphorIconsRegular.gearSix, color: Color(0xFF3A3A3C), size: 24),
+          icon: Icon(PhosphorIconsRegular.gearSix, color: appColor(0xFF3A3A3C), size: 24),
           padding: const EdgeInsets.only(right: 8),
         ),
       ],
@@ -538,17 +598,24 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
   }
 
   Widget _buildMetricCard(String label, String value) {
+    final dark = isAppDark;
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+          colors: [
+            appSurface(0xFF86DAFF, 0xFF263248),
+            appSurface(0xFFF0F9FF, 0xFF1D2333),
+          ],
         ),
         borderRadius: BorderRadius.circular(8),
+        border: dark ? Border.all(color: const Color(0xFF34415C), width: 1) : null,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0284C7).withOpacity(0.08),
+            color: dark
+                ? Colors.black.withOpacity(0.28)
+                : const Color(0xFF0284C7).withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -563,10 +630,10 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               fit: BoxFit.scaleDown,
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56, 0xFFF1F3F9),
                   height: 1.1,
                 ),
               ),
@@ -574,10 +641,10 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6E6E73),
+                color: appColor(0xFF6E6E73, 0xFFB0B8C8),
                 height: 1.1,
               ),
               textAlign: TextAlign.center,
@@ -608,13 +675,13 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Kindle Date', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral600)),
+                  Text('Kindle Date', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kNeutral600)),
                   _buildFilterChip(),
                 ],
               ),
             ),
             if (displayData.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
                 child: Text(
                   'No expected litters for this filter.',
@@ -627,7 +694,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: kAppCardWhite,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -666,7 +733,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
         ),
         child: Text(
           _breedFilter == 'All' ? 'All Breed' : _breedFilter,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral600),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kNeutral600),
         ),
       ),
     );
@@ -699,10 +766,10 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56, 0xFFF1EFF7),
                   ),
                 ),
               ),
@@ -710,10 +777,10 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 right: 0,
                 child: Text(
                   '${entries.length}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF787880),
+                    color: appColor(0xFF787880, 0xFFB8B0C8),
                   ),
                 ),
               ),
@@ -740,7 +807,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
     } else if (daysUntil <= 1) {
       daysColor = const Color(0xFF10B981);
     } else {
-      daysColor = const Color(0xFF4F4F56);
+      daysColor = appColor(0xFF4F4F56);
     }
 
     final DateTime kDate = entry['kindleDate'];
@@ -761,7 +828,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
     final String formattedDate = '${monthNames[kDate.month - 1]} ${kDate.day.toString().padLeft(2, '0')}';
 
     final isOdd = index % 2 == 1;
-    final backgroundColor = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+    final backgroundColor = isOdd ? appSurface(0xFFF9F5FE, 0xFF252333) : kAppCardWhite;
 
     return Material(
       color: backgroundColor,
@@ -787,7 +854,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
-            border: isLast ? null : const Border(bottom: BorderSide(color: kNeutral200, width: 0.5)),
+            border: isLast ? null : Border(bottom: BorderSide(color: kNeutral200, width: 0.5)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -799,7 +866,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                     height: 1.3,
                   ),
                   maxLines: 2,
@@ -816,7 +883,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF334155),
+                      color: appColor(0xFF334155),
                       fontFeatures: [
                         ui.FontFeature.tabularFigures()
                       ],
@@ -851,8 +918,8 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
@@ -864,17 +931,17 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE0E0E0),
+                  color: appSurface(0xFFE0E0E0),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               ListTile(
-                title: const Text(
+                title: Text(
                   'Edit Breeding',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF2C2C2E),
+                    color: appColor(0xFF2C2C2E),
                   ),
                 ),
                 onTap: () {
@@ -893,12 +960,12 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
               ),
               if (SettingsService.instance.palpationEnabled)
                 ListTile(
-                  title: const Text(
+                  title: Text(
                     'Log Palpation',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                   ),
                   onTap: () {
@@ -915,7 +982,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                     );
                   },
                 ),
-              const Divider(height: 1, color: Color(0xFFE5E5EA)),
+              Divider(height: 1, color: appSurface(0xFFE5E5EA)),
               ListTile(
                 title: const Text(
                   'Cancel Breeding',
@@ -934,7 +1001,7 @@ class KindleHomeScreenState extends State<KindleHomeScreen> {
                       title: const Text('Cancel Breeding?', style: TextStyle(fontWeight: FontWeight.w600)),
                       content: const Text('This will clear the breeding schedule for this doe. This action cannot be undone.'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep', style: TextStyle(color: kNeutral600))),
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Keep', style: TextStyle(color: kNeutral600))),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
                           child: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFD94452), fontWeight: FontWeight.w600)),

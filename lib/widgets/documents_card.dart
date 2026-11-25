@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -24,11 +25,11 @@ class _FolderDef {
   const _FolderDef({required this.name, required this.bg, required this.icon});
 }
 
-const _kDefaultFolders = [
-  _FolderDef(name: 'Registration', bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
-  _FolderDef(name: 'Health',       bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
-  _FolderDef(name: 'Photos',       bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
-  _FolderDef(name: 'Other',        bg: Color(0xFFF5F5F5), icon: Color(0xFF9CA3AF)),
+List<_FolderDef> get _kDefaultFolders => [
+  _FolderDef(name: 'Registration', bg: appSurface(0xFFF5F5F5), icon: appColor(0xFF9CA3AF)),
+  _FolderDef(name: 'Health',       bg: appSurface(0xFFF5F5F5), icon: appColor(0xFF9CA3AF)),
+  _FolderDef(name: 'Photos',       bg: appSurface(0xFFF5F5F5), icon: appColor(0xFF9CA3AF)),
+  _FolderDef(name: 'Other',        bg: appSurface(0xFFF5F5F5), icon: appColor(0xFF9CA3AF)),
 ];
 
 // ─── Main widget ─────────────────────────────────────────────
@@ -85,7 +86,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
   _FolderDef _defForName(String name) {
     return _kDefaultFolders.firstWhere(
       (f) => f.name == name,
-      orElse: () => _FolderDef(name: name, bg: const Color(0xFFF5F5F5), icon: const Color(0xFF9CA3AF)),
+      orElse: () => _FolderDef(name: name, bg: appSurface(0xFFF5F5F5), icon: appSurface(0xFF9CA3AF)),
     );
   }
 
@@ -202,11 +203,11 @@ class _DocumentsCardState extends State<DocumentsCard> {
             fillColor: kNeutral100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+              borderSide: BorderSide(color: kLilacDeep, width: 1.8),
             ),
           ),
         ),
@@ -227,7 +228,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
     }
 
     final totalBytes = _documents.fold<int>(0, (sum, d) => sum + d.fileSize);
@@ -236,7 +237,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kNeutral200),
       ),
@@ -249,13 +250,13 @@ class _DocumentsCardState extends State<DocumentsCard> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'DOCUMENTS',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -294,13 +295,13 @@ class _DocumentsCardState extends State<DocumentsCard> {
           const SizedBox(height: 24),
 
           // ── Recent Files ──────────────────────────────────────
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Recent Files', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF374151))),
+            child: Text('Recent Files', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: appColor(0xFF374151))),
           ),
           const SizedBox(height: 12),
           if (_documents.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(32),
               child: Center(child: Text('No files yet', style: TextStyle(color: kNeutral400))),
             )
@@ -311,7 +312,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
 
           // ── Bottom Stats ──────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(border: Border(top: BorderSide(color: kNeutral100)), color: Color(0xFFFAFAFA)),
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: kNeutral100)), color: appSurface(0xFFFAFAFA)),
             child: Row(
               children: [
                 _buildBottomStat('${allFolders.length}', 'FOLDERS'),
@@ -376,29 +377,29 @@ class _DocumentsCardState extends State<DocumentsCard> {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F6FC),
+        color: appSurface(0xFFF9F6FC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEADBEE)),
+        border: Border.all(color: appSurface(0xFFEADBEE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF0E6F7),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFF0E6F7),
               borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.receipt_long_rounded, size: 16, color: Color(0xFF7B6BA0)),
+                Icon(Icons.receipt_long_rounded, size: 16, color: appColor(0xFF7B6BA0)),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Purchase Details',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF4A3E6D),
+                    color: appColor(0xFF4A3E6D),
                   ),
                 ),
                 const Spacer(),
@@ -406,15 +407,15 @@ class _DocumentsCardState extends State<DocumentsCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6BEFE),
+                      color: appSurface(0xFFE6BEFE),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${FormatUtils.currencyPrefix}${rabbit.purchaseCost!.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                       ),
                     ),
                   ),
@@ -449,18 +450,18 @@ class _DocumentsCardState extends State<DocumentsCard> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF787774),
+              color: appColor(0xFF787774),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF37352F),
+              color: appColor(0xFF37352F),
             ),
           ),
         ],
@@ -473,9 +474,9 @@ class _DocumentsCardState extends State<DocumentsCard> {
     Color iconColor = kNeutral400;
     Color bgColor = kNeutral100;
     if (doc.fileType == 'pdf') {
-      iconData = PhosphorIconsFill.filePdf; iconColor = const Color(0xFFEF4444); bgColor = const Color(0xFFFEF2F2);
+      iconData = PhosphorIconsFill.filePdf; iconColor = appSurface(0xFFEF4444); bgColor = appSurface(0xFFFEF2F2);
     } else if (doc.fileType == 'image') {
-      iconData = PhosphorIconsFill.fileImage; iconColor = const Color(0xFF3B82F6); bgColor = const Color(0xFFEFF6FF);
+      iconData = PhosphorIconsFill.fileImage; iconColor = appSurface(0xFF3B82F6); bgColor = appSurface(0xFFEFF6FF);
     }
     final date = DateTime.tryParse(doc.createdAt) ?? DateTime.now();
     return Padding(
@@ -488,7 +489,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(doc.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(doc.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 Text('${doc.folder} • ${doc.formattedSize} • ${FormatUtils.formatDate(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
               ],
             ),
@@ -504,7 +505,7 @@ class _DocumentsCardState extends State<DocumentsCard> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           children: [
-            Text(val, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+            Text(val, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: appColor(0xFF1F2937))),
             const SizedBox(height: 2),
             Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.5)),
           ],
@@ -540,7 +541,7 @@ class _FolderTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               name.length > 8 ? '${name.substring(0, 7)}.' : name,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: appColor(0xFF1F2937)),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -630,7 +631,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
   void _showAddOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(
         child: Column(
@@ -663,11 +664,11 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
             fillColor: kNeutral100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+              borderSide: BorderSide(color: kLilacDeep, width: 1.8),
             ),
           ),
         ),
@@ -690,9 +691,9 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
   Widget build(BuildContext context) {
     final def = widget.folderDef;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -711,7 +712,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_folderName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+                  Text(_folderName, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: appColor(0xFF1F2937))),
                   Text('${_docs.length} file${_docs.length == 1 ? '' : 's'}', style: TextStyle(fontSize: 12, color: kNeutral400)),
                 ],
               ),
@@ -747,7 +748,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
         bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: kNeutral100, height: 1)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kLilacDeep))
+          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: kLilacDeep))
           : _docs.isEmpty
               ? Center(
                   child: Column(
@@ -755,7 +756,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
                     children: [
                       Icon(PhosphorIconsFill.folder, size: 72, color: def.bg),
                       const SizedBox(height: 16),
-                      Text('No files in $_folderName', style: const TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w500)),
+                      Text('No files in $_folderName', style: TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 16),
                       GestureDetector(
                         onTap: _showAddOptions,
@@ -779,9 +780,9 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
   Widget _buildDocItem(RabbitDocument doc) {
     IconData iconData; Color iconColor; Color bgColor;
     if (doc.fileType == 'pdf') {
-      iconData = PhosphorIconsFill.filePdf; iconColor = const Color(0xFFEF4444); bgColor = const Color(0xFFFEF2F2);
+      iconData = PhosphorIconsFill.filePdf; iconColor = appSurface(0xFFEF4444); bgColor = appSurface(0xFFFEF2F2);
     } else if (doc.fileType == 'image') {
-      iconData = PhosphorIconsFill.fileImage; iconColor = const Color(0xFF3B82F6); bgColor = const Color(0xFFEFF6FF);
+      iconData = PhosphorIconsFill.fileImage; iconColor = appSurface(0xFF3B82F6); bgColor = appSurface(0xFFEFF6FF);
     } else {
       iconData = PhosphorIconsFill.file; iconColor = kNeutral400; bgColor = kNeutral100;
     }
@@ -796,7 +797,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
           doc.fileType == 'image' && fileExists
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.file(File(doc.filePath), width: 48, height: 48, fit: BoxFit.cover),
+                  child: DarkModeGuard(child: Image.file(File(doc.filePath), width: 48, height: 48, fit: BoxFit.cover)),
                 )
               : Container(
                   width: 48, height: 48,
@@ -808,14 +809,14 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(doc.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(doc.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF1F2937)), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text('${doc.formattedSize} • ${FormatUtils.formatDate(date)}', style: TextStyle(fontSize: 12, color: kNeutral400)),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
+            icon: Icon(Icons.more_horiz, color: appColor(0xFF787774), size: 22),
             onPressed: () => _showDocOptions(doc),
           ),
         ],
@@ -826,7 +827,7 @@ class _FolderDetailPageState extends State<_FolderDetailPage> {
   void _showDocOptions(RabbitDocument doc) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(
         child: Column(

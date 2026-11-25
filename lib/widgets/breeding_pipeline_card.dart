@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../constants/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -108,8 +109,8 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE3E3E8)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE3E3E8)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -125,26 +126,26 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'CURRENT BREEDING',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF5F5F66),
+                    color: appColor(0xFF5F5F66),
                     letterSpacing: 0.4,
                   ),
                 ),
                 if (widget.rabbit.status != RabbitStatus.archived)
                   GestureDetector(
                     onTap: () => _showCurrentBreedingMenu(context),
-                    child: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
+                    child: Icon(Icons.more_horiz, color: appColor(0xFF787774), size: 22),
                   ),
               ],
             ),
@@ -156,29 +157,29 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56)),
+                    style: TextStyle(fontSize: 14, color: appColor(0xFF4F4F56)),
                     children: [
                       if (_buckPrefix != null && _buckPrefix!.isNotEmpty)
                         TextSpan(
                           text: '$_buckPrefix ',
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF787774)),
+                          style: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF787774)),
                         ),
                       TextSpan(
                         text: _buckName ?? widget.rabbit.lastBreedBuckId ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF2196F3)),
+                        style: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF2196F3)),
                       ),
                       if (_buckEar != null && _buckEar!.isNotEmpty)
                         TextSpan(
                           text: ' $_buckEar',
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF787774)),
+                          style: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF787774)),
                         ),
-                      const TextSpan(
+                      TextSpan(
                         text: ' • ',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                        style: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF4F4F56)),
                       ),
                       TextSpan(
                         text: 'Day $_daysSinceBred of ${_settings.gestationDays}',
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                        style: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF4F4F56)),
                       ),
                     ],
                   ),
@@ -194,7 +195,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         Container(
                           height: 5,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE9DFF3),
+                            color: appSurface(0xFFE9DFF3),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -203,7 +204,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                           child: Container(
                             height: 5,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD9BCEF),
+                              color: appSurface(0xFFD9BCEF),
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
@@ -215,9 +216,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFD0C0E8), width: 2),
+                              border: Border.all(color: appSurface(0xFFD0C0E8), width: 2),
                             ),
                           ),
                         ),
@@ -231,17 +232,17 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   children: [
                     Text(
                       widget.rabbit.lastBreedDate != null ? 'Bred ${_formatDate(widget.rabbit.lastBreedDate!)}' : 'Bred -',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       widget.rabbit.dueDate != null ? 'Due ${_formatDate(widget.rabbit.dueDate!)}' : 'Due -',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -319,17 +320,17 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         width: double.infinity,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFD4B3EE),
+            color: appSurface(0xFFD4B3EE),
             borderRadius: BorderRadius.circular(6),
           ),
           padding: const EdgeInsets.symmetric(vertical: 13),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF5C4A70),
+              color: appColor(0xFF5C4A70),
             ),
           ),
         ),
@@ -345,9 +346,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         child: ElevatedButton(
           onPressed: canLogBirth ? () => _showLogBirthDialog(context) : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD4B3EE),
-            disabledBackgroundColor: const Color(0xFFEAE3F2),
-            foregroundColor: const Color(0xFF5C4A70),
+            backgroundColor: appSurface(0xFFD4B3EE),
+            disabledBackgroundColor: appSurface(0xFFEAE3F2),
+            foregroundColor: appColor(0xFF5C4A70),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -371,9 +372,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           child: ElevatedButton(
             onPressed: isPalpateReady ? () => _showPalpationDialog(context) : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4B3EE),
-              disabledBackgroundColor: const Color(0xFFEAE3F2),
-              foregroundColor: const Color(0xFF5C4A70),
+              backgroundColor: appSurface(0xFFD4B3EE),
+              disabledBackgroundColor: appSurface(0xFFEAE3F2),
+              foregroundColor: appColor(0xFF5C4A70),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -394,9 +395,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           child: ElevatedButton(
             onPressed: canLogBirth ? () => _showLogBirthDialog(context) : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4B3EE),
-              disabledBackgroundColor: const Color(0xFFEAE3F2),
-              foregroundColor: const Color(0xFF5C4A70),
+              backgroundColor: appSurface(0xFFD4B3EE),
+              disabledBackgroundColor: appSurface(0xFFEAE3F2),
+              foregroundColor: appColor(0xFF5C4A70),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -426,8 +427,8 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE3E3E8)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE3E3E8)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -443,7 +444,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
@@ -451,7 +452,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF5F5F66),
+                    color: appColor(0xFF5F5F66),
                     letterSpacing: 0.4,
                   ),
                 ),
@@ -479,8 +480,8 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4B3EE),
-                          foregroundColor: const Color(0xFF5C4A70),
+                          backgroundColor: appSurface(0xFFD4B3EE),
+                          foregroundColor: appColor(0xFF5C4A70),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6),
@@ -497,26 +498,26 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       ),
                     )
                   else ...[
-                    const Icon(
+                    Icon(
                       PhosphorIconsDuotone.heartbeat,
                       size: 42,
-                      color: Color(0xFFE1E1E8),
+                      color: appColor(0xFFE1E1E8),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'No Active Breeding Cycle',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF47474F),
+                        color: appColor(0xFF47474F),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Status: ${_getStatusLabel(widget.rabbit.status)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF8D8D95),
+                        color: appColor(0xFF8D8D95),
                       ),
                     ),
                   ],
@@ -552,7 +553,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         Icon(
           icon,
           size: 15,
-          color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF8E8E93),
+          color: isActive ? appColor(0xFF4F4F56) : appColor(0xFF8E8E93),
         ),
         const SizedBox(height: 4),
         Text(
@@ -560,7 +561,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
+            color: isActive ? appColor(0xFF4F4F56) : appColor(0xFF6E6E76),
           ),
         ),
         const SizedBox(height: 2),
@@ -569,7 +570,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: isActive ? const Color(0xFF4F4F56) : const Color(0xFF6E6E76),
+            color: isActive ? appColor(0xFF4F4F56) : appColor(0xFF6E6E76),
           ),
         ),
       ],
@@ -608,7 +609,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           padding: EdgeInsets.all(20),
@@ -627,20 +628,20 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF37352F),
+                          color: appColor(0xFF37352F),
                         ),
                       ),
                       Text(
                         '${widget.rabbit.name} (${widget.rabbit.id})',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                         ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Color(0xFF787774)),
+                    icon: Icon(Icons.close, color: appColor(0xFF787774)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -649,7 +650,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               // Toggle Buttons
               Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F5),
+                  color: appSurface(0xFFF7F7F5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: EdgeInsets.all(4),
@@ -667,7 +668,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: useDefault ? Colors.white : Colors.transparent,
+                            color: useDefault ? kAppCardWhite : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                             boxShadow: useDefault
                                 ? [
@@ -681,7 +682,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: useDefault ? FontWeight.w600 : FontWeight.w400,
-                              color: Color(0xFF37352F),
+                              color: appColor(0xFF37352F),
                             ),
                           ),
                         ),
@@ -693,7 +694,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: !useDefault ? Colors.white : Colors.transparent,
+                            color: !useDefault ? kAppCardWhite : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                             boxShadow: !useDefault
                                 ? [
@@ -707,7 +708,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: !useDefault ? FontWeight.w600 : FontWeight.w400,
-                              color: Color(0xFF37352F),
+                              color: appColor(0xFF37352F),
                             ),
                           ),
                         ),
@@ -722,7 +723,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -747,7 +748,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       },
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Color(0xFFE9E9E7)),
+                        side: BorderSide(color: appSurface(0xFFE9E9E7)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -757,7 +758,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                         ),
                       ),
                     ),
@@ -785,7 +786,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(useDefault ? 'Using default pipeline settings' : 'Custom pipeline settings saved'),
-                              backgroundColor: Color(0xFF7B6BA0),
+                              backgroundColor: appSurface(0xFF7B6BA0),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -794,7 +795,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -832,7 +833,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF37352F),
+              color: appColor(0xFF37352F),
             ),
           ),
           SizedBox(height: 8),
@@ -842,15 +843,15 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                 width: 70,
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: enabled ? Colors.white : Color(0xFFF7F7F5),
-                  border: Border.all(color: Color(0xFFE9E9E7)),
+                  color: enabled ? kAppCardWhite : appSurface(0xFFF7F7F5),
+                  border: Border.all(color: appSurface(0xFFE9E9E7)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   unit,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                   ),
                 ),
               ),
@@ -858,8 +859,8 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: enabled ? Colors.white : Color(0xFFF7F7F5),
-                    border: Border.all(color: Color(0xFFE9E9E7)),
+                    color: enabled ? kAppCardWhite : appSurface(0xFFF7F7F5),
+                    border: Border.all(color: appSurface(0xFFE9E9E7)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextField(
@@ -870,11 +871,11 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       border: InputBorder.none,
                       suffixText: suffix,
-                      suffixStyle: TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                      suffixStyle: TextStyle(fontSize: 13, color: appColor(0xFF787774)),
                     ),
                     style: TextStyle(
                       fontSize: 13,
-                      color: enabled ? Color(0xFF37352F) : Color(0xFF787774),
+                      color: enabled ? appColor(0xFF37352F) : appColor(0xFF787774),
                     ),
                   ),
                 ),
@@ -895,7 +896,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
           children: [
             Icon(
               icon,
-              color: isDestructive ? Color(0xFFC47070) : Color(0xFF787774),
+              color: isDestructive ? appColor(0xFFC47070) : appColor(0xFF787774),
               size: 24,
             ),
             SizedBox(width: 14),
@@ -903,7 +904,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               label,
               style: TextStyle(
                 fontSize: 15,
-                color: isDestructive ? Color(0xFFC47070) : Color(0xFF37352F),
+                color: isDestructive ? appColor(0xFFC47070) : appColor(0xFF37352F),
               ),
             ),
           ],
@@ -934,7 +935,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(positive ? '✅ Palpation positive - marked as bred' : '❌ Palpation negative - marked as open'),
-            backgroundColor: positive ? Color(0xFF7B6BA0) : Color(0xFFF5A623),
+            backgroundColor: positive ? appSurface(0xFF7B6BA0) : appSurface(0xFFF5A623),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -956,7 +957,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
   void _showCurrentBreedingMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -969,10 +970,10 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
               Container(
                 width: 36, height: 4,
                 margin: const EdgeInsets.only(top: 4, bottom: 8),
-                decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: appSurface(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
               ),
               ListTile(
-                title: const Text('Edit Breeding', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF2C2C2E))),
+                title: Text('Edit Breeding', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: appColor(0xFF2C2C2E))),
                 onTap: () {
                   Navigator.pop(context);
                   showModalBottomSheet(
@@ -987,9 +988,9 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
                   );
                 },
               ),
-              const Divider(height: 1, color: Color(0xFFE5E5EA)),
+              Divider(height: 1, color: appSurface(0xFFE5E5EA)),
               ListTile(
-                title: const Text('Cancel Breeding', style: TextStyle(color: Color(0xFFD94452), fontSize: 16, fontWeight: FontWeight.w500)),
+                title: Text('Cancel Breeding', style: TextStyle(color: appColor(0xFFD94452), fontSize: 16, fontWeight: FontWeight.w500)),
                 onTap: () {
                   Navigator.pop(context);
                   _showMarkOpenDialog(context);
@@ -1025,7 +1026,7 @@ class _BreedingPipelineCardState extends State<BreedingPipelineCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Breeding record deleted - doe is now open'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );

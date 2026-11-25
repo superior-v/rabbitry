@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../models/rabbit.dart';
 import '../constants/app_colors.dart';
 
@@ -14,7 +15,7 @@ class RegistrationCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -55,30 +56,30 @@ class RegistrationCard extends StatelessWidget {
     int rowIndex = 0,
   }) {
     final bool isEven = rowIndex.isEven;
-    final Color rowBg = isEven ? Colors.white : const Color(0xFFF5F3F8);
+    final Color rowBg = isEven ? kAppCardWhite : appSurface(0xFFF5F3F8);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.0),
       decoration: BoxDecoration(
         color: rowBg,
-        border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFEBE8F0), width: 0.8)),
+        border: isLast ? null : Border(bottom: BorderSide(color: appSurface(0xFFEBE8F0), width: 0.8)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF4F4F56),
+              color: appColor(0xFF4F4F56),
               fontWeight: FontWeight.w600,
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF4F4F56),
+              color: appColor(0xFF4F4F56),
               fontWeight: FontWeight.w600,
             ),
           ),

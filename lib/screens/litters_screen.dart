@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -228,9 +229,9 @@ class LittersScreenState extends State<LittersScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFAF9FC),
+        backgroundColor: appSurface(0xFFFAF9FC),
         appBar: _buildAppBar(),
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep),
           ),
@@ -252,7 +253,7 @@ class LittersScreenState extends State<LittersScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
+      backgroundColor: appSurface(0xFFEEDAFE),
       resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
       body: GestureDetector(
@@ -261,7 +262,7 @@ class LittersScreenState extends State<LittersScreen> {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFE6BEFE),
+              color: appSurface(0xFFE6BEFE),
               child: Column(
                 children: [
                   _buildTopMetricCards(),
@@ -298,7 +299,7 @@ class LittersScreenState extends State<LittersScreen> {
             FocusScope.of(context).unfocus();
             await _showAddLitterDialog();
           },
-          backgroundColor: const Color(0xFFE6BEFE),
+          backgroundColor: appSurface(0xFFE6BEFE),
           shape: const CircleBorder(),
           elevation: 4,
           child: Icon(
@@ -315,8 +316,8 @@ class LittersScreenState extends State<LittersScreen> {
     return PreferredSize(
       preferredSize: const Size.fromHeight(50),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFE6BEFE),
+        decoration: BoxDecoration(
+          color: appSurface(0xFFE6BEFE),
         ),
         child: SafeArea(
           bottom: false,
@@ -327,12 +328,12 @@ class LittersScreenState extends State<LittersScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(PhosphorIcons.baby(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
+                  Icon(PhosphorIcons.baby(PhosphorIconsStyle.duotone), color: appColor(0xFF4A3477), size: 24),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Nursery Manager',
                     style: TextStyle(
-                      color: Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -515,7 +516,7 @@ class LittersScreenState extends State<LittersScreen> {
 
     return Container(
       width: double.infinity,
-      color: const Color(0xFFE6BEFE),
+      color: appSurface(0xFFE6BEFE),
       padding: const EdgeInsets.only(
         top: 0,
         bottom: 8,
@@ -555,10 +556,10 @@ class LittersScreenState extends State<LittersScreen> {
   Widget _buildMetricCard({required String count, required String label}) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+          colors: [appSurface(0xFF86DAFF), appSurface(0xFFF0F9FF)],
         ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
@@ -578,10 +579,10 @@ class LittersScreenState extends State<LittersScreen> {
               fit: BoxFit.scaleDown,
               child: Text(
                 count,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                   height: 1.1,
                 ),
               ),
@@ -591,10 +592,10 @@ class LittersScreenState extends State<LittersScreen> {
               fit: BoxFit.scaleDown,
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF6E6E73),
+                  color: appColor(0xFF6E6E73),
                   height: 1.1,
                 ),
                 textAlign: TextAlign.center,
@@ -616,7 +617,7 @@ class LittersScreenState extends State<LittersScreen> {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: kNeutral300),
               ),
@@ -694,7 +695,7 @@ class LittersScreenState extends State<LittersScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isActive ? kLilacWash : Colors.white,
+          color: isActive ? kLilacWash : kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isActive ? kLilacLight : kNeutral300),
         ),
@@ -710,7 +711,7 @@ class LittersScreenState extends State<LittersScreen> {
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: isActive ? kLilacWash : Colors.white,
+          color: isActive ? kLilacWash : kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isActive ? kLilacLight : kNeutral300),
         ),
@@ -741,7 +742,7 @@ class LittersScreenState extends State<LittersScreen> {
     FocusScope.of(context).unfocus();
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -751,7 +752,7 @@ class LittersScreenState extends State<LittersScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Group By',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.5),
             ),
@@ -815,8 +816,8 @@ class LittersScreenState extends State<LittersScreen> {
         children: [
           Icon(PhosphorIcons.mapPin(PhosphorIconsStyle.fill), size: 16, color: kBlueDeep),
           const SizedBox(width: 8),
-          const Text('Filtering by: ', style: TextStyle(color: kBlueText, fontSize: 13, fontWeight: FontWeight.w500)),
-          Text(_locationFilter!, style: const TextStyle(color: kBlueText, fontSize: 13, fontWeight: FontWeight.w700)),
+          Text('Filtering by: ', style: TextStyle(color: kBlueText, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(_locationFilter!, style: TextStyle(color: kBlueText, fontSize: 13, fontWeight: FontWeight.w700)),
           const Spacer(),
           GestureDetector(
             onTap: () => setState(() => _locationFilter = null),
@@ -878,9 +879,9 @@ class LittersScreenState extends State<LittersScreen> {
 
     return Container(
       height: 48,
-      decoration: const BoxDecoration(
-        color: Color(0xFF8F8A90),
-        border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
+      decoration: BoxDecoration(
+        color: appSurface(0xFF8F8A90),
+        border: Border(bottom: BorderSide(color: appSurface(0xFF7A757C), width: 0.5)),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -946,6 +947,28 @@ class LittersScreenState extends State<LittersScreen> {
       ) {
         final lStatus = litter.status.toLowerCase().trim();
         if (lStatus == 'history_only' || lStatus == 'deleted_archive') {
+          return false;
+        }
+        // Missed Litters and Died Litters go directly to Litter History (not Nursery Archive)
+        final int bornCount = litter.totalKits ?? 0;
+        final int aliveCount = litter.aliveKits ?? 0;
+        final bool isMissedLitter = litter.missedLitter == true ||
+            (bornCount == 0 && aliveCount == 0 && litter.kits.isEmpty) ||
+            lStatus == 'missed' ||
+            lStatus == 'not taken';
+        final bool hasFosteredKits = litter.kits.any((k) =>
+            k.status.toLowerCase() == 'fostered' ||
+            (k.details != null && k.details!.toLowerCase().contains('fostered to')));
+        final bool allKitsDead = (litter.kits.isNotEmpty &&
+                litter.kits.every((k) {
+                  final s = k.status.toLowerCase().trim();
+                  return s == 'dead' || s == 'died' || s == 'deceased';
+                })) ||
+            (litter.kits.isEmpty && bornCount > 0 && (litter.deadKits ?? 0) >= bornCount && aliveCount == 0);
+        final bool isDiedLitter = !isMissedLitter &&
+            !hasFosteredKits &&
+            (lStatus == 'died' || lStatus == 'dead' || allKitsDead);
+        if (isMissedLitter || isDiedLitter) {
           return false;
         }
         final cStage = _currentStage.toLowerCase();
@@ -1023,7 +1046,7 @@ class LittersScreenState extends State<LittersScreen> {
           children: [
             Icon(PhosphorIcons.archive(PhosphorIconsStyle.duotone), size: 64, color: kNeutral200),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No litters found',
               style: TextStyle(color: kNeutral500, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.2),
             ),
@@ -1071,7 +1094,7 @@ class LittersScreenState extends State<LittersScreen> {
                   const SizedBox(width: 8),
                   Text(
                     key.toUpperCase(),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.8),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kNeutral500, letterSpacing: 0.8),
                   ),
                 ],
               ),
@@ -1203,7 +1226,7 @@ class LittersScreenState extends State<LittersScreen> {
   Widget _buildParentNameText(Rabbit? rabbit, String fallbackName, bool isDoe, {TextAlign textAlign = TextAlign.center}) {
     final prefix = (rabbit?.breederPrefix ?? '').trim();
     final name = (rabbit?.name ?? fallbackName).trim();
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final nameColor = isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3);
 
     return Text.rich(
       TextSpan(
@@ -1211,8 +1234,8 @@ class LittersScreenState extends State<LittersScreen> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -1236,7 +1259,35 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  bool _isPeanutKit(Litter litter, Kit kit) {
+    final detailsLower = (kit.details ?? '').toLowerCase();
+    final colorLower = kit.color.trim().toLowerCase();
+    if (detailsLower.contains('peanut') || colorLower == 'peanut') {
+      return true;
+    }
+    final int peanuts = litter.peanutsProduced ?? 0;
+    if (peanuts <= 0) return false;
+    final ownKits = litter.kits.where((k) {
+      final bool isFosteredIn = k.id.startsWith('F-') ||
+          k.id.startsWith('foster_') ||
+          (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+      return !isFosteredIn;
+    }).toList();
+    if (ownKits.isEmpty) return false;
+    final bool anyExplicit = ownKits.any((k) =>
+        (k.details ?? '').toLowerCase().contains('peanut') ||
+        k.color.trim().toLowerCase() == 'peanut');
+    if (anyExplicit) return false;
+    final int idx = ownKits.indexOf(kit);
+    if (idx == -1) return false;
+    return idx >= (ownKits.length - peanuts).clamp(0, ownKits.length);
+  }
+
   List<Kit> _getOrGenerateLitterKits(Litter litter) {
+    final String lStatus = litter.status.toLowerCase().trim();
+    if (litter.missedLitter == true || lStatus == 'missed' || lStatus == 'not taken') {
+      return [];
+    }
     if (litter.kits.isNotEmpty) {
       return List<Kit>.from(litter.kits);
     }
@@ -1244,17 +1295,23 @@ class LittersScreenState extends State<LittersScreen> {
         ? litter.aliveKits!
         : ((litter.totalKits != null && litter.totalKits! > 0)
             ? litter.totalKits!
-            : (litter.totalKitsCount > 0 ? litter.totalKitsCount : 1));
+            : litter.totalKitsCount);
+    if (count <= 0) return [];
     final String defaultStatus = litter.status.toLowerCase() == 'weaned' ? 'Weaned' : 'Nursing';
+    final int peanutsCount = (litter.peanutsProduced ?? 0).clamp(0, count);
     return List.generate(
       count,
-      (i) => Kit(
-        id: 'K-${i + 1}',
-        sex: 'U',
-        color: 'Unknown',
-        weight: 0.0,
-        status: defaultStatus,
-      ),
+      (i) {
+        final bool isPeanut = peanutsCount > 0 && i >= count - peanutsCount;
+        return Kit(
+          id: 'K-${i + 1}',
+          sex: 'U',
+          color: 'Unknown',
+          weight: 0.0,
+          status: defaultStatus,
+          details: isPeanut ? 'Peanut' : null,
+        );
+      },
     );
   }
 
@@ -1295,6 +1352,20 @@ class LittersScreenState extends State<LittersScreen> {
     final dead = litter.deadKits ?? 0;
     if (litter.aliveKits != null && litter.aliveKits! > 0) return litter.aliveKits!;
     return (born - dead).clamp(0, born);
+  }
+
+  String _formatLitterCage(Litter litter, Rabbit? doeRabbit) {
+    final String cage = litter.cage.trim().isNotEmpty
+        ? litter.cage.trim()
+        : (doeRabbit?.cage?.trim() ?? '');
+    final String location = litter.location.trim().isNotEmpty
+        ? litter.location.trim()
+        : (doeRabbit?.location?.trim() ?? '');
+    final parts = <String>[
+      if (location.isNotEmpty) location,
+      if (cage.isNotEmpty) cage,
+    ];
+    return parts.isNotEmpty ? parts.join(' • ') : '-';
   }
 
   Widget _buildLitterCard(Litter litter) {
@@ -1382,9 +1453,9 @@ class LittersScreenState extends State<LittersScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E5EA)),
+        border: Border.all(color: appSurface(0xFFE5E5EA)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -1400,7 +1471,7 @@ class LittersScreenState extends State<LittersScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -1422,40 +1493,40 @@ class LittersScreenState extends State<LittersScreen> {
                       child: Column(
                         children: [
                           if (isMissedLitter)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 2),
                               child: Text(
                                 'Missed Litter',
                                 style: TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF555555),
+                                  color: appColor(0xFF555555),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             )
                           else if (isLitterCulled)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 2),
                               child: Text(
                                 'Litter Culled',
                                 style: TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF555555),
+                                  color: appColor(0xFF555555),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             )
                           else if (isLitterDied)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 2),
                               child: Text(
                                 'Litter Died',
                                 style: TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF555555),
+                                  color: appColor(0xFF555555),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -1463,30 +1534,30 @@ class LittersScreenState extends State<LittersScreen> {
                           else ...[
                             Text(
                               'DOB: ${_formatNurseryDate(litter.kindleDate ?? litter.dob)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF555555),
+                                color: appColor(0xFF555555),
                               ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 1),
                             Text(
                               'Born: $born  Alive: $alive',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF555555),
+                                color: appColor(0xFF555555),
                               ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 1),
                             Text(
                               'Age: ${_formatNurseryAge(litter)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF555555),
+                                color: appColor(0xFF555555),
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -1502,12 +1573,12 @@ class LittersScreenState extends State<LittersScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Wean: ',
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF555555),
+                                      color: appColor(0xFF555555),
                                     ),
                                   ),
                                   Text(
@@ -1516,8 +1587,8 @@ class LittersScreenState extends State<LittersScreen> {
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w700,
                                       color: !isWeanPassed
-                                          ? const Color(0xFFE53935)
-                                          : const Color(0xFF2E7B32),
+                                          ? appColor(0xFFE53935)
+                                          : appColor(0xFF2E7B32),
                                     ),
                                   ),
                                 ],
@@ -1566,29 +1637,29 @@ class LittersScreenState extends State<LittersScreen> {
                             if (isMissedLitter) ...[
                               Text(
                                 'Due: ${_formatNurseryDate(litter.dueDate ?? litter.kindleDate ?? litter.dob)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF555555),
+                                  color: appColor(0xFF555555),
                                 ),
                               ),
                               const SizedBox(height: 1),
                             ],
                             Text(
                               'Bred: ${_formatNurseryDate(litter.breedDate)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF555555),
+                                color: appColor(0xFF555555),
                               ),
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              'Cage: ${litter.cage.isNotEmpty ? litter.cage : '-'}',
-                              style: const TextStyle(
+                              'Cage: ${_formatLitterCage(litter, doeRabbit)}',
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF555555),
+                                color: appColor(0xFF555555),
                               ),
                             ),
                             if (!isMissedLitter) ...[
@@ -1605,8 +1676,8 @@ class LittersScreenState extends State<LittersScreen> {
                                 child: Container(
                                   width: 28,
                                   height: 28,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF1D5EA8),
+                                  decoration: BoxDecoration(
+                                    color: appSurface(0xFF1D5EA8),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -1634,9 +1705,9 @@ class LittersScreenState extends State<LittersScreen> {
                               FocusScope.of(context).unfocus();
                               await _showLitterActions(litter);
                             },
-                            child: const Padding(
+                            child: Padding(
                               padding: EdgeInsets.only(top: 2, right: 4),
-                              child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                              child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                             ),
                           ),
                           // Place litter ID here with v/arrow toggle
@@ -1655,8 +1726,8 @@ class LittersScreenState extends State<LittersScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: const Color(0xFFE5E5EA)),
+                                color: kAppCardWhite,
+                                border: Border.all(color: appSurface(0xFFE5E5EA)),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -1664,17 +1735,17 @@ class LittersScreenState extends State<LittersScreen> {
                                 children: [
                                   Text(
                                     litter.id,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF7B6BA0),
+                                      color: appColor(0xFF7B6BA0),
                                     ),
                                   ),
                                   const SizedBox(width: 4),
                                   Icon(
                                     isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                                     size: 15,
-                                    color: const Color(0xFF7B6BA0),
+                                    color: appColor(0xFF7B6BA0),
                                   ),
                                 ],
                               ),
@@ -1687,14 +1758,16 @@ class LittersScreenState extends State<LittersScreen> {
                 ),
                 if (isExpanded) ...[
                   const Divider(height: 20),
-                  if (displayKits.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 14.0),
-                      child: Text('No kits in this litter', style: TextStyle(color: kNeutral500, fontSize: 12)),
-                    )
-                  else
-                    ...displayKits.map((kit) => _buildKitRow(litter, kit)).toList(),
-                  const SizedBox(height: 8),
+                  if (!isMissedLitter) ...[
+                    if (displayKits.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 14.0),
+                        child: Text('No kits in this litter', style: TextStyle(color: kNeutral500, fontSize: 12)),
+                      )
+                    else
+                      ...displayKits.map((kit) => _buildKitRow(litter, kit)).toList(),
+                    const SizedBox(height: 8),
+                  ],
                   _buildLitterNotesBox(litter),
                 ],
               ],
@@ -1722,9 +1795,9 @@ class LittersScreenState extends State<LittersScreen> {
       margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEDAFE),
+        color: appSurface(0xFFEEDAFE),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD6C2EC)),
+        border: Border.all(color: appSurface(0xFFD6C2EC)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1735,9 +1808,9 @@ class LittersScreenState extends State<LittersScreen> {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _expandedStethoscopeLitterId = null),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Icon(Icons.close, size: 16, color: Color(0xFF4A3E6D)),
+                  child: Icon(Icons.close, size: 16, color: appColor(0xFF4A3E6D)),
                 ),
               ),
             ],
@@ -1752,9 +1825,9 @@ class LittersScreenState extends State<LittersScreen> {
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: kAppCardWhite,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE5DEEC)),
+                  border: Border.all(color: appSurface(0xFFE5DEEC)),
                 ),
                 child: Row(
                   children: [
@@ -1762,10 +1835,10 @@ class LittersScreenState extends State<LittersScreen> {
                       flex: 5,
                       child: Text(
                         item.label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF3A3A3C),
+                          color: appColor(0xFF3A3A3C),
                         ),
                       ),
                     ),
@@ -1773,10 +1846,10 @@ class LittersScreenState extends State<LittersScreen> {
                       flex: 4,
                       child: Text(
                         scheduledDate,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF3A3A3C),
+                          color: appColor(0xFF3A3A3C),
                         ),
                       ),
                     ),
@@ -1785,9 +1858,9 @@ class LittersScreenState extends State<LittersScreen> {
                       height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDone ? const Color(0xFF9E5EB4) : Colors.transparent,
+                        color: isDone ? appSurface(0xFF9E5EB4) : Colors.transparent,
                         border: Border.all(
-                          color: const Color(0xFF9E5EB4),
+                          color: appSurface(0xFF9E5EB4),
                           width: 1.5,
                         ),
                       ),
@@ -1822,9 +1895,9 @@ class LittersScreenState extends State<LittersScreen> {
           // 1. Main Card (Parents + Kit row)
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
+              border: Border.all(color: appSurface(0xFFE5E5EA)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.06),
@@ -1853,20 +1926,20 @@ class LittersScreenState extends State<LittersScreen> {
                           const SizedBox(height: 3),
                           Text(
                             'DOB: ${_formatNurseryDate(litter.dob ?? litter.kindleDate)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF555555),
+                              color: appColor(0xFF555555),
                             ),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 1),
                           Text(
                             'Age: ${_formatNurseryAge(litter)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF555555),
+                              color: appColor(0xFF555555),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -1888,15 +1961,15 @@ class LittersScreenState extends State<LittersScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEDE5FA),
+                          color: appSurface(0xFFEDE5FA),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           displayKitId,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF7B6BA0),
+                            color: appColor(0xFF7B6BA0),
                           ),
                         ),
                       ),
@@ -1913,10 +1986,10 @@ class LittersScreenState extends State<LittersScreen> {
                                 Flexible(
                                   child: Text(
                                     kit.color.isNotEmpty ? kit.color : 'Unknown',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF555555),
+                                      color: appColor(0xFF555555),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1938,7 +2011,7 @@ class LittersScreenState extends State<LittersScreen> {
                             if (kit.weight > 0)
                               Text(
                                 'Weight: ${FormatUtils.formatWeight(kit.weight)}',
-                                style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
+                                style: TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                               ),
                             if (kit.details != null && kit.details!.isNotEmpty)
                               ...FormatUtils.formatDisplayKitDetails(kit.details)
@@ -1947,7 +2020,7 @@ class LittersScreenState extends State<LittersScreen> {
                                   .where((p) => p.isNotEmpty)
                                   .map((part) => Text(
                                         '• $part',
-                                        style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                        style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
                                       )),
                           ],
                         ),
@@ -1956,12 +2029,12 @@ class LittersScreenState extends State<LittersScreen> {
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => _showKitActions(litter, kit),
-                        child: const Padding(
+                        child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           child: Icon(
                             Icons.more_vert,
                             size: 20,
-                            color: Color(0xFF787774),
+                            color: appColor(0xFF787774),
                           ),
                         ),
                       ),
@@ -1982,8 +2055,8 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFE5E5EA)),
+                            color: kAppCardWhite,
+                            border: Border.all(color: appSurface(0xFFE5E5EA)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -1991,10 +2064,10 @@ class LittersScreenState extends State<LittersScreen> {
                             children: [
                               Text(
                                 litter.id,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -2003,7 +2076,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     ? Icons.keyboard_arrow_up
                                     : Icons.keyboard_arrow_down,
                                 size: 15,
-                                color: const Color(0xFF7B6BA0),
+                                color: appColor(0xFF7B6BA0),
                               ),
                             ],
                           ),
@@ -2022,9 +2095,9 @@ class LittersScreenState extends State<LittersScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
@@ -2042,19 +2115,19 @@ class LittersScreenState extends State<LittersScreen> {
                       children: [
                         Text(
                           'Born: $born  Alive: $alive',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF555555),
+                            color: appColor(0xFF555555),
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Cage: ${litter.cage.isNotEmpty ? litter.cage : '-'}',
-                          style: const TextStyle(
+                          'Cage: ${_formatLitterCage(litter, _rabbitMap[litter.doeId])}',
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF555555),
+                            color: appColor(0xFF555555),
                           ),
                         ),
                       ],
@@ -2067,9 +2140,9 @@ class LittersScreenState extends State<LittersScreen> {
                       FocusScope.of(context).unfocus();
                       await _showLitterActions(litter);
                     },
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.only(top: 2, right: 2),
-                      child: Icon(Icons.more_horiz, size: 20, color: Color(0xFF787774)),
+                      child: Icon(Icons.more_horiz, size: 20, color: appColor(0xFF787774)),
                     ),
                   ),
                 ],
@@ -2093,9 +2166,9 @@ class LittersScreenState extends State<LittersScreen> {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE8DFFA), width: 1.2),
+              border: Border.all(color: appSurface(0xFFE8DFFA), width: 1.2),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF7B6BA0).withValues(alpha: 0.04),
@@ -2106,9 +2179,9 @@ class LittersScreenState extends State<LittersScreen> {
             ),
             child: Text(
               litter.notes!.trim(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: Color(0xFF333333),
+                color: appColor(0xFF333333),
                 fontWeight: FontWeight.w500,
                 height: 1.3,
               ),
@@ -2119,13 +2192,13 @@ class LittersScreenState extends State<LittersScreen> {
             top: -8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 5),
-              color: const Color(0xFFF7F3FB),
-              child: const Text(
+              color: appSurface(0xFFF7F3FB),
+              child: Text(
                 'Notes',
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4A3E6D),
+                  color: appColor(0xFF4A3E6D),
                   letterSpacing: 0.2,
                 ),
               ),
@@ -2142,12 +2215,12 @@ class LittersScreenState extends State<LittersScreen> {
       builder: (context, snapshot) {
         final rabbit = snapshot.data;
         if (rabbit != null && rabbit.photos != null && rabbit.photos!.isNotEmpty) {
-          return Container(
+          return DarkModeGuard(child: Container(
             width: 62,
             height: 62,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+              border: Border.all(color: appSurface(0xFFE5E5EA), width: 1.2),
               image: DecorationImage(
                 image: FileImage(File(rabbit.photos!.first)),
                 fit: BoxFit.cover,
@@ -2156,15 +2229,15 @@ class LittersScreenState extends State<LittersScreen> {
                 BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 3, offset: const Offset(0, 1)),
               ],
             ),
-          );
+          ));
         }
         return Container(
           width: 62,
           height: 62,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+            border: Border.all(color: appSurface(0xFFE5E5EA), width: 1.2),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -2198,7 +2271,7 @@ class LittersScreenState extends State<LittersScreen> {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(22),
       ),
       child: ClipRRect(
@@ -2235,8 +2308,8 @@ class LittersScreenState extends State<LittersScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          color: kAppCardWhite,
+          border: Border.all(color: appSurface(0xFFEEEEEE)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -2244,13 +2317,13 @@ class LittersScreenState extends State<LittersScreen> {
           children: [
             Text(
               isExpanded ? 'Hide kits' : 'View kits',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF777777)),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: appColor(0xFF777777)),
             ),
             const SizedBox(width: 4),
             Icon(
               isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
               size: 16,
-              color: const Color(0xFF777777),
+              color: appColor(0xFF777777),
             ),
           ],
         ),
@@ -2263,11 +2336,11 @@ class LittersScreenState extends State<LittersScreen> {
       children: [
         Icon(PhosphorIcons.genderFemale(PhosphorIconsStyle.bold), size: 12, color: kPinkDeep.withOpacity(0.7)),
         const SizedBox(width: 4),
-        Text(litter.dam, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
+        Text(litter.dam, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
         const SizedBox(width: 8),
         Icon(PhosphorIcons.genderMale(PhosphorIconsStyle.bold), size: 12, color: kBlueDeep.withOpacity(0.7)),
         const SizedBox(width: 4),
-        Text(litter.sire, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
+        Text(litter.sire, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
       ],
     );
   }
@@ -2290,7 +2363,7 @@ class LittersScreenState extends State<LittersScreen> {
       children: [
         Icon(icon, size: 12, color: kLilacDeep.withOpacity(0.5)),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral500)),
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral500)),
       ],
     );
   }
@@ -2316,15 +2389,15 @@ class LittersScreenState extends State<LittersScreen> {
       case 'growout':
         return _StatusConfig(bgColor: kPinkWash, textColor: kPinkDeep);
       case 'mature':
-        return _StatusConfig(bgColor: const Color(0xFFE0F2F1), textColor: const Color(0xFF00695C));
+        return _StatusConfig(bgColor: appColor(0xFFE0F2F1), textColor: appColor(0xFF00695C));
       case 'sold':
         return _StatusConfig(bgColor: kNeutral200, textColor: kNeutral600);
       case 'butchered':
         return _StatusConfig(bgColor: kPinkWash, textColor: kPinkDeep);
       case 'dead':
-        return _StatusConfig(bgColor: kPinkWash, textColor: const Color(0xFFB71C1C));
+        return _StatusConfig(bgColor: kPinkWash, textColor: appColor(0xFFB71C1C));
       case 'quarantine':
-        return _StatusConfig(bgColor: const Color(0xFFFFF3E0), textColor: const Color(0xFFEF6C00));
+        return _StatusConfig(bgColor: appColor(0xFFFFF3E0), textColor: appColor(0xFFEF6C00));
       default:
         return _StatusConfig(bgColor: kNeutral100, textColor: kNeutral500);
     }
@@ -2352,6 +2425,9 @@ class LittersScreenState extends State<LittersScreen> {
     final bool isQuarantine = kStatus == 'quarantine';
     final bool isPromoted = _isKitPromoted(kit);
     final bool showBadge = isOutcome || isGrowOut || isQuarantine || isReserved || isPromoted;
+    final bool isDead = kStatus == 'dead' || kStatus == 'died' || kStatus == 'deceased';
+    final bool isPeanut = _isPeanutKit(litter, kit);
+    final bool isDeadPeanut = isDead && isPeanut;
 
     String displayKitId;
     if (isFosteredIn) {
@@ -2373,7 +2449,7 @@ class LittersScreenState extends State<LittersScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral200)),
-          color: isOutcome ? kNeutral100 : Colors.white,
+          color: isOutcome ? kNeutral100 : kAppCardWhite,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -2387,8 +2463,8 @@ class LittersScreenState extends State<LittersScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: isFosteredIn
-                      ? const Color(0xFF7B6BA0)
-                      : (isOutcome ? kNeutral600 : const Color(0xFF4A4A4E)),
+                      ? appColor(0xFF7B6BA0)
+                      : (isOutcome ? kNeutral600 : appColor(0xFF4A4A4E)),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -2405,35 +2481,40 @@ class LittersScreenState extends State<LittersScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          kit.color.isNotEmpty ? kit.color : 'Unknown',
+                          isDeadPeanut
+                              ? 'Peanut'
+                              : (kit.color.isNotEmpty ? kit.color : 'Unknown'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: isOutcome ? kNeutral600 : const Color(0xFF37352F),
+                            color: isOutcome ? kNeutral600 : appColor(0xFF37352F),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
-                        size: 14,
-                        color: kit.sex == 'M' ? kBlueDeep : (kit.sex == 'F' ? kPinkDeep : kLilacDeep),
-                      ),
+                      if (!isDeadPeanut) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
+                          size: 14,
+                          color: kit.sex == 'M' ? kBlueDeep : (kit.sex == 'F' ? kPinkDeep : kLilacDeep),
+                        ),
+                      ],
                     ],
                   ),
                   if (kit.weight > 0)
                     Text(
                       'Weight: ',
-                      style: const TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
                     ),
-                  if (kit.details != null && kit.details!.isNotEmpty) ...[
+                  if ((kit.details != null && kit.details!.isNotEmpty) || (isPeanut && !isDeadPeanut)) ...[
                     Builder(
                       builder: (context) {
                         final displayDetails = FormatUtils.formatDisplayKitDetails(kit.details);
-                        if (displayDetails.isEmpty ||
-                            (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold')) {
+                        if (!isPeanut &&
+                            (displayDetails.isEmpty ||
+                                (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold'))) {
                           return const SizedBox.shrink();
                         }
                         final detailParts = displayDetails
@@ -2441,6 +2522,19 @@ class LittersScreenState extends State<LittersScreen> {
                             .map((p) => p.trim())
                             .where((p) => p.isNotEmpty)
                             .toList();
+                        if (isPeanut && !isDeadPeanut) {
+                          if (!detailParts.any((p) => p.toLowerCase().contains('peanut'))) {
+                            detailParts.add('Peanut');
+                          }
+                        } else if (isDeadPeanut) {
+                          detailParts.removeWhere((p) {
+                            final lower = p.toLowerCase();
+                            return lower == 'peanut' || lower == 'deceased' || lower == 'dead' || lower == 'died';
+                          });
+                        }
+                        if (detailParts.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Column(
@@ -2449,7 +2543,7 @@ class LittersScreenState extends State<LittersScreen> {
                             children: detailParts
                                 .map((part) => Text(
                                       '• $part',
-                                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                      style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ))
@@ -2471,9 +2565,9 @@ class LittersScreenState extends State<LittersScreen> {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _showKitActions(litter, kit),
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.only(left: 2, right: 0, top: 2, bottom: 2),
-                child: Icon(Icons.chevron_right, size: 22, color: Color(0xFF787774)),
+                child: Icon(Icons.chevron_right, size: 22, color: appColor(0xFF787774)),
               ),
             ),
           ],
@@ -2535,7 +2629,7 @@ class LittersScreenState extends State<LittersScreen> {
         children: [
           _buildUniformKitBadge(
             label: 'GROW',
-            bgColor: const Color(0xFF7B6BA0),
+            bgColor: appSurface(0xFF7B6BA0),
             textColor: Colors.white,
           ),
           const SizedBox(width: 4),
@@ -2549,7 +2643,7 @@ class LittersScreenState extends State<LittersScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
+                color: appSurface(0xFF2E7D32),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: const Text(
@@ -2578,7 +2672,7 @@ class LittersScreenState extends State<LittersScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32),
+            color: appSurface(0xFF2E7D32),
             borderRadius: BorderRadius.circular(5),
           ),
           child: const Text(
@@ -2597,7 +2691,7 @@ class LittersScreenState extends State<LittersScreen> {
     if (isGrowOut) {
       return _buildUniformKitBadge(
         label: 'GROW',
-        bgColor: const Color(0xFF7B6BA0),
+        bgColor: appSurface(0xFF7B6BA0),
         textColor: Colors.white,
       );
     }
@@ -2606,16 +2700,16 @@ class LittersScreenState extends State<LittersScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF3E0),
+          color: appSurface(0xFFFFF3E0),
           borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: const Color(0xFFFFCC80), width: 0.8),
+          border: Border.all(color: appSurface(0xFFFFCC80), width: 0.8),
         ),
-        child: const Text(
+        child: Text(
           'QUARANTINE',
           style: TextStyle(
             fontSize: 9.5,
             fontWeight: FontWeight.w900,
-            color: Color(0xFFEF6C00),
+            color: appColor(0xFFEF6C00),
             letterSpacing: 0.4,
           ),
         ),
@@ -2624,7 +2718,7 @@ class LittersScreenState extends State<LittersScreen> {
     if (s == 'sold') {
       return _buildUniformKitBadge(
         label: 'SOLD',
-        bgColor: const Color(0xFF1E1E24),
+        bgColor: appSurface(0xFF1E1E24),
         onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
@@ -2632,7 +2726,7 @@ class LittersScreenState extends State<LittersScreen> {
     if (s == 'cull' || s == 'culled') {
       return _buildUniformKitBadge(
         label: 'CULL',
-        bgColor: const Color(0xFFD32F2F),
+        bgColor: appSurface(0xFFD32F2F),
         onTap: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
         onLongPress: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
       );
@@ -2640,7 +2734,7 @@ class LittersScreenState extends State<LittersScreen> {
 
     if (kit != null && _isKitPromoted(kit)) {
       final bool isBuck = (kit.sex.toUpperCase() == 'M' || kit.sex.toLowerCase() == 'buck');
-      final Color bgColor = isBuck ? const Color(0xFF4AA8E8) : const Color(0xFFEC6FA7);
+      final Color bgColor = isBuck ? appSurface(0xFF4AA8E8) : appSurface(0xFFEC6FA7);
       return _buildUniformKitBadge(
         label: 'HERD',
         bgColor: bgColor,
@@ -2651,7 +2745,7 @@ class LittersScreenState extends State<LittersScreen> {
     if (s == 'dead' || s == 'died' || s == 'deceased') {
       return _buildUniformKitBadge(
         label: 'DIED',
-        bgColor: const Color(0xFFD32F2F),
+        bgColor: appSurface(0xFFD32F2F),
         onTap: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
         onLongPress: (litter != null && kit != null) ? () => _showReverseKitDiedDialog(litter, kit) : null,
       );
@@ -2683,9 +2777,9 @@ class LittersScreenState extends State<LittersScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 4, right: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E5EA)),
+        border: Border.all(color: appSurface(0xFFE5E5EA)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -2719,7 +2813,7 @@ class LittersScreenState extends State<LittersScreen> {
                           Expanded(
                             child: Text(
                               '$displayId  -  ${kit.color}',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF555555)),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: appColor(0xFF555555)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -2727,19 +2821,19 @@ class LittersScreenState extends State<LittersScreen> {
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _showKitActions(litter, kit),
-                            child: const Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                            child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 1),
                       Text(
                         '${litter.doeName} X ${litter.buckName}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFB388FF)),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: appColor(0xFFB388FF)),
                       ),
                       const SizedBox(height: 1),
                       Text(
                         'Born ${_formatTileDate(litter.dob)}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF555555)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: appColor(0xFF555555)),
                       ),
                     ],
                   ),
@@ -2762,13 +2856,13 @@ class LittersScreenState extends State<LittersScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Cage: ${litter.cage.isNotEmpty ? litter.cage : 'N/A'}',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                  'Cage: ${_formatLitterCage(litter, _rabbitMap[litter.doeId])}',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: appColor(0xFF555555)),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Age:  ${_ageString(litter.ageDays, dob: litter.dob ?? litter.kindleDate)}',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: appColor(0xFF555555)),
                 ),
                 const SizedBox(height: 2),
                 Row(
@@ -2776,12 +2870,12 @@ class LittersScreenState extends State<LittersScreen> {
                   children: [
                     Text(
                       'Wean Dt.: ${_formatTileDate(_getEffectiveWeanDate(litter))}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF555555)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: appColor(0xFF555555)),
                     ),
                     if (kit.weight > 0)
                       Text(
                         '${kit.weight} ${FormatUtils.weightUnit}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF777777)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: appColor(0xFF777777)),
                       ),
                   ],
                 ),
@@ -2795,9 +2889,9 @@ class LittersScreenState extends State<LittersScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF3F3F3)),
+              border: Border.all(color: appSurface(0xFFF3F3F3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2812,7 +2906,7 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 4),
                         Text(
                           FormatUtils.formatDisplayKitDetails(kit.details),
-                          style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 11, color: appColor(0xFFAAAAAA), fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2831,7 +2925,7 @@ class LittersScreenState extends State<LittersScreen> {
 
   Widget _buildKitAvatar(Litter litter, Kit kit) {
     if (kit.imagePath != null && kit.imagePath!.isNotEmpty) {
-      return ClipRRect(
+      return DarkModeGuard(child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Image.file(
           File(kit.imagePath!),
@@ -2840,7 +2934,7 @@ class LittersScreenState extends State<LittersScreen> {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _defaultKitPlaceholder(),
         ),
-      );
+      ));
     }
     return _defaultKitPlaceholder();
   }
@@ -2850,7 +2944,7 @@ class LittersScreenState extends State<LittersScreen> {
       width: 58,
       height: 58,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(10),
       ),
       child: ClipRRect(
@@ -2874,19 +2968,19 @@ class LittersScreenState extends State<LittersScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFEEEEEE)),
+          color: kAppCardWhite,
+          border: Border.all(color: appSurface(0xFFEEEEEE)),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'View Litter',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF777777)),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: appColor(0xFF777777)),
             ),
             SizedBox(width: 4),
-            Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xFF777777)),
+            Icon(Icons.keyboard_arrow_down, size: 16, color: appColor(0xFF777777)),
           ],
         ),
       ),
@@ -2898,7 +2992,7 @@ class LittersScreenState extends State<LittersScreen> {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ClipRRect(
@@ -2916,7 +3010,7 @@ class LittersScreenState extends State<LittersScreen> {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ClipRRect(
@@ -2935,7 +3029,7 @@ class LittersScreenState extends State<LittersScreen> {
       children: [
         Icon(icon, size: 12, color: kNeutral400),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral500)),
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral500)),
       ],
     );
   }
@@ -2960,13 +3054,13 @@ class LittersScreenState extends State<LittersScreen> {
       onTap: onTap,
       child: Container(
         height: 32,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
+        decoration: BoxDecoration(color: kAppCardWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 14, color: kNeutral600),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral700)),
           ],
         ),
       ),
@@ -2979,7 +3073,7 @@ class LittersScreenState extends State<LittersScreen> {
       child: Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
+        decoration: BoxDecoration(color: kAppCardWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kNeutral300)),
         child: Icon(icon, size: 16, color: kNeutral600),
       ),
     );
@@ -3115,7 +3209,7 @@ class LittersScreenState extends State<LittersScreen> {
         SnackBar(
             duration: const Duration(milliseconds: 800),
           content: Text(mark ? 'Kit $kitTag marked for Grow-out' : 'Grow-out cancelled for Kit $kitTag'),
-          backgroundColor: const Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -3348,8 +3442,8 @@ class LittersScreenState extends State<LittersScreen> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -3364,7 +3458,7 @@ class LittersScreenState extends State<LittersScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5E5EA),
+                        color: appSurface(0xFFE5E5EA),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -3378,26 +3472,26 @@ class LittersScreenState extends State<LittersScreen> {
                             children: [
                               Text(
                                 'Litter ${litter.id} - Grow Out',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'Select a kit to view profile options',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF8E8E93),
+                                  color: appColor(0xFF8E8E93),
                                 ),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                          icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                           onPressed: () => Navigator.pop(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -3408,7 +3502,7 @@ class LittersScreenState extends State<LittersScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEDE6F6),
+                        color: appSurface(0xFFEDE6F6),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
@@ -3574,8 +3668,8 @@ class LittersScreenState extends State<LittersScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -3591,7 +3685,7 @@ class LittersScreenState extends State<LittersScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E5EA),
+                    color: appSurface(0xFFE5E5EA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -3607,10 +3701,10 @@ class LittersScreenState extends State<LittersScreen> {
                         children: [
                           Text(
                             'Litter ${litter.id}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: appColor(0xFF2C2C2E),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -3618,17 +3712,17 @@ class LittersScreenState extends State<LittersScreen> {
                             litter.status.isNotEmpty
                                 ? (litter.status[0].toUpperCase() + litter.status.substring(1))
                                 : 'Nursing',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF8E8E93),
+                              color: appColor(0xFF8E8E93),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -3641,7 +3735,7 @@ class LittersScreenState extends State<LittersScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE6F6),
+                    color: appSurface(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -3876,8 +3970,8 @@ class LittersScreenState extends State<LittersScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -3893,7 +3987,7 @@ class LittersScreenState extends State<LittersScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E5EA),
+                    color: appSurface(0xFFE5E5EA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -3904,31 +3998,17 @@ class LittersScreenState extends State<LittersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Move Litter ${litter.id}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Select destination stage or cage',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF8E8E93),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Move Litter ${litter.id}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: appColor(0xFF2C2C2E),
+                        ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -3941,7 +4021,7 @@ class LittersScreenState extends State<LittersScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE6F6),
+                    color: appSurface(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -3971,8 +4051,8 @@ class LittersScreenState extends State<LittersScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -3988,7 +4068,7 @@ class LittersScreenState extends State<LittersScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E5EA),
+                    color: appSurface(0xFFE5E5EA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -4004,26 +4084,26 @@ class LittersScreenState extends State<LittersScreen> {
                         children: [
                           Text(
                             'Move Kit $kitTag',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: appColor(0xFF2C2C2E),
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
+                          Text(
                             'Select destination stage, herd or cage',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF8E8E93),
+                              color: appColor(0xFF8E8E93),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -4036,7 +4116,7 @@ class LittersScreenState extends State<LittersScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE6F6),
+                    color: appSurface(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -4198,7 +4278,7 @@ class LittersScreenState extends State<LittersScreen> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('Litter ${litter.id} moved to $targetStage'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -4230,9 +4310,9 @@ class LittersScreenState extends State<LittersScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(24),
-          border: isDestructive ? Border.all(color: const Color(0xFFFFCDD2), width: 1) : null,
+          border: isDestructive ? Border.all(color: appSurface(0xFFFFCDD2), width: 1) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
@@ -4252,17 +4332,17 @@ class LittersScreenState extends State<LittersScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isDestructive ? const Color(0xFFE53935) : const Color(0xFF2C2C2E),
+                color: isDestructive ? appColor(0xFFE53935) : appColor(0xFF2C2C2E),
               ),
             ),
             if (subtitle != null && subtitle.isNotEmpty) ...[
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF8E8E93),
+                  color: appColor(0xFF8E8E93),
                 ),
               ),
             ],
@@ -4302,7 +4382,7 @@ class LittersScreenState extends State<LittersScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Litter ${litter.id} deleted from Archive (saved under Litter History)'),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -4355,7 +4435,7 @@ class LittersScreenState extends State<LittersScreen> {
             SnackBar(
             duration: const Duration(milliseconds: 800),
               content: Text('Litter ${litter.id} marked as died'),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -4408,7 +4488,7 @@ class LittersScreenState extends State<LittersScreen> {
             SnackBar(
             duration: const Duration(milliseconds: 800),
               content: Text('Litter ${litter.id} marked as culled'),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -4519,8 +4599,24 @@ class LittersScreenState extends State<LittersScreen> {
 
     final String kitTag = _getKitDisplayTag(litter, kit);
     final List<Widget> actions = [];
+    final bool isPeanut = _isPeanutKit(litter, kit);
 
-    if (kitStage == 'nursing') {
+    if (isPeanut) {
+      actions.add(_buildLitterActionPill(
+        label: 'Cull',
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsCulled(litter, kit);
+        },
+      ));
+      actions.add(_buildLitterActionPill(
+        label: 'Died',
+        onTap: () {
+          Navigator.pop(context);
+          _markKitAsDied(litter, kit);
+        },
+      ));
+    } else if (kitStage == 'nursing') {
       // Nursing
       // 1. Edit Kit Info
       actions.add(_buildLitterActionPill(
@@ -5207,8 +5303,8 @@ class LittersScreenState extends State<LittersScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -5224,7 +5320,7 @@ class LittersScreenState extends State<LittersScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E5EA),
+                    color: appSurface(0xFFE5E5EA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -5238,26 +5334,26 @@ class LittersScreenState extends State<LittersScreen> {
                         children: [
                           Text(
                             'Kit $kitTag',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: appColor(0xFF2C2C2E),
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             displayStageName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF8E8E93),
+                              color: appColor(0xFF8E8E93),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                       onPressed: () {
                         _searchFocusNode.canRequestFocus = false;
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -5272,7 +5368,7 @@ class LittersScreenState extends State<LittersScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE6F6),
+                    color: appSurface(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -5394,7 +5490,7 @@ class LittersScreenState extends State<LittersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit ${_getKitDisplayTag(litter, kit)} moved to $displayStage'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -5438,23 +5534,23 @@ class LittersScreenState extends State<LittersScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Birth Certificate Preview',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF2C2C2E)),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, size: 22),
@@ -5753,7 +5849,7 @@ class LittersScreenState extends State<LittersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Foster cancelled. Kit returned to mother ($momName).'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -5854,7 +5950,7 @@ class LittersScreenState extends State<LittersScreen> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('Sale cancelled. Kit restored to $restoredStatus.'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -5908,13 +6004,20 @@ class LittersScreenState extends State<LittersScreen> {
             kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
         if ((isExactId || isNumericMatch) && !updated) {
           updated = true;
-          String? cleanDetails;
-          if (k.details != null && k.details!.toLowerCase().contains('fostered')) {
-            final fosterParts = k.details!.split('•').where((p) => p.toLowerCase().contains('fostered')).toList();
-            cleanDetails = fosterParts.isNotEmpty ? fosterParts.first.trim() : null;
-          } else {
-            cleanDetails = null;
+          final bool wasPeanut = _isPeanutKit(litter, k);
+          final List<String> keptParts = [];
+          if (k.details != null && k.details!.isNotEmpty) {
+            for (final p in k.details!.split('•').map((e) => e.trim())) {
+              final lower = p.toLowerCase();
+              if (lower.contains('fostered') || lower.contains('peanut')) {
+                keptParts.add(p);
+              }
+            }
           }
+          if (wasPeanut && !keptParts.any((p) => p.toLowerCase().contains('peanut'))) {
+            keptParts.add('Peanut');
+          }
+          final String? cleanDetails = keptParts.isNotEmpty ? keptParts.join(' • ') : null;
           return k.copyWith(status: restoredStatus, details: cleanDetails);
         }
         return k;
@@ -5962,7 +6065,7 @@ class LittersScreenState extends State<LittersScreen> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('Kit $kitTag restored to $restoredStatus.'),
-            backgroundColor: const Color(0xFF2E7B32),
+            backgroundColor: appSurface(0xFF2E7B32),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -6012,8 +6115,8 @@ class LittersScreenState extends State<LittersScreen> {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -6022,8 +6125,8 @@ class LittersScreenState extends State<LittersScreen> {
               // Header matching Log Birth purple theme
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEADBEE),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFEADBEE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Column(
@@ -6034,7 +6137,7 @@ class LittersScreenState extends State<LittersScreen> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                          color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -6042,12 +6145,12 @@ class LittersScreenState extends State<LittersScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Sell Litter',
                           style: TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -6056,10 +6159,10 @@ class LittersScreenState extends State<LittersScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
+                              color: kAppCardWhite.withOpacity(0.6),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                            child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                           ),
                         ),
                       ],
@@ -6078,40 +6181,40 @@ class LittersScreenState extends State<LittersScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F2FA),
+                          color: appSurface(0xFFF7F2FA),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE8DFFA)),
+                          border: Border.all(color: appSurface(0xFFE8DFFA)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Litter ${litter.id}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF4A3E6D),
+                                color: appColor(0xFF4A3E6D),
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               '${litter.doeName} x ${litter.buckName ?? 'Unknown'} • ${litter.aliveKits} active kits',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         'SALE PRICE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF6B2D6D),
+                          color: appColor(0xFF6B2D6D),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -6123,28 +6226,28 @@ class LittersScreenState extends State<LittersScreen> {
                           hintText: '0.00',
                           prefixText: '${FormatUtils.currencySymbol} ',
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: kAppCardWhite,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE0D8ED), width: 1.5),
+                            borderSide: BorderSide(color: appSurface(0xFFE0D8ED), width: 1.5),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7B6BA0),
+                            borderSide: BorderSide(
+                              color: appSurface(0xFF7B6BA0),
                               width: 2,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         'BUYER NAME',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF6B2D6D),
+                          color: appColor(0xFF6B2D6D),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -6177,16 +6280,16 @@ class LittersScreenState extends State<LittersScreen> {
                                 decoration: InputDecoration(
                                   hintText: 'Select or enter buyer',
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: kAppCardWhite,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFE0D8ED), width: 1.5),
+                                    borderSide: BorderSide(color: appSurface(0xFFE0D8ED), width: 1.5),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF7B6BA0),
+                                    borderSide: BorderSide(
+                                      color: appSurface(0xFF7B6BA0),
                                       width: 2,
                                     ),
                                   ),
@@ -6255,10 +6358,10 @@ class LittersScreenState extends State<LittersScreen> {
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
             duration: const Duration(milliseconds: 800),
                               content: Text('Litter marked as sold'),
-                              backgroundColor: Color(0xFF6B2D6D),
+                              backgroundColor: appSurface(0xFF6B2D6D),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -6266,20 +6369,20 @@ class LittersScreenState extends State<LittersScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEDE8F5),
-                      foregroundColor: const Color(0xFF6B2D6D),
+                      backgroundColor: appSurface(0xFFEDE8F5),
+                      foregroundColor: appColor(0xFF6B2D6D),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Record Sale',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
-                        color: Color(0xFF6B2D6D),
+                        color: appColor(0xFF6B2D6D),
                       ),
                     ),
                   ),
@@ -6302,7 +6405,7 @@ class LittersScreenState extends State<LittersScreen> {
       content: 'Do you want to cancel the reservation for Kit $kitTag and restore it to available status?',
       cancelText: 'Keep',
       confirmText: 'Cancel Reservation',
-      confirmColor: const Color(0xFFD32F2F),
+      confirmColor: appColor(0xFFD32F2F),
     );
     _searchFocusNode.canRequestFocus = false;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -6420,8 +6523,8 @@ class LittersScreenState extends State<LittersScreen> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.88,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -6430,8 +6533,8 @@ class LittersScreenState extends State<LittersScreen> {
                 // Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE6BEFE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -6441,10 +6544,10 @@ class LittersScreenState extends State<LittersScreen> {
                         isEditing
                             ? 'Edit Reservation'
                             : 'Reserve Kit',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -6457,10 +6560,10 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -6479,29 +6582,29 @@ class LittersScreenState extends State<LittersScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
                                   '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF787774),
+                                    color: appColor(0xFF787774),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -6514,12 +6617,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 16),
 
                         // 1. Buyer name
-                        const Text(
+                        Text(
                           'Buyer name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -6528,29 +6631,29 @@ class LittersScreenState extends State<LittersScreen> {
                           controller: buyerController,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.person_outline, size: 20, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
 
                         // 2. Phone number
-                        const Text(
+                        Text(
                           'Phone number',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -6560,29 +6663,29 @@ class LittersScreenState extends State<LittersScreen> {
                           keyboardType: TextInputType.phone,
                           inputFormatters: [PhoneNumberFormatter()],
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.phone_outlined, size: 20, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
 
                         // 3. User name
-                        const Text(
+                        Text(
                           'User name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -6590,17 +6693,17 @@ class LittersScreenState extends State<LittersScreen> {
                         TextField(
                           controller: usernameController,
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.alternate_email, size: 19, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.alternate_email, size: 19, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
@@ -6613,12 +6716,12 @@ class LittersScreenState extends State<LittersScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Sales amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -6629,15 +6732,15 @@ class LittersScreenState extends State<LittersScreen> {
                                     decoration: InputDecoration(
                                       prefixText: '${FormatUtils.currencySymbol} ',
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                                       ),
                                     ),
                                   ),
@@ -6649,12 +6752,12 @@ class LittersScreenState extends State<LittersScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Deposit amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -6665,15 +6768,15 @@ class LittersScreenState extends State<LittersScreen> {
                                     decoration: InputDecoration(
                                       prefixText: '${FormatUtils.currencySymbol} ',
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                                       ),
                                     ),
                                   ),
@@ -6685,12 +6788,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 14),
 
                         // 6. Pick up date
-                        const Text(
+                        Text(
                           'Pick up date',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -6703,13 +6806,14 @@ class LittersScreenState extends State<LittersScreen> {
                               firstDate: DateTime.now().subtract(const Duration(days: 30)),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                               builder: (context, child) {
-                                return Theme(
+                                if (isAppDark) return child!;
+        return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B6BA0),
+                                    colorScheme: ColorScheme.light(
+                                      primary: appColor(0xFF7B6BA0),
                                       onPrimary: Colors.white,
                                       surface: Colors.white,
-                                      onSurface: Color(0xFF2C2C2E),
+                                      onSurface: appColor(0xFF2C2C2E),
                                     ),
                                   ),
                                   child: child!,
@@ -6723,22 +6827,22 @@ class LittersScreenState extends State<LittersScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.2),
+                              border: Border.all(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   DateFormat('EEEE, MMM d, yyyy').format(pickupDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF4F4F56),
+                                    color: appColor(0xFF4F4F56),
                                   ),
                                 ),
-                                const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                                Icon(Icons.calendar_today_rounded, size: 18, color: appColor(0xFF7B6BA0)),
                               ],
                             ),
                           ),
@@ -6837,12 +6941,12 @@ class LittersScreenState extends State<LittersScreen> {
                                       await _cancelKitReservation(litter, kit);
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE2BFFB),
-                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      backgroundColor: appSurface(0xFFE2BFFB),
+                                      foregroundColor: appColor(0xFF4A3E6D),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                        side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                       ),
                                     ),
                                     child: const FittedBox(
@@ -6866,12 +6970,12 @@ class LittersScreenState extends State<LittersScreen> {
                                   child: ElevatedButton(
                                     onPressed: () => saveReservation(),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE2BFFB),
-                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      backgroundColor: appSurface(0xFFE2BFFB),
+                                      foregroundColor: appColor(0xFF4A3E6D),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                        side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                       ),
                                     ),
                                     child: const FittedBox(
@@ -6896,12 +7000,12 @@ class LittersScreenState extends State<LittersScreen> {
                             child: ElevatedButton(
                               onPressed: () => saveReservation(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE2BFFB),
-                                foregroundColor: const Color(0xFF4A3E6D),
+                                backgroundColor: appSurface(0xFFE2BFFB),
+                                foregroundColor: appColor(0xFF4A3E6D),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                  side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                 ),
                               ),
                               child: const Text(
@@ -6959,8 +7063,8 @@ class LittersScreenState extends State<LittersScreen> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -6969,19 +7073,19 @@ class LittersScreenState extends State<LittersScreen> {
                 // Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE6BEFE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Sell Kit',
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -6990,10 +7094,10 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -7010,9 +7114,9 @@ class LittersScreenState extends State<LittersScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -7020,18 +7124,18 @@ class LittersScreenState extends State<LittersScreen> {
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               Text(
                                 '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF787774),
+                                  color: appColor(0xFF787774),
                                 ),
                               ),
                             ],
@@ -7043,17 +7147,17 @@ class LittersScreenState extends State<LittersScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Mark as sold',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF2C2C2E),
+                                color: appColor(0xFF2C2C2E),
                               ),
                             ),
                             Switch(
                               value: markAsSold,
-                              activeColor: const Color(0xFF8B5CF6),
+                              activeColor: appColor(0xFF8B5CF6),
                               onChanged: (val) {
                                 setModalState(() {
                                   markAsSold = val;
@@ -7065,12 +7169,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 16),
 
                         // Date Sold Calendar Picker
-                        const Text(
+                        Text(
                           'Date sold',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -7083,13 +7187,14 @@ class LittersScreenState extends State<LittersScreen> {
                               firstDate: DateTime(2000),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                               builder: (context, child) {
-                                return Theme(
+                                if (isAppDark) return child!;
+        return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B6BA0),
+                                    colorScheme: ColorScheme.light(
+                                      primary: appColor(0xFF7B6BA0),
                                       onPrimary: Colors.white,
                                       surface: Colors.white,
-                                      onSurface: Color(0xFF2C2C2E),
+                                      onSurface: appColor(0xFF2C2C2E),
                                     ),
                                   ),
                                   child: child!,
@@ -7104,25 +7209,25 @@ class LittersScreenState extends State<LittersScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
+                              border: Border.all(color: appSurface(0xFFC7C7CC), width: 1.5),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   FormatUtils.formatDate(soldDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF2C2C2E),
+                                    color: appColor(0xFF2C2C2E),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.calendar_today_outlined,
                                   size: 20,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ],
                             ),
@@ -7130,12 +7235,12 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         if (!markAsSold) ...[
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             'Sale price',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -7145,28 +7250,28 @@ class LittersScreenState extends State<LittersScreen> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.5),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 2,
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             'Buyer name',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -7198,16 +7303,16 @@ class LittersScreenState extends State<LittersScreen> {
                                     onSubmitted: (value) => onFieldSubmitted(),
                                     decoration: InputDecoration(
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.5),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFF7B6BA0),
+                                        borderSide: BorderSide(
+                                          color: appSurface(0xFF7B6BA0),
                                           width: 2,
                                         ),
                                       ),
@@ -7333,29 +7438,29 @@ class LittersScreenState extends State<LittersScreen> {
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
             duration: const Duration(milliseconds: 800),
                               content: Text('Kit marked as sold'),
-                              backgroundColor: Color(0xFF6B2D6D),
+                              backgroundColor: appSurface(0xFF6B2D6D),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE6BEFE),
-                        foregroundColor: const Color(0xFF2C2C2E),
+                        backgroundColor: appSurface(0xFFE6BEFE),
+                        foregroundColor: appColor(0xFF2C2C2E),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Record Sale',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
                     ),
@@ -7403,8 +7508,8 @@ class LittersScreenState extends State<LittersScreen> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -7413,19 +7518,19 @@ class LittersScreenState extends State<LittersScreen> {
                 // 1. Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE6BEFE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Record Health',
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -7435,10 +7540,10 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -7458,29 +7563,29 @@ class LittersScreenState extends State<LittersScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
                                   '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF787774),
+                                    color: appColor(0xFF787774),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -7493,12 +7598,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 16),
 
                         // Date of entry
-                        const Text(
+                        Text(
                           'Date of entry',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -7511,13 +7616,14 @@ class LittersScreenState extends State<LittersScreen> {
                               firstDate: DateTime(2000),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                               builder: (context, child) {
-                                return Theme(
+                                if (isAppDark) return child!;
+        return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B6BA0),
+                                    colorScheme: ColorScheme.light(
+                                      primary: appColor(0xFF7B6BA0),
                                       onPrimary: Colors.white,
                                       surface: Colors.white,
-                                      onSurface: Color(0xFF2C2C2E),
+                                      onSurface: appColor(0xFF2C2C2E),
                                     ),
                                   ),
                                   child: child!,
@@ -7532,25 +7638,25 @@ class LittersScreenState extends State<LittersScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFC7C7CC)),
+                              border: Border.all(color: appSurface(0xFFC7C7CC)),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   FormatUtils.formatDate(selectedDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF2C2C2E),
+                                    color: appColor(0xFF2C2C2E),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.calendar_today_outlined,
                                   size: 20,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ],
                             ),
@@ -7559,12 +7665,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 16),
 
                         // CONDITION (Instead of Type)
-                        const Text(
+                        Text(
                           'Condition',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -7572,7 +7678,7 @@ class LittersScreenState extends State<LittersScreen> {
                         DropdownButtonFormField<String>(
                           value: selectedCondition,
                           isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                          icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                           selectedItemBuilder: (BuildContext context) {
                             return conditionOptions.map((c) => Align(
                               alignment: Alignment.centerLeft,
@@ -7582,7 +7688,7 @@ class LittersScreenState extends State<LittersScreen> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   fontStyle: c == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                  color: c == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                  color: c == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF4F4F56),
                                 ),
                               ),
                             )).toList();
@@ -7591,21 +7697,21 @@ class LittersScreenState extends State<LittersScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
+                              borderSide: BorderSide(
+                                color: appSurface(0xFF7B6BA0),
                                 width: 1.5,
                               ),
                             ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                           ),
                           items: conditionOptions.asMap().entries.map((entry) {
                             final idx = entry.key;
@@ -7617,7 +7723,7 @@ class LittersScreenState extends State<LittersScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                  color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -7626,7 +7732,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     fontStyle: c == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                    color: c == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                    color: c == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF4F4F56),
                                   ),
                                 ),
                               ),
@@ -7642,12 +7748,12 @@ class LittersScreenState extends State<LittersScreen> {
                         // If + Custom selected, show custom condition field
                         if (selectedCondition == '+ Custom') ...[
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'Custom condition',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF7B6BA0),
+                              color: appColor(0xFF7B6BA0),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -7659,33 +7765,33 @@ class LittersScreenState extends State<LittersScreen> {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 1.5,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                           ),
                         ],
                         const SizedBox(height: 16),
 
                         // TREATMENT (Replaces Condition/issue)
-                        const Text(
+                        Text(
                           'Treatment',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -7697,32 +7803,32 @@ class LittersScreenState extends State<LittersScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
+                              borderSide: BorderSide(
+                                color: appSurface(0xFF7B6BA0),
                                 width: 1.5,
                               ),
                             ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                           ),
                         ),
                         const SizedBox(height: 16),
 
                         // NOTES
-                        const Text(
+                        Text(
                           'Notes',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -7735,21 +7841,21 @@ class LittersScreenState extends State<LittersScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
+                              borderSide: BorderSide(
+                                color: appSurface(0xFF7B6BA0),
                                 width: 1.5,
                               ),
                             ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                           ),
                         ),
                       ],
@@ -7829,34 +7935,34 @@ class LittersScreenState extends State<LittersScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Health record saved for Kit ${_getKitDisplayTag(litter, kit)}'),
-                                    backgroundColor: const Color(0xFF7B6BA0),
+                                    backgroundColor: appSurface(0xFF7B6BA0),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
                               }
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2BFFB),
+                        backgroundColor: appSurface(0xFFE2BFFB),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF4A3E6D),
+                                color: appColor(0xFF4A3E6D),
                               ),
                             )
-                          : const Text(
+                          : Text(
                               'Save Record',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF4A3E6D),
+                                color: appColor(0xFF4A3E6D),
                               ),
                             ),
                     ),
@@ -7933,16 +8039,16 @@ class LittersScreenState extends State<LittersScreen> {
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
             duration: const Duration(milliseconds: 800),
                     content: Text('Kit harvest recorded'),
-                    backgroundColor: Color(0xFF7B6BA0),
+                    backgroundColor: appSurface(0xFF7B6BA0),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFF7B6BA0)),
+            style: TextButton.styleFrom(foregroundColor: appColor(0xFF7B6BA0)),
             child: const Text('Record'),
           ),
         ],
@@ -7991,10 +8097,10 @@ class LittersScreenState extends State<LittersScreen> {
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
             duration: const Duration(milliseconds: 800),
                     content: Text('Kit moved to quarantine'),
-                    backgroundColor: Color(0xFFD97706),
+                    backgroundColor: appSurface(0xFFD97706),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -8043,8 +8149,8 @@ class LittersScreenState extends State<LittersScreen> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.only(
@@ -8057,19 +8163,19 @@ class LittersScreenState extends State<LittersScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE6BEFE),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Log Weight',
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF2C2C2E),
+                        color: appColor(0xFF2C2C2E),
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -8078,10 +8184,10 @@ class LittersScreenState extends State<LittersScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
+                          color: kAppCardWhite.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                       ),
                     ),
                   ],
@@ -8100,29 +8206,29 @@ class LittersScreenState extends State<LittersScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F2FA),
+                        color: appSurface(0xFFF7F2FA),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                        border: Border.all(color: appSurface(0xFFE8DFFA)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Kit ${_getKitDisplayTag(litter, kit)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -8135,12 +8241,12 @@ class LittersScreenState extends State<LittersScreen> {
                     const SizedBox(height: 16),
 
                     // Date of Entry with Calendar Picker
-                    const Text(
+                    Text(
                       'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -8153,13 +8259,14 @@ class LittersScreenState extends State<LittersScreen> {
                           firstDate: DateTime(2000),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                           builder: (context, child) {
-                            return Theme(
+                            if (isAppDark) return child!;
+        return Theme(
                               data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.light(
-                                  primary: Color(0xFF7B6BA0),
+                                colorScheme: ColorScheme.light(
+                                  primary: appColor(0xFF7B6BA0),
                                   onPrimary: Colors.white,
                                   surface: Colors.white,
-                                  onSurface: Color(0xFF2C2C2E),
+                                  onSurface: appColor(0xFF2C2C2E),
                                 ),
                               ),
                               child: child!,
@@ -8174,25 +8281,25 @@ class LittersScreenState extends State<LittersScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kAppCardWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFC7C7CC)),
+                          border: Border.all(color: appSurface(0xFFC7C7CC)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               FormatUtils.formatDate(selectedDate),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
-                                color: Color(0xFF2C2C2E),
+                                color: appColor(0xFF2C2C2E),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.calendar_today_outlined,
                               size: 20,
-                              color: Color(0xFF7B6BA0),
+                              color: appColor(0xFF7B6BA0),
                             ),
                           ],
                         ),
@@ -8201,12 +8308,12 @@ class LittersScreenState extends State<LittersScreen> {
                     const SizedBox(height: 16),
 
                     // Weight Label
-                    const Text(
+                    Text(
                       'Weight',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -8222,7 +8329,7 @@ class LittersScreenState extends State<LittersScreen> {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixIcon: const Padding(
+                              suffixIcon: Padding(
                                 padding: EdgeInsets.only(right: 14),
                                 child: Center(
                                   widthFactor: 1.0,
@@ -8231,7 +8338,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF8E8E93),
+                                      color: appColor(0xFF8E8E93),
                                     ),
                                   ),
                                 ),
@@ -8239,21 +8346,21 @@ class LittersScreenState extends State<LittersScreen> {
                               suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 1.5,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                           ),
                         ),
@@ -8265,7 +8372,7 @@ class LittersScreenState extends State<LittersScreen> {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixIcon: const Padding(
+                              suffixIcon: Padding(
                                 padding: EdgeInsets.only(right: 14),
                                 child: Center(
                                   widthFactor: 1.0,
@@ -8274,7 +8381,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF8E8E93),
+                                      color: appColor(0xFF8E8E93),
                                     ),
                                   ),
                                 ),
@@ -8282,21 +8389,21 @@ class LittersScreenState extends State<LittersScreen> {
                               suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 1.5,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                           ),
                         ),
@@ -8348,37 +8455,37 @@ class LittersScreenState extends State<LittersScreen> {
                                 if (mounted) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
             duration: const Duration(milliseconds: 800),
                                       content: Text('Weight updated'),
-                                      backgroundColor: Color(0xFF7B6BA0),
+                                      backgroundColor: appSurface(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE2BFFB),
+                          backgroundColor: appSurface(0xFFE2BFFB),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Save Weight',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                       ),
@@ -8416,8 +8523,8 @@ class LittersScreenState extends State<LittersScreen> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.88,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -8426,8 +8533,8 @@ class LittersScreenState extends State<LittersScreen> {
                 // Top Header matching Consistency.jpg
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEADBEE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFEADBEE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -8435,10 +8542,10 @@ class LittersScreenState extends State<LittersScreen> {
                     children: [
                       Text(
                         'Foster Kit - ${_getKitDisplayTag(litter, kit)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -8447,10 +8554,10 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                         ),
                       ),
                     ],
@@ -8469,9 +8576,9 @@ class LittersScreenState extends State<LittersScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Row(
                             children: [
@@ -8484,7 +8591,7 @@ class LittersScreenState extends State<LittersScreen> {
                                 ),
                                 child: Text(
                                   _getKitDisplayTag(litter, kit),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
                                     color: kLilacText,
@@ -8500,10 +8607,10 @@ class LittersScreenState extends State<LittersScreen> {
                                       children: [
                                         Text(
                                           kit.color.isNotEmpty ? kit.color : 'Unknown',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF37352F),
+                                            color: appColor(0xFF37352F),
                                           ),
                                         ),
                                         const SizedBox(width: 6),
@@ -8523,10 +8630,10 @@ class LittersScreenState extends State<LittersScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       'Birth Mother: ${_getRabbitFullName(litter.doeId, litter.dam)}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Color(0xFF7B6BA0),
+                                        color: appColor(0xFF7B6BA0),
                                       ),
                                     ),
                                   ],
@@ -8538,12 +8645,12 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 18),
 
                         // Section Header
-                        const Text(
+                        Text(
                           'SELECT NURSING FOSTER MOTHER',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -8554,20 +8661,20 @@ class LittersScreenState extends State<LittersScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F2FA),
+                              color: appSurface(0xFFF7F2FA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE8DFFA)),
+                              border: Border.all(color: appSurface(0xFFE8DFFA)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.info_outline_rounded, color: Color(0xFF7B6BA0), size: 22),
+                                Icon(Icons.info_outline_rounded, color: appColor(0xFF7B6BA0), size: 22),
                                 SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     'No active nursing litters found to foster with.',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -8579,12 +8686,12 @@ class LittersScreenState extends State<LittersScreen> {
                           DropdownButtonFormField<String>(
                             value: selectedLitterId,
                             isExpanded: true,
-                            hint: const Text(
+                            hint: Text(
                               'Select Foster Doe / Litter',
-                              style: TextStyle(color: Color(0xFF8E8E93), fontSize: 14),
+                              style: TextStyle(color: appColor(0xFF8E8E93), fontSize: 14),
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7B6BA0)),
-                            dropdownColor: Colors.white,
+                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: appColor(0xFF7B6BA0)),
+                            dropdownColor: kAppCardWhite,
                             items: fosterLitters.map((l) {
                               final fosterDoeName = _getRabbitFullName(l.doeId, l.doeName.isNotEmpty ? l.doeName : l.dam);
                               final shortLitterId = l.id.length > 6 ? l.id.substring(l.id.length - 4) : l.id;
@@ -8595,10 +8702,10 @@ class LittersScreenState extends State<LittersScreen> {
                                 value: l.id,
                                 child: Text(
                                   '$fosterDoeName (Litter #$shortLitterId • $nursingKitsCount kits)',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF37352F),
+                                    color: appColor(0xFF37352F),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -8607,15 +8714,15 @@ class LittersScreenState extends State<LittersScreen> {
                             onChanged: (val) => setModalState(() => selectedLitterId = val),
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                               ),
                             ),
                           ),
@@ -8625,21 +8732,21 @@ class LittersScreenState extends State<LittersScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F2FA),
+                              color: appSurface(0xFFF7F2FA),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFE8DFFA)),
+                              border: Border.all(color: appSurface(0xFFE8DFFA)),
                             ),
-                            child: const Row(
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF7B6BA0)),
+                                Icon(Icons.info_outline_rounded, size: 16, color: appColor(0xFF7B6BA0)),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     'This will transfer the kit to the surrogate doe with a note indicating its birth dam.',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF555555),
+                                      color: appColor(0xFF555555),
                                       height: 1.35,
                                     ),
                                   ),
@@ -8669,17 +8776,17 @@ class LittersScreenState extends State<LittersScreen> {
                               await _handleFosterKits(litter, target, [kit.id]);
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2BFFB),
-                        foregroundColor: const Color(0xFF4A3E6D),
-                        disabledBackgroundColor: const Color(0xFFF2EAF9),
-                        disabledForegroundColor: const Color(0xFFB3A7C2),
+                        backgroundColor: appSurface(0xFFE2BFFB),
+                        foregroundColor: appColor(0xFF4A3E6D),
+                        disabledBackgroundColor: appSurface(0xFFF2EAF9),
+                        disabledForegroundColor: appColor(0xFFB3A7C2),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
                             color: (selectedLitterId == null || fosterLitters.isEmpty)
-                                ? const Color(0xFFE8DFFA)
-                                : const Color(0xFFC9A2EC),
+                                ? appSurface(0xFFE8DFFA)
+                                : appSurface(0xFFC9A2EC),
                             width: 1.2,
                           ),
                         ),
@@ -8723,11 +8830,11 @@ class LittersScreenState extends State<LittersScreen> {
     if (aliveKits.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('No active kits to foster in this litter'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
@@ -8740,7 +8847,7 @@ class LittersScreenState extends State<LittersScreen> {
       context: context,
       isScrollControlled: true,
       enableDrag: false,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         Litter? selectedTarget;
@@ -8761,14 +8868,14 @@ class LittersScreenState extends State<LittersScreen> {
                     child: Container(
                       width: 40,
                       height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(color: appSurface(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Foster Kits', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2C2C2E))),
+                      Text('Foster Kits', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: appColor(0xFF2C2C2E))),
                       IconButton(
                         icon: const Icon(Icons.close, size: 22),
                         onPressed: () => Navigator.pop(ctx),
@@ -8781,9 +8888,9 @@ class LittersScreenState extends State<LittersScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'SELECT KITS TO FOSTER',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF787880), letterSpacing: 0.5),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: appColor(0xFF787880), letterSpacing: 0.5),
                       ),
                       TextButton(
                         onPressed: () {
@@ -8798,7 +8905,7 @@ class LittersScreenState extends State<LittersScreen> {
                         style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 24)),
                         child: Text(
                           selectedKitIds.length == aliveKits.length ? 'Deselect All' : 'Select All (${aliveKits.length})',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: appColor(0xFF7B6BA0)),
                         ),
                       ),
                     ],
@@ -8816,7 +8923,7 @@ class LittersScreenState extends State<LittersScreen> {
                             return CheckboxListTile(
                               value: isChecked,
                               contentPadding: EdgeInsets.zero,
-                              activeColor: const Color(0xFF7B6BA0),
+                              activeColor: appColor(0xFF7B6BA0),
                               onChanged: (v) => setModalState(() {
                                 if (v == true) {
                                   selectedKitIds.add(kit.id);
@@ -8834,17 +8941,17 @@ class LittersScreenState extends State<LittersScreen> {
                             );
                           }),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'FOSTER INTO (SURROGATE DOE)',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF787880), letterSpacing: 0.5),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: appColor(0xFF787880), letterSpacing: 0.5),
                           ),
                           const SizedBox(height: 8),
                           if (candidates.isEmpty)
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(12)),
-                              child: const Text('No other active nursing litters available to foster into.', style: TextStyle(color: Color(0xFF856404), fontSize: 13)),
+                              decoration: BoxDecoration(color: appSurface(0xFFFFF3CD), borderRadius: BorderRadius.circular(12)),
+                              child: Text('No other active nursing litters available to foster into.', style: TextStyle(color: appColor(0xFF856404), fontSize: 13)),
                             )
                           else
                             ...candidates.map((targetLitter) {
@@ -8855,10 +8962,10 @@ class LittersScreenState extends State<LittersScreen> {
                                 value: targetLitter,
                                 groupValue: selectedTarget,
                                 contentPadding: EdgeInsets.zero,
-                                activeColor: const Color(0xFF7B6BA0),
+                                activeColor: appColor(0xFF7B6BA0),
                                 onChanged: (v) => setModalState(() => selectedTarget = v),
                                 title: Text(doeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                subtitle: Text('Litter #$shortLitterId • $count active kits', style: const TextStyle(fontSize: 12, color: Color(0xFF787880))),
+                                subtitle: Text('Litter #$shortLitterId • $count active kits', style: TextStyle(fontSize: 12, color: appColor(0xFF787880))),
                                 dense: true,
                               );
                             }),
@@ -8878,7 +8985,7 @@ class LittersScreenState extends State<LittersScreen> {
                             }
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -8988,7 +9095,7 @@ class LittersScreenState extends State<LittersScreen> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('${kitsToMove.length} kit${kitsToMove.length > 1 ? 's' : ''} fostered to $targetDoeName'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -9076,7 +9183,7 @@ class LittersScreenState extends State<LittersScreen> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('Kit $kitTag deleted'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -9094,66 +9201,114 @@ class LittersScreenState extends State<LittersScreen> {
   void _markKitAsCulled(Litter litter, Kit kit) {
     final TextEditingController reasonController = TextEditingController();
     final kitTag = _getKitDisplayTag(litter, kit);
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
-      builder: (context) => BrightPurpleDialog(
-        title: 'Cull Kit',
-        textAlign: TextAlign.start,
-        contentWidget: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to mark Kit $kitTag as culled?',
-              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: reasonController,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacLight),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => BrightPurpleDialog(
+          title: 'Cull Kit',
+          textAlign: TextAlign.start,
+          contentWidget: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to mark Kit $kitTag as culled?',
+                style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
               ),
-            ),
-          ],
-        ),
-        cancelText: 'Cancel',
-        confirmText: 'Confirm',
-        isDestructive: true,
-        onConfirm: () async {
-          Navigator.pop(context);
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kLilacLight),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: kLilacDeep),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Date: ${FormatUtils.formatDate(selectedDate)}',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                decoration: InputDecoration(
+                  hintText: 'Reason (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kLilacLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kLilacDeep, width: 1.8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+          cancelText: 'Cancel',
+          confirmText: 'Confirm',
+          isDestructive: true,
+          onConfirm: () async {
+            Navigator.pop(context);
 
-          final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-          if (litterIndex != -1) {
-            final currentLitter = litters[litterIndex];
-            final kitsList = _getOrGenerateLitterKits(currentLitter);
-            final targetId = kit.id.trim().toLowerCase();
-            final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-            bool updated = false;
-            final updatedKits = kitsList.map((k) {
-              final kId = k.id.trim().toLowerCase();
-              final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-              final bool isExactId = kId == targetId;
-              final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
-                  (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
-                  kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-              if ((isExactId || isNumericMatch) && !updated) {
-                updated = true;
-                return k.copyWith(
-                  status: 'Cull',
-                  details: reasonController.text.isNotEmpty ? reasonController.text : 'Culled',
-                );
-              }
-              return k;
-            }).toList();
+            final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+            if (litterIndex != -1) {
+              final currentLitter = litters[litterIndex];
+              final kitsList = _getOrGenerateLitterKits(currentLitter);
+              final targetId = kit.id.trim().toLowerCase();
+              final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+              bool updated = false;
+              final dateStr = FormatUtils.formatDate(selectedDate);
+              final updatedKits = kitsList.map((k) {
+                final kId = k.id.trim().toLowerCase();
+                final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                final bool isExactId = kId == targetId;
+                final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                    (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                    kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                if ((isExactId || isNumericMatch) && !updated) {
+                  updated = true;
+                  final bool wasPeanut = _isPeanutKit(currentLitter, k);
+                  final String reasonText = reasonController.text.trim();
+                  String newDetails;
+                  if (wasPeanut) {
+                    newDetails = reasonText.isNotEmpty
+                        ? 'Peanut • $reasonText ($dateStr)'
+                        : 'Peanut ($dateStr)';
+                  } else {
+                    newDetails = reasonText.isNotEmpty
+                        ? '$reasonText ($dateStr)'
+                        : 'Culled ($dateStr)';
+                  }
+                  return k.copyWith(
+                    status: 'Cull',
+                    details: newDetails,
+                  );
+                }
+                return k;
+              }).toList();
 
             final int newAlive = updatedKits.where((k) {
               final s = k.status.toLowerCase().trim();
@@ -9211,79 +9366,126 @@ class LittersScreenState extends State<LittersScreen> {
               SnackBar(
             duration: const Duration(milliseconds: 800),
                 content: Text('Kit $kitTag marked as culled'),
-                backgroundColor: const Color(0xFF7B6BA0),
+                backgroundColor: appSurface(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
               ),
             );
           }
         },
       ),
+    ),
     );
   }
 
   void _markKitAsDied(Litter litter, Kit kit) {
     final TextEditingController reasonController = TextEditingController();
     final kitTag = _getKitDisplayTag(litter, kit);
+    DateTime selectedDate = DateTime.now();
 
     showDialog(
       context: context,
-      builder: (context) => BrightPurpleDialog(
-        title: 'Mark as Died',
-        textAlign: TextAlign.start,
-        contentWidget: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Record cause of death for Kit $kitTag:',
-              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: reasonController,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacLight),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => BrightPurpleDialog(
+          title: 'Mark as Died',
+          textAlign: TextAlign.start,
+          contentWidget: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Record cause of death for Kit $kitTag:',
+                style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
               ),
-            ),
-          ],
-        ),
-        cancelText: 'Cancel',
-        confirmText: 'Confirm',
-        isDestructive: true,
-        onConfirm: () async {
-          Navigator.pop(context);
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kLilacLight),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: kLilacDeep),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Date: ${FormatUtils.formatDate(selectedDate)}',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                decoration: InputDecoration(
+                  hintText: 'Cause of death (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kLilacLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kLilacDeep, width: 1.8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+          cancelText: 'Cancel',
+          confirmText: 'Confirm',
+          isDestructive: true,
+          onConfirm: () async {
+            Navigator.pop(context);
 
-          final litterIndex = litters.indexWhere((l) => l.id == litter.id);
-          if (litterIndex != -1) {
-            final currentLitter = litters[litterIndex];
-            final kitsList = _getOrGenerateLitterKits(currentLitter);
-            final targetId = kit.id.trim().toLowerCase();
-            final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
-            bool updated = false;
-            final updatedKits = kitsList.map((k) {
-              final kId = k.id.trim().toLowerCase();
-              final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
-              final bool isExactId = kId == targetId;
-              final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
-                  (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
-                  kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
-              if ((isExactId || isNumericMatch) && !updated) {
-                updated = true;
-                return k.copyWith(
-                  status: 'Dead',
-                  details: reasonController.text.isNotEmpty ? reasonController.text : 'Deceased',
-                );
-              }
-              return k;
-            }).toList();
+            final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+            if (litterIndex != -1) {
+              final currentLitter = litters[litterIndex];
+              final kitsList = _getOrGenerateLitterKits(currentLitter);
+              final targetId = kit.id.trim().toLowerCase();
+              final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+              bool updated = false;
+              final dateStr = FormatUtils.formatDate(selectedDate);
+              final updatedKits = kitsList.map((k) {
+                final kId = k.id.trim().toLowerCase();
+                final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+                final bool isExactId = kId == targetId;
+                final bool isNumericMatch = (kId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(kId)) &&
+                    (targetId.startsWith('k-') || RegExp(r'^\d+$').hasMatch(targetId)) &&
+                    kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+                if ((isExactId || isNumericMatch) && !updated) {
+                  updated = true;
+                  final bool wasPeanut = _isPeanutKit(currentLitter, k);
+                  final String reasonText = reasonController.text.trim();
+                  String newDetails;
+                  if (wasPeanut) {
+                    newDetails = reasonText.isNotEmpty
+                        ? (reasonText.toLowerCase().contains('peanut') ? '$reasonText ($dateStr)' : 'Peanut • $reasonText ($dateStr)')
+                        : 'Peanut ($dateStr)';
+                  } else {
+                    newDetails = reasonText.isNotEmpty ? '$reasonText ($dateStr)' : 'Deceased ($dateStr)';
+                  }
+                  return k.copyWith(
+                    status: 'Dead',
+                    details: newDetails,
+                  );
+                }
+                return k;
+              }).toList();
 
             final int newAlive = updatedKits.where((k) {
               final s = k.status.toLowerCase().trim();
@@ -9341,13 +9543,14 @@ class LittersScreenState extends State<LittersScreen> {
               SnackBar(
             duration: const Duration(milliseconds: 800),
                 content: Text('Kit $kitTag marked as died'),
-                backgroundColor: const Color(0xFF7B6BA0),
+                backgroundColor: appSurface(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
               ),
             );
           }
         },
       ),
+    ),
     );
   }
 
@@ -9374,7 +9577,7 @@ class LittersScreenState extends State<LittersScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: color == const Color(0xFFD44C47) ? color : const Color(0xFF37352F),
+                color: color == appColor(0xFFD44C47) ? color : appColor(0xFF37352F),
               ),
             ),
           ],
@@ -9406,7 +9609,7 @@ class LittersScreenState extends State<LittersScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: color == const Color(0xFFD44C47) ? color : const Color(0xFF37352F),
+                color: color == appColor(0xFFD44C47) ? color : appColor(0xFF37352F),
               ),
             ),
           ],
@@ -9430,8 +9633,8 @@ class LittersScreenState extends State<LittersScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -9466,7 +9669,7 @@ class LittersScreenState extends State<LittersScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F5),
+                          color: appSurface(0xFFF7F7F5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -9482,17 +9685,17 @@ class LittersScreenState extends State<LittersScreen> {
                             const SizedBox(height: 8),
                             Text(
                               '${litter.dam} × ${litter.sire}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Born: ${_formatDate(litter.dob)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                           ],
@@ -9501,12 +9704,12 @@ class LittersScreenState extends State<LittersScreen> {
                       const SizedBox(height: 20),
 
                       // Wean mode toggle
-                      const Text(
+                      Text(
                         'WEAN MODE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -9522,9 +9725,9 @@ class LittersScreenState extends State<LittersScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: weanAll ? const Color(0xFFF0ECFE) : Colors.white,
+                                  color: weanAll ? appSurface(0xFFF0ECFE) : kAppCardWhite,
                                   border: Border.all(
-                                    color: weanAll ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                                    color: weanAll ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -9534,7 +9737,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: weanAll ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                      color: weanAll ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
                                     ),
                                   ),
                                 ),
@@ -9551,9 +9754,9 @@ class LittersScreenState extends State<LittersScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: !weanAll ? const Color(0xFFF0ECFE) : Colors.white,
+                                  color: !weanAll ? appSurface(0xFFF0ECFE) : kAppCardWhite,
                                   border: Border.all(
-                                    color: !weanAll ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                                    color: !weanAll ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -9563,7 +9766,7 @@ class LittersScreenState extends State<LittersScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: !weanAll ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                                      color: !weanAll ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
                                     ),
                                   ),
                                 ),
@@ -9581,10 +9784,10 @@ class LittersScreenState extends State<LittersScreen> {
                           children: [
                             Text(
                               'SELECT KITS TO WEAN (${selectedKitIds.length}/${nursingKits.length})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -9598,10 +9801,10 @@ class LittersScreenState extends State<LittersScreen> {
                               }),
                               child: Text(
                                 selectedKitIds.length == nursingKits.length ? 'Deselect All' : 'Select All',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ),
                             ),
@@ -9610,7 +9813,7 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFE9E9E7)),
+                            border: Border.all(color: appSurface(0xFFE9E9E7)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Column(
@@ -9629,8 +9832,8 @@ class LittersScreenState extends State<LittersScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFFFDF3E8) : Colors.white,
-                                    border: idx < nursingKits.length - 1 ? const Border(bottom: BorderSide(color: Color(0xFFF0F0EE))) : null,
+                                    color: isSelected ? appSurface(0xFFFDF3E8) : Colors.white,
+                                    border: idx < nursingKits.length - 1 ? Border(bottom: BorderSide(color: appSurface(0xFFF0F0EE))) : null,
                                     borderRadius: idx == 0
                                         ? const BorderRadius.vertical(top: Radius.circular(10))
                                         : idx == nursingKits.length - 1
@@ -9643,9 +9846,9 @@ class LittersScreenState extends State<LittersScreen> {
                                         width: 20,
                                         height: 20,
                                         decoration: BoxDecoration(
-                                          color: isSelected ? const Color(0xFF7B6BA0) : Colors.transparent,
+                                          color: isSelected ? appSurface(0xFF7B6BA0) : Colors.transparent,
                                           border: Border.all(
-                                            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF9B9A97),
+                                            color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFF9B9A97),
                                             width: 1.5,
                                           ),
                                           borderRadius: BorderRadius.circular(4),
@@ -9659,10 +9862,10 @@ class LittersScreenState extends State<LittersScreen> {
                                         height: 32,
                                         decoration: BoxDecoration(
                                           color: kit.sex == 'M'
-                                              ? const Color(0xFFEBF8FF)
+                                              ? appSurface(0xFFEBF8FF)
                                               : kit.sex == 'F'
-                                                  ? const Color(0xFFFFF0F5)
-                                                  : const Color(0xFFF7F7F5),
+                                                  ? appSurface(0xFFFFF0F5)
+                                                  : appSurface(0xFFF7F7F5),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Center(
@@ -9670,10 +9873,10 @@ class LittersScreenState extends State<LittersScreen> {
                                             Icons.pets,
                                             size: 16,
                                             color: kit.sex == 'M'
-                                                ? const Color(0xFF2E7BB5)
+                                                ? appColor(0xFF2E7BB5)
                                                 : kit.sex == 'F'
-                                                    ? const Color(0xFF9C6ADE)
-                                                    : const Color(0xFF787774),
+                                                    ? appColor(0xFF9C6ADE)
+                                                    : appColor(0xFF787774),
                                           ),
                                         ),
                                       ),
@@ -9691,9 +9894,9 @@ class LittersScreenState extends State<LittersScreen> {
                                             ),
                                             Text(
                                               '${kit.sex == 'M' ? 'Male' : kit.sex == 'F' ? 'Female' : 'Unknown'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 12,
-                                                color: Color(0xFF787774),
+                                                color: appColor(0xFF787774),
                                               ),
                                             ),
                                           ],
@@ -9710,12 +9913,12 @@ class LittersScreenState extends State<LittersScreen> {
                       ],
 
                       // Wean date
-                      const Text(
+                      Text(
                         'WEAN DATE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -9738,7 +9941,7 @@ class LittersScreenState extends State<LittersScreen> {
                             vertical: 14,
                           ),
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFE0E0E0)),
+                            border: Border.all(color: appSurface(0xFFE0E0E0)),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -9748,10 +9951,10 @@ class LittersScreenState extends State<LittersScreen> {
                                 _formatDate(selectedDate),
                                 style: const TextStyle(fontSize: 14),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.calendar_today,
                                 size: 18,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ],
                           ),
@@ -9761,23 +9964,23 @@ class LittersScreenState extends State<LittersScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F2F1),
+                          color: appSurface(0xFFE0F2F1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.info_outline,
                               size: 16,
-                              color: Color(0xFF7B6BA0),
+                              color: appColor(0xFF7B6BA0),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 weanAll ? 'All ${nursingKits.length} nursing kits will be moved to "Weaned" stage' : '${selectedKitIds.length} selected kit${selectedKitIds.length == 1 ? '' : 's'} will be moved to "Weaned" stage',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ),
                             ),
@@ -9825,7 +10028,7 @@ class LittersScreenState extends State<LittersScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('${selectedKitIds.length} kit${selectedKitIds.length == 1 ? '' : 's'} weaned successfully'),
-                                  backgroundColor: const Color(0xFF7B6BA0),
+                                  backgroundColor: appSurface(0xFF7B6BA0),
                                   behavior: SnackBarBehavior.floating,
                                   duration: const Duration(milliseconds: 800),
                                 ),
@@ -9833,8 +10036,8 @@ class LittersScreenState extends State<LittersScreen> {
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B6BA0),
-                      disabledBackgroundColor: const Color(0xFFE9E9E7),
+                      backgroundColor: appSurface(0xFF7B6BA0),
+                      disabledBackgroundColor: appSurface(0xFFE9E9E7),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -9865,8 +10068,8 @@ class LittersScreenState extends State<LittersScreen> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -9897,12 +10100,12 @@ class LittersScreenState extends State<LittersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'TYPE',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
+                        color: appColor(0xFF787774),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -9914,8 +10117,8 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -9930,12 +10133,12 @@ class LittersScreenState extends State<LittersScreen> {
                       onChanged: (value) {},
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'CONDITION / ISSUE',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
+                        color: appColor(0xFF787774),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -9957,8 +10160,8 @@ class LittersScreenState extends State<LittersScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF7B6BA0),
+                              borderSide: BorderSide(
+                                color: appSurface(0xFF7B6BA0),
                                 width: 2,
                               ),
                             ),
@@ -9967,12 +10170,12 @@ class LittersScreenState extends State<LittersScreen> {
                       },
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'NOTES',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
+                        color: appColor(0xFF787774),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -9986,8 +10189,8 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -10005,16 +10208,16 @@ class LittersScreenState extends State<LittersScreen> {
                   onPressed: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
             duration: const Duration(milliseconds: 800),
                         content: Text('Health record added'),
-                        backgroundColor: Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B6BA0),
+                    backgroundColor: appSurface(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -10046,8 +10249,8 @@ class LittersScreenState extends State<LittersScreen> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.65,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -10081,17 +10284,17 @@ class LittersScreenState extends State<LittersScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F7F5),
+                        color: appSurface(0xFFF7F7F5),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Kits Alive',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF787774),
+                              color: appColor(0xFF787774),
                             ),
                           ),
                           Text(
@@ -10105,12 +10308,12 @@ class LittersScreenState extends State<LittersScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'TOTAL WEIGHT',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF787774),
+                        color: appColor(0xFF787774),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -10126,8 +10329,8 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 2,
                           ),
                         ),
@@ -10137,15 +10340,15 @@ class LittersScreenState extends State<LittersScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
+                        color: appSurface(0xFFE0F2F1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(
                             Icons.calculate,
                             size: 16,
-                            color: Color(0xFF7B6BA0),
+                            color: appColor(0xFF7B6BA0),
                           ),
                           SizedBox(width: 12),
                           Expanded(
@@ -10153,7 +10356,7 @@ class LittersScreenState extends State<LittersScreen> {
                               'Average per kit will be calculated automatically',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF7B6BA0),
+                                color: appColor(0xFF7B6BA0),
                               ),
                             ),
                           ),
@@ -10172,16 +10375,16 @@ class LittersScreenState extends State<LittersScreen> {
                   onPressed: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
             duration: const Duration(milliseconds: 800),
                         content: Text('Weight recorded successfully'),
-                        backgroundColor: Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B6BA0),
+                    backgroundColor: appSurface(0xFF7B6BA0),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -10226,8 +10429,8 @@ class LittersScreenState extends State<LittersScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(20),
             ),
@@ -10260,12 +10463,12 @@ class LittersScreenState extends State<LittersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'LOCATION',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -10278,8 +10481,8 @@ class LittersScreenState extends State<LittersScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF7B6BA0),
+                            borderSide: BorderSide(
+                              color: appSurface(0xFF7B6BA0),
                               width: 2,
                             ),
                           ),
@@ -10309,12 +10512,12 @@ class LittersScreenState extends State<LittersScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         'CAGE',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -10329,8 +10532,8 @@ class LittersScreenState extends State<LittersScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF7B6BA0),
+                                  borderSide: BorderSide(
+                                    color: appSurface(0xFF7B6BA0),
                                     width: 2,
                                   ),
                                 ),
@@ -10355,8 +10558,8 @@ class LittersScreenState extends State<LittersScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF7B6BA0),
+                                  borderSide: BorderSide(
+                                    color: appSurface(0xFF7B6BA0),
                                     width: 2,
                                   ),
                                 ),
@@ -10394,17 +10597,17 @@ class LittersScreenState extends State<LittersScreen> {
 
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
             duration: const Duration(milliseconds: 800),
                             content: Text('Cage moved successfully'),
-                            backgroundColor: Color(0xFF7B6BA0),
+                            backgroundColor: appSurface(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B6BA0),
+                      backgroundColor: appSurface(0xFF7B6BA0),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -10430,10 +10633,10 @@ class LittersScreenState extends State<LittersScreen> {
 
   void _printCageCard(Litter litter) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
             duration: const Duration(milliseconds: 800),
         content: Text('ÃƒÂ°Ã…Â¸â‚¬â€œÂ¨ÃƒÂ¯Â¸Â Printing cage card...'),
-        backgroundColor: Color(0xFF7B6BA0),
+        backgroundColor: appSurface(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -10458,10 +10661,10 @@ class LittersScreenState extends State<LittersScreen> {
                 await _refreshLitters();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
             duration: const Duration(milliseconds: 800),
                       content: Text('Litter deleted'),
-                      backgroundColor: Color(0xFFD44C47),
+                      backgroundColor: appSurface(0xFFD44C47),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -10479,7 +10682,7 @@ class LittersScreenState extends State<LittersScreen> {
                 }
               }
             },
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFD44C47)),
+            style: TextButton.styleFrom(foregroundColor: appColor(0xFFD44C47)),
             child: const Text('Delete'),
           ),
         ],
@@ -10500,7 +10703,7 @@ class LittersScreenState extends State<LittersScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(20),
           ),
@@ -10524,9 +10727,9 @@ class LittersScreenState extends State<LittersScreen> {
                       ),
                       Text(
                         kit.status,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                         ),
                       ),
                     ],
@@ -10588,7 +10791,7 @@ class LittersScreenState extends State<LittersScreen> {
                       SnackBar(
             duration: const Duration(milliseconds: 800),
                         content: Text('Kit restored to $restoredStatus'),
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -10609,10 +10812,10 @@ class LittersScreenState extends State<LittersScreen> {
                     }
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
             duration: const Duration(milliseconds: 800),
                       content: Text('Kit deleted'),
-                      backgroundColor: Color(0xFFD44C47),
+                      backgroundColor: appSurface(0xFFD44C47),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -10652,9 +10855,9 @@ class LittersScreenState extends State<LittersScreen> {
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text('Kit weaned'),
-                          backgroundColor: Color(0xFF7B6BA0),
+                          backgroundColor: appSurface(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
                           duration: Duration(milliseconds: 800),
                         ),
@@ -10674,7 +10877,7 @@ class LittersScreenState extends State<LittersScreen> {
                       barrierDismissible: false,
                       builder: (context) => Center(
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7B6BA0)),
+                          valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF7B6BA0)),
                         ),
                       ),
                     );
@@ -10699,10 +10902,10 @@ class LittersScreenState extends State<LittersScreen> {
                         Navigator.pop(context);
 
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
             duration: const Duration(milliseconds: 800),
                             content: Text('Kit moved to grow out'),
-                            backgroundColor: Color(0xFF7B6BA0),
+                            backgroundColor: appSurface(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -10865,7 +11068,7 @@ class LittersScreenState extends State<LittersScreen> {
                         ? Color(
                             0xFF7B6BA0,
                           )
-                        : Colors.black87),
+                        : appColor(0xDD000000, 0xFFF1F3F9)),
                 fontWeight: isPrimary ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -10920,7 +11123,7 @@ class LittersScreenState extends State<LittersScreen> {
               width: MediaQuery.of(context).size.width * 0.85,
               height: MediaQuery.of(context).size.height,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.3),
@@ -10936,9 +11139,9 @@ class LittersScreenState extends State<LittersScreen> {
                       // Header
                       Container(
                         padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF7F7F5),
-                          border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+                        decoration: BoxDecoration(
+                          color: appSurface(0xFFF7F7F5),
+                          border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -10951,25 +11154,25 @@ class LittersScreenState extends State<LittersScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: const Color(0xFF7B6BA0), size: 20),
+                                        Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: appColor(0xFF7B6BA0), size: 20),
                                         const SizedBox(width: 8),
-                                        const Text(
+                                        Text(
                                           'BARN & CAGES',
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF787774),
+                                            color: appColor(0xFF787774),
                                             letterSpacing: 0.5,
                                           ),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
-                                    const Text(
+                                    Text(
                                       'Manage your layout',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF9B9A97),
+                                        color: appColor(0xFF9B9A97),
                                       ),
                                     ),
                                   ],
@@ -10983,9 +11186,9 @@ class LittersScreenState extends State<LittersScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: _isBarnEditMode ? const Color(0xFF7B6BA0) : Colors.white,
+                                      color: _isBarnEditMode ? appSurface(0xFF7B6BA0) : kAppCardWhite,
                                       border: Border.all(
-                                        color: _isBarnEditMode ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                                        color: _isBarnEditMode ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
                                       ),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
@@ -10997,14 +11200,14 @@ class LittersScreenState extends State<LittersScreen> {
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: _isBarnEditMode ? Colors.white : Colors.black87,
+                                            color: _isBarnEditMode ? Colors.white : appColor(0xDD000000, 0xFFF1F3F9),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Icon(
                                           _isBarnEditMode ? Icons.check : Icons.edit,
                                           size: 16,
-                                          color: _isBarnEditMode ? Colors.white : Colors.black87,
+                                          color: _isBarnEditMode ? Colors.white : appColor(0xDD000000, 0xFFF1F3F9),
                                         ),
                                       ],
                                     ),
@@ -11044,7 +11247,7 @@ class LittersScreenState extends State<LittersScreen> {
                               ),
                               Container(
                                 height: 1,
-                                color: const Color(0xFFE9E9E7),
+                                color: appSurface(0xFFE9E9E7),
                                 margin: const EdgeInsets.symmetric(vertical: 12),
                               ),
                             ],
@@ -11060,20 +11263,20 @@ class LittersScreenState extends State<LittersScreen> {
                       if (_isBarnEditMode)
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            border: Border(top: BorderSide(color: Color(0xFFE9E9E7))),
+                          decoration: BoxDecoration(
+                            color: kAppCardWhite,
+                            border: Border(top: BorderSide(color: appSurface(0xFFE9E9E7))),
                           ),
                           child: ElevatedButton(
                             onPressed: () => _addBarn(setModalState),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEDE9FE),
-                              foregroundColor: const Color(0xFF7B6BA0),
+                              backgroundColor: appSurface(0xFFEDE9FE),
+                              foregroundColor: appColor(0xFF7B6BA0),
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                                side: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                               ),
                             ),
                             child: const Row(
@@ -11126,16 +11329,16 @@ class LittersScreenState extends State<LittersScreen> {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFEDE9FE) : Colors.transparent,
+          color: isActive ? appSurface(0xFFEDE9FE) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: isActive ? Border.all(color: const Color(0xFF7B6BA0)) : Border.all(color: Colors.transparent),
+          border: isActive ? Border.all(color: appSurface(0xFF7B6BA0)) : Border.all(color: Colors.transparent),
         ),
         child: Row(
           children: [
             Icon(
               icon,
               size: 20,
-              color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF7B6BA0) : const Color(0xFF787774)),
+              color: isWarning ? appColor(0xFFD97706) : (isActive ? appColor(0xFF7B6BA0) : appColor(0xFF787774)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -11144,16 +11347,16 @@ class LittersScreenState extends State<LittersScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isWarning ? const Color(0xFFD97706) : (isActive ? const Color(0xFF7B6BA0) : Colors.black87),
+                  color: isWarning ? appColor(0xFFD97706) : (isActive ? appColor(0xFF7B6BA0) : appColor(0xDD000000, 0xFFF1F3F9)),
                 ),
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isActive ? Colors.white : const Color(0xFFF7F7F5),
+                color: isActive ? kAppCardWhite : appSurface(0xFFF7F7F5),
                 border: Border.all(
-                  color: isActive ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+                  color: isActive ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -11162,7 +11365,7 @@ class LittersScreenState extends State<LittersScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? const Color(0xFF7B6BA0) : const Color(0xFF787774),
+                  color: isActive ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
                 ),
               ),
             ),
@@ -11180,7 +11383,7 @@ class LittersScreenState extends State<LittersScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           margin: const EdgeInsets.only(top: 16, bottom: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFEDE9FE),
+            color: appSurface(0xFFEDE9FE),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -11189,17 +11392,17 @@ class LittersScreenState extends State<LittersScreen> {
               Expanded(
                 child: Text(
                   barn.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF37352F),
+                    color: appColor(0xFF37352F),
                     letterSpacing: 0.5,
                   ),
                 ),
               ),
               if (_isBarnEditMode && _countLittersInBarn(barn) == 0)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9B9A97)),
+                  icon: Icon(Icons.delete_outline, size: 18, color: appColor(0xFF9B9A97)),
                   onPressed: () => _deleteBarn(barn, setModalState),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -11211,8 +11414,8 @@ class LittersScreenState extends State<LittersScreen> {
           return Container(
             margin: const EdgeInsets.only(left: 10, bottom: 6),
             padding: const EdgeInsets.only(left: 12),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: Color(0xFFE9E9E7), width: 2)),
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: appSurface(0xFFE9E9E7), width: 2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -11230,7 +11433,7 @@ class LittersScreenState extends State<LittersScreen> {
                         ),
                         if (_countLittersInLocation(row.name) == 0)
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFF9B9A97)),
+                            icon: Icon(Icons.delete_outline, size: 16, color: appColor(0xFF9B9A97)),
                             onPressed: () => _deleteRow(barn, row, setModalState),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -11255,27 +11458,27 @@ class LittersScreenState extends State<LittersScreen> {
                     return Container(
                       margin: const EdgeInsets.only(left: 10, top: 4, bottom: 4),
                       padding: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
-                      decoration: const BoxDecoration(
-                        border: Border(left: BorderSide(color: Color(0xFFE9E9E7), width: 2)),
+                      decoration: BoxDecoration(
+                        border: Border(left: BorderSide(color: appSurface(0xFFE9E9E7), width: 2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             cage,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                            style: TextStyle(fontSize: 14, color: appColor(0xFF787774)),
                           ),
                           if (cageCount == 0)
                             IconButton(
-                              icon: const Icon(Icons.close, size: 14, color: Color(0xFF9B9A97)),
+                              icon: Icon(Icons.close, size: 14, color: appColor(0xFF9B9A97)),
                               onPressed: () => _deleteCage(barn, row, cage, setModalState),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                             )
                           else
-                            const Text(
+                            Text(
                               'Occupied',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF9B9A97)),
+                              style: TextStyle(fontSize: 11, color: appColor(0xFF9B9A97)),
                             ),
                         ],
                       ),
@@ -11289,21 +11492,21 @@ class LittersScreenState extends State<LittersScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFF7B6BA0)),
+                          color: kAppCardWhite,
+                          border: Border.all(color: appSurface(0xFF7B6BA0)),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add, size: 14, color: Color(0xFF7B6BA0)),
+                            Icon(Icons.add, size: 14, color: appColor(0xFF7B6BA0)),
                             SizedBox(width: 4),
                             Text(
                               'Add Cage',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF7B6BA0),
+                                color: appColor(0xFF7B6BA0),
                               ),
                             ),
                           ],
@@ -11323,21 +11526,21 @@ class LittersScreenState extends State<LittersScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFF7B6BA0)),
+                  color: kAppCardWhite,
+                  border: Border.all(color: appSurface(0xFF7B6BA0)),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add, size: 14, color: Color(0xFF7B6BA0)),
+                    Icon(Icons.add, size: 14, color: appColor(0xFF7B6BA0)),
                     SizedBox(width: 4),
                     Text(
                       'Add Row',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF7B6BA0),
+                        color: appColor(0xFF7B6BA0),
                       ),
                     ),
                   ],
@@ -11541,7 +11744,7 @@ class LittersScreenState extends State<LittersScreen> {
                 horizontal: 20,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(
                   12,
                 ),
@@ -11761,7 +11964,7 @@ class LittersScreenState extends State<LittersScreen> {
                 ? Color(
                     0xFF7B6BA0,
                   )
-                : Colors.black87,
+                : appColor(0xDD000000, 0xFFF1F3F9),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -11787,10 +11990,10 @@ class LittersScreenState extends State<LittersScreen> {
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
             duration: const Duration(milliseconds: 800),
           content: Text('Litter added successfully'),
-          backgroundColor: Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -11987,8 +12190,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -12002,8 +12205,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -12017,8 +12220,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -12052,15 +12255,15 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: label,
-                  labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                  labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                   floatingLabelStyle: TextStyle(
-                    color: hasError ? Colors.red : const Color(0xFF4F4F56),
+                    color: hasError ? Colors.red : appColor(0xFF4F4F56),
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                   floatingLabelBehavior: FloatingLabelBehavior.always,
                   prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
-                  suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+                  suffixIcon: Icon(Icons.arrow_drop_down, color: appColor(0xFF4F4F56)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -12068,16 +12271,16 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: kAppCardWhite,
                 ),
                 child: selectedRabbit != null
                     ? _buildRabbitNameWidget(selectedRabbit, fontSize: 14.5)
                     : Text(
                         label.startsWith('Select ') ? label : 'Select $label',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w400,
                           color: kNeutral400,
@@ -12120,20 +12323,20 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       minLines: minLines ?? (isMulti ? 2 : null),
       onChanged: onChanged,
       validator: validator,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         hintText: hint,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 14),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
+        hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 14),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: appColor(0xFF4F4F56), size: 18) : null,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }
@@ -12148,14 +12351,14 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -12166,13 +12369,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                 style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
-                  color: value != null ? const Color(0xFF787774) : const Color(0xFFA0A0A0),
+                  color: value != null ? appColor(0xFF787774) : appColor(0xFFA0A0A0),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF787774), size: 16),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF787774), size: 16),
           ],
         ),
       ),
@@ -12223,34 +12426,37 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     return await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+      builder: (ctx) => BrightPurpleDialog(
+        titleWidget: const Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
             SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Pregnancy Collision',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
           ],
         ),
-        content: Text(
-          message,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF4F4F56), height: 1.4),
-        ),
+        content: message,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Change Dates', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0))),
+            child: Text('Change Dates', style: TextStyle(fontWeight: FontWeight.w600, color: appColor(0xFF7B6BA0))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
             child: const Text('Proceed Anyway', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
@@ -12266,12 +12472,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7B6BA0),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF7B6BA0),
               onPrimary: Colors.white,
-              onSurface: Color(0xFF333333),
+              onSurface: appColor(0xFF333333),
             ),
           ),
           child: child!,
@@ -12314,12 +12521,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7B6BA0),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF7B6BA0),
               onPrimary: Colors.white,
-              onSurface: Color(0xFF333333),
+              onSurface: appColor(0xFF333333),
             ),
           ),
           child: child!,
@@ -12372,8 +12580,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -12381,8 +12589,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           // Header matching Log Breeding & Log Birth Purple Theme
           Container(
             padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE6BEFE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -12393,7 +12601,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -12401,12 +12609,12 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Add Past Litter',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                       ),
                     ),
                     GestureDetector(
@@ -12414,10 +12622,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
+                          color: kAppCardWhite.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -12428,10 +12636,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
 
           // Body
           if (_isLoading)
-            const Expanded(
+            Expanded(
               child: Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7B6BA0)),
+                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF7B6BA0)),
                 ),
               ),
             )
@@ -12459,13 +12667,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           ? Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFF3CD),
+                                color: appSurface(0xFFFFF3CD),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFFE58F)),
+                                border: Border.all(color: appSurface(0xFFFFE58F)),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'No does available. Please add a doe first.',
-                                style: TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
+                                style: TextStyle(color: appColor(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                             )
                           : _buildRabbitSelectorField(
@@ -12473,7 +12681,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                               selectedRabbit: selectedDoe,
                               onTap: _pickDoe,
                               prefixIcon: Icons.female_rounded,
-                              prefixColor: const Color(0xFFE04F9F),
+                              prefixColor: appColor(0xFFE04F9F),
                               validator: (_) => _selectedDoeId == null ? 'Please select a doe' : null,
                             ),
                       const SizedBox(height: 14),
@@ -12483,13 +12691,13 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                           ? Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFF3CD),
+                                color: appSurface(0xFFFFF3CD),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFFE58F)),
+                                border: Border.all(color: appSurface(0xFFFFE58F)),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'No bucks available. Please add a buck first.',
-                                style: TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
+                                style: TextStyle(color: appColor(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                             )
                           : _buildRabbitSelectorField(
@@ -12497,7 +12705,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                               selectedRabbit: selectedBuck,
                               onTap: _pickBuck,
                               prefixIcon: Icons.male_rounded,
-                              prefixColor: const Color(0xFF2196F3),
+                              prefixColor: appColor(0xFF2196F3),
                               validator: (_) => _selectedBuckId == null ? 'Please select a buck' : null,
                             ),
                       const SizedBox(height: 14),
@@ -12601,10 +12809,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                           decoration: BoxDecoration(
-                            color: _isMissedLitter ? const Color(0xFFE0F2FE) : kLilacWash,
+                            color: _isMissedLitter ? appSurface(0xFFE0F2FE) : kLilacWash,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isMissedLitter ? const Color(0xFF86DAFF) : kLilacLight,
+                              color: _isMissedLitter ? appSurface(0xFF86DAFF) : kLilacLight,
                               width: 1.2,
                             ),
                           ),
@@ -12619,15 +12827,15 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      color: _isMissedLitter ? const Color(0xFF0369A1) : kLilacText,
+                                      color: _isMissedLitter ? appColor(0xFF0369A1) : kLilacText,
                                     ),
                                   ),
                                   if (_isMissedLitter)
-                                    const Padding(
+                                    Padding(
                                       padding: EdgeInsets.only(top: 2),
                                       child: Text(
                                         'Doe did not conceive. Status will reset to Open.',
-                                        style: TextStyle(fontSize: 11, color: Color(0xFF0284C7), fontWeight: FontWeight.w500),
+                                        style: TextStyle(fontSize: 11, color: appColor(0xFF0284C7), fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                 ],
@@ -12637,10 +12845,10 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                 width: 44,
                                 height: 24,
                                 decoration: BoxDecoration(
-                                  color: _isMissedLitter ? const Color(0xFF0284C7) : Colors.white,
+                                  color: _isMissedLitter ? appSurface(0xFF0284C7) : kAppCardWhite,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: _isMissedLitter ? const Color(0xFF0284C7) : const Color(0xFFC7C7CC),
+                                    color: _isMissedLitter ? appSurface(0xFF0284C7) : appSurface(0xFFC7C7CC),
                                     width: 1.5,
                                   ),
                                 ),
@@ -12654,8 +12862,8 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                         child: Container(
                                           width: 18,
                                           height: 18,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
+                                          decoration: BoxDecoration(
+                                            color: kAppCardWhite,
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))
@@ -12690,14 +12898,14 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                               value: _selectedLocation,
                               decoration: InputDecoration(
                                 labelText: 'Location',
-                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: kAppCardWhite,
                               ),
                               items: widget.barns
                                   .expand((barn) => barn.rows.map((row) {
@@ -12731,14 +12939,14 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                     value: _selectedCage,
                                     decoration: InputDecoration(
                                       labelText: 'Cage',
-                                      labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                      floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                       floatingLabelBehavior: FloatingLabelBehavior.always,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                     ),
                                     items: _availableCages.map((cage) {
                                       return DropdownMenuItem<String>(
@@ -12754,14 +12962,14 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
                                     initialValue: _selectedCage,
                                     decoration: InputDecoration(
                                       labelText: 'Cage',
-                                      labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                      floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                       floatingLabelBehavior: FloatingLabelBehavior.always,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                     ),
                                     onChanged: (value) => _selectedCage = value,
                                   ),
@@ -12778,35 +12986,35 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           // Footer Button
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0xFFE9E9E7))),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: appSurface(0xFFE9E9E7))),
             ),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveLitter,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6BEFE),
+                  backgroundColor: appSurface(0xFFE6BEFE),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C2C2E)),
+                          valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF2C2C2E)),
                         ),
                       )
                     : Text(
                         _isMissedLitter ? 'Log Missed Litter' : 'Add Past Litter',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
               ),
@@ -12894,12 +13102,14 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
         } else if (index < doesCount + bucksCount) {
           sex = 'M';
         }
+        final bool isPeanutKit = peanutsCount > 0 && index >= (aliveKits - peanutsCount).clamp(0, aliveKits);
         return Kit(
           id: 'K-${index + 1}',
           sex: sex,
           color: 'Unknown',
           weight: 0.0,
           status: kitStatus,
+          details: isPeanutKit ? 'Peanut' : null,
         );
       });
 
@@ -13011,7 +13221,7 @@ class _AddLitterSheetState extends State<AddLitterSheet> {
           SnackBar(
             duration: const Duration(milliseconds: 800),
             content: Text('Error: $e'),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
       }
@@ -13125,8 +13335,8 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -13142,9 +13352,9 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Add Profile Picture',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF2E2D32)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: appColor(0xFF2E2D32)),
             ),
             const SizedBox(height: 12),
             _buildPhotoOption(
@@ -13194,7 +13404,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
           children: [
             Icon(
               icon,
-              color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774),
+              color: isDestructive ? appColor(0xFFD44C47) : appColor(0xFF787774),
               size: 22,
             ),
             const SizedBox(width: 14),
@@ -13203,7 +13413,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF2E2D32),
+                color: isDestructive ? appColor(0xFFD44C47) : appColor(0xFF2E2D32),
               ),
             ),
           ],
@@ -13217,21 +13427,21 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       labelText: label,
       floatingLabelBehavior: FloatingLabelBehavior.always,
       filled: true,
-      fillColor: Colors.white,
-      labelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
-      floatingLabelStyle: const TextStyle(fontSize: 17, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+      fillColor: kAppCardWhite,
+      labelStyle: TextStyle(fontSize: 17, color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600),
+      floatingLabelStyle: TextStyle(fontSize: 17, color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+        borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+        borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+        borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
       ),
     );
   }
@@ -13247,16 +13457,16 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       if (litterIndex != -1) {
         final currentLitter = litters[litterIndex];
         List<Kit> kitsList = List<Kit>.from(currentLitter.kits);
-        if (kitsList.isEmpty) {
+        if (kitsList.isEmpty && currentLitter.missedLitter != true) {
           final count = (currentLitter.aliveKits != null && currentLitter.aliveKits! > 0)
               ? currentLitter.aliveKits!
               : ((currentLitter.totalKits != null && currentLitter.totalKits! > 0)
                   ? currentLitter.totalKits!
-                  : 1);
+                  : 0);
           kitsList = List.generate(
             count,
             (i) => Kit(
-              id: 'K-',
+              id: 'K-${i + 1}',
               sex: 'U',
               color: 'Unknown',
               weight: 0.0,
@@ -13365,9 +13575,9 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Kit details updated'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
             duration: Duration(milliseconds: 800),
           ),
@@ -13392,8 +13602,8 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
-          border: Border.all(color: isSelected ? activeColor : const Color(0xFFC7C7CC)),
+          color: isSelected ? activeColor : kAppCardWhite,
+          border: Border.all(color: isSelected ? activeColor : appSurface(0xFFC7C7CC)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -13402,7 +13612,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             if (icon != null) ...[
               Icon(
                 icon,
-                color: isSelected ? Colors.white : const Color(0xFF4F4F56),
+                color: isSelected ? Colors.white : appColor(0xFF4F4F56),
                 size: 18,
               ),
               const SizedBox(width: 6),
@@ -13412,7 +13622,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF4F4F56),
+                color: isSelected ? Colors.white : appColor(0xFF4F4F56),
               ),
             ),
           ],
@@ -13424,22 +13634,22 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final Color saveColor = _selectedSex == 'F'
-        ? const Color(0xFFEC4899)
-        : (_selectedSex == 'M' ? const Color(0xFF2E7BB5) : const Color(0xFF7B6BA0));
+        ? appColor(0xFFEC4899)
+        : (_selectedSex == 'M' ? appColor(0xFF2E7BB5) : appColor(0xFF7B6BA0));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1ECF7), // Purple page background matching Add New Rabbit
+      backgroundColor: appSurface(0xFFF1ECF7), // Purple page background matching Add New Rabbit
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE6BEFE), // Top bar purple matching Add New Rabbit
+        backgroundColor: appSurface(0xFFE6BEFE), // Top bar purple matching Add New Rabbit
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF4F4F56)),
+          icon: Icon(Icons.close, color: appColor(0xFF4F4F56)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Edit Kit Details',
-          style: TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 18),
+          style: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 18),
         ),
         actions: [
           TextButton(
@@ -13463,11 +13673,11 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
             // 1. Gender Selection (Buck / Doe / Unsexed) - Unsexed without logo to prevent overflow
             Row(
               children: [
-                Expanded(child: _buildSexOption('M', 'Buck', Icons.male, const Color(0xFF2E7BB5))),
+                Expanded(child: _buildSexOption('M', 'Buck', Icons.male, appColor(0xFF2E7BB5))),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSexOption('F', 'Doe', Icons.female, const Color(0xFFEC4899))),
+                Expanded(child: _buildSexOption('F', 'Doe', Icons.female, appColor(0xFFEC4899))),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSexOption('U', 'Unsexed', null, const Color(0xFF7B6BA0))),
+                Expanded(child: _buildSexOption('U', 'Unsexed', null, appColor(0xFF7B6BA0))),
               ],
             ),
             const SizedBox(height: 20),
@@ -13480,12 +13690,12 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                     onTap: _showImagePickerOptions,
                     child: Stack(
                       children: [
-                        Container(
+                        DarkModeGuard(child: Container(
                           width: 100,
                           height: 100,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFFF7F7F5),
+                            color: appSurface(0xFFF7F7F5),
                             border: Border.all(
                               color: saveColor,
                               width: 3,
@@ -13506,7 +13716,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                                   color: saveColor,
                                  )
                               : null,
-                        ),
+                        )),
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -13552,7 +13762,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
               style: const TextStyle(fontSize: 17),
               decoration: _buildInputDecoration('Name').copyWith(
                 hintText: 'Enter name for Birth Certificate / Pedigree',
-                hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCBC8)),
+                hintStyle: TextStyle(fontSize: 15, color: appColor(0xFFCCCBC8)),
               ),
             ),
             const SizedBox(height: 12),
@@ -13580,7 +13790,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                       decoration: _buildInputDecoration('Color').copyWith(
                         suffixIcon: controller.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.close, size: 18, color: Color(0xFF8E8E93)),
+                                icon: Icon(Icons.close, size: 18, color: appColor(0xFF8E8E93)),
                                 splashRadius: 18,
                                 onPressed: () {
                                   controller.clear();
@@ -13610,7 +13820,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                     style: const TextStyle(fontSize: 17),
                     decoration: _buildInputDecoration('Weight').copyWith(
                       suffixText: 'lbs',
-                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFFC7C7CC), fontWeight: FontWeight.w500),
+                      suffixStyle: TextStyle(fontSize: 14, color: appColor(0xFFC7C7CC), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
@@ -13622,7 +13832,7 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
                     style: const TextStyle(fontSize: 17),
                     decoration: _buildInputDecoration(null).copyWith(
                       suffixText: 'oz',
-                      suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFFC7C7CC), fontWeight: FontWeight.w500),
+                      suffixStyle: TextStyle(fontSize: 14, color: appColor(0xFFC7C7CC), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
@@ -13644,6 +13854,4 @@ class _EditKitDetailsScreenState extends State<EditKitDetailsScreen> {
     );
   }
 }
-
-
 

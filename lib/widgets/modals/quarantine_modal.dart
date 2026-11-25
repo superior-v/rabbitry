@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
@@ -140,7 +141,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${widget.rabbit.name} added to quarantine for $_quarantineDays days'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
@@ -164,8 +165,8 @@ class _QuarantineModalState extends State<QuarantineModal> {
     final isDoe = widget.rabbit.type == RabbitType.doe;
     final isArchived = widget.rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (widget.rabbit.breederPrefix ?? '').trim();
     final name = widget.rabbit.name.trim();
     final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
@@ -179,10 +180,10 @@ class _QuarantineModalState extends State<QuarantineModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -196,10 +197,10 @@ class _QuarantineModalState extends State<QuarantineModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -212,8 +213,8 @@ class _QuarantineModalState extends State<QuarantineModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -227,8 +228,8 @@ class _QuarantineModalState extends State<QuarantineModal> {
             // Top Lilac Header Banner (matches Consistency.jpg)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEDAFE),
+              decoration: BoxDecoration(
+                color: appSurface(0xFFEEDAFE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
@@ -240,7 +241,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                        color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -248,12 +249,12 @@ class _QuarantineModalState extends State<QuarantineModal> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Add to Quarantine',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -263,10 +264,10 @@ class _QuarantineModalState extends State<QuarantineModal> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: kAppCardWhite.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 18),
                         ),
                       ),
                     ],
@@ -289,21 +290,21 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'Reason',
-                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: kAppCardWhite,
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: (_selectedReason == '+ Custom' || !_reasonOptions.contains(_selectedReason)) ? null : _selectedReason,
-                            hint: const Text('Select quarantine reason', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Color(0xFF787774))),
+                            hint: Text('Select quarantine reason', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: appColor(0xFF787774))),
                             isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                            icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                             selectedItemBuilder: (BuildContext context) {
                               return _reasonOptions.map((e) => Align(
                                 alignment: Alignment.centerLeft,
@@ -313,7 +314,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                    color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                    color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF4F4F56),
                                   ),
                                 ),
                               )).toList();
@@ -328,7 +329,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                    color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
@@ -337,7 +338,7 @@ class _QuarantineModalState extends State<QuarantineModal> {
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                      color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF4F4F56),
+                                      color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF4F4F56),
                                     ),
                                   ),
                                 ),
@@ -376,14 +377,14 @@ class _QuarantineModalState extends State<QuarantineModal> {
                                 _quarantineDays = _reasonDaysMap[_selectedReason] ?? 14;
                               });
                             },
-                            child: const Padding(
+                            child: Padding(
                               padding: EdgeInsets.only(bottom: 6),
                               child: Text(
                                 'Choose from list',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF8B5CF6),
+                                  color: appColor(0xFF8B5CF6),
                                 ),
                               ),
                             ),
@@ -392,17 +393,17 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       ),
                       TextFormField(
                         controller: _reasonController,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                         decoration: InputDecoration(
                           labelText: 'Reason',
-                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: kAppCardWhite,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -418,20 +419,20 @@ class _QuarantineModalState extends State<QuarantineModal> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Duration',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF37352F),
+                            color: appColor(0xFF37352F),
                           ),
                         ),
                         Text(
                           '$_quarantineDays days',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF7B6BA0),
+                            color: appColor(0xFF7B6BA0),
                           ),
                         ),
                       ],
@@ -442,29 +443,29 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       min: 1,
                       max: 30,
                       divisions: 29,
-                      activeColor: const Color(0xFF7B6BA0),
-                      inactiveColor: const Color(0xFFEADBEE),
+                      activeColor: appColor(0xFF7B6BA0),
+                      inactiveColor: appSurface(0xFFEADBEE),
                       label: '$_quarantineDays days',
                       onChanged: (value) {
                         setState(() => _quarantineDays = value.toInt());
                       },
                     ),
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('1 day', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
-                        Text('30 days', style: TextStyle(fontSize: 12, color: Color(0xFF9B9A97))),
+                        Text('1 day', style: TextStyle(fontSize: 12, color: appColor(0xFF9B9A97))),
+                        Text('30 days', style: TextStyle(fontSize: 12, color: appColor(0xFF9B9A97))),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     // Quarantine Cage Selection
-                    const Text(
+                    Text(
                       'Move to Quarantine Cage',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF37352F),
+                        color: appColor(0xFF37352F),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -472,19 +473,19 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       value: _selectedLocation,
                       decoration: InputDecoration(
                         labelText: 'Location',
-                        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-                        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: kAppCardWhite,
                       ),
                       items: _locations.map((location) {
                         return DropdownMenuItem(
                           value: location,
-                          child: Text(location, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56))),
+                          child: Text(location, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56))),
                         );
                       }).toList(),
                       onChanged: (value) => setState(() => _selectedLocation = value),
@@ -492,17 +493,17 @@ class _QuarantineModalState extends State<QuarantineModal> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _cageController,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                       decoration: InputDecoration(
                         labelText: 'Cage / Pen',
-                        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-                        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                         floatingLabelBehavior: FloatingLabelBehavior.always,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: kAppCardWhite,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -514,28 +515,28 @@ class _QuarantineModalState extends State<QuarantineModal> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveQuarantine,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
-                          foregroundColor: const Color(0xFF4A3E6D),
+                          backgroundColor: appSurface(0xFFE6BEFE),
+                          foregroundColor: appColor(0xFF4A3E6D),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 22,
                                 width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Add to Quarantine',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                       ),

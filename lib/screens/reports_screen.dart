@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:ui' show FontFeature;
@@ -17,32 +18,32 @@ import '../services/notification_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 // === PASTEL PALETTE (Matching HTML) ===
-const kLilac = Color(0xFFC3B1E1);
-const kLilacLight = Color(0xFFE8DFFA);
-const kLilacWash = Color(0xFFF5F1FC);
-const kLilacDeep = Color(0xFF5E4A8A);
-const kLilacText = Color(0xFF463466);
-const kPurple = Color(0xFF6D3FD1);
+Color get kLilac => appSurface(0xFFC3B1E1);
+Color get kLilacLight => appSurface(0xFFE8DFFA);
+Color get kLilacWash => appSurface(0xFFF5F1FC);
+Color get kLilacDeep => appColor(0xFF5E4A8A);
+Color get kLilacText => appColor(0xFF463466);
+Color get kPurple => appColor(0xFF6D3FD1);
 
-const kBlue = Color(0xFFA8D4F0);
-const kBlueLight = Color(0xFFD9EEFB);
-const kBlueWash = Color(0xFFF0F7FD);
-const kBlueDeep = Color(0xFF3A7BB8);
+Color get kBlue => appSurface(0xFFA8D4F0);
+Color get kBlueLight => appSurface(0xFFD9EEFB);
+Color get kBlueWash => appSurface(0xFFF0F7FD);
+Color get kBlueDeep => appColor(0xFF3A7BB8);
 
-const kPink = Color(0xFFF2B8C6);
-const kPinkLight = Color(0xFFFFBCE7);
-const kPinkWash = Color(0xFFFDF2F5);
-const kPinkDeep = Color(0xFFD4809A);
+Color get kPink => appSurface(0xFFF2B8C6);
+Color get kPinkLight => appSurface(0xFFFFBCE7);
+Color get kPinkWash => appSurface(0xFFFDF2F5);
+Color get kPinkDeep => appColor(0xFFD4809A);
 
-const kNeutral900 = Color(0xFF2C2C2E);
-const kNeutral800 = Color(0xFF3A3A3C);
-const kNeutral700 = Color(0xFF4F4F56);
-const kNeutral600 = Color(0xFF66666D);
-const kNeutral500 = Color(0xFF787880);
-const kNeutral400 = Color(0xFFC7C7CC);
-const kNeutral300 = Color(0xFFE5E5EA);
-const kNeutral200 = Color(0xFFF2F2F7);
-const kNeutral100 = Color(0xFFF9F9FB);
+Color get kNeutral900 => appColor(0xFF2C2C2E);
+Color get kNeutral800 => appColor(0xFF3A3A3C);
+Color get kNeutral700 => appColor(0xFF4F4F56);
+Color get kNeutral600 => appColor(0xFF66666D);
+Color get kNeutral500 => appSurface(0xFF787880);
+Color get kNeutral400 => appColor(0xFFC7C7CC);
+Color get kNeutral300 => appSurface(0xFFE5E5EA);
+Color get kNeutral200 => appSurface(0xFFF2F2F7);
+Color get kNeutral100 => appSurface(0xFFF9F9FB);
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({Key? key}) : super(key: key);
@@ -616,23 +617,23 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appSurface(0xFFFFFFFF, 0xFF121318),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFE6BEFE),
+          decoration: BoxDecoration(
+            color: appSurface(0xFFE6BEFE),
             border: Border(bottom: BorderSide(color: kLilacLight)),
           ),
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(PhosphorIconsBold.arrowLeft, color: kLilacDeep, size: 20),
+              icon: Icon(PhosphorIconsBold.arrowLeft, color: kLilacDeep, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             titleSpacing: 0,
-            title: const Row(
+            title: Row(
               children: [
                 Icon(PhosphorIconsDuotone.chartPieSlice, color: kLilacDeep, size: 22),
                 SizedBox(width: 8),
@@ -649,7 +650,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
             actions: [
               IconButton(
-                icon: const Icon(PhosphorIconsBold.export, color: kLilacDeep, size: 20),
+                icon: Icon(PhosphorIconsBold.export, color: kLilacDeep, size: 20),
                 onPressed: _exportAnalytics,
               ),
               const SizedBox(width: 8),
@@ -663,7 +664,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           _buildTabBar(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: kLilacDeep, strokeWidth: 2))
+                ? Center(child: CircularProgressIndicator(color: kLilacDeep, strokeWidth: 2))
                 : TabBarView(
                     controller: _tabController,
                     children: [
@@ -682,8 +683,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Widget _buildFilterIsland() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         border: Border(bottom: BorderSide(color: kNeutral200)),
       ),
       child: Center(
@@ -728,8 +729,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Widget _buildTabBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         border: Border(bottom: BorderSide(color: kNeutral300)),
       ),
       child: TabBar(
@@ -832,7 +833,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
             content: Row(
               children: [
@@ -854,7 +855,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     Share.shareXFiles([XFile(file.path)]);
                   },
-                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                  child: Text('SHARE', style: TextStyle(color: appColor(0xFFE6BEFE), fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -871,7 +872,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -911,14 +912,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'GESTATION DAYS',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
@@ -931,7 +932,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('29d', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400)),
@@ -955,7 +956,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: Text(_gestationMode > 0 ? 'Mode: $_gestationMode days — ${_gestationMode >= 30 && _gestationMode <= 33 ? "within normal range (30–33d)" : "outside standard range"}' : 'Insufficient data for gestation modal analysis', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
+            child: Text(_gestationMode > 0 ? 'Mode: $_gestationMode days — ${_gestationMode >= 30 && _gestationMode <= 33 ? "within normal range (30–33d)" : "outside standard range"}' : 'Insufficient data for gestation modal analysis', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
           ),
         ],
       ),
@@ -1004,14 +1005,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'AVG GROWTH RATE',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
@@ -1026,7 +1027,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _growthData.map((d) => Text(d.label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400))).toList(),
+            children: _growthData.map((d) => Text(d.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400))).toList(),
           ),
           const SizedBox(height: 16),
           Row(
@@ -1042,7 +1043,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: Text(_w12_avg > 0 ? 'Growth peaking at ${_fmtNum(_w12_avg)} ${FormatUtils.weightUnit} — optimal butcher window' : 'Steady linear growth curve — track to determine peak', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
+            child: Text(_w12_avg > 0 ? 'Growth peaking at ${_fmtNum(_w12_avg)} ${FormatUtils.weightUnit} — optimal butcher window' : 'Steady linear growth curve — track to determine peak', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500)),
           ),
         ],
       ),
@@ -1089,20 +1090,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'CAUSES OF LOSS',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 16),
           if (_lossData.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(child: Text('No loss data recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
             )
@@ -1119,7 +1120,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               child: Text(
                 _lossData.isNotEmpty ? '${_lossData.first.label} is the leading cause — review conditions' : 'Maintain healthy conditions to minimize losses',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
               ),
             ),
           ],
@@ -1176,20 +1177,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'TOP BUYERS',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 16),
           if (_buyerRankings.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: Text('No buyer data for this period', style: TextStyle(color: kNeutral500, fontSize: 13)),
@@ -1205,7 +1206,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Widget _buildBuyerRankingRow(RankingItem item) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
@@ -1235,18 +1236,18 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
                 ),
                 Text(
                   item.subtitle,
-                  style: const TextStyle(fontSize: 12, color: kNeutral500),
+                  style: TextStyle(fontSize: 12, color: kNeutral500),
                 ),
               ],
             ),
           ),
           Text(
             '${item.percentage.toInt()}%',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kLilacDeep),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kLilacDeep),
           ),
         ],
       ),
@@ -1261,20 +1262,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'EXPENSE BREAKDOWN',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 16),
           if (_expenseData.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(child: Text('No expenses recorded', style: TextStyle(color: kNeutral400, fontSize: 13))),
             )
@@ -1291,7 +1292,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               child: Text(
                 _expenseData.isNotEmpty ? '${_expenseData.first.label} accounts for ${(_expenseData.first.value).toInt()}% of total expenses' : 'Track your expenses to see cost breakdown',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
               ),
             ),
           ],
@@ -1304,20 +1305,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'INCOME SOURCES',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 20),
           if (_incomeData.isEmpty)
-            const SizedBox(
+            SizedBox(
               height: 100,
               child: Center(child: Text('No income data yet', style: TextStyle(color: kNeutral400, fontSize: 13))),
             )
@@ -1336,7 +1337,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   .take(4)
                   .map((d) => Text(
                         d.label,
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral400),
                       ))
                   .toList(),
             ),
@@ -1353,7 +1354,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               child: Text(
                 _incomeData.isNotEmpty ? '${_incomeData.first.label} is the top revenue source this period' : 'Track your sales to see revenue sources',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: kNeutral500),
               ),
             ),
           ],
@@ -1379,7 +1380,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             border: Border.all(color: kNeutral200),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1389,7 +1390,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             children: [
               Text(
                 kpi.label.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: kNeutral500,
@@ -1402,7 +1403,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 children: [
                   Text(
                     kpi.value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: kNeutral900,
@@ -1413,7 +1414,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       padding: const EdgeInsets.only(left: 4),
                       child: Text(
                         kpi.subtitle!,
-                        style: const TextStyle(fontSize: 10, color: kNeutral400),
+                        style: TextStyle(fontSize: 10, color: kNeutral400),
                       ),
                     ),
                 ],
@@ -1448,7 +1449,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               else if (kpi.label.toLowerCase().contains('avg') || kpi.label.toLowerCase().contains('gestation'))
                 Text(
                   kpi.subtitle ?? '',
-                  style: const TextStyle(fontSize: 10, color: kNeutral500, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 10, color: kNeutral500, fontWeight: FontWeight.w500),
                 ),
             ],
           ),
@@ -1461,14 +1462,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'CONCEPTION RATE',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
@@ -1481,7 +1482,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: const Text(
+            child: Text(
               'Both above target — herd fertility is healthy',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
@@ -1499,8 +1500,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral700)),
-            Text('${percentage.toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral500)),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kNeutral700)),
+            Text('${percentage.toInt()}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral500)),
           ],
         ),
         const SizedBox(height: 6),
@@ -1544,7 +1545,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -1554,7 +1555,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'DOE PERFORMANCE',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
               ),
@@ -1583,7 +1584,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 20),
           if (displayRankings.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: Text('No breeding data yet', style: TextStyle(color: kNeutral400, fontSize: 13)),
@@ -1596,7 +1597,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             width: double.infinity,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(12)),
-            child: const Text(
+            child: Text(
               'Kit survival rate per doe',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kNeutral500),
@@ -1613,7 +1614,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
+          color: isActive ? kAppCardWhite : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           boxShadow: isActive
               ? [
@@ -1640,7 +1641,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Widget _buildRankingRow(RankingItem item, bool isBest) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
@@ -1654,11 +1655,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                   children: [
                     Text(
                       item.name,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
                     ),
                     Text(
                       '${item.percentage.toInt()}%',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral700),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral700),
                     ),
                   ],
                 ),
@@ -1700,15 +1701,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         height: 240,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           border: Border.all(color: kNeutral200),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
-            const Expanded(child: Center(child: Text('No data yet', style: TextStyle(fontSize: 13, color: kNeutral400)))),
+            Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
+            Expanded(child: Center(child: Text('No data yet', style: TextStyle(fontSize: 13, color: kNeutral400)))),
           ],
         ),
       );
@@ -1719,14 +1720,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
+          Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
           const SizedBox(height: 24),
           SizedBox(
             height: 180,
@@ -1741,7 +1742,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(item.value.toInt().toString(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral500)),
+                        Text(item.value.toInt().toString(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kNeutral500)),
                         const SizedBox(height: 4),
                         Container(
                           height: (heightPercent / 100) * 140,
@@ -1761,7 +1762,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                         const SizedBox(height: 10),
                         Text(
                           item.label,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral600),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kNeutral600),
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1779,7 +1780,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Widget _buildDonutChart(String title, List<ChartData> data) {
-    const colors = [
+    final colors = [
       kLilacDeep,
       kLilac,
       kLilacLight,
@@ -1791,16 +1792,16 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           border: Border.all(color: kNeutral200),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
+            Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
             const SizedBox(height: 48),
-            const Center(child: Text('No data yet', style: TextStyle(fontSize: 13, color: kNeutral400))),
+            Center(child: Text('No data yet', style: TextStyle(fontSize: 13, color: kNeutral400))),
             const SizedBox(height: 48),
           ],
         ),
@@ -1810,14 +1811,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
+          Text(title.toUpperCase(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3)),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -1826,7 +1827,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 height: 100,
                 child: Stack(
                   children: [
-                    Center(child: Container(width: 70, height: 70, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+                    Center(child: Container(width: 70, height: 70, decoration: BoxDecoration(color: kAppCardWhite, shape: BoxShape.circle))),
                     // Placeholder for a real donut chart if needed, or just visual
                     Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: kNeutral100, width: 20))),
                   ],
@@ -1843,8 +1844,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                         children: [
                           Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[i % colors.length], shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(data[i].label, style: const TextStyle(fontSize: 11, color: kNeutral600, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
-                          Text('${pct.toInt()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral800)),
+                          Expanded(child: Text(data[i].label, style: TextStyle(fontSize: 11, color: kNeutral600, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                          Text('${pct.toInt()}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral800)),
                         ],
                       ),
                     );
@@ -1862,14 +1863,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'HARVEST WEIGHT CONSISTENCY',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
@@ -1892,14 +1893,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'SURVIVAL FUNNEL',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
@@ -1927,7 +1928,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
+                color: appColor(0xFF1E293B),
               ),
             ),
             Text(
@@ -1935,7 +1936,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+                color: appColor(0xFF1E293B),
                 fontFeatures: [
                   FontFeature.tabularFigures()
                 ],
@@ -1948,7 +1949,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           borderRadius: BorderRadius.circular(5),
           child: LinearProgressIndicator(
             value: percentage / 100,
-            backgroundColor: Color(0xFFF1F5F9),
+            backgroundColor: appSurface(0xFFF1F5F9),
             valueColor: AlwaysStoppedAnimation<Color>(color),
             minHeight: 10,
           ),
@@ -1961,20 +1962,20 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'UNIT ECONOMICS',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kNeutral700, letterSpacing: 0.3),
           ),
           const SizedBox(height: 16),
           _buildEconomicRow('Cost Per Doe', 'Feed + Meds ÷ Active Does', _costPerDoe > 0 ? FormatUtils.formatCurrency(_costPerDoe) : '--', '/month'),
-          const Divider(height: 28, color: kNeutral200),
+          Divider(height: 28, color: kNeutral200),
           _buildEconomicRow('Cost Per ${FormatUtils.weightUnit} Meat', 'Total Exp ÷ Total ${FormatUtils.weightUnit}', _costPerWeight > 0 ? FormatUtils.formatCurrency(_costPerWeight) : '--', '/${FormatUtils.weightUnit}'),
         ],
       ),
@@ -1991,12 +1992,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kNeutral800),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 11, color: kNeutral500),
+                style: TextStyle(fontSize: 11, color: kNeutral500),
               ),
             ],
           ),
@@ -2006,11 +2007,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kNeutral900, fontFamily: 'JetBrains Mono'),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kNeutral900, fontFamily: 'JetBrains Mono'),
             ),
             Text(
               unit,
-              style: const TextStyle(fontSize: 10, color: kNeutral500),
+              style: TextStyle(fontSize: 10, color: kNeutral500),
             ),
           ],
         ),
@@ -2110,9 +2111,9 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
         const SizedBox(height: 2),
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.4)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kNeutral400, letterSpacing: 0.4)),
       ],
     );
   }

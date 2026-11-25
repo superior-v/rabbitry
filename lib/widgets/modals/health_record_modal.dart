@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
@@ -140,8 +141,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
     final isDoe = widget.rabbit.type == RabbitType.doe;
     final isArchived = widget.rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (widget.rabbit.breederPrefix ?? '').trim();
     final name = widget.rabbit.name.trim();
     final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
@@ -155,10 +156,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -172,10 +173,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -192,12 +193,13 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7B6BA0),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF7B6BA0),
               onPrimary: Colors.white,
-              onSurface: Color(0xFF2C2C2E),
+              onSurface: appColor(0xFF2C2C2E),
             ),
           ),
           child: child!,
@@ -267,7 +269,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_addToQuarantine ? 'Health record added & moved to quarantine' : 'Health record added'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -299,7 +301,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
     int maxLines = 1,
     Function(String)? onChanged,
     String? Function(String?)? validator,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
   }) {
     return TextFormField(
       controller: controller,
@@ -310,19 +312,19 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
         hintText: hint,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
+        hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: appColor(0xFF4F4F56), size: 18) : null,
         prefixText: prefixText,
-        prefixStyle: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7B6BA0)),
+        prefixStyle: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF7B6BA0)),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }
@@ -331,7 +333,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
     required String label,
     required DateTime value,
     required VoidCallback onTap,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
   }) {
     return InkWell(
       onTap: onTap,
@@ -339,18 +341,18 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w700, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 16),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 16),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -372,8 +374,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
 
     return Container(
       height: screenHeight * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -384,8 +386,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
             // Top Lilac Header Banner (matches consistency.jpg)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEDAFE),
+              decoration: BoxDecoration(
+                color: appSurface(0xFFEEDAFE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
@@ -395,12 +397,12 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Health Record',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -410,10 +412,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: kAppCardWhite.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 18),
                         ),
                       ),
                     ],
@@ -428,10 +430,10 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       const SizedBox(width: 8),
                       Text(
                         FormatUtils.formatDate(_selectedDate),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                         ),
                       ),
                     ],
@@ -465,21 +467,21 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                             InputDecorator(
                               decoration: InputDecoration(
                                 labelText: 'Treatment Type',
-                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                                labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+                                floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: kAppCardWhite,
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: (_selectedTreatment == '+ Custom' || !_healthOptions.contains(_selectedTreatment)) ? null : _selectedTreatment,
-                                  hint: const Text('Select treatment type', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
+                                  hint: Text('Select treatment type', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
                                   isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                  icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                                   selectedItemBuilder: (BuildContext context) {
                                     return _healthOptions.map((e) => Align(
                                       alignment: Alignment.centerLeft,
@@ -489,7 +491,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
                                           fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                          color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                          color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF3A3A3C),
                                         ),
                                       ),
                                     )).toList();
@@ -504,7 +506,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                         width: double.infinity,
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                          color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
@@ -513,7 +515,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
                                             fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                            color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                            color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF3A3A3C),
                                           ),
                                         ),
                                       ),
@@ -548,14 +550,14 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       _selectedTreatment = _treatmentController.text;
                                     });
                                   },
-                                  child: const Padding(
+                                  child: Padding(
                                     padding: EdgeInsets.only(bottom: 6),
                                     child: Text(
                                       'Choose from list',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF8B5CF6),
+                                        color: appColor(0xFF8B5CF6),
                                       ),
                                     ),
                                   ),
@@ -614,8 +616,8 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: _addToQuarantine ? const Color(0xFF7B6BA0) : kLilacLight),
+                              color: kAppCardWhite,
+                              border: Border.all(color: _addToQuarantine ? appSurface(0xFF7B6BA0) : kLilacLight),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
@@ -628,7 +630,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       width: 24,
                                       child: Checkbox(
                                         value: _addToQuarantine,
-                                        activeColor: const Color(0xFF7B6BA0),
+                                        activeColor: appColor(0xFF7B6BA0),
                                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         onChanged: widget.rabbit.status != RabbitStatus.quarantine
                                             ? (value) => setState(() => _addToQuarantine = value ?? false)
@@ -636,13 +638,13 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
                                         'Move to Quarantine',
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF2C2C2E),
+                                          color: appColor(0xFF2C2C2E),
                                         ),
                                       ),
                                     ),
@@ -650,7 +652,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF7B6BA0),
+                                          color: appSurface(0xFF7B6BA0),
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
@@ -667,7 +669,7 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                     min: 1,
                                     max: 30,
                                     divisions: 29,
-                                    activeColor: const Color(0xFF7B6BA0),
+                                    activeColor: appColor(0xFF7B6BA0),
                                     inactiveColor: kLilacLight,
                                     onChanged: (value) => setState(() => _quarantineDays = value.toInt()),
                                   ),
@@ -679,14 +681,14 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                             value: _selectedLocation,
                                             decoration: InputDecoration(
                                               labelText: 'Location',
-                                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
-                                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
                                               floatingLabelBehavior: FloatingLabelBehavior.always,
                                               filled: true,
                                               fillColor: kLilacWash,
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
-                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
-                                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kLilacLight)),
+                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kLilacLight)),
+                                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                             ),
                                             items: _locations.map((location) {
@@ -699,18 +701,18 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                                       Expanded(
                                         child: TextFormField(
                                           controller: _cageController,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
                                           decoration: InputDecoration(
                                             labelText: 'Cage ID',
-                                            labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
-                                            floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                            labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+                                            floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
                                             floatingLabelBehavior: FloatingLabelBehavior.always,
                                             hintText: 'Quarantine-1',
                                             filled: true,
                                             fillColor: kLilacWash,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
-                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacLight)),
-                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kLilacLight)),
+                                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kLilacLight)),
+                                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                           ),
                                         ),
@@ -733,27 +735,27 @@ class _HealthRecordModalState extends State<HealthRecordModal> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveRecord,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
+                          backgroundColor: appSurface(0xFFE6BEFE),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 22,
                                 width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Save Health Record',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               ),
                       ),

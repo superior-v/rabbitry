@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -96,7 +97,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(source == ImageSource.camera ? 'Camera permission is required' : 'Gallery permission is required'),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
             action: SnackBarAction(
               label: 'Settings',
               textColor: Colors.white,
@@ -125,9 +126,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Profile picture updated'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             duration: Duration(milliseconds: 800),
           ),
         );
@@ -137,7 +138,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick image: $e'),
-          backgroundColor: const Color(0xFFD44C47),
+          backgroundColor: appSurface(0xFFD44C47),
         ),
       );
     }
@@ -161,8 +162,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -220,9 +221,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                   await _saveKit();
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Profile picture removed'),
-                      backgroundColor: Color(0xFF7B6BA0),
+                      backgroundColor: appSurface(0xFF7B6BA0),
                     ),
                   );
                 },
@@ -247,12 +248,12 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774), size: 22),
+            Icon(icon, color: isDestructive ? appColor(0xFFD44C47) : appColor(0xFF787774), size: 22),
             const SizedBox(width: 14),
             Text(label,
                 style: TextStyle(
                   fontSize: 15,
-                  color: isDestructive ? const Color(0xFFD44C47) : Colors.black87,
+                  color: isDestructive ? appColor(0xFFD44C47) : appColor(0xDD000000, 0xFFF1F3F9),
                 )),
           ],
         ),
@@ -267,7 +268,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Edit Weight', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         content: TextField(
@@ -279,14 +280,14 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -300,7 +301,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -317,12 +318,13 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7B6BA0),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF7B6BA0),
               onPrimary: Colors.white,
-              onSurface: Color(0xFF37352F),
+              onSurface: appColor(0xFF37352F),
             ),
           ),
           child: child!,
@@ -343,7 +345,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Edit Breed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         content: TextField(
@@ -355,14 +357,14 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -376,7 +378,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -391,7 +393,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Edit Color', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         content: Autocomplete<String>(
@@ -413,7 +415,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+                  borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
                 ),
               ),
             );
@@ -422,7 +424,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -436,7 +438,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
@@ -451,8 +453,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -470,9 +472,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             const SizedBox(height: 20),
             const Text('Select Sex', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
-            _buildSexOption('M', 'Male', Icons.male, const Color(0xFF2E7BB5)),
+            _buildSexOption('M', 'Male', Icons.male, appColor(0xFF2E7BB5)),
             _buildSexOption('F', 'Female', Icons.female, kFemaleColor),
-            _buildSexOption('U', 'Unknown', Icons.help_outline, const Color(0xFF787774)),
+            _buildSexOption('U', 'Unknown', Icons.help_outline, appColor(0xFF787774)),
             const SizedBox(height: 30),
           ],
         ),
@@ -503,7 +505,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? color : Colors.black87,
+                  color: isSelected ? color : appColor(0xDD000000, 0xFFF1F3F9),
                 )),
             const Spacer(),
             if (isSelected) Icon(Icons.check_circle, color: color, size: 20),
@@ -516,15 +518,15 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   // ==================== COLORS ====================
 
   Color get _sexColor {
-    if (_kit.sex == 'M') return const Color(0xFF2E7BB5);
-    if (_kit.sex == 'F') return const Color(0xFF9C6ADE);
-    return const Color(0xFF787774);
+    if (_kit.sex == 'M') return appColor(0xFF2E7BB5);
+    if (_kit.sex == 'F') return appColor(0xFF9C6ADE);
+    return appColor(0xFF787774);
   }
 
   Color get _sexBgColor {
-    if (_kit.sex == 'M') return const Color(0xFFEBF8FF);
-    if (_kit.sex == 'F') return const Color(0xFFF3E8FF);
-    return const Color(0xFFF7F7F5);
+    if (_kit.sex == 'M') return appSurface(0xFFEBF8FF);
+    if (_kit.sex == 'F') return appSurface(0xFFF3E8FF);
+    return appSurface(0xFFF7F7F5);
   }
 
   String get _sexLabel {
@@ -536,46 +538,46 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Nursing':
-        return const Color(0xFF2E7BB5);
+        return appColor(0xFF2E7BB5);
       case 'Weaned':
-        return const Color(0xFF9C6ADE);
+        return appColor(0xFF9C6ADE);
       case 'GrowOut':
-        return const Color(0xFF459F89);
+        return appColor(0xFF459F89);
       case 'Mature':
-        return const Color(0xFF7B6BA0);
+        return appColor(0xFF7B6BA0);
       case 'Quarantine':
-        return const Color(0xFFD97706);
+        return appColor(0xFFD97706);
       case 'Sold':
-        return const Color(0xFF7B6BA0);
+        return appColor(0xFF7B6BA0);
       case 'Butchered':
-        return const Color(0xFF787774);
+        return appColor(0xFF787774);
       case 'Dead':
-        return const Color(0xFF37352F);
+        return appColor(0xFF37352F);
       default:
-        return const Color(0xFF787774);
+        return appColor(0xFF787774);
     }
   }
 
   Color _getStatusBgColor(String status) {
     switch (status) {
       case 'Nursing':
-        return const Color(0xFFEBF8FF);
+        return appSurface(0xFFEBF8FF);
       case 'Weaned':
-        return const Color(0xFFF3E8FF);
+        return appSurface(0xFFF3E8FF);
       case 'GrowOut':
-        return const Color(0xFFF0ECFE);
+        return appSurface(0xFFF0ECFE);
       case 'Mature':
-        return const Color(0xFFF0ECFE);
+        return appSurface(0xFFF0ECFE);
       case 'Quarantine':
-        return const Color(0xFFFFF8E1);
+        return appSurface(0xFFFFF8E1);
       case 'Sold':
-        return const Color(0xFFF0ECFE);
+        return appSurface(0xFFF0ECFE);
       case 'Butchered':
-        return const Color(0xFFF1F1EF);
+        return appSurface(0xFFF1F1EF);
       case 'Dead':
-        return const Color(0xFFF1F1EF);
+        return appSurface(0xFFF1F1EF);
       default:
-        return const Color(0xFFF1F1EF);
+        return appSurface(0xFFF1F1EF);
     }
   }
 
@@ -609,18 +611,18 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appSurface(0xFFFFFFFF, 0xFF121318),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF37352F)),
+          icon: Icon(Icons.arrow_back, color: appColor(0xFF37352F)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Kit $_displayKitTag',
-          style: const TextStyle(
-            color: Color(0xFF37352F),
+          style: TextStyle(
+            color: appColor(0xFF37352F),
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -650,9 +652,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
       ),
       child: Row(
         children: [
@@ -661,7 +663,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             onTap: _showImagePickerOptions,
             child: Stack(
               children: [
-                Container(
+                DarkModeGuard(child: Container(
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
@@ -676,7 +678,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                         : null,
                   ),
                   child: hasPhoto && photoPath != null && File(photoPath).existsSync() ? null : Icon(Icons.pets, size: 36, color: _sexColor),
-                ),
+                )),
                 Positioned(
                   bottom: 0,
                   right: 0,
@@ -684,11 +686,11 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: kAppCardWhite,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF7B6BA0), width: 2),
+                      border: Border.all(color: appSurface(0xFF7B6BA0), width: 2),
                     ),
-                    child: const Icon(Icons.camera_alt, size: 12, color: Color(0xFF7B6BA0)),
+                    child: Icon(Icons.camera_alt, size: 12, color: appColor(0xFF7B6BA0)),
                   ),
                 ),
               ],
@@ -702,10 +704,10 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               children: [
                 Text(
                   _kit.color != 'Unknown' && _kit.color.isNotEmpty ? _kit.color : 'Kit $_displayKitTag',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF37352F),
+                    color: appColor(0xFF37352F),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -713,8 +715,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                   spacing: 4,
                   runSpacing: 4,
                   children: [
-                    Text('#$_displayKitTag • ${_litter.doeName.isNotEmpty ? _litter.doeName : _litter.dam}', style: const TextStyle(fontSize: 13, color: Color(0xFF787774))),
-                    const Text('•', style: TextStyle(color: Color(0xFF787774))),
+                    Text('#$_displayKitTag • ${_litter.doeName.isNotEmpty ? _litter.doeName : _litter.dam}', style: TextStyle(fontSize: 13, color: appColor(0xFF787774))),
+                    Text('•', style: TextStyle(color: appColor(0xFF787774))),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -750,8 +752,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                     ),
                     _buildBadge(
                       _litter.location.isNotEmpty ? _litter.location : 'Unassigned',
-                      const Color(0xFFF7F7F5),
-                      const Color(0xFF787774),
+                      appSurface(0xFFF7F7F5),
+                      appColor(0xFF787774),
                     ),
                   ],
                 ),
@@ -768,9 +770,9 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   Widget _buildQuickStats() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFAFAF8),
-        border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+      decoration: BoxDecoration(
+        color: appSurface(0xFFFAFAF8),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
       ),
       child: Row(
         children: [
@@ -808,17 +810,17 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   Widget _buildStatItem(IconData icon, String label, String value, {VoidCallback? onTap}) {
     final child = Column(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF7B6BA0)),
+        Icon(icon, size: 18, color: appColor(0xFF7B6BA0)),
         const SizedBox(height: 4),
         Text(value,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: onTap != null ? const Color(0xFF7B6BA0) : const Color(0xFF37352F),
+              color: onTap != null ? appColor(0xFF7B6BA0) : appColor(0xFF37352F),
             ),
             textAlign: TextAlign.center),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9B9A97)), textAlign: TextAlign.center),
+        Text(label, style: TextStyle(fontSize: 11, color: appColor(0xFF9B9A97)), textAlign: TextAlign.center),
       ],
     );
 
@@ -837,7 +839,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
   }
 
   Widget _buildStatDivider() {
-    return Container(width: 1, height: 36, color: const Color(0xFFE9E9E7));
+    return Container(width: 1, height: 36, color: appSurface(0xFFE9E9E7));
   }
 
   // ==================== DETAIL SECTION ====================
@@ -847,14 +849,14 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E9E7)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Kit Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF37352F))),
+          Text('Kit Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF37352F))),
           const SizedBox(height: 16),
           _buildDetailRow('Kit ID', '${_litter.id}-${_kit.id.startsWith('F-') || _kit.id.startsWith('K-') ? _kit.id : (_kit.status.toLowerCase() == 'fostered' || (_kit.details != null && _kit.details!.toLowerCase().contains('fostered')) ? 'F-${_kit.id}' : 'K-${_kit.id}')}'),
           _buildEditableDetailRow('Sex', _sexLabel, _showEditSexDialog),
@@ -879,10 +881,10 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF9B9A97), fontWeight: FontWeight.w500)),
+            child: Text(label, style: TextStyle(fontSize: 13, color: appColor(0xFF9B9A97), fontWeight: FontWeight.w500)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF37352F), fontWeight: FontWeight.w500)),
+            child: Text(value, style: TextStyle(fontSize: 14, color: appColor(0xFF37352F), fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -900,12 +902,12 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
           children: [
             SizedBox(
               width: 120,
-              child: Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF9B9A97), fontWeight: FontWeight.w500)),
+              child: Text(label, style: TextStyle(fontSize: 13, color: appColor(0xFF9B9A97), fontWeight: FontWeight.w500)),
             ),
             Expanded(
-              child: Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w500)),
+              child: Text(value, style: TextStyle(fontSize: 14, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w500)),
             ),
-            const Icon(Icons.chevron_right, size: 18, color: Color(0xFFBFBFBD)),
+            Icon(Icons.chevron_right, size: 18, color: appColor(0xFFBFBFBD)),
           ],
         ),
       ),
@@ -919,22 +921,22 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E9E7)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Parentage & Litter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF37352F))),
+          Text('Parentage & Litter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF37352F))),
           const SizedBox(height: 16),
           _buildParentRow(
             icon: Icons.female,
             label: 'Dam',
             name: _litter.dam,
             id: _litter.doeId,
-            color: const Color(0xFF9C6ADE),
-            bgColor: const Color(0xFFF3E8FF),
+            color: appColor(0xFF9C6ADE),
+            bgColor: appSurface(0xFFF3E8FF),
           ),
           const SizedBox(height: 12),
           _buildParentRow(
@@ -942,30 +944,30 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             label: 'Sire',
             name: _litter.sire,
             id: _litter.buckId,
-            color: const Color(0xFF2E7BB5),
-            bgColor: const Color(0xFFEBF8FF),
+            color: appColor(0xFF2E7BB5),
+            bgColor: appSurface(0xFFEBF8FF),
           ),
           const SizedBox(height: 16),
           // Litter info card
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFAFAF8),
+              color: appSurface(0xFFFAFAF8),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF7B6BA0)),
+                Icon(Icons.inventory_2_outlined, size: 18, color: appColor(0xFF7B6BA0)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Litter ${_litter.id}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF37352F))),
+                      Text('Litter ${_litter.id}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF37352F))),
                       const SizedBox(height: 2),
                       Text(
                         '${_litter.breed} • Born ${_formatDate(_litter.dob)} • ${_litter.totalKitsCount} live kits',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF787774)),
+                        style: TextStyle(fontSize: 12, color: appColor(0xFF787774)),
                       ),
                     ],
                   ),
@@ -978,7 +980,7 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
             const SizedBox(height: 16),
             Text(
               'SIBLINGS (${_litter.kits.where((k) => k.id != _kit.id && !k.isArchived).length})',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF9B9A97), letterSpacing: 0.5),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: appColor(0xFF9B9A97), letterSpacing: 0.5),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -989,8 +991,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                   .map((sibling) => Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F5),
-                          border: Border.all(color: const Color(0xFFE9E9E7)),
+                          color: appSurface(0xFFF7F7F5),
+                          border: Border.all(color: appSurface(0xFFE9E9E7)),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -999,12 +1001,12 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
                             Icon(Icons.pets,
                                 size: 12,
                                 color: sibling.sex == 'M'
-                                    ? const Color(0xFF2E7BB5)
+                                    ? appColor(0xFF2E7BB5)
                                     : sibling.sex == 'F'
-                                        ? const Color(0xFF9C6ADE)
-                                        : const Color(0xFF787774)),
+                                        ? appColor(0xFF9C6ADE)
+                                        : appColor(0xFF787774)),
                             const SizedBox(width: 6),
-                            Text('K-${sibling.id}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF37352F))),
+                            Text('K-${sibling.id}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: appColor(0xFF37352F))),
                             const SizedBox(width: 4),
                             Text(sibling.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _getStatusColor(sibling.status))),
                           ],
@@ -1038,8 +1040,8 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9B9A97), fontWeight: FontWeight.w500)),
-            Text('$name ($id)', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF37352F))),
+            Text(label, style: TextStyle(fontSize: 11, color: appColor(0xFF9B9A97), fontWeight: FontWeight.w500)),
+            Text('$name ($id)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF37352F))),
           ],
         ),
       ],
@@ -1053,14 +1055,14 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E9E7)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Weight History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF37352F))),
+          Text('Weight History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF37352F))),
           const SizedBox(height: 12),
           ..._weightHistory.take(5).map((record) {
             final date = record['date'] as String? ?? '';
@@ -1069,16 +1071,16 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.scale, size: 14, color: Color(0xFF7B6BA0)),
+                  Icon(Icons.scale, size: 14, color: appColor(0xFF7B6BA0)),
                   const SizedBox(width: 8),
                   Text(
                     '${weight.toStringAsFixed(1)} ${FormatUtils.weightUnit}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF37352F)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF37352F)),
                   ),
                   const Spacer(),
                   Text(
                     date.length >= 10 ? date.substring(0, 10) : date,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF9B9A97)),
+                    style: TextStyle(fontSize: 12, color: appColor(0xFF9B9A97)),
                   ),
                 ],
               ),
@@ -1096,16 +1098,16 @@ class _KitDetailScreenState extends State<KitDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE9E9E7)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Notes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF37352F))),
+          Text('Notes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF37352F))),
           const SizedBox(height: 8),
-          Text(_kit.details!, style: const TextStyle(fontSize: 14, color: Color(0xFF787774), height: 1.5)),
+          Text(_kit.details!, style: TextStyle(fontSize: 14, color: appColor(0xFF787774), height: 1.5)),
         ],
       ),
     );

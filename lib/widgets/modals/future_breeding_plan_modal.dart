@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/format_utils.dart';
@@ -150,23 +151,24 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF8B5CF6),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF8B5CF6),
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Color(0xFF2C2C2E),
+              onSurface: appColor(0xFF2C2C2E),
             ),
             datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: const Color(0xFFE2BFFB),
-              headerForegroundColor: const Color(0xFF463466),
-              backgroundColor: Colors.white,
+              headerBackgroundColor: appSurface(0xFFE2BFFB),
+              headerForegroundColor: appColor(0xFF463466),
+              backgroundColor: kAppCardWhite,
               surfaceTintColor: Colors.transparent,
-              todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              todayBorder: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
               todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const Color(0xFF8B5CF6);
+                  return appColor(0xFF8B5CF6);
                 }
                 return null;
               }),
@@ -174,20 +176,20 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
                 }
-                return const Color(0xFF8B5CF6);
+                return appColor(0xFF8B5CF6);
               }),
               dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
                   return Colors.white;
                 }
                 if (states.contains(WidgetState.disabled)) {
-                  return const Color(0xFFC7C7CC);
+                  return appColor(0xFFC7C7CC);
                 }
-                return const Color(0xFF2C2C2E);
+                return appColor(0xFF2C2C2E);
               }),
               dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return const Color(0xFF8B5CF6);
+                  return appColor(0xFF8B5CF6);
                 }
                 return null;
               }),
@@ -205,9 +207,9 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
   Future<void> _savePlan() async {
     if (_selectedDoe == null || _selectedBuck == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please select both a Doe and a Buck'),
-          backgroundColor: Color(0xFFD44C47),
+          backgroundColor: appSurface(0xFFD44C47),
         ),
       );
       return;
@@ -238,7 +240,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error saving plan: $e'),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
       }
@@ -252,8 +254,8 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       constraints: BoxConstraints(
@@ -268,7 +270,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kLilacLight,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               border: Border(bottom: BorderSide(color: kLilac, width: 1)),
@@ -281,7 +283,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -291,10 +293,10 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                   children: [
                     Text(
                       widget.existingPlan != null ? 'Edit Breeding Plan' : 'Future Breeding Plan',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -303,10 +305,10 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: kAppCardWhite.withOpacity(0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -317,11 +319,11 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
 
           // Content
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(40.0),
               child: Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7B6BA0)),
+                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF7B6BA0)),
                 ),
               ),
             )
@@ -339,13 +341,13 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                         padding: const EdgeInsets.all(14),
                         margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF3CD),
+                          color: appSurface(0xFFFFF3CD),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFFE58F)),
+                          border: Border.all(color: appSurface(0xFFFFE58F)),
                         ),
-                        child: const Text(
+                        child: Text(
                           'No does available. Please add a doe first.',
-                          style: TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
+                          style: TextStyle(color: appColor(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                       )
                     else
@@ -354,7 +356,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                         selectedRabbit: _selectedDoe,
                         onTap: _pickDoe,
                         prefixIcon: Icons.female_rounded,
-                        prefixColor: const Color(0xFFE04F9F),
+                        prefixColor: appColor(0xFFE04F9F),
                       ),
                     const SizedBox(height: 16),
 
@@ -364,13 +366,13 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                         padding: const EdgeInsets.all(14),
                         margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF3CD),
+                          color: appSurface(0xFFFFF3CD),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFFE58F)),
+                          border: Border.all(color: appSurface(0xFFFFE58F)),
                         ),
-                        child: const Text(
+                        child: Text(
                           'No bucks available. Please add a buck first.',
-                          style: TextStyle(color: Color(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
+                          style: TextStyle(color: appColor(0xFF856404), fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                       )
                     else
@@ -379,7 +381,7 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                         selectedRabbit: _selectedBuck,
                         onTap: _pickBuck,
                         prefixIcon: Icons.male_rounded,
-                        prefixColor: const Color(0xFF2196F3),
+                        prefixColor: appColor(0xFF2196F3),
                       ),
                     const SizedBox(height: 16),
 
@@ -406,28 +408,28 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _savePlan,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
-                          foregroundColor: const Color(0xFF4A3E6D),
+                          backgroundColor: appSurface(0xFFE6BEFE),
+                          foregroundColor: appColor(0xFF4A3E6D),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                                 ),
                               )
                             : Text(
                                 widget.existingPlan != null ? 'Update Breeding Plan' : 'Save Breeding Plan',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                       ),
@@ -454,22 +456,22 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
-          suffixIcon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+          suffixIcon: Icon(Icons.arrow_drop_down, color: appColor(0xFF4F4F56)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: selectedRabbit != null
             ? _buildRabbitNameWidget(selectedRabbit, fontSize: 15)
             : Text(
                 label.startsWith('Select ') ? label : 'Select $label',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
               ),
       ),
     );
@@ -479,8 +481,8 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
     final nameColor = isArchived
-        ? const Color(0xFF787774)
-        : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
+        ? appColor(0xFF787774)
+        : (isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -494,8 +496,8 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -509,8 +511,8 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -533,22 +535,22 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF787774), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF787774), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF787774)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF787774)),
             ),
           ],
         ),
@@ -566,20 +568,20 @@ class _FutureBreedingPlanModalState extends State<FutureBreedingPlanModal> {
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF3A3A3C)),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         hintText: hint,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 14),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
+        hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400, fontSize: 14),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: appColor(0xFF4F4F56), size: 18) : null,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }

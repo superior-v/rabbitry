@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
@@ -104,7 +105,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} released from quarantine'),
-          backgroundColor: Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
         ),
       );
     } catch (e) {
@@ -123,8 +124,8 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
     final isDoe = widget.rabbit.type == RabbitType.doe;
     final isArchived = widget.rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (widget.rabbit.breederPrefix ?? '').trim();
     final name = widget.rabbit.name.trim();
     final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
@@ -138,10 +139,10 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -155,10 +156,10 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -171,8 +172,8 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -191,7 +192,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
+                    color: appSurface(0xFFE0E0E0),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -204,12 +205,12 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF7B6BA0).withOpacity(0.1),
+                      color: appSurface(0xFF7B6BA0).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_circle_outline,
-                      color: Color(0xFF7B6BA0),
+                      color: appColor(0xFF7B6BA0),
                       size: 24,
                     ),
                   ),
@@ -239,7 +240,7 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFF8E1),
+                    color: appSurface(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -248,12 +249,12 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                       if (widget.rabbit.quarantineReason != null)
                         Text(
                           'Reason: ${widget.rabbit.quarantineReason}',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF856404)),
+                          style: TextStyle(fontSize: 13, color: appColor(0xFF856404)),
                         ),
                       if (widget.rabbit.daysInQuarantineRemaining != null)
                         Text(
                           'Days remaining: ${widget.rabbit.daysInQuarantineRemaining}',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF856404)),
+                          style: TextStyle(fontSize: 13, color: appColor(0xFF856404)),
                         ),
                     ],
                   ),
@@ -266,13 +267,13 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF37352F),
+                  color: appColor(0xFF37352F),
                 ),
               ),
               SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFFE9E9E7)),
+                  border: Border.all(color: appSurface(0xFFE9E9E7)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: DropdownButtonFormField<RabbitStatus>(
@@ -300,13 +301,13 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF37352F),
+                  color: appColor(0xFF37352F),
                 ),
               ),
               SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFFE9E9E7)),
+                  border: Border.all(color: appSurface(0xFFE9E9E7)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: DropdownButtonFormField<String>(
@@ -333,15 +334,15 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                   labelText: 'Cage / Hutch ID',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                    borderSide: BorderSide(color: appSurface(0xFFE9E9E7)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Color(0xFFE9E9E7)),
+                    borderSide: BorderSide(color: appSurface(0xFFE9E9E7)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Color(0xFF7B6BA0), width: 2),
+                    borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
                   ),
                 ),
               ),
@@ -354,28 +355,28 @@ class _StopQuarantineModalState extends State<StopQuarantineModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _stopQuarantine,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE6BEFE),
-                    foregroundColor: const Color(0xFF4A3E6D),
+                    backgroundColor: appSurface(0xFFE6BEFE),
+                    foregroundColor: appColor(0xFF4A3E6D),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                            valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Release from Quarantine',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                 ),

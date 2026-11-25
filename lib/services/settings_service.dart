@@ -118,6 +118,7 @@ class SettingsService {
   }
 
   // Pedigree display toggles
+  bool get pedigreeShowPhoto => _prefs?.getBool('pedigreeShowPhoto') ?? true;
   bool get pedigreeShowGenotype => _prefs?.getBool('pedigreeShowGenotype') ?? true;
   bool get pedigreeShowOwnerName => _prefs?.getBool('pedigreeShowOwnerName') ?? true;
   bool get pedigreeShowAddress => _prefs?.getBool('pedigreeShowAddress') ?? true;
@@ -597,6 +598,10 @@ class SettingsService {
     await _prefs?.setBool('pedigreeShowSoldOn', show);
   }
 
+  Future<void> setPedigreeShowPhoto(bool show) async {
+    await _prefs?.setBool('pedigreeShowPhoto', show);
+  }
+
   // Task Screen Notepad Notes
   String get taskNotes => _prefs?.getString('task_notes') ?? '';
 
@@ -661,6 +666,7 @@ class SettingsService {
       'farmEmail': farmEmail,
       'farmWebsite': farmWebsite,
       'farmSocialLink': farmSocialLink,
+      'pedigreeShowPhoto': pedigreeShowPhoto,
       'pedigreeShowGenotype': pedigreeShowGenotype,
       'pedigreeShowOwnerName': pedigreeShowOwnerName,
       'pedigreeShowAddress': pedigreeShowAddress,
@@ -711,6 +717,7 @@ class SettingsService {
     if (settings['farmEmail'] != null) await setFarmEmail(settings['farmEmail']);
     if (settings['farmWebsite'] != null) await setFarmWebsite(settings['farmWebsite']);
     if (settings['farmSocialLink'] != null) await setFarmSocialLink(settings['farmSocialLink']);
+    if (settings['pedigreeShowPhoto'] != null) await setPedigreeShowPhoto(settings['pedigreeShowPhoto']);
     if (settings['pedigreeShowGenotype'] != null) await setPedigreeShowGenotype(settings['pedigreeShowGenotype']);
     if (settings['pedigreeShowOwnerName'] != null) await setPedigreeShowOwnerName(settings['pedigreeShowOwnerName']);
     if (settings['pedigreeShowAddress'] != null) await setPedigreeShowAddress(settings['pedigreeShowAddress']);

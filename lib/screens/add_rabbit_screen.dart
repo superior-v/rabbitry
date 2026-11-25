@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -54,8 +55,8 @@ class _UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class _AddRabbitScreenState extends State<AddRabbitScreen> {
-  static const Color doePink = Color(0xFFEC4899);
-  static const Color buckBlue = Color(0xFF2E7BB5);
+  static Color get doePink => appSurface(0xFFEC4899);
+  static Color get buckBlue => appSurface(0xFF2E7BB5);
 
   final DatabaseService _db = DatabaseService();
   final ImagePicker _imagePicker = ImagePicker();
@@ -454,13 +455,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         FocusManager.instance.primaryFocus?.unfocus();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFEEDAFE),
+        backgroundColor: appSurface(0xFFEEDAFE),
         appBar: AppBar(
-          backgroundColor: const Color(0xFFE6BEFE),
+          backgroundColor: appSurface(0xFFE6BEFE),
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: const Color(0xFF4A3E6D)),
+            icon: Icon(PhosphorIcons.x(PhosphorIconsStyle.bold), color: appColor(0xFF4A3E6D)),
             onPressed: () {
               FocusManager.instance.primaryFocus?.unfocus();
               FocusScope.of(context).unfocus();
@@ -469,8 +470,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           ),
         title: Text(
           _isEditing ? 'Edit Rabbit' : (widget.isAddToHerd ? 'Add to Herd' : 'Add New Rabbit'),
-          style: const TextStyle(
-            color: Color(0xFF4A3E6D),
+          style: TextStyle(
+            color: appColor(0xFF4A3E6D),
             fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
@@ -503,9 +504,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFD6CEE2)),
+                border: Border.all(color: appSurface(0xFFD6CEE2)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -639,9 +640,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFD6CEE2)),
+                border: Border.all(color: appSurface(0xFFD6CEE2)),
               ),
               child: _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) {
                 setState(() {
@@ -701,12 +702,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             onTap: _showImagePickerOptions,
             child: Stack(
               children: [
-                Container(
+                DarkModeGuard(child: Container(
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFF7F7F5),
+                    color: appSurface(0xFFF7F7F5),
                     border: Border.all(
                       color: activeColor,
                       width: 3,
@@ -725,7 +726,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           color: activeColor,
                         )
                       : null,
-                ),
+                )),
                 Positioned(
                   bottom: 0,
                   right: 0,
@@ -771,8 +772,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -843,7 +844,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           children: [
             Icon(
               icon,
-              color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774),
+              color: isDestructive ? appColor(0xFFD44C47) : appColor(0xFF787774),
               size: 22,
             ),
             const SizedBox(width: 14),
@@ -851,7 +852,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               label,
               style: TextStyle(
                 fontSize: 17,
-                color: isDestructive ? const Color(0xFFD44C47) : Colors.black87,
+                color: isDestructive ? appColor(0xFFD44C47) : appColor(0xDD000000, 0xFFF1F3F9),
               ),
             ),
           ],
@@ -869,7 +870,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             content: Text(
               source == ImageSource.camera ? 'Camera permission is required' : 'Gallery permission is required',
             ),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
             action: SnackBarAction(
               label: 'Settings',
               textColor: Colors.white,
@@ -900,9 +901,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         notifyDataChanged();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Photo added successfully'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             duration: Duration(milliseconds: 800),
           ),
         );
@@ -911,7 +912,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick image: $e'),
-          backgroundColor: const Color(0xFFD44C47),
+          backgroundColor: appSurface(0xFFD44C47),
           duration: const Duration(milliseconds: 800),
         ),
       );
@@ -954,9 +955,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: const Color(0xFFD6CEE2)),
+        border: Border.all(color: appSurface(0xFFD6CEE2)),
       ),
       child: Row(
         children: [
@@ -981,14 +982,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.male, size: 18, color: isBuck ? Colors.white : const Color(0xFF787880)),
+                      Icon(Icons.male, size: 18, color: isBuck ? Colors.white : appColor(0xFF787880)),
                       const SizedBox(width: 6),
                       Text(
                         'Buck',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: isBuck ? Colors.white : const Color(0xFF787880),
+                          color: isBuck ? Colors.white : appColor(0xFF787880),
                         ),
                       ),
                     ],
@@ -1018,14 +1019,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.female, size: 18, color: isDoe ? Colors.white : const Color(0xFF787880)),
+                      Icon(Icons.female, size: 18, color: isDoe ? Colors.white : appColor(0xFF787880)),
                       const SizedBox(width: 6),
                       Text(
                         'Doe',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: isDoe ? Colors.white : const Color(0xFF787880),
+                          color: isDoe ? Colors.white : appColor(0xFF787880),
                         ),
                       ),
                     ],
@@ -1055,27 +1056,27 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEADBFC),
+                    decoration: BoxDecoration(
+                      color: appSurface(0xFFEADBFC),
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Select Breed',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                         GestureDetector(
@@ -1083,10 +1084,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
+                              color: kAppCardWhite.withOpacity(0.6),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                            child: Icon(Icons.close, size: 18, color: appColor(0xFF4A3E6D)),
                           ),
                         ),
                       ],
@@ -1097,22 +1098,22 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Search or enter breed...',
-                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        hintStyle: TextStyle(fontSize: 14, color: appColor(0xFF787880)),
+                        prefixIcon: Icon(Icons.search, color: appColor(0xFF787880), size: 20),
                         filled: true,
-                        fillColor: const Color(0xFFF7F3FB),
+                        fillColor: appSurface(0xFFF7F3FB),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                          borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                         ),
                       ),
                       onChanged: (val) => setModalState(() => searchQuery = val),
@@ -1126,7 +1127,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           final breedName = filtered[index];
                           final isSelected = _breedController.text.trim().toLowerCase() == breedName.toLowerCase();
                           final isOdd = index % 2 == 1;
-                          final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+                          final rowBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
                           return Material(
                             color: rowBg,
@@ -1153,11 +1154,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF2C2C2E),
+                                        color: isSelected ? appColor(0xFF7B6BA0) : appColor(0xFF2C2C2E),
                                       ),
                                     ),
                                     if (isSelected)
-                                      const Icon(Icons.check_circle, color: Color(0xFF7B6BA0), size: 18),
+                                      Icon(Icons.check_circle, color: appColor(0xFF7B6BA0), size: 18),
                                   ],
                                 ),
                               ),
@@ -1166,7 +1167,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                         } else {
                           final customBreed = searchQuery.trim();
                           return Material(
-                            color: Colors.white,
+                            color: kAppCardWhite,
                             child: InkWell(
                               onTap: () {
                                 setState(() {
@@ -1178,14 +1179,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.add_circle_outline, color: Color(0xFF7B6BA0), size: 18),
+                                    Icon(Icons.add_circle_outline, color: appColor(0xFF7B6BA0), size: 18),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Use "$customBreed"',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF7B6BA0),
+                                        color: appColor(0xFF7B6BA0),
                                       ),
                                     ),
                                   ],
@@ -1222,27 +1223,27 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEADBFC),
+                    decoration: BoxDecoration(
+                      color: appSurface(0xFFEADBFC),
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Select Color',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                         GestureDetector(
@@ -1250,10 +1251,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
+                              color: kAppCardWhite.withOpacity(0.6),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                            child: Icon(Icons.close, size: 18, color: appColor(0xFF4A3E6D)),
                           ),
                         ),
                       ],
@@ -1264,22 +1265,22 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Search or enter color...',
-                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        hintStyle: TextStyle(fontSize: 14, color: appColor(0xFF787880)),
+                        prefixIcon: Icon(Icons.search, color: appColor(0xFF787880), size: 20),
                         filled: true,
-                        fillColor: const Color(0xFFF7F3FB),
+                        fillColor: appSurface(0xFFF7F3FB),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                          borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                         ),
                       ),
                       onChanged: (val) => setModalState(() => searchQuery = val),
@@ -1293,7 +1294,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           final colorName = filtered[index];
                           final isSelected = _colorController.text.trim().toLowerCase() == colorName.toLowerCase();
                           final isOdd = index % 2 == 1;
-                          final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+                          final rowBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
                           return Material(
                             color: rowBg,
@@ -1314,11 +1315,11 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF2C2C2E),
+                                        color: isSelected ? appColor(0xFF7B6BA0) : appColor(0xFF2C2C2E),
                                       ),
                                     ),
                                     if (isSelected)
-                                      const Icon(Icons.check_circle, color: Color(0xFF7B6BA0), size: 18),
+                                      Icon(Icons.check_circle, color: appColor(0xFF7B6BA0), size: 18),
                                   ],
                                 ),
                               ),
@@ -1327,7 +1328,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                         } else {
                           final customColor = searchQuery.trim();
                           return Material(
-                            color: Colors.white,
+                            color: kAppCardWhite,
                             child: InkWell(
                               onTap: () {
                                 setState(() {
@@ -1339,14 +1340,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.add_circle_outline, color: Color(0xFF7B6BA0), size: 18),
+                                    Icon(Icons.add_circle_outline, color: appColor(0xFF7B6BA0), size: 18),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Use "$customColor"',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF7B6BA0),
+                                        color: appColor(0xFF7B6BA0),
                                       ),
                                     ),
                                   ],
@@ -1371,12 +1372,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Breed',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1388,25 +1389,25 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             decoration: InputDecoration(
               isDense: true,
               hintText: 'Select Breed',
-              hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(fontSize: 15, color: appColor(0xFF787880), fontWeight: FontWeight.w400),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
-              suffixIcon: const Padding(
+              suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+                child: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D), size: 18),
               ),
               suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
             ),
@@ -1415,7 +1416,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: _breedController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                color: _breedController.text.isNotEmpty ? appColor(0xFF4F4F56) : appColor(0xFF787880),
               ),
             ),
           ),
@@ -1428,12 +1429,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Color',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1445,25 +1446,25 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             decoration: InputDecoration(
               isDense: true,
               hintText: 'Select Color',
-              hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(fontSize: 15, color: appColor(0xFF787880), fontWeight: FontWeight.w400),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
-              suffixIcon: const Padding(
+              suffixIcon: Padding(
                 padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
+                child: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D), size: 18),
               ),
               suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 18),
             ),
@@ -1472,7 +1473,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: _colorController.text.isNotEmpty ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                color: _colorController.text.isNotEmpty ? appColor(0xFF4F4F56) : appColor(0xFF787880),
               ),
             ),
           ),
@@ -1497,8 +1498,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       child: ElevatedButton(
         onPressed: _isSaving ? null : _saveRabbit,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE6BEFE),
-          foregroundColor: const Color(0xFF4A3E6D),
+          backgroundColor: appSurface(0xFFE6BEFE),
+          foregroundColor: appColor(0xFF4A3E6D),
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -1506,20 +1507,20 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           ),
         ),
         child: _isSaving
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                 ),
               )
             : Text(
                 _isEditing ? 'Update Rabbit' : (widget.isAddToHerd ? 'Add to Herd' : 'Save Rabbit'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF4A3E6D),
+                  color: appColor(0xFF4A3E6D),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -1594,9 +1595,9 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFD6CEE2)),
+              border: Border.all(color: appSurface(0xFFD6CEE2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1605,7 +1606,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   'Select Genotype',
                   style: TextStyle(
                     fontSize: 16,
-                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? doePink : buckBlue) : const Color(0xFF636366),
+                    color: _genotypeExpanded ? (_selectedType == RabbitType.doe ? doePink : buckBlue) : appColor(0xFF636366),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1665,24 +1666,24 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         Text(
           locus,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
+            color: appColor(0xFF787774),
           ),
         ),
         const SizedBox(height: 4),
         Container(
           height: 38,
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
               icon: const Icon(Icons.arrow_drop_down, size: 18),
-              style: const TextStyle(fontSize: 15, color: Color(0xFF37352F), fontFamily: 'monospace'),
+              style: TextStyle(fontSize: 15, color: appColor(0xFF37352F), fontFamily: 'monospace'),
               items: alleles.map((a) => DropdownMenuItem(value: a, child: Text(a, style: const TextStyle(fontSize: 15)))).toList(),
               onChanged: (val) {
                 if (val != null) {
@@ -1715,10 +1716,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1730,27 +1731,27 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           textCapitalization: textCapitalization,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           decoration: InputDecoration(
             isDense: true,
             hintText: hintText,
-            hintStyle: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+            hintStyle: TextStyle(fontSize: 15, color: appColor(0xFF787880), fontWeight: FontWeight.w400),
             prefixText: prefixText,
-            prefixStyle: const TextStyle(fontSize: 15, color: Color(0xFF4F4F56), fontWeight: FontWeight.w600),
+            prefixStyle: TextStyle(fontSize: 15, color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: kAppCardWhite,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
             ),
           ),
         ),
@@ -1803,12 +1804,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Status',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1816,8 +1817,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFD6CEE2)),
+            color: kAppCardWhite,
+            border: Border.all(color: appSurface(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonHideUnderline(
@@ -1825,16 +1826,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               value: _selectedStatus,
               isDense: true,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
-              dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D), size: 18),
+              dropdownColor: kAppCardWhite,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
               selectedItemBuilder: (context) {
                 return statusOptions.map((status) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       _getStatusDisplayLabel(status),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -1852,12 +1853,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      color: isAlt ? appSurface(0xFFF9F5FE) : kAppCardWhite,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       _getStatusDisplayLabel(status),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -1891,12 +1892,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Location',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1904,8 +1905,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFD6CEE2)),
+            color: kAppCardWhite,
+            border: Border.all(color: appSurface(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonHideUnderline(
@@ -1913,12 +1914,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               value: _selectedLocation,
               isDense: true,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
-              dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D), size: 18),
+              dropdownColor: kAppCardWhite,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
               hint: Text(
                 locationNames.isEmpty ? 'No barns' : 'Location',
-                style: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                style: TextStyle(fontSize: 15, color: appColor(0xFF787880), fontWeight: FontWeight.w400),
               ),
               selectedItemBuilder: (context) {
                 return locationNames.map((loc) {
@@ -1926,7 +1927,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       loc,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -1941,12 +1942,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      color: isAlt ? appSurface(0xFFF9F5FE) : kAppCardWhite,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       location,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -1982,12 +1983,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Cage',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -1995,8 +1996,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFD6CEE2)),
+            color: kAppCardWhite,
+            border: Border.all(color: appSurface(0xFFD6CEE2)),
             borderRadius: BorderRadius.circular(14),
           ),
           child: DropdownButtonHideUnderline(
@@ -2005,16 +2006,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               value: _selectedCage,
               isDense: true,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D), size: 18),
-              dropdownColor: Colors.white,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+              icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D), size: 18),
+              dropdownColor: kAppCardWhite,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
               hint: Text(
                 _selectedLocation == null
                     ? 'Select Location'
                     : cageNames.isEmpty
                         ? 'No cages'
                         : 'Cage',
-                style: const TextStyle(fontSize: 15, color: Color(0xFF787880), fontWeight: FontWeight.w400),
+                style: TextStyle(fontSize: 15, color: appColor(0xFF787880), fontWeight: FontWeight.w400),
               ),
               selectedItemBuilder: (context) {
                 return cageNames.map((cage) {
@@ -2022,7 +2023,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       cage,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   );
                 }).toList();
@@ -2037,12 +2038,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isAlt ? const Color(0xFFF9F5FE) : Colors.white,
+                      color: isAlt ? appSurface(0xFFF9F5FE) : kAppCardWhite,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       cage,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
                     ),
                   ),
                 );
@@ -2064,12 +2065,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Purchase Details',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
               ),
             ),
             _buildCompactToggle('', _hasPurchaseDetails, (val) {
@@ -2089,10 +2090,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: const Color(0xFFD6CEE2),
+                color: appSurface(0xFFD6CEE2),
               ),
             ),
             child: Column(
@@ -2118,12 +2119,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Date of purchase',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.2,
                       ),
                     ),
@@ -2147,13 +2148,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFD6CEE2)),
+                          color: kAppCardWhite,
+                          border: Border.all(color: appSurface(0xFFD6CEE2)),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -2161,7 +2162,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: _purchaseDate != null ? FontWeight.w600 : FontWeight.w400,
-                                  color: _purchaseDate != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                                  color: _purchaseDate != null ? appColor(0xFF4F4F56) : appColor(0xFF787880),
                                 ),
                               ),
                             ),
@@ -2173,7 +2174,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                     _purchaseDateController.clear();
                                   });
                                 },
-                                child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                                child: Icon(Icons.clear, color: appColor(0xFF787880), size: 18),
                               ),
                           ],
                         ),
@@ -2211,13 +2212,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Add as Expense',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                             ),
                           ),
                         ),
@@ -2237,12 +2238,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Date of birth',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -2265,13 +2266,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFD6CEE2)),
+              color: kAppCardWhite,
+              border: Border.all(color: appSurface(0xFFD6CEE2)),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+                Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -2279,7 +2280,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: _dateOfBirth != null ? FontWeight.w600 : FontWeight.w400,
-                      color: _dateOfBirth != null ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                      color: _dateOfBirth != null ? appColor(0xFF4F4F56) : appColor(0xFF787880),
                     ),
                   ),
                 ),
@@ -2291,7 +2292,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                         _dobController.clear();
                       });
                     },
-                    child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                    child: Icon(Icons.clear, color: appColor(0xFF787880), size: 18),
                   ),
               ],
             ),
@@ -2303,8 +2304,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
   Widget _buildToggleRow(String label, bool value, ValueChanged<bool> onChanged) {
     // Herd page matching colors
-    const Color doeActive = Color(0xFFEC4899);
-    const Color buckActive = Color(0xFF2E7BB5);
+    final Color doeActive = appColor(0xFFEC4899);
+    final Color buckActive = appColor(0xFF2E7BB5);
     final Color activeColor = _selectedType == RabbitType.doe ? doeActive : buckActive;
 
     return Row(
@@ -2312,7 +2313,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: Color(0xFF4F4F56)),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: appColor(0xFF4F4F56)),
         ),
         // Pill-style toggle: white unselected, pink/blue selected
         GestureDetector(
@@ -2322,10 +2323,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             width: 52,
             height: 28,
             decoration: BoxDecoration(
-              color: value ? activeColor : Colors.white,
+              color: value ? activeColor : kAppCardWhite,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: value ? activeColor : const Color(0xFFD1D1D6),
+                color: value ? activeColor : appSurface(0xFFD1D1D6),
                 width: 1.5,
               ),
             ),
@@ -2339,8 +2340,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: Container(
                       width: 22,
                       height: 22,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: kAppCardWhite,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(color: Color(0x29000000), blurRadius: 4, offset: Offset(0, 1))
@@ -2366,7 +2367,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         if (label.isNotEmpty) ...[
           Text(
             label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           ),
           const SizedBox(width: 6),
         ],
@@ -2377,10 +2378,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
             width: 44,
             height: 24,
             decoration: BoxDecoration(
-              color: value ? activeColor : Colors.white,
+              color: value ? activeColor : kAppCardWhite,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: value ? activeColor : const Color(0xFFC7C7CC),
+                color: value ? activeColor : appSurface(0xFFC7C7CC),
                 width: 1.5,
               ),
             ),
@@ -2394,8 +2395,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: Container(
                       width: 18,
                       height: 18,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: kAppCardWhite,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))
@@ -2421,10 +2422,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -2448,8 +2449,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFD6CEE2)),
+              color: kAppCardWhite,
+              border: Border.all(color: appSurface(0xFFD6CEE2)),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
@@ -2460,7 +2461,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
-                      color: hasSelection ? const Color(0xFF4F4F56) : const Color(0xFF787880),
+                      color: hasSelection ? appColor(0xFF4F4F56) : appColor(0xFF787880),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2474,7 +2475,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                         if (label == 'Dam') _damController.clear();
                       });
                     },
-                    child: const Icon(Icons.clear, color: Color(0xFF787880), size: 18),
+                    child: Icon(Icons.clear, color: appColor(0xFF787880), size: 18),
                   )
                 else
                   Icon(Icons.keyboard_arrow_down, color: color, size: 18),
@@ -2505,16 +2506,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEADBFC),
+                    decoration: BoxDecoration(
+                      color: appSurface(0xFFEADBFC),
                       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Row(
@@ -2522,10 +2523,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       children: [
                         Text(
                           'Select $label',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                         GestureDetector(
@@ -2533,10 +2534,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
+                              color: kAppCardWhite.withOpacity(0.6),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                            child: Icon(Icons.close, size: 18, color: appColor(0xFF4A3E6D)),
                           ),
                         ),
                       ],
@@ -2547,29 +2548,29 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Search $label by name or ear...',
-                        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF787880)),
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF787880), size: 20),
+                        hintStyle: TextStyle(fontSize: 14, color: appColor(0xFF787880)),
+                        prefixIcon: Icon(Icons.search, color: appColor(0xFF787880), size: 20),
                         filled: true,
-                        fillColor: const Color(0xFFF7F3FB),
+                        fillColor: appSurface(0xFFF7F3FB),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                          borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                          borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                         ),
                       ),
                       onChanged: (val) => setModalState(() => searchQuery = val),
                     ),
                   ),
                   Material(
-                    color: Colors.white,
+                    color: kAppCardWhite,
                     child: InkWell(
                       onTap: () {
                         Navigator.pop(context);
@@ -2577,8 +2578,8 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Color(0xFFE5DEEC))),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: appSurface(0xFFE5DEEC))),
                         ),
                         child: Row(
                           children: [
@@ -2604,10 +2605,10 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   ),
                   Expanded(
                     child: filtered.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'No rabbits available',
-                              style: TextStyle(fontSize: 14, color: Color(0xFF787880)),
+                              style: TextStyle(fontSize: 14, color: appColor(0xFF787880)),
                             ),
                           )
                         : ListView.builder(
@@ -2616,7 +2617,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                               final rabbit = filtered[index];
                               final displayName = rabbit.fullName.isNotEmpty ? rabbit.fullName : rabbit.name;
                               final isOdd = index % 2 == 1;
-                              final rowBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+                              final rowBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
                               return Material(
                                 color: rowBg,
@@ -2648,16 +2649,16 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                                             children: [
                                               Text(
                                                 displayName,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF2C2C2E),
+                                                  color: appColor(0xFF2C2C2E),
                                                 ),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
                                                 '${rabbit.breed}${rabbit.status == RabbitStatus.archived ? " • Archived" : ""} • ${rabbit.id}',
-                                                style: const TextStyle(fontSize: 12, color: Color(0xFF787880)),
+                                                style: TextStyle(fontSize: 12, color: appColor(0xFF787880)),
                                               ),
                                             ],
                                           ),
@@ -2683,12 +2684,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Notes',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
             letterSpacing: 0.2,
           ),
         ),
@@ -2696,23 +2697,23 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
         TextFormField(
           controller: _notesController,
           maxLines: 3,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: kAppCardWhite,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
             ),
           ),
         ),
@@ -2758,14 +2759,14 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
   Future<void> _saveRabbit() async {
     if (_nameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47), duration: Duration(milliseconds: 800)),
+        SnackBar(content: Text('Please enter a name', style: TextStyle(fontSize: 16)), backgroundColor: appSurface(0xFFD44C47), duration: Duration(milliseconds: 800)),
       );
       return;
     }
 
     if (_breedController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a breed', style: TextStyle(fontSize: 16)), backgroundColor: Color(0xFFD44C47), duration: Duration(milliseconds: 800)),
+        SnackBar(content: Text('Please enter a breed', style: TextStyle(fontSize: 16)), backgroundColor: appSurface(0xFFD44C47), duration: Duration(milliseconds: 800)),
       );
       return;
     }
@@ -2926,7 +2927,7 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
           messenger.showSnackBar(
             SnackBar(
               content: Text('${updated.name} updated successfully', style: const TextStyle(fontSize: 16)),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               duration: const Duration(milliseconds: 800),
             ),
           );
@@ -2976,9 +2977,9 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
             if (mounted) {
               setState(() => _isSaving = false);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text('This kit has already been added to the Herd'),
-                  backgroundColor: Color(0xFF7B6BA0),
+                  backgroundColor: appSurface(0xFF7B6BA0),
                 ),
               );
             }
@@ -3100,7 +3101,7 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
                     : '${rabbit.name} added successfully',
                 style: const TextStyle(fontSize: 16),
               ),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               duration: const Duration(milliseconds: 800),
             ),
           );
@@ -3108,7 +3109,7 @@ Cost: ${cost != null ? "${FormatUtils.currencyPrefix}${cost.toStringAsFixed(2)}"
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e', style: const TextStyle(fontSize: 16)), backgroundColor: const Color(0xFFD44C47), duration: const Duration(milliseconds: 800)),
+        SnackBar(content: Text('Error: $e', style: const TextStyle(fontSize: 16)), backgroundColor: appSurface(0xFFD44C47), duration: const Duration(milliseconds: 800)),
       );
     } finally {
       setState(() => _isSaving = false);

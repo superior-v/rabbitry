@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import '../models/rabbit.dart';
 import '../models/barn.dart';
@@ -16,21 +17,21 @@ import '../widgets/sale_ribbon_painter.dart';
 import '../utils/toast_utils.dart';
 
 // Re-defining for local scope consistency or using imported ones
-const kDoeTheme = Color(0xFFB5567A);
-const kDoeIcon = Color(0xFFD4809A);
-const kBuckTheme = Color(0xFF3A7BB8);
-const kBuckIcon = Color(0xFF5B9BD5);
-const kArchiveTheme = Color(0xFF8E8E93);
-const kArchiveIcon = Color(0xFF636366);
-const kSuccess = Color(0xFF4CAF50);
-const kError = Color(0xFFD94452);
-const kWarning = Color(0xFFF59E0B);
+Color get kDoeTheme => appColor(0xFFB5567A);
+Color get kDoeIcon => appColor(0xFFD4809A);
+Color get kBuckTheme => appColor(0xFF3A7BB8);
+Color get kBuckIcon => appColor(0xFF5B9BD5);
+Color get kArchiveTheme => appColor(0xFF8E8E93);
+Color get kArchiveIcon => appColor(0xFF636366);
+Color get kSuccess => appColor(0xFF4CAF50);
+Color get kError => appColor(0xFFD94452);
+Color get kWarning => appColor(0xFFF59E0B);
 
 // Specific constants to match the provided image
-const Color iHeaderBg = Color(0xFFE6BEFE);
-const Color iAppBg = Color(0xFFEEDAFE);
-const Color iTextDark = Color(0xFF3F3B46);
-const Color iTextLight = Color(0xFFA5A1AE);
+Color get iHeaderBg => appSurface(0xFFE6BEFE);
+Color get iAppBg => appSurface(0xFFEEDAFE);
+Color get iTextDark => appColor(0xFF3F3B46);
+Color get iTextLight => appColor(0xFFA5A1AE);
 
 class HerdScreen extends StatefulWidget {
   const HerdScreen({Key? key}) : super(key: key);
@@ -106,6 +107,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     if (_tabController.index != 0 && (defaultFilter == 'Pregnant' || defaultFilter == 'Nursing')) {
       _tabController.index = 0;
     }
+    _searchController.clear();
     setState(() {
       _currentFilter = _tabController.index == 0 ? defaultFilter : 'All';
       _breedFilter = 'All';
@@ -442,7 +444,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     if (_isLoading) {
       return Scaffold(
         backgroundColor: iAppBg,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep)),
         ),
       );
@@ -460,7 +462,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       });
     }
 
-    final activeIconColor = const Color(0xFFB388C7);
+    final activeIconColor = appColor(0xFFB388C7);
 
     return Scaffold(
       backgroundColor: iAppBg,
@@ -529,7 +531,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     await _refreshData();
                   }
                 },
-                backgroundColor: const Color(0xFFE6BEFE),
+                backgroundColor: appSurface(0xFFE6BEFE),
                 shape: const CircleBorder(),
                 elevation: 4,
                 child: Icon(
@@ -556,12 +558,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: const Color(0xFF5A4880), size: 24),
+                  Icon(PhosphorIcons.pawPrint(PhosphorIconsStyle.duotone), color: appColor(0xFF5A4880), size: 24),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Herd',
                     style: TextStyle(
-                      color: Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -585,7 +587,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         child: Container(
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            color: const Color(0xFFE4E4E9), // Grey base background
+            color: appSurface(0xFFE4E4E9), // Grey base background
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -615,7 +617,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.transparent,
+            color: isActive ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: isActive
                 ? [
@@ -629,7 +631,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             style: TextStyle(
               fontSize: 14,
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-              color: isActive ? const Color(0xFF3B3B43) : const Color(0xFF66666D),
+              color: isActive ? appColor(0xFF3B3B43) : appColor(0xFF66666D),
             ),
           ),
         ),
@@ -646,7 +648,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: kNeutral300),
               ),
@@ -688,7 +690,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       ),
                     ),
                   ),
-                  if (_searchQuery.isNotEmpty)
+                  if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty)
                     GestureDetector(
                       onTap: () {
                         _searchController.clear();
@@ -753,7 +755,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   Widget _buildMenuOption(String label, String value, bool isSelected, Function(String) onSelect) {
     return ListTile(
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
-      trailing: isSelected ? const Icon(Icons.check, color: kLilacDeep) : null,
+      trailing: isSelected ? Icon(Icons.check, color: kLilacDeep) : null,
       onTap: () {
         onSelect(value);
         Navigator.pop(context);
@@ -781,7 +783,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             ),
           ),
           if (isSelected)
-            const Icon(Icons.check, size: 16, color: kLilacDeep),
+            Icon(Icons.check, size: 16, color: kLilacDeep),
         ],
       ),
     );
@@ -803,7 +805,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isActive ? kLilacWash : Colors.white,
+          color: isActive ? kLilacWash : kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: isActive ? kLilacLight : kNeutral300),
         ),
@@ -823,27 +825,27 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       ),
       child: Row(
         children: [
-          const Icon(Icons.filter_alt, size: 16, color: kLilacDeep),
+          Icon(Icons.filter_alt, size: 16, color: kLilacDeep),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Filtering: ',
             style: TextStyle(color: kLilacDeep, fontSize: 14),
           ),
           if (_locationFilter != null) ...[
             Text(
               'Location: $_locationFilter',
-              style: const TextStyle(
-                color: Color(0xFF7B6BA0),
+              style: TextStyle(
+                color: appColor(0xFF7B6BA0),
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (_breedFilter != 'All') const Text(' • ', style: TextStyle(color: Color(0xFF7B6BA0))),
+            if (_breedFilter != 'All') Text(' • ', style: TextStyle(color: appColor(0xFF7B6BA0))),
           ],
           if (_breedFilter != 'All')
             Text(
               'Breed: $_breedFilter',
-              style: const TextStyle(
+              style: TextStyle(
                 color: kLilacDeep,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -855,7 +857,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               _locationFilter = null;
               _breedFilter = 'All';
             }),
-            child: const Icon(Icons.close, size: 18, color: kLilacDeep),
+            child: Icon(Icons.close, size: 18, color: kLilacDeep),
           ),
         ],
       ),
@@ -927,9 +929,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
     return Container(
       height: 46,
-      decoration: const BoxDecoration(
-        color: Color(0xFF8F8A90),
-        border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
+      decoration: BoxDecoration(
+        color: appSurface(0xFF8F8A90),
+        border: Border(bottom: BorderSide(color: appSurface(0xFF7A757C), width: 0.5)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1018,21 +1020,21 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(PhosphorIcons.plant(PhosphorIconsStyle.duotone), size: 64, color: const Color(0xFFE9E9E7)),
+            Icon(PhosphorIcons.plant(PhosphorIconsStyle.duotone), size: 64, color: appColor(0xFFE9E9E7)),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No kits in grow-out phase',
               style: TextStyle(
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Kits will appear here after weaning',
               style: TextStyle(
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
                 fontSize: 14,
               ),
             ),
@@ -1059,9 +1061,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: appSurface(0xFFE0E0E0)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1074,12 +1076,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7B6BA0).withOpacity(0.1),
+                    color: appSurface(0xFF7B6BA0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     kit.sex == 'male' ? PhosphorIconsRegular.genderMale : PhosphorIconsRegular.genderFemale,
-                    color: kit.sex == 'male' ? const Color(0xFF2E7BB5) : const Color(0xFF9C6ADE),
+                    color: kit.sex == 'male' ? appColor(0xFF2E7BB5) : appColor(0xFF9C6ADE),
                     size: 24,
                   ),
                 ),
@@ -1090,17 +1092,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     children: [
                       Text(
                         'Kit #${kit.id}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: appColor(0xDD000000, 0xFFF1F3F9),
                         ),
                       ),
                       Text(
                         'From: ${litter.doeName}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF787774),
+                          color: appColor(0xFF787774),
                         ),
                       ),
                     ],
@@ -1109,7 +1111,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: daysToMaturity <= 0 ? const Color(0xFF7B6BA0).withOpacity(0.1) : const Color(0xFFF5A623).withOpacity(0.1),
+                    color: daysToMaturity <= 0 ? appSurface(0xFF7B6BA0).withOpacity(0.1) : appSurface(0xFFF5A623).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -1117,7 +1119,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: daysToMaturity <= 0 ? const Color(0xFF7B6BA0) : const Color(0xFFF5A623),
+                      color: daysToMaturity <= 0 ? appColor(0xFF7B6BA0) : appColor(0xFFF5A623),
                     ),
                   ),
                 ),
@@ -1132,7 +1134,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     children: [
                       Text(
                         'Age: $age days',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF787774)),
+                        style: TextStyle(fontSize: 13, color: appColor(0xFF787774)),
                       ),
                       const SizedBox(height: 4),
                       ClipRRect(
@@ -1140,9 +1142,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         child: LinearProgressIndicator(
                           value: progressToMaturity,
                           minHeight: 6,
-                          backgroundColor: const Color(0xFFE9E9E7),
+                          backgroundColor: appSurface(0xFFE9E9E7),
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            daysToMaturity <= 0 ? const Color(0xFF7B6BA0) : const Color(0xFFF5A623),
+                            daysToMaturity <= 0 ? appColor(0xFF7B6BA0) : appColor(0xFFF5A623),
                           ),
                         ),
                       ),
@@ -1155,7 +1157,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     onPressed: () => _promoteToBreeder(kit, litter),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      backgroundColor: const Color(0xFF7B6BA0),
+                      backgroundColor: appSurface(0xFF7B6BA0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1215,7 +1217,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
             ),
             child: const Text('Promote', style: TextStyle(color: Colors.white)),
           ),
@@ -1236,7 +1238,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${nameController.text} promoted to breeder!'),
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
             ),
           );
         }
@@ -1296,7 +1298,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           children: [
             Icon(PhosphorIcons.archive(PhosphorIconsStyle.duotone), size: 64, color: kNeutral200),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No archived rabbits',
               style: TextStyle(
                 color: kNeutral600,
@@ -1336,7 +1338,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.visibility_outlined, color: Color(0xFF7B6BA0)),
+              leading: Icon(Icons.visibility_outlined, color: appColor(0xFF7B6BA0)),
               title: const Text('View Profile'),
               onTap: () {
                 Navigator.pop(context);
@@ -1344,7 +1346,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               },
             ),
             ListTile(
-              leading: const Icon(Icons.restore, color: Color(0xFF2E7BB5)),
+              leading: Icon(Icons.restore, color: appColor(0xFF2E7BB5)),
               title: const Text('Restore to Active'),
               subtitle: const Text('Move back to active breeders'),
               onTap: () async {
@@ -1353,7 +1355,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: Color(0xFFE63946)),
+              leading: Icon(Icons.delete_outline, color: appColor(0xFFE63946)),
               title: const Text('Remove Permanently'),
               subtitle: const Text('Cannot be undone'),
               onTap: () {
@@ -1375,7 +1377,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${rabbit.name} restored to active breeders'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
@@ -1386,7 +1388,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error restoring rabbit: $e'),
-            backgroundColor: const Color(0xFFE63946),
+            backgroundColor: appSurface(0xFFE63946),
           ),
         );
       }
@@ -1414,15 +1416,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${rabbit.name} permanently removed'),
-                    backgroundColor: const Color(0xFFE63946),
+                    backgroundColor: appSurface(0xFFE63946),
                   ),
                 );
               }
               await _refreshData();
             },
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: Color(0xFFE63946)),
+              style: TextStyle(color: appColor(0xFFE63946)),
             ),
           ),
         ],
@@ -1550,12 +1552,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.pets_outlined, size: 64, color: Color(0xFFE9E9E7)),
+            Icon(Icons.pets_outlined, size: 64, color: appColor(0xFFE9E9E7)),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No rabbits found',
               style: TextStyle(
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -1628,7 +1630,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     padding: const EdgeInsets.only(top: 6, bottom: 4),
                     child: Text(
                       key.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: iTextLight,
                         fontWeight: FontWeight.w800,
@@ -1654,7 +1656,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         children: [
           Text(
             '$count RABBITS',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: iTextLight,
               fontWeight: FontWeight.w800,
@@ -1789,9 +1791,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       child: Container(
         margin: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE5E5EA)),
+          border: Border.all(color: appSurface(0xFFE5E5EA)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -1803,41 +1805,66 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         padding: const EdgeInsets.all(5),
         child: Column(
           children: [
-            // 1. Header: Full-width Name line, followed by Photo + Breed / Color / Age & Weight
+            // 1. Header: Light grey Name + 3-dots bar, followed by Photo + Breed / Color / Age & Weight
             Container(
               padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Full-width Name line
-                  Text.rich(
-                    TextSpan(
+                  // Full-width Name line on light grey base with 3-dots aligned on right
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: appSurface(0xFFF2F2F5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
-                          TextSpan(
-                            text: '${rabbit.breederPrefix} ',
-                            style: const TextStyle(color: Color(0xFF4A4A4D), fontWeight: FontWeight.w700),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                if (rabbit.breederPrefix != null && rabbit.breederPrefix!.isNotEmpty)
+                                  TextSpan(
+                                    text: '${rabbit.breederPrefix} ',
+                                    style: TextStyle(color: appColor(0xFF4A4A4D), fontWeight: FontWeight.w700),
+                                  ),
+                                TextSpan(
+                                  text: rabbit.name,
+                                  style: TextStyle(
+                                    color: isDoe
+                                        ? (isArchive ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+                                        : (isArchive ? appColor(0xFF80BFFF) : appColor(0xFF2196F3)),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            style: const TextStyle(fontSize: 16),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        TextSpan(
-                          text: rabbit.name,
-                          style: TextStyle(
-                            color: isDoe
-                                ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-                                : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
-                            fontWeight: FontWeight.w700,
+                        ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
+                          child: SizedBox(
+                            width: 30,
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Icon(Icons.more_horiz, color: appColor(0xFF4A4A4D), size: 22),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    style: const TextStyle(fontSize: 16),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1848,12 +1875,12 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                           width: 62,
                           height: 62,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: kAppCardWhite,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDoe
-                                  ? (isArchive ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-                                  : (isArchive ? const Color(0xFF80BFFF) : const Color(0xFF2196F3)),
+                                  ? (isArchive ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+                                  : (isArchive ? appColor(0xFF80BFFF) : appColor(0xFF2196F3)),
                               width: 2,
                             ),
                           ),
@@ -1863,7 +1890,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                               fit: StackFit.expand,
                               children: [
                                 isPhotoValid
-                                    ? Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center)
+                                    ? DarkModeGuard(child: Image.file(File(photoPath!), fit: BoxFit.cover, alignment: Alignment.center))
                                     : Image.asset('assets/images/app_logo.png', fit: BoxFit.cover, alignment: Alignment.center),
                                 if (rabbit.salePrice != null)
                                   Positioned.fill(
@@ -1878,49 +1905,31 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       ),
                       const SizedBox(width: 10),
 
-                      // Right Info: Breed (+ 3 dots), Color, Age • Weight (+ Status)
+                      // Right Info: Breed, Color, Age • Weight (+ Status)
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Line 1: Breed + 3-dots menu
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    rabbit.breed,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4A4A4D),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => isArchive ? _showArchiveMenu(rabbit) : _showRabbitActions(rabbit),
-                                  child: const SizedBox(
-                                    width: 30,
-                                    child: Align(
-                                      alignment: Alignment.center,
-                                      child: Icon(Icons.more_horiz, color: Color(0xFF4A4A4D), size: 22),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            // Line 1: Breed
+                            Text(
+                              rabbit.breed,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: appColor(0xFF4A4A4D),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             if (rabbit.color != null && rabbit.color!.isNotEmpty) ...[
                               const SizedBox(height: 2),
                               // Line 2: Color
                               Text(
                                 rabbit.color!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF4A4A4D),
+                                  color: appColor(0xFF4A4A4D),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1936,10 +1945,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                                     rabbit.weight != null
                                         ? '${rabbit.age} • ${FormatUtils.formatWeight(rabbit.weight!)}'
                                         : rabbit.age,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4A4A4D),
+                                      color: appColor(0xFF4A4A4D),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1969,9 +1978,9 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             Container(
               margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFEBE8F0)),
+                border: Border.all(color: appSurface(0xFFEBE8F0)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Column(
@@ -1980,7 +1989,15 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     'Ear No.:',
                     rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
                     'Cage No.:',
-                    rabbit.cage?.isNotEmpty == true ? rabbit.cage! : '-',
+                    [
+                      if (rabbit.location != null && rabbit.location!.isNotEmpty) rabbit.location!,
+                      if (rabbit.cage != null && rabbit.cage!.isNotEmpty) rabbit.cage!,
+                    ].isNotEmpty
+                        ? [
+                            if (rabbit.location != null && rabbit.location!.isNotEmpty) rabbit.location!,
+                            if (rabbit.cage != null && rabbit.cage!.isNotEmpty) rabbit.cage!,
+                          ].join(' • ')
+                        : '-',
                     isDoe: isDoe,
                     isTinted: true,
                   ),
@@ -2027,11 +2044,13 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           (l.dam.isNotEmpty && l.dam.trim().toLowerCase() == rabbit.name.trim().toLowerCase()) ||
           (l.doeName.isNotEmpty && l.doeName.trim().toLowerCase() == rabbit.name.trim().toLowerCase());
       if (!matchesDoe) return false;
+      if (l.missedLitter == true) return false;
       final st = l.status.toLowerCase().trim();
       return st != 'archived' &&
           st != 'history_only' &&
           st != 'deleted_archive' &&
           st != 'weaned' &&
+          st != 'missed' &&
           st != 'not taken' &&
           st != 'died' &&
           st != 'dead';
@@ -2163,10 +2182,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(
-          color: isDoe ? const Color(0xFFFCE4EC) : const Color(0xFFE3F2FD),
+          color: isDoe ? appSurface(0xFFFCE4EC) : appSurface(0xFFE3F2FD),
           borderRadius: BorderRadius.circular(5),
           border: Border.all(
-            color: isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF),
+            color: isDoe ? appSurface(0xFFF48FB1) : appSurface(0xFF80BFFF),
           ),
         ),
         child: Text(
@@ -2174,7 +2193,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
           style: TextStyle(
             fontSize: letter.length > 1 ? 10 : 11,
             fontWeight: FontWeight.w800,
-            color: isDoe ? const Color(0xFFF48FB1) : const Color(0xFF80BFFF),
+            color: isDoe ? appColor(0xFFF48FB1) : appColor(0xFF80BFFF),
           ),
         ),
       );
@@ -2182,38 +2201,38 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
     return Text(
       letter,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w700,
-        color: Color(0xFF636366),
+        color: appColor(0xFF636366),
       ),
     );
   }
 
   Widget _buildSingleStatRow(String label, String val, {required bool isDoe, required bool isTinted}) {
-    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
+    final Color tintBg = isDoe ? appSurface(0xFFFDF2F5) : appSurface(0xFFEFF6FB);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-      color: isTinted ? tintBg : Colors.white,
+      color: isTinted ? tintBg : kAppCardWhite,
       child: Row(
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF333336),
+              color: appColor(0xFF333336),
             ),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               val,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF333336),
+                color: appColor(0xFF333336),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -2225,10 +2244,10 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   Widget _buildStatsRow(String label1, String val1, String label2, String val2, {required bool isDoe, required bool isTinted}) {
-    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
+    final Color tintBg = isDoe ? appSurface(0xFFFDF2F5) : appSurface(0xFFEFF6FB);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-      color: isTinted ? tintBg : Colors.white,
+      color: isTinted ? tintBg : kAppCardWhite,
       child: Row(
         children: [
           Expanded(
@@ -2236,20 +2255,20 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               children: [
                 Text(
                   label1,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF333336),
+                    color: appColor(0xFF333336),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     val1,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF333336),
+                      color: appColor(0xFF333336),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2263,20 +2282,20 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               children: [
                 Text(
                   label2,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF333336),
+                    color: appColor(0xFF333336),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     val2,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF333336),
+                      color: appColor(0xFF333336),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2290,29 +2309,29 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   }
 
   Widget _buildNotesRow(String label, String val, {required bool isDoe, required bool isTinted}) {
-    final Color tintBg = isDoe ? const Color(0xFFFDF2F5) : const Color(0xFFEFF6FB);
+    final Color tintBg = isDoe ? appSurface(0xFFFDF2F5) : appSurface(0xFFEFF6FB);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-      color: isTinted ? tintBg : Colors.white,
+      color: isTinted ? tintBg : kAppCardWhite,
       child: Row(
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF333336),
+              color: appColor(0xFF333336),
             ),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               val,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF333336),
+                color: appColor(0xFF333336),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -2339,7 +2358,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               width: MediaQuery.of(context).size.width * 0.85,
               height: MediaQuery.of(context).size.height,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(0),
                   bottomRight: Radius.circular(0),
@@ -2375,7 +2394,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                                       children: [
                                         Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: kLilacDeep, size: 22),
                                         const SizedBox(width: 8),
-                                        const Text(
+                                        Text(
                                           'BARN & CAGES',
                                           style: TextStyle(
                                             fontSize: 14,
@@ -2406,7 +2425,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: _isBarnEditMode ? kLilacDeep : Colors.white,
+                                      color: _isBarnEditMode ? kLilacDeep : kAppCardWhite,
                                       border: Border.all(
                                         color: _isBarnEditMode ? kLilacDeep : kLilacWash,
                                       ),
@@ -2470,7 +2489,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         Container(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: kAppCardWhite,
                             border: Border(top: BorderSide(color: kNeutral200)),
                           ),
                           child: ElevatedButton(
@@ -2482,7 +2501,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: kLilacDeep, width: 1.5),
+                                side: BorderSide(color: kLilacDeep, width: 1.5),
                               ),
                             ),
                             child: Row(
@@ -2556,7 +2575,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isActive ? Colors.white.withOpacity(0.5) : kNeutral100,
+                color: isActive ? kAppCardWhite.withOpacity(0.5) : kNeutral100,
                 borderRadius: BorderRadius.circular(100),
               ),
               child: Text(
@@ -2592,7 +2611,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
               Expanded(
                 child: Text(
                   barn.name.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: kLilacDeep,
@@ -2624,7 +2643,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       Expanded(
                         child: Text(
                           row.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral800),
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kNeutral800),
                         ),
                       ),
                       if (_countRabbitsInLocation(row.name) == 0)
@@ -2664,7 +2683,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                       children: [
                         Text(
                           cage,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral700),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kNeutral700),
                         ),
                         if (cageCount == 0)
                           IconButton(
@@ -2674,7 +2693,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                             constraints: const BoxConstraints(),
                           )
                         else
-                          const Text(
+                          Text(
                             'Occupied',
                             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kNeutral400),
                           ),
@@ -2689,7 +2708,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: kAppCardWhite,
                         border: Border.all(color: kLilacWash),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -2698,7 +2717,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         children: [
                           Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), size: 12, color: kLilacDeep),
                           const SizedBox(width: 4),
-                          const Text(
+                          Text(
                             'Add Cage',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kLilacDeep),
                           ),
@@ -2722,7 +2741,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                 foregroundColor: kLilacDeep,
                 backgroundColor: kLilacWash,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: kLilacWash)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: kLilacWash)),
               ),
             ),
           ),
@@ -2933,4 +2952,3 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     super.dispose();
   }
 }
-

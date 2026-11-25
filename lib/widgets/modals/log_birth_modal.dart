@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import 'package:intl/intl.dart';
 import '../../models/rabbit.dart';
 import '../../models/litter.dart';
@@ -98,6 +99,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
       _patternsProducedController.text = l.patternsProduced ?? '';
       _bucksProducedController.text = l.maleCount.toString();
       _doesProducedController.text = l.femaleCount.toString();
+      _peanutsProducedController.text =
+          (l.peanutsProduced != null && l.peanutsProduced! > 0)
+              ? l.peanutsProduced.toString()
+              : '';
       
       // Populate kit details for step 2 from existing litter kits
       final existingKits = l.kits;
@@ -116,14 +121,20 @@ class _LogBirthModalState extends State<LogBirthModal> {
           'notes': k.details,
         }).toList();
       } else if (aliveCount > 0) {
+        final peanutsCount = (l.peanutsProduced ?? 0).clamp(0, aliveCount);
         _kitDetails = List.generate(
           aliveCount,
-          (index) => {
-            'id': 'K-${index + 1}',
-            'sex': 'U',
-            'color': 'Unknown',
-            'weight': 0.0,
-            'status': 'Nursing',
+          (index) {
+            final isPeanut = peanutsCount > 0 && index >= aliveCount - peanutsCount;
+            return {
+              'id': 'K-${index + 1}',
+              'sex': 'U',
+              'color': 'Unknown',
+              'weight': 0.0,
+              'status': 'Nursing',
+              if (isPeanut) 'details': 'Peanut',
+              if (isPeanut) 'notes': 'Peanut',
+            };
           },
         );
       }
@@ -152,7 +163,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id).trim())
         .toUpperCase();
     final isArchived = widget.doe.status == RabbitStatus.archived;
-    final nameColor = isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F);
+    final nameColor = isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F);
 
     return Text.rich(
       TextSpan(
@@ -160,10 +171,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -177,10 +188,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -199,7 +210,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
               : (_buck!.id.length >= 6 ? _buck!.id.substring(0, 6) : _buck!.id).trim())
           .toUpperCase();
       final isArchived = _buck!.status == RabbitStatus.archived;
-      final nameColor = isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3);
+      final nameColor = isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3);
 
       return Text.rich(
         TextSpan(
@@ -207,10 +218,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
             if (prefix.isNotEmpty)
               TextSpan(
                 text: '$prefix ',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                 ),
               ),
             TextSpan(
@@ -224,10 +235,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
             if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
               TextSpan(
                 text: ' $ear',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                 ),
               ),
           ],
@@ -245,19 +256,19 @@ class _LogBirthModalState extends State<LogBirthModal> {
         children: [
           TextSpan(
             text: fallbackName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2196F3),
+              color: appColor(0xFF2196F3),
             ),
           ),
           if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId))
             TextSpan(
               text: ' $buckId',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -306,21 +317,61 @@ class _LogBirthModalState extends State<LogBirthModal> {
     final avgWeight = double.tryParse(_weightAvgController.text) ?? 0.0;
     final targetActiveCount = aliveBorn;
 
-    if (_kitDetails.length < targetActiveCount) {
-      final startCount = _kitDetails.length;
-      final newKits = List.generate(
-        targetActiveCount - _kitDetails.length,
-        (index) => {
-          'id': 'K-${startCount + index + 1}',
+    bool isKitDeadOrTerminal(Map<String, dynamic> k) {
+      final s = (k['status'] ?? '').toString().toLowerCase().trim();
+      return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
+    }
+
+    int currentAliveCount = _kitDetails.where((k) => !isKitDeadOrTerminal(k)).length;
+
+    if (currentAliveCount < targetActiveCount) {
+      int nextNum = _kitDetails.length + 1;
+      final existingIds = _kitDetails.map((k) => (k['id'] ?? '').toString().toLowerCase()).toSet();
+      final toAdd = targetActiveCount - currentAliveCount;
+      for (int i = 0; i < toAdd; i++) {
+        while (existingIds.contains('k-$nextNum')) {
+          nextNum++;
+        }
+        final newId = 'K-$nextNum';
+        existingIds.add(newId.toLowerCase());
+        _kitDetails.add({
+          'id': newId,
           'sex': 'U',
           'color': 'Unknown',
           'weight': avgWeight,
           'status': 'Nursing',
-        },
-      );
-      _kitDetails.addAll(newKits);
-    } else if (_kitDetails.length > targetActiveCount) {
-      _kitDetails = _kitDetails.sublist(0, targetActiveCount);
+        });
+        nextNum++;
+      }
+    } else if (currentAliveCount > targetActiveCount) {
+      int toRemove = currentAliveCount - targetActiveCount;
+      for (int i = _kitDetails.length - 1; i >= 0 && toRemove > 0; i--) {
+        if (!isKitDeadOrTerminal(_kitDetails[i])) {
+          _kitDetails.removeAt(i);
+          toRemove--;
+        }
+      }
+    }
+
+    final aliveIndices = <int>[];
+    for (int i = 0; i < _kitDetails.length; i++) {
+      if (!isKitDeadOrTerminal(_kitDetails[i])) {
+        aliveIndices.add(i);
+      }
+    }
+
+    final peanutsCount = (int.tryParse(_peanutsProducedController.text) ?? 0).clamp(0, aliveIndices.length);
+    if (peanutsCount > 0 && aliveIndices.isNotEmpty) {
+      final startIdx = aliveIndices.length - peanutsCount;
+      for (int j = startIdx; j < aliveIndices.length; j++) {
+        final idx = aliveIndices[j];
+        final existingDetails = (_kitDetails[idx]['details'] ?? _kitDetails[idx]['notes'] ?? '').toString().trim();
+        if (!existingDetails.toLowerCase().contains('peanut')) {
+          final updated = existingDetails.isEmpty ? 'Peanut' : '$existingDetails • Peanut';
+          _kitDetails[idx]['details'] = updated;
+          _kitDetails[idx]['notes'] = updated;
+        }
+      }
     }
   }
 
@@ -328,8 +379,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -340,8 +391,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
           // Header
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFEADBEE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFEADBEE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -351,13 +402,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Log Birth',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF4A3E6D), letterSpacing: 0.3),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: appColor(0xFF4A3E6D), letterSpacing: 0.3),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 24),
+                      child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 24),
                     ),
                   ],
                 ),
@@ -381,7 +432,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                         padding: const EdgeInsets.only(left: 42),
                         child: Text(
                           _formattedBredDate,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF4A3E6D)),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF4A3E6D)),
                         ),
                       ),
                     ),
@@ -484,7 +535,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
           ),
           const SizedBox(height: 10),
 
-          // Row 3: Does & Bucks
+          // Row 3: Does, Bucks & Peanuts
           Row(
             children: [
               Expanded(
@@ -494,7 +545,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   keyboardType: TextInputType.number,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: _buildOutlinedField(
                   label: 'Bucks',
@@ -502,11 +553,19 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   keyboardType: TextInputType.number,
                 ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildOutlinedField(
+                  label: 'Peanuts',
+                  controller: _peanutsProducedController,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Purple Container Card for Colors, Patterns, Peanuts, Notes, Avg Weight
+          // Purple Container Card for Colors & Notes
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -519,31 +578,6 @@ class _LogBirthModalState extends State<LogBirthModal> {
                 _buildOutlinedField(
                   label: 'Colors',
                   controller: _colorsProducedController,
-                ),
-                const SizedBox(height: 10),
-                _buildOutlinedField(
-                  label: 'Patterns',
-                  controller: _patternsProducedController,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildOutlinedField(
-                        label: 'Peanuts',
-                        controller: _peanutsProducedController,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildOutlinedField(
-                        label: 'Avg Kit Weight',
-                        controller: _weightAvgController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 10),
                 _buildOutlinedField(
@@ -592,7 +626,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Missed Litter',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kLilacText),
                 ),
@@ -601,10 +635,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   width: 44,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: _isMissedLitter ? const Color(0xFF7B6BA0) : Colors.white,
+                    color: _isMissedLitter ? appSurface(0xFF7B6BA0) : kAppCardWhite,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _isMissedLitter ? const Color(0xFF7B6BA0) : const Color(0xFFC7C7CC),
+                      color: _isMissedLitter ? appSurface(0xFF7B6BA0) : appSurface(0xFFC7C7CC),
                       width: 1.5,
                     ),
                   ),
@@ -618,8 +652,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
                           child: Container(
                             width: 18,
                             height: 18,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: kAppCardWhite,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(color: Color(0x33000000), blurRadius: 3, offset: Offset(0, 1))
@@ -663,7 +697,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
     int? minLines,
     TextInputAction? textInputAction,
     Function(String)? onChanged,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
   }) {
     final bool isMulti = (maxLines != null && maxLines > 1) || maxLines == null;
     return TextField(
@@ -676,17 +710,17 @@ class _LogBirthModalState extends State<LogBirthModal> {
       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
         hintText: hint,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF4F4F56), size: 18) : null,
+        hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: appColor(0xFF4F4F56), size: 18) : null,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }
@@ -695,24 +729,24 @@ class _LogBirthModalState extends State<LogBirthModal> {
     required String label,
     required DateTime value,
     required VoidCallback onTap,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
   }) {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
@@ -729,12 +763,12 @@ class _LogBirthModalState extends State<LogBirthModal> {
       return Container(
         padding: const EdgeInsets.all(32),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           'No kit details to display.',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF787774),
+            color: appColor(0xFF787774),
           ),
         ),
       );
@@ -756,9 +790,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F7FA),
+        color: appSurface(0xFFF9F7FA),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5DEEC)),
+        border: Border.all(color: appSurface(0xFFE5DEEC)),
       ),
       child: Column(
         children: [
@@ -766,8 +800,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF6B2D6D),
+            decoration: BoxDecoration(
+              color: appSurface(0xFF6B2D6D),
               borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
             ),
             alignment: Alignment.center,
@@ -811,9 +845,9 @@ class _LogBirthModalState extends State<LogBirthModal> {
                         height: 44,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kAppCardWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: appSurface(0xFFE2E8F0)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -821,12 +855,12 @@ class _LogBirthModalState extends State<LogBirthModal> {
                             value: (kit['color'] != null && _colorOptions.contains(kit['color']))
                                 ? kit['color']
                                 : null,
-                            hint: const Text('Color', style: TextStyle(color: Color(0xFF787774), fontSize: 14)),
-                            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2E2D32)),
+                            hint: Text('Color', style: TextStyle(color: appColor(0xFF787774), fontSize: 14)),
+                            icon: Icon(Icons.arrow_drop_down, color: appColor(0xFF2E2D32)),
                             items: _colorOptions.map((color) {
                               return DropdownMenuItem(
                                 value: color,
-                                child: Text(color, style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32))),
+                                child: Text(color, style: TextStyle(fontSize: 14, color: appColor(0xFF2E2D32))),
                               );
                             }).toList(),
                             onChanged: (value) {
@@ -845,24 +879,24 @@ class _LogBirthModalState extends State<LogBirthModal> {
                           controller: TextEditingController(text: kit['weight'] != null && (kit['weight'] as num) > 0 ? kit['weight'].toString() : '')
                             ..selection = TextSelection.collapsed(offset: (kit['weight'] != null && (kit['weight'] as num) > 0 ? kit['weight'].toString() : '').length),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
+                          style: TextStyle(fontSize: 14, color: appColor(0xFF2E2D32)),
                           decoration: InputDecoration(
                             hintText: 'Weight',
-                            hintStyle: const TextStyle(color: Color(0xFF787774), fontSize: 14),
+                            hintStyle: TextStyle(color: appColor(0xFF787774), fontSize: 14),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF6B2D6D), width: 1.5),
+                              borderSide: BorderSide(color: appSurface(0xFF6B2D6D), width: 1.5),
                             ),
                           ),
                           onChanged: (val) {
@@ -880,24 +914,24 @@ class _LogBirthModalState extends State<LogBirthModal> {
                   child: TextField(
                     controller: TextEditingController(text: kit['details'] ?? kit['notes'] ?? '')
                       ..selection = TextSelection.collapsed(offset: (kit['details'] ?? kit['notes'] ?? '').length),
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF2E2D32)),
+                    style: TextStyle(fontSize: 14, color: appColor(0xFF2E2D32)),
                     decoration: InputDecoration(
                       hintText: 'Notes',
-                      hintStyle: const TextStyle(color: Color(0xFF787774), fontSize: 14),
+                      hintStyle: TextStyle(color: appColor(0xFF787774), fontSize: 14),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: kAppCardWhite,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6B2D6D), width: 1.5),
+                        borderSide: BorderSide(color: appSurface(0xFF6B2D6D), width: 1.5),
                       ),
                     ),
                     onChanged: (val) {
@@ -921,10 +955,10 @@ class _LogBirthModalState extends State<LogBirthModal> {
         child: Container(
           height: 38,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF6B4E8C) : Colors.white,
+            color: isSelected ? appSurface(0xFF6B4E8C) : kAppCardWhite,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF6B4E8C) : const Color(0xFFE2E8F0),
+              color: isSelected ? appSurface(0xFF6B4E8C) : appSurface(0xFFE2E8F0),
             ),
           ),
           alignment: Alignment.center,
@@ -933,7 +967,7 @@ class _LogBirthModalState extends State<LogBirthModal> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? Colors.white : const Color(0xFF787774),
+              color: isSelected ? Colors.white : appColor(0xFF787774),
             ),
           ),
         ),
@@ -951,11 +985,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
               onPressed: _isMissedLitter ? null : _validateAndProceed,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: const BorderSide(color: kLilac, width: 1.5),
+                side: BorderSide(color: kLilac, width: 1.5),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
               ),
-              child: const Text(
+              child: Text(
                 'Add Kit Details',
                 style: TextStyle(color: kLilacText, fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5),
               ),
@@ -966,15 +1000,15 @@ class _LogBirthModalState extends State<LogBirthModal> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveBirth,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE6BEFE),
-                foregroundColor: const Color(0xFF2C2C2E),
+                backgroundColor: appSurface(0xFFE6BEFE),
+                foregroundColor: appColor(0xFF2C2C2E),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: _isSaving
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
-                  : const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5, color: Color(0xFF2C2C2E))),
+                  ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: appColor(0xFF2C2C2E)))
+                  : Text('SAVE', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: 0.5, color: appColor(0xFF2C2C2E))),
             ),
           ),
         ],
@@ -988,14 +1022,14 @@ class _LogBirthModalState extends State<LogBirthModal> {
               child: OutlinedButton(
                 onPressed: () => setState(() => _currentStep = 1),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
+                  backgroundColor: kAppCardWhite,
+                  side: BorderSide(color: appSurface(0xFFCBD5E1), width: 1.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text(
+                child: Text(
                   'Back',
-                  style: TextStyle(color: Color(0xFF2E2D32), fontWeight: FontWeight.w700, fontSize: 15),
+                  style: TextStyle(color: appColor(0xFF2E2D32), fontWeight: FontWeight.w700, fontSize: 15),
                 ),
               ),
             ),
@@ -1008,16 +1042,16 @@ class _LogBirthModalState extends State<LogBirthModal> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveBirth,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6BEFE),
-                  foregroundColor: const Color(0xFF2C2C2E),
+                  backgroundColor: appSurface(0xFFE6BEFE),
+                  foregroundColor: appColor(0xFF2C2C2E),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 child: _isSaving
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2C2C2E)))
-                    : const Text(
+                    ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: appColor(0xFF2C2C2E)))
+                    : Text(
                         'LOG BIRTH',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.5, color: Color(0xFF2C2C2E)),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.5, color: appColor(0xFF2C2C2E)),
                       ),
               ),
             ),
@@ -1071,8 +1105,8 @@ class _LogBirthModalState extends State<LogBirthModal> {
   }
 
   Future<void> _saveBirth() async {
-    final totalBorn = int.tryParse(_totalBornController.text) ?? 0;
-    final aliveBorn = int.tryParse(_aliveBornController.text) ?? 0;
+    final totalBorn = _isMissedLitter ? 0 : (int.tryParse(_totalBornController.text) ?? 0);
+    final aliveBorn = _isMissedLitter ? 0 : (int.tryParse(_aliveBornController.text) ?? 0);
 
     setState(() => _isSaving = true);
 
@@ -1080,7 +1114,11 @@ class _LogBirthModalState extends State<LogBirthModal> {
       await SettingsService.instance.init();
       final weaningWeeks = widget.doe.customWeanWeek ?? SettingsService.instance.weanAge;
 
-      _adjustKitDetailsToMatchAliveBorn();
+      if (_isMissedLitter) {
+        _kitDetails.clear();
+      } else {
+        _adjustKitDetailsToMatchAliveBorn();
+      }
 
       if (widget.existingLitter != null) {
         // Build updated kits from the detail form
@@ -1099,16 +1137,22 @@ class _LogBirthModalState extends State<LogBirthModal> {
           dob: _kindleDate,
           kindleDate: _kindleDate,
           notes: _notesController.text,
-          totalKits: int.tryParse(_totalBornController.text) ?? 0,
-          aliveKits: int.tryParse(_aliveBornController.text) ?? 0,
-          kits: updatedKits,
-          colorsProduced: _colorsProducedController.text,
-          patternsProduced: _patternsProducedController.text,
-          bucksProduced: int.tryParse(_bucksProducedController.text) ?? 0,
-          doesProduced: int.tryParse(_doesProducedController.text) ?? 0,
-          deadKits: (int.tryParse(_totalBornController.text) ?? 0) - (int.tryParse(_aliveBornController.text) ?? 0),
+          totalKits: totalBorn,
+          aliveKits: aliveBorn,
+          kits: _isMissedLitter ? const [] : updatedKits,
+          missedLitter: _isMissedLitter,
+          status: _isMissedLitter ? 'archived' : widget.existingLitter!.status,
+          colorsProduced: _isMissedLitter ? '' : _colorsProducedController.text,
+          patternsProduced: _isMissedLitter ? '' : _patternsProducedController.text,
+          bucksProduced: _isMissedLitter ? 0 : (int.tryParse(_bucksProducedController.text) ?? 0),
+          doesProduced: _isMissedLitter ? 0 : (int.tryParse(_doesProducedController.text) ?? 0),
+          peanutsProduced: _isMissedLitter ? 0 : (int.tryParse(_peanutsProducedController.text) ?? 0),
+          deadKits: totalBorn - aliveBorn,
         );
         await _db.updateLitter(updatedLitter);
+        if (_isMissedLitter) {
+          await _db.checkAndUpdateDoeStatusIfLitterEmpty(widget.doe.id);
+        }
       } else {
         await _db.logBirth(
           widget.doe.id,

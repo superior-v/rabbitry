@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../constants/app_colors.dart';
 import '../../services/settings_service.dart';
@@ -146,8 +147,8 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.isArchived;
     final nameColor = isArchived
-        ? const Color(0xFF787774)
-        : (isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3));
+        ? appColor(0xFF787774)
+        : (isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -162,7 +163,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
             TextSpan(
               text: '$prefix ',
               style: TextStyle(
-                color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
+                color: isArchived ? appColor(0xFF8E8E93) : appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -177,7 +178,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
             TextSpan(
               text: ' $ear',
               style: TextStyle(
-                color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
+                color: isArchived ? appColor(0xFF8E8E93) : appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -197,8 +198,8 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -206,8 +207,8 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
           // Header matching app lilac theme with 'X' button
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE6BEFE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -218,7 +219,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -228,10 +229,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                   children: [
                     Text(
                       widget.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                       ),
                     ),
                     GestureDetector(
@@ -239,12 +240,12 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: kAppCardWhite.withOpacity(0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                           size: 20,
                         ),
                       ),
@@ -265,11 +266,11 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
                   hintText: 'Search by name, prefix, ear #, breed...',
-                  hintStyle: const TextStyle(color: kNeutral400, fontSize: 13.5),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF7B6BA0), size: 20),
+                  hintStyle: TextStyle(color: kNeutral400, fontSize: 13.5),
+                  prefixIcon: Icon(Icons.search_rounded, color: appColor(0xFF7B6BA0), size: 20),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                          icon: Icon(Icons.clear_rounded, size: 18, color: appColor(0xFF7B6BA0)),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
@@ -281,11 +282,11 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kLilacLight),
+                    borderSide: BorderSide(color: kLilacLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                   ),
                 ),
               ),
@@ -308,10 +309,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                           const SizedBox(height: 12),
                           Text(
                             'No ${isDoeList ? "does" : "bucks"} available',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF3A3A3C),
+                              color: appColor(0xFF3A3A3C),
                             ),
                           ),
                         ],
@@ -331,10 +332,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
       child: Center(
         child: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF787774),
+            color: appColor(0xFF787774),
             letterSpacing: 0.8,
           ),
         ),
@@ -357,13 +358,13 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFF3E8FF)
-              : (isArchived ? const Color(0xFFF4F4F6) : const Color(0xFFFAFAFA)),
+              ? appSurface(0xFFF3E8FF)
+              : (isArchived ? appSurface(0xFFF4F4F6) : appSurface(0xFFFAFAFA)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF7B6BA0)
-                : const Color(0xFFE5E5EA),
+                ? appSurface(0xFF7B6BA0)
+                : appSurface(0xFFE5E5EA),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -381,7 +382,7 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: isArchived ? const Color(0xFF8E8E93) : const Color(0xFF787774),
+                        color: isArchived ? appColor(0xFF8E8E93) : appColor(0xFF787774),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -391,9 +392,9 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
               ),
             ),
             if (isSelected)
-              const Icon(
+              Icon(
                 Icons.check_circle_rounded,
-                color: Color(0xFF7B6BA0),
+                color: appColor(0xFF7B6BA0),
                 size: 22,
               ),
           ],
@@ -421,10 +422,10 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
           padding: const EdgeInsets.all(24),
           child: Text(
             'No matches found for "$_searchQuery"',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF787774),
+              color: appColor(0xFF787774),
             ),
           ),
         ),
@@ -487,14 +488,14 @@ class _RabbitPickerModalState extends State<RabbitPickerModal> {
         }
       } else if (_searchQuery.isEmpty) {
         children.add(_buildSectionHeader(openTitle));
-        children.add(const Padding(
+        children.add(Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: Center(
             child: Text(
               'No open does available',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF8E8E93),
+                color: appColor(0xFF8E8E93),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -622,8 +623,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -637,8 +638,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -652,8 +653,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -671,8 +672,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -680,8 +681,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
           // Header matching app lilac theme with 'X' button
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE6BEFE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -692,7 +693,7 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -702,10 +703,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                   children: [
                     Text(
                       widget.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                       ),
                     ),
                     GestureDetector(
@@ -713,12 +714,12 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: kAppCardWhite.withOpacity(0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                           size: 20,
                         ),
                       ),
@@ -739,11 +740,11 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
                   hintText: 'Search by name, prefix, ear #, breed...',
-                  hintStyle: const TextStyle(color: kNeutral400, fontSize: 13.5),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF7B6BA0), size: 20),
+                  hintStyle: TextStyle(color: kNeutral400, fontSize: 13.5),
+                  prefixIcon: Icon(Icons.search_rounded, color: appColor(0xFF7B6BA0), size: 20),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                          icon: Icon(Icons.clear_rounded, size: 18, color: appColor(0xFF7B6BA0)),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
@@ -755,11 +756,11 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kLilacLight),
+                    borderSide: BorderSide(color: kLilacLight),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                   ),
                 ),
               ),
@@ -774,10 +775,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                 children: [
                   Text(
                     '${_selectedIds.length} Selected',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF4A3E6D),
+                      color: appColor(0xFF4A3E6D),
                     ),
                   ),
                   Row(
@@ -799,10 +800,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                         ),
                         child: Text(
                           _selectedIds.length == filtered.length ? 'Clear All' : 'Select All',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF7B6BA0),
+                            color: appColor(0xFF7B6BA0),
                           ),
                         ),
                       ),
@@ -815,7 +816,7 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
           // List of rabbits with selection checkboxes
           Expanded(
             child: widget.rabbits.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
@@ -823,7 +824,7 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF3A3A3C),
+                          color: appColor(0xFF3A3A3C),
                         ),
                       ),
                     ),
@@ -834,10 +835,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                           padding: const EdgeInsets.all(24),
                           child: Text(
                             'No matches found for "$_searchQuery"',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF787774),
+                              color: appColor(0xFF787774),
                             ),
                           ),
                         ),
@@ -868,10 +869,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFF3E8FF) : const Color(0xFFFAFAFA),
+                                color: isSelected ? appSurface(0xFFF3E8FF) : appSurface(0xFFFAFAFA),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFFE5E5EA),
+                                  color: isSelected ? appSurface(0xFF8B5CF6) : appSurface(0xFFE5E5EA),
                                   width: isSelected ? 1.5 : 1,
                                 ),
                               ),
@@ -886,10 +887,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                                           const SizedBox(height: 3),
                                           Text(
                                             details.join(' • '),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
-                                              color: Color(0xFF787774),
+                                              color: appColor(0xFF787774),
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -902,7 +903,7 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                                     isSelected
                                         ? Icons.check_circle_rounded
                                         : Icons.radio_button_unchecked_rounded,
-                                    color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFFC7C7CC),
+                                    color: isSelected ? appColor(0xFF8B5CF6) : appColor(0xFFC7C7CC),
                                     size: 24,
                                   ),
                                 ],
@@ -916,9 +917,9 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
           // Bottom Confirm Button
           Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
+              border: Border(top: BorderSide(color: appSurface(0xFFF2F2F7), width: 1)),
             ),
             child: SizedBox(
               width: double.infinity,
@@ -929,8 +930,8 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                   Navigator.pop(context, selectedList);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6BEFE),
-                  foregroundColor: const Color(0xFF4A3E6D),
+                  backgroundColor: appSurface(0xFFE6BEFE),
+                  foregroundColor: appColor(0xFF4A3E6D),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -940,10 +941,10 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
                   _selectedIds.isEmpty
                       ? 'Done (0 selected)'
                       : 'Done (${_selectedIds.length} selected)',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF4A3E6D),
+                    color: appColor(0xFF4A3E6D),
                   ),
                 ),
               ),
@@ -954,4 +955,3 @@ class _MultiRabbitPickerModalState extends State<MultiRabbitPickerModal> {
     );
   }
 }
-

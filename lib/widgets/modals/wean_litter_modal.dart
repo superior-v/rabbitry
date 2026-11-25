@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
@@ -87,7 +88,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
             : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id).trim())
         .toUpperCase();
     final isArchived = widget.doe.status == RabbitStatus.archived;
-    final nameColor = isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F);
+    final nameColor = isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F);
 
     return Text.rich(
       TextSpan(
@@ -95,10 +96,10 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -112,19 +113,19 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           if (widget.doe.currentLitterSize != null)
             TextSpan(
               text: ' • ${widget.doe.currentLitterSize} kits',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -137,8 +138,8 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -192,7 +193,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFFE9E9E7)),
+                  border: Border.all(color: appSurface(0xFFE9E9E7)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -227,17 +228,17 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Color(0xFFFFF3CD),
+                  color: appSurface(0xFFFFF3CD),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF856404), size: 20),
+                    Icon(Icons.info_outline, color: appColor(0xFF856404), size: 20),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Doe will be marked as "Resting" and available for breeding after $_restingDays days.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF856404)),
+                        style: TextStyle(fontSize: 12, color: appColor(0xFF856404)),
                       ),
                     ),
                   ],
@@ -256,7 +257,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Color(0xFFE9E9E7)),
+                        border: Border.all(color: appSurface(0xFFE9E9E7)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButtonFormField<String>(
@@ -302,7 +303,7 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Color(0xFFE9E9E7)),
+                        border: Border.all(color: appSurface(0xFFE9E9E7)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButtonFormField<String>(
@@ -343,27 +344,27 @@ class _WeanLitterModalState extends State<WeanLitterModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveWean,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE6BEFE),
-                    foregroundColor: const Color(0xFF4A3E6D),
+                    backgroundColor: appSurface(0xFFE6BEFE),
+                    foregroundColor: appColor(0xFF4A3E6D),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                            valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Wean Litter',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                 ),

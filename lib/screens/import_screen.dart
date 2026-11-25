@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../services/appearance_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -145,11 +146,11 @@ class _ImportScreenState extends State<ImportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Import Rabbits CSV'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: kAppCardWhite,
+        foregroundColor: appColor(0xDD000000, 0xFFF1F3F9),
         elevation: 0,
       ),
-      backgroundColor: const Color(0xFFF8F7FF),
+      backgroundColor: appSurface(0xFFF8F7FF),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -158,13 +159,13 @@ class _ImportScreenState extends State<ImportScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE9E9E7)),
+                border: Border.all(color: appSurface(0xFFE9E9E7)),
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.upload_file, size: 64, color: Color(0xFF7B6BA0)),
+                  Icon(Icons.upload_file, size: 64, color: appColor(0xFF7B6BA0)),
                   const SizedBox(height: 16),
                   const Text(
                     'Upload your CSV file',
@@ -188,7 +189,7 @@ class _ImportScreenState extends State<ImportScreen> {
                         : const Icon(Icons.file_open),
                     label: Text(_isImporting ? 'Importing...' : 'Select CSV File'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B6BA0),
+                      backgroundColor: appSurface(0xFF7B6BA0),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

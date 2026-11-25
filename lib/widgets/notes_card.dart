@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -42,7 +43,7 @@ class _NotesCardState extends State<NotesCard> {
       onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard on tap outside
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: kNeutral200),
         ),
@@ -51,14 +52,14 @@ class _NotesCardState extends State<NotesCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: Text(
                 'NOTES',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                   letterSpacing: 0.8,
                 ),
               ),
@@ -71,7 +72,7 @@ class _NotesCardState extends State<NotesCard> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: appSurface(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kNeutral100),
                 ),
@@ -82,10 +83,10 @@ class _NotesCardState extends State<NotesCard> {
                     setState(() {}); // Update entry count live
                     _saveNotes();
                   },
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF374151),
+                    color: appColor(0xFF374151),
                     height: 1.6,
                   ),
                   decoration: const InputDecoration(

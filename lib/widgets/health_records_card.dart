@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/format_utils.dart';
@@ -81,7 +82,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
       widget.onUpdate?.call();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Health record deleted'), backgroundColor: kPrimary),
+          SnackBar(content: Text('Health record deleted'), backgroundColor: kPrimary),
         );
       }
     }
@@ -105,7 +106,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -118,12 +119,12 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'HEALTH RECORDS',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -133,7 +134,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6BEFE),
+                      color: appSurface(0xFFE6BEFE),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -146,15 +147,15 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
               ],
             ),
           ),
-          const Divider(height: 1, color: kNeutral100),
+          Divider(height: 1, color: kNeutral100),
 
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: Color(0xFF7B6BA0), strokeWidth: 2)),
+              child: Center(child: CircularProgressIndicator(color: appColor(0xFF7B6BA0), strokeWidth: 2)),
             )
           else if (_records.isEmpty)
-            const Center(
+            Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Text(
@@ -162,7 +163,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                   ),
                 ),
               ),
@@ -193,9 +194,9 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: appSurface(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: appSurface(0xFFE5E7EB)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -204,10 +205,10 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF7B6BA0).withOpacity(0.12),
+              color: appSurface(0xFF7B6BA0).withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: const Color(0xFF7B6BA0), size: 18),
+            child: Icon(icon, color: appColor(0xFF7B6BA0), size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -216,10 +217,10 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
               children: [
                 Text(
                   treatment.isNotEmpty ? treatment : type,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -230,20 +231,20 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                     if (date != null)
                       Text(
                         FormatUtils.formatDate(date),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
+                          color: appColor(0xFF64748B),
                         ),
                       ),
                     if (cost != null && cost > 0) ...[
                       const SizedBox(width: 8),
                       Text(
                         '•  ${FormatUtils.formatCurrency(cost)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
+                          color: appColor(0xFF10B981),
                         ),
                       ),
                     ],
@@ -253,7 +254,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                   const SizedBox(height: 2),
                   Text(
                     notes,
-                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8), fontStyle: FontStyle.italic),
+                    style: TextStyle(fontSize: 11.5, color: appColor(0xFF94A3B8), fontStyle: FontStyle.italic),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -263,7 +264,7 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
           ),
           if (id.isNotEmpty)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_horiz, color: Color(0xFF787774), size: 20),
+              icon: Icon(Icons.more_horiz, color: appColor(0xFF787774), size: 20),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onSelected: (val) {
@@ -272,13 +273,13 @@ class _HealthRecordsCardState extends State<HealthRecordsCard> {
                 }
               },
               itemBuilder: (ctx) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: Color(0xFFEF4444), size: 18),
+                      Icon(Icons.delete, color: appColor(0xFFEF4444), size: 18),
                       SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text('Delete', style: TextStyle(color: appColor(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),

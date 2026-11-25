@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import 'package:printing/printing.dart';
 import '../../models/rabbit.dart';
 import '../../models/transaction.dart' as finance;
@@ -52,7 +53,7 @@ class _SellModalState extends State<SellModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -80,7 +81,7 @@ class _SellModalState extends State<SellModal> {
               SizedBox(height: 8),
               Text(
                 '${widget.rabbit.name} (${widget.rabbit.id})',
-                style: TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                style: TextStyle(fontSize: 14, color: appColor(0xFF787774)),
               ),
               SizedBox(height: 24),
 
@@ -95,12 +96,12 @@ class _SellModalState extends State<SellModal> {
                 child: Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Color(0xFFE9E9E7)),
+                    border: Border.all(color: appSurface(0xFFE9E9E7)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.calendar_today, color: Color(0xFF787774)),
+                      Icon(Icons.calendar_today, color: appColor(0xFF787774)),
                       SizedBox(width: 12),
                       Text(FormatUtils.formatDate(_saleDate)),
                     ],
@@ -182,7 +183,7 @@ class _SellModalState extends State<SellModal> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF7F7F5),
+                  color: appSurface(0xFFF7F7F5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -199,7 +200,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _addToLedger,
                           onChanged: (value) => setState(() => _addToLedger = value),
-                          activeColor: const Color(0xFF7B6BA0), // kLilacDeep
+                          activeColor: appColor(0xFF7B6BA0), // kLilacDeep
                         ),
                       ],
                     ),
@@ -216,7 +217,7 @@ class _SellModalState extends State<SellModal> {
                         Switch(
                           value: _generatePedigree,
                           onChanged: (value) => setState(() => _generatePedigree = value),
-                          activeColor: const Color(0xFF7B6BA0), // kLilacDeep
+                          activeColor: appColor(0xFF7B6BA0), // kLilacDeep
                         ),
                       ],
                     ),
@@ -231,7 +232,7 @@ class _SellModalState extends State<SellModal> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveSale,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B6BA0), // kLilacDeep
+                    backgroundColor: appSurface(0xFF7B6BA0), // kLilacDeep
                     padding: EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -323,7 +324,7 @@ class _SellModalState extends State<SellModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.rabbit.name} sold${price != null ? " for ${FormatUtils.formatCurrency(price)}" : ""}'),
-          backgroundColor: Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
         ),
       );
     } catch (e) {

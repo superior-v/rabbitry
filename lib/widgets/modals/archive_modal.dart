@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import 'package:flutter/services.dart';
 import '../../models/rabbit.dart';
 import '../../models/transaction.dart' as finance;
@@ -87,7 +88,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
+                color: appColor(0xFF4A4A4E), // Dark Grey and NOT black
               ),
             ),
           TextSpan(
@@ -95,7 +96,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
+              color: appColor(0xFF4A4A4E), // Dark Grey and NOT black
             ),
           ),
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
@@ -104,7 +105,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF4A4A4E), // Dark Grey and NOT black
+                color: appColor(0xFF4A4A4E), // Dark Grey and NOT black
               ),
             ),
         ],
@@ -156,7 +157,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
   }
 
   Color _getSubmitButtonColor() {
-    return const Color(0xFFE6BEFE);
+    return appColor(0xFFE6BEFE);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -166,18 +167,19 @@ class _ArchiveModalState extends State<ArchiveModal> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF8B5CF6),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF8B5CF6),
               onPrimary: Colors.white,
               surface: Colors.white,
-              onSurface: Color(0xFF2C2C2E),
+              onSurface: appColor(0xFF2C2C2E),
             ),
-            datePickerTheme: const DatePickerThemeData(
-              headerBackgroundColor: Color(0xFFE2BFFB),
-              headerForegroundColor: Color(0xFF463466),
-              backgroundColor: Colors.white,
+            datePickerTheme: DatePickerThemeData(
+              headerBackgroundColor: appSurface(0xFFE2BFFB),
+              headerForegroundColor: appColor(0xFF463466),
+              backgroundColor: kAppCardWhite,
               surfaceTintColor: Colors.transparent,
             ),
           ),
@@ -201,28 +203,28 @@ class _ArchiveModalState extends State<ArchiveModal> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kLilacLight),
+            borderSide: BorderSide(color: kLilacLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+            borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
           ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF2C2C2E)),
             ),
           ],
         ),
@@ -238,8 +240,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
 
     return Container(
       height: screenHeight * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -248,8 +250,8 @@ class _ArchiveModalState extends State<ArchiveModal> {
           // Header banner (matches NEW TASK modal style)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE6BEFE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -260,7 +262,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                      color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -274,10 +276,10 @@ class _ArchiveModalState extends State<ArchiveModal> {
                         children: [
                           Text(
                             _getHeaderTitle(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -291,10 +293,10 @@ class _ArchiveModalState extends State<ArchiveModal> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: kAppCardWhite.withValues(alpha: 0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -312,9 +314,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
               children: [
                 // Only show reason selector if reason is not locked/preselected
                 if (!isLockedReason) ...[
-                  const Text(
+                  Text(
                     'REASON',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D), letterSpacing: 0.5),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: appColor(0xFF4A3E6D), letterSpacing: 0.5),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -356,22 +358,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   maxLines: 2,
                   decoration: InputDecoration(
                     labelText: 'Notes',
-                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                     floatingLabelBehavior: FloatingLabelBehavior.always,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kLilacLight),
+                      borderSide: BorderSide(color: kLilacLight),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                      borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: kAppCardWhite,
                   ),
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
                 ),
 
                 const SizedBox(height: 16),
@@ -380,18 +382,18 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9F6FC),
+                    color: appSurface(0xFFF9F6FC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E0F2)),
+                    border: Border.all(color: appSurface(0xFFE5E0F2)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.archive_outlined, color: Color(0xFF7B6BA0), size: 18),
+                      Icon(Icons.archive_outlined, color: appColor(0xFF7B6BA0), size: 18),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'This rabbit will be moved to the Archive tab.',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF636366)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: appColor(0xFF636366)),
                         ),
                       ),
                     ],
@@ -407,26 +409,26 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   child: ElevatedButton(
                     onPressed: _selectedReason == null || _isSaving ? null : _saveArchive,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE6BEFE),
-                      foregroundColor: const Color(0xFF4A3E6D),
+                      backgroundColor: appSurface(0xFFE6BEFE),
+                      foregroundColor: appColor(0xFF4A3E6D),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isSaving
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 22,
                             width: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                              valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                             ),
                           )
                         : Text(
                             _getSubmitButtonText(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                   ),
@@ -451,10 +453,10 @@ class _ArchiveModalState extends State<ArchiveModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF6F0FD) : Colors.white,
+          color: isSelected ? appSurface(0xFFF6F0FD) : kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE5E5EA),
+            color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE5E5EA),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -467,10 +469,10 @@ class _ArchiveModalState extends State<ArchiveModal> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFC7C7CC),
+                  color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFC7C7CC),
                   width: 2,
                 ),
-                color: isSelected ? const Color(0xFF7B6BA0) : Colors.white,
+                color: isSelected ? appSurface(0xFF7B6BA0) : kAppCardWhite,
               ),
               child: isSelected
                   ? const Center(
@@ -485,7 +487,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF4A3E6D) : const Color(0xFF475569),
+                  color: isSelected ? appColor(0xFF4A3E6D) : appColor(0xFF475569),
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -515,23 +517,23 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   decoration: InputDecoration(
                     labelText: 'Sale Price',
                     prefixText: ' ',
-                    prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
-                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    prefixStyle: TextStyle(fontWeight: FontWeight.w600, color: appColor(0xFF2C2C2E), fontSize: 15),
+                    labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                     floatingLabelBehavior: FloatingLabelBehavior.always,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kLilacLight),
+                      borderSide: BorderSide(color: kLilacLight),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                      borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: kAppCardWhite,
                   ),
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E), fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 14),
@@ -556,18 +558,18 @@ class _ArchiveModalState extends State<ArchiveModal> {
                               _addToIncome = val ?? false;
                             });
                           },
-                          activeColor: const Color(0xFF7B6BA0),
+                          activeColor: appColor(0xFF7B6BA0),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Flexible(
+                      Flexible(
                         child: Text(
                           'Add as Income',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                       ),
@@ -584,22 +586,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             controller: _buyerController,
             decoration: InputDecoration(
               labelText: 'Buyer Name',
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -611,22 +613,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             maxLines: 2,
             decoration: InputDecoration(
               labelText: 'Reason for Culling',
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFD44C47), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFFD44C47), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -638,22 +640,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             maxLines: 2,
             decoration: InputDecoration(
               labelText: 'Cause of Death',
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF787774), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF787774), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -668,22 +670,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             ],
             decoration: InputDecoration(
               labelText: FormatUtils.weightLabel('Yield Weight'),
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -695,23 +697,23 @@ class _ArchiveModalState extends State<ArchiveModal> {
             decoration: InputDecoration(
               labelText: 'Processing Cost',
               prefixText: ' ',
-              prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              prefixStyle: TextStyle(fontWeight: FontWeight.w600, color: appColor(0xFF2C2C2E), fontSize: 15),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -733,23 +735,23 @@ class _ArchiveModalState extends State<ArchiveModal> {
                   decoration: InputDecoration(
                     labelText: 'Stud Fee',
                     prefixText: ' ',
-                    prefixStyle: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C2C2E), fontSize: 15),
-                    labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                    floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    prefixStyle: TextStyle(fontWeight: FontWeight.w600, color: appColor(0xFF2C2C2E), fontSize: 15),
+                    labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                    floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                     floatingLabelBehavior: FloatingLabelBehavior.always,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kLilacLight),
+                      borderSide: BorderSide(color: kLilacLight),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                      borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: kAppCardWhite,
                   ),
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E), fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E), fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 14),
@@ -774,18 +776,18 @@ class _ArchiveModalState extends State<ArchiveModal> {
                               _addToExpense = val ?? false;
                             });
                           },
-                          activeColor: const Color(0xFF7B6BA0),
+                          activeColor: appColor(0xFF7B6BA0),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Flexible(
+                      Flexible(
                         child: Text(
                           'Add as Expense',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                           ),
                         ),
                       ),
@@ -802,22 +804,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             controller: _buyerController,
             decoration: InputDecoration(
               labelText: 'Client / Doe Owner',
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -829,22 +831,22 @@ class _ArchiveModalState extends State<ArchiveModal> {
             controller: _buyerController,
             decoration: InputDecoration(
               labelText: 'Recipient / Organization',
-              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
               floatingLabelBehavior: FloatingLabelBehavior.always,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kLilacLight),
+                borderSide: BorderSide(color: kLilacLight),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
             ),
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
           ),
           const SizedBox(height: 16),
         ];
@@ -854,9 +856,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
   Future<void> _saveArchive() async {
     if (_selectedReason == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please select a reason'),
-          backgroundColor: Color(0xFFD44C47),
+          backgroundColor: appSurface(0xFFD44C47),
         ),
       );
       return;
@@ -865,9 +867,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
     if (_selectedReason == ArchiveReason.sold) {
       if (_salePriceController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Please enter sale price'),
-            backgroundColor: Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
         return;
@@ -877,9 +879,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
     if (_selectedReason == ArchiveReason.butchered) {
       if (_yieldController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Please enter yield weight'),
-            backgroundColor: Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
         return;
@@ -889,9 +891,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
     if (_selectedReason == ArchiveReason.dead) {
       if (_deathCauseController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Please enter cause of death'),
-            backgroundColor: Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
         return;
@@ -901,9 +903,9 @@ class _ArchiveModalState extends State<ArchiveModal> {
     if (_selectedReason == ArchiveReason.cull) {
       if (_cullReasonController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Please enter cull reason'),
-            backgroundColor: Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
         return;
@@ -1017,7 +1019,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${widget.rabbit.name} archived successfully'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
@@ -1026,7 +1028,7 @@ class _ArchiveModalState extends State<ArchiveModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error archiving rabbit: $e'),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
       }

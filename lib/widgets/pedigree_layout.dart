@@ -23,6 +23,25 @@ class PedigreeLayout {
   static const double pageHeightPt = 612.0;
   static const double aspectRatio = 792.0 / 612.0;
 
+  // ─── PORTRAIT REFERENCE (PortraitPedigreeC) ───────────────────────────────
+  // Header band, card header tints, photo square and connector lines (pt).
+  static const Color portraitBandColor = Color(0xFFAC85BC);
+  static const Color portraitSireTint = Color(0xFFDCF1F9);
+  static const Color portraitDamTint = Color(0xFFF9DCE9);
+  static const Color portraitPhotoBorder = Color(0xFFDBF2F9);
+  static const double portraitPhotoLeft = 28.9;
+  static const double portraitPhotoTop = 371.2;
+  static const double portraitPhotoSize = 153.4;
+  // x1, y1, x2, y2
+  static const List<List<double>> portraitConnectors = [
+    [191.5, 267.3, 219.7, 254.5], [192.4, 329.4, 219.7, 342.1],
+    [193.4, 566.4, 220.7, 553.3], [193.4, 628.7, 220.7, 641.8],
+    [392.9, 192.3, 420.1, 157.5], [392.3, 254.5, 419.6, 288.5],
+    [392.3, 342.1, 419.6, 307.1], [392.3, 404.3, 419.6, 438.3],
+    [393.3, 491.1, 420.6, 455.9], [393.3, 553.3, 420.6, 587.0],
+    [393.3, 641.8, 420.6, 606.6], [393.3, 704.0, 420.6, 737.8],
+  ];
+
   // ─── PAGE DIMENSIONS (Portrait) ───────────────────────────────────────────
   static const double portraitPageWidthPt = 612.0;
   static const double portraitPageHeightPt = 792.0;
@@ -82,7 +101,7 @@ class PedigreeLayout {
   static const double fontSizeGen2Pt = 12.0;
   static const double fontSizeGen3Pt = 10.0;
   static const double fontSizeCertifyPt = 12.0;
-  static const double fontSizeSignaturePt = 18.0;
+  static const double fontSizeSignaturePt = 13.3;
   static const double fontSizePhonePt = 12.0;
 
   // Font size multipliers (relative to page width W)
@@ -100,7 +119,7 @@ class PedigreeLayout {
   static const double farmTitleLeft = 0.0262;
   // Shared left edge for farm name + contact lines (aligned with subject box)
   static const double pedigreeHeaderLeft = 0.0313;
-  static const double farmTitleCenterY = 0.0697;
+  static const double farmTitleCenterY = 0.0562;
   static const double farmTitleBoxHeight = 0.0650;
   static const double farmTitleMaxWidth = 0.3500;
 
@@ -112,6 +131,10 @@ class PedigreeLayout {
   static const double underlineX0 = 0.0283;
   static const double underlineX1 = 0.3478;
   static const double underlineY = 0.1171;
+  // Breed subtitle (e.g. "Netherland Dwarf Pedigree"), 14pt at (23.6, 75.8)
+  static const double breedSubtitleLeft = 0.0298;
+  static const double breedSubtitleTop = 0.1239;
+  static const double websiteTop = 0.1520;
 
   // ─── LOGO SPEC ──────────────────────────────────────────────────────────────
   static const double logoLeft = 0.0600;
@@ -204,7 +227,7 @@ class PedigreeLayout {
   static const double certifyBoxHeight = 0.0260;
 
   static const double signatureLeft = 0.0282;
-  static const double signatureCenterY = 0.9389;
+  static const double signatureCenterY = 0.9176;
   static const double signatureBoxHeight = 0.0400;
 
   static const double signatureUnderlineX0 = 0.0260;
@@ -350,7 +373,9 @@ class PedigreeData {
     final legs = rabbit.grandChampionLegs != null && rabbit.grandChampionLegs! > 0
         ? '${rabbit.grandChampionLegs}'
         : '';
-    final photo = rabbit.photos?.isNotEmpty == true ? rabbit.photos!.first : null;
+    final photo = (appSettings.pedigreeShowPhoto && rabbit.photos?.isNotEmpty == true)
+        ? rabbit.photos!.first
+        : null;
 
     final showAddress = appSettings.pedigreeShowAddress;
     final showCityStatePostal = appSettings.pedigreeShowCityStatePostal;
@@ -388,7 +413,10 @@ class PedigreeData {
           : '',
       ownerName:
           appSettings.pedigreeShowOwnerName ? appSettings.ownerName.trim() : '',
-      subjectName: rabbit.name.trim(),
+      subjectName: [
+        (rabbit.breederPrefix ?? '').trim(),
+        rabbit.name.trim(),
+      ].where((e) => e.isNotEmpty).join(' '),
       subjectBreed: rabbit.breed.trim(),
       subjectColor: rabbit.color?.trim() ?? '',
       subjectSex: sex,

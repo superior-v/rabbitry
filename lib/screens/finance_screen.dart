@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction.dart';
@@ -30,7 +31,7 @@ enum TransactionTypeFilter {
   expense
 }
 
-const kFinanceHeaderPurple = Color(0xFFE6BEFE);
+Color get kFinanceHeaderPurple => appSurface(0xFFE6BEFE);
 
 class FinanceScreen extends StatefulWidget {
   final String? initialRabbitId;
@@ -215,9 +216,9 @@ class FinanceScreenState extends State<FinanceScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
+      backgroundColor: appSurface(0xFFEEDAFE),
         appBar: _buildAppBar(),
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep),
           ),
@@ -226,7 +227,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
+      backgroundColor: appSurface(0xFFEEDAFE),
       appBar: _buildAppBar(),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
@@ -250,7 +251,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         child: FloatingActionButton(
           heroTag: 'finance_fab',
           onPressed: _addTransaction,
-          backgroundColor: const Color(0xFFE6BEFE),
+          backgroundColor: appSurface(0xFFE6BEFE),
           shape: const CircleBorder(),
           elevation: 4,
           child: Icon(
@@ -273,12 +274,12 @@ class FinanceScreenState extends State<FinanceScreen> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
+          Icon(PhosphorIcons.currencyDollar(PhosphorIconsStyle.duotone), color: appColor(0xFF4A3477), size: 24),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Finance',
             style: TextStyle(
-              color: Color(0xFF2C2C2E),
+              color: appColor(0xFF2C2C2E),
               fontSize: 20,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -302,11 +303,11 @@ class FinanceScreenState extends State<FinanceScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: const Color(0xFF787880)),
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 14, color: appColor(0xFF787880)),
                     const SizedBox(width: 6),
                     Text(
                       _getDateFilterLabel(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: kNeutral700,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -394,7 +395,7 @@ class FinanceScreenState extends State<FinanceScreen> {
 
     return Container(
       width: double.infinity,
-      color: const Color(0xFFE6BEFE),
+      color: appSurface(0xFFE6BEFE),
       padding: const EdgeInsets.only(
         top: 0,
         bottom: 8,
@@ -439,10 +440,10 @@ class FinanceScreenState extends State<FinanceScreen> {
   Widget _buildSummaryCard(String label, double amount, bool isIncome, {bool isNet = false, double? netVal}) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+          colors: [appSurface(0xFF86DAFF), appSurface(0xFFF0F9FF)],
         ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
@@ -462,10 +463,10 @@ class FinanceScreenState extends State<FinanceScreen> {
               fit: BoxFit.scaleDown,
               child: Text(
                 isNet ? '${(netVal ?? 0.0) >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}' : '${isIncome ? '+' : '−'}${FormatUtils.formatCurrencyShort(amount)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                   height: 1.1,
                 ),
               ),
@@ -473,10 +474,10 @@ class FinanceScreenState extends State<FinanceScreen> {
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6E6E73),
+                color: appColor(0xFF6E6E73),
                 height: 1.1,
               ),
               textAlign: TextAlign.center,
@@ -492,8 +493,8 @@ class FinanceScreenState extends State<FinanceScreen> {
   Widget _buildSearchAndGrouping() {
     return Container(
       padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFE6BEFE),
+      decoration: BoxDecoration(
+        color: appSurface(0xFFE6BEFE),
       ),
       child: Row(
         children: [
@@ -502,7 +503,7 @@ class FinanceScreenState extends State<FinanceScreen> {
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: kNeutral300),
               ),
@@ -565,7 +566,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: kNeutral300),
               ),
@@ -575,7 +576,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                   const SizedBox(width: 6),
                   Text(
                     _getGroupingLabel(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: kNeutral700,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -593,7 +594,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               height: 40,
               width: 40,
               decoration: BoxDecoration(
-                color: _typeFilter != TransactionTypeFilter.all ? kLilacWash : Colors.white,
+                color: _typeFilter != TransactionTypeFilter.all ? kLilacWash : kAppCardWhite,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: _typeFilter != TransactionTypeFilter.all ? kLilacLight : kNeutral300),
               ),
@@ -632,12 +633,12 @@ class FinanceScreenState extends State<FinanceScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(PhosphorIcons.receipt(PhosphorIconsStyle.duotone), size: 64, color: Color(0xFFE9E9E7)),
+            Icon(PhosphorIcons.receipt(PhosphorIconsStyle.duotone), size: 64, color: appColor(0xFFE9E9E7)),
             SizedBox(height: 16),
             Text(
               'No transactions found',
               style: TextStyle(
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -680,7 +681,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         );
         final isExpanded = _expandedGroups.contains(monthKey);
         final isOdd = index % 2 == 1;
-        final headerBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+        final headerBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
         return Column(
           children: [
@@ -701,43 +702,43 @@ class FinanceScreenState extends State<FinanceScreen> {
                 decoration: BoxDecoration(
                   color: headerBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                  border: Border.all(color: appSurface(0xFFE5E5EA)),
                 ),
                 child: Row(
                   children: [
-                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: const Color(0xFF4F4F56)),
+                    Icon(PhosphorIcons.calendarBlank(PhosphorIconsStyle.bold), size: 18, color: appColor(0xFF4F4F56)),
                     const SizedBox(width: 12),
                     Text(
                       monthKey,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${monthTransactions.length} entries',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: appColor(0xFF6B7280),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '${monthTotal >= 0 ? '+' : '−'}${FormatUtils.formatCurrencyShort(monthTotal.abs())}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                     ),
                   ],
                 ),
@@ -795,7 +796,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         final isExpanded = _expandedGroups.contains(key);
         final isGeneral = key == 'general_herd';
         final isOdd = index % 2 == 1;
-        final headerBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+        final headerBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
         return Column(
           children: [
@@ -816,7 +817,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                 decoration: BoxDecoration(
                   color: headerBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                  border: Border.all(color: appSurface(0xFFE5E5EA)),
                 ),
                 child: Row(
                   children: [
@@ -842,17 +843,17 @@ class FinanceScreenState extends State<FinanceScreen> {
                         children: [
                           Text(
                             isGeneral ? 'General Herd' : _getRabbitName(key),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF374151),
+                              color: appColor(0xFF374151),
                             ),
                           ),
                           Text(
                             '${rabbitTransactions.length} entries',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF6B7280),
+                              color: appColor(0xFF6B7280),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -861,17 +862,17 @@ class FinanceScreenState extends State<FinanceScreen> {
                     ),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                     ),
                   ],
                 ),
@@ -921,7 +922,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         final isExpanded = _expandedGroups.contains(key);
         final isNoLitter = key == 'no_litter';
         final isOdd = index % 2 == 1;
-        final headerBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+        final headerBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
         return Column(
           children: [
@@ -942,47 +943,47 @@ class FinanceScreenState extends State<FinanceScreen> {
                 decoration: BoxDecoration(
                   color: headerBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                  border: Border.all(color: appSurface(0xFFE5E5EA)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       PhosphorIcons.gitBranch(PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: isNoLitter ? const Color(0xFF4F4F56) : kLilacDeep,
+                      color: isNoLitter ? appColor(0xFF4F4F56) : kLilacDeep,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       isNoLitter ? 'No Litter' : key,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${litterTransactions.length} entries',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: appColor(0xFF6B7280),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                     ),
                   ],
                 ),
@@ -1030,7 +1031,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         );
         final isExpanded = _expandedGroups.contains(category.toString());
         final isOdd = index % 2 == 1;
-        final headerBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+        final headerBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
         return Column(
           children: [
@@ -1051,7 +1052,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                 decoration: BoxDecoration(
                   color: headerBg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                  border: Border.all(color: appSurface(0xFFE5E5EA)),
                 ),
                 child: Row(
                   children: [
@@ -1059,35 +1060,35 @@ class FinanceScreenState extends State<FinanceScreen> {
                     const SizedBox(width: 12),
                     Text(
                       categoryTransactions.first.categoryName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${categoryTransactions.length} entries',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: appColor(0xFF6B7280),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       FormatUtils.formatCurrencySigned(total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF374151),
+                        color: appColor(0xFF374151),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
                       isExpanded ? PhosphorIcons.caretUp(PhosphorIconsStyle.bold) : PhosphorIcons.caretDown(PhosphorIconsStyle.bold),
                       size: 16,
-                      color: const Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                     ),
                   ],
                 ),
@@ -1135,7 +1136,7 @@ class FinanceScreenState extends State<FinanceScreen> {
           final firstTxn = batchTransactions.first;
           final dateStr = FormatUtils.formatDateShort(firstTxn.date);
           final isOdd = index % 2 == 1;
-          final headerBg = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+          final headerBg = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
           return GestureDetector(
             onTap: () {
@@ -1147,7 +1148,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               decoration: BoxDecoration(
                 color: headerBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               child: Row(
                 children: [
@@ -1155,7 +1156,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: kAppCardWhite,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
@@ -1175,10 +1176,10 @@ class FinanceScreenState extends State<FinanceScreen> {
                           children: [
                             Text(
                               '${firstTxn.categoryName} (×${batchTransactions.length})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF4F4F56),
+                                color: appColor(0xFF4F4F56),
                               ),
                             ),
                           ],
@@ -1186,10 +1187,10 @@ class FinanceScreenState extends State<FinanceScreen> {
                         const SizedBox(height: 2),
                         Text(
                           '$dateStr - ${firstTxn.categoryName}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF55555C),
+                            color: appColor(0xFF55555C),
                           ),
                         ),
                       ],
@@ -1197,17 +1198,17 @@ class FinanceScreenState extends State<FinanceScreen> {
                   ),
                   Text(
                     '+${FormatUtils.formatCurrencyShort(total)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
                     size: 16,
-                    color: const Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ],
               ),
@@ -1224,7 +1225,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF9B9A97),
+                color: appColor(0xFF9B9A97),
                 letterSpacing: 0.5,
               ),
             ),
@@ -1343,7 +1344,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     final dateStr = FormatUtils.formatDateShort(t.date);
 
     final isOdd = index % 2 == 1;
-    final backgroundColor = isOdd ? const Color(0xFFF9F5FE) : Colors.white;
+    final backgroundColor = isOdd ? appSurface(0xFFF9F5FE) : kAppCardWhite;
 
     final kitInfo = _getKitSaleDisplayInfo(t);
     final titleText = kitInfo != null
@@ -1363,7 +1364,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: backgroundColor,
-          border: const Border(bottom: BorderSide(color: Color(0xFFE5E5EA))),
+          border: Border(bottom: BorderSide(color: appSurface(0xFFE5E5EA))),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1392,10 +1393,10 @@ class FinanceScreenState extends State<FinanceScreen> {
                       Flexible(
                         child: Text(
                           titleText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1403,10 +1404,10 @@ class FinanceScreenState extends State<FinanceScreen> {
                       ),
                       if (kitInfo != null && (kitInfo.sex == 'F' || kitInfo.sex == 'doe')) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.female_rounded, size: 16, color: Color(0xFFE04F9F)),
+                        Icon(Icons.female_rounded, size: 16, color: appColor(0xFFE04F9F)),
                       ] else if (kitInfo != null && (kitInfo.sex == 'M' || kitInfo.sex == 'buck')) ...[
                         const SizedBox(width: 4),
-                        const Icon(Icons.male_rounded, size: 16, color: Color(0xFF2196F3)),
+                        Icon(Icons.male_rounded, size: 16, color: appColor(0xFF2196F3)),
                       ],
                       if (t.isBatchTransaction) ...[
                         const SizedBox(width: 6),
@@ -1417,12 +1418,12 @@ class FinanceScreenState extends State<FinanceScreen> {
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: kNeutral300),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Batch',
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                             ),
                           ),
                         ),
@@ -1432,20 +1433,20 @@ class FinanceScreenState extends State<FinanceScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitleText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF55555C),
+                      color: appColor(0xFF55555C),
                     ),
                   ),
                   if (notesText != null && notesText.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       notesText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF55555C),
+                        color: appColor(0xFF55555C),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1458,10 +1459,10 @@ class FinanceScreenState extends State<FinanceScreen> {
             const SizedBox(width: 10),
             Text(
               '${isIncome ? '+' : '−'}${FormatUtils.formatCurrency(t.amount)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
               ),
             ),
           ],
@@ -1552,7 +1553,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     FocusScope.of(context).unfocus();
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       elevation: 0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1564,7 +1565,7 @@ class FinanceScreenState extends State<FinanceScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Group By',
                 style: TextStyle(
                   fontSize: 18,
@@ -1633,7 +1634,7 @@ class FinanceScreenState extends State<FinanceScreen> {
     FocusScope.of(context).unfocus();
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       elevation: 0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1644,7 +1645,7 @@ class FinanceScreenState extends State<FinanceScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Date Range',
               style: TextStyle(
                 fontSize: 18,
@@ -1732,7 +1733,7 @@ class FinanceScreenState extends State<FinanceScreen> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       elevation: 0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1747,7 +1748,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Filters',
                     style: TextStyle(
                       fontSize: 18,
@@ -1762,7 +1763,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'TRANSACTION TYPE',
                 style: TextStyle(
                   fontSize: 10,
@@ -1803,7 +1804,7 @@ class FinanceScreenState extends State<FinanceScreen> {
                           color: kNeutral100,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             'Clear All',
                             style: TextStyle(fontWeight: FontWeight.w700, color: kNeutral600),
@@ -1861,7 +1862,7 @@ class FinanceScreenState extends State<FinanceScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? kNeutral100 : Colors.white,
+            color: isSelected ? kNeutral100 : kAppCardWhite,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: isSelected ? kNeutral300 : kNeutral200),
           ),
@@ -1926,7 +1927,7 @@ class FinanceScreenState extends State<FinanceScreen> {
   void _showTransactionOptions(Transaction t) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1944,7 +1945,7 @@ class FinanceScreenState extends State<FinanceScreen> {
               },
             ),
             ListTile(
-              leading: Icon(PhosphorIcons.copy(PhosphorIconsStyle.bold), color: Color(0xFF787774)),
+              leading: Icon(PhosphorIcons.copy(PhosphorIconsStyle.bold), color: appColor(0xFF787774)),
               title: Text('Duplicate'),
               onTap: () {
                 Navigator.pop(context);
@@ -1952,8 +1953,8 @@ class FinanceScreenState extends State<FinanceScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete, color: Color(0xFFDC2626)),
-              title: Text('Delete', style: TextStyle(color: Color(0xFFDC2626))),
+              leading: Icon(Icons.delete, color: appColor(0xFFDC2626)),
+              title: Text('Delete', style: TextStyle(color: appColor(0xFFDC2626))),
               onTap: () {
                 Navigator.pop(context);
                 _deleteTransaction(t);

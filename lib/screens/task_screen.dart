@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:io';
@@ -22,11 +23,11 @@ import '../widgets/modals/rabbit_picker_modal.dart';
 import '../widgets/purple_dialog.dart';
 
 // Primary color constant for theme (mapping to the premium palette)
-const kPrimary = kLilacDeep;
-const kSuccess = Color(0xFF4CAF50);
-const kError = Color(0xFFD94452);
-const kTaskHeaderPurple = Color(0xFFE6BEFE);
-const kTaskPageBg = Color(0xFFEEDAFF); // Lilac purple page background matching TaskColor+notepad.jpg
+Color get kPrimary => kLilacDeep;
+Color get kSuccess => appColor(0xFF4CAF50);
+Color get kError => appColor(0xFFD94452);
+Color get kTaskHeaderPurple => appSurface(0xFFE6BEFE);
+Color get kTaskPageBg => appSurface(0xFFEEDAFF); // Lilac purple page background matching TaskColor+notepad.jpg
 
 class TaskScreen extends StatefulWidget {
   final VoidCallback? onScheduleAdded;
@@ -439,7 +440,7 @@ class TaskScreenState extends State<TaskScreen> {
             const Expanded(child: Text('Complete Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
           ]),
           content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(taskTitle, style: const TextStyle(fontSize: 14, color: Color(0xFF787774))),
+            Text(taskTitle, style: TextStyle(fontSize: 14, color: appColor(0xFF787774))),
             const SizedBox(height: 20),
 
             // Toggle for Income/Expense
@@ -457,7 +458,7 @@ class TaskScreenState extends State<TaskScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: selectedType == finance_model.TransactionType.expense ? Colors.white : Colors.transparent,
+                          color: selectedType == finance_model.TransactionType.expense ? kAppCardWhite : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: selectedType == finance_model.TransactionType.expense
                               ? [
@@ -475,7 +476,7 @@ class TaskScreenState extends State<TaskScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: selectedType == finance_model.TransactionType.income ? Colors.white : Colors.transparent,
+                          color: selectedType == finance_model.TransactionType.income ? kAppCardWhite : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: selectedType == finance_model.TransactionType.income
                               ? [
@@ -514,7 +515,7 @@ class TaskScreenState extends State<TaskScreen> {
                       'amount': 0.0,
                       'type': selectedType
                     }),
-                child: const Text('No Amount', style: TextStyle(color: Color(0xFF787774)))),
+                child: Text('No Amount', style: TextStyle(color: appColor(0xFF787774)))),
             ElevatedButton(
               onPressed: () {
                 final amount = double.tryParse(costController.text) ?? 0.0;
@@ -627,7 +628,7 @@ class TaskScreenState extends State<TaskScreen> {
     if (rabbitId != null) {
       rabbit = await _db.getRabbit(rabbitId);
       if (rabbit == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rabbit not found'), backgroundColor: Color(0xFFD44C47)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Rabbit not found'), backgroundColor: appSurface(0xFFD44C47)));
         return;
       }
     }
@@ -862,7 +863,7 @@ class TaskScreenState extends State<TaskScreen> {
       backgroundColor: kTaskPageBg,
       appBar: _buildHeader(),
       body: (_isLoading && !_hasLoadedOnce)
-          ? const Center(child: CircularProgressIndicator(color: kNeutral700, strokeWidth: 2))
+          ? Center(child: CircularProgressIndicator(color: kNeutral700, strokeWidth: 2))
           : Column(
               children: [
                 _buildTabs(),
@@ -888,7 +889,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   PreferredSizeWidget _buildHeader() {
     return AppBar(
-      backgroundColor: const Color(0xFFE6BEFE),
+      backgroundColor: appSurface(0xFFE6BEFE),
       elevation: 0,
       centerTitle: true,
       toolbarHeight: 48,
@@ -897,14 +898,14 @@ class TaskScreenState extends State<TaskScreen> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: const Color(0xFF4A3477), size: 24),
+          Icon(PhosphorIcons.checkSquareOffset(PhosphorIconsStyle.duotone), color: appColor(0xFF4A3477), size: 24),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Tasks',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Color(0xFF2C2C2E),
+              color: appColor(0xFF2C2C2E),
               letterSpacing: -0.3,
             ),
           ),
@@ -914,10 +915,10 @@ class TaskScreenState extends State<TaskScreen> {
         if (_selectedCategory == 'Task')
           Builder(
             builder: (btnContext) => IconButton(
-              icon: const Icon(
+              icon: Icon(
                 PhosphorIconsRegular.funnel,
                 size: 22,
-                color: Color(0xFF3A3A3C),
+                color: appColor(0xFF3A3A3C),
               ),
               tooltip: 'Filter',
               onPressed: () => _showTaskFilterMenu(btnContext),
@@ -929,10 +930,10 @@ class TaskScreenState extends State<TaskScreen> {
             offset: const Offset(0, 44),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 4,
-            icon: const Icon(
+            icon: Icon(
               PhosphorIconsRegular.funnel,
               size: 22,
-              color: Color(0xFF3A3A3C),
+              color: appColor(0xFF3A3A3C),
             ),
             itemBuilder: (ctx) => _getUniqueBreeds().map((f) => _buildPopupItem(
               f,
@@ -942,7 +943,7 @@ class TaskScreenState extends State<TaskScreen> {
           ),
         IconButton(
           onPressed: () => _showSearchModal(),
-          icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: const Color(0xFF3A3A3C)),
+          icon: Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.duotone), color: appColor(0xFF3A3A3C)),
         ),
         const SizedBox(width: 8),
       ],
@@ -977,14 +978,14 @@ class TaskScreenState extends State<TaskScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.category_outlined, size: 18, color: Color(0xFF4A3477)),
+                  Icon(Icons.category_outlined, size: 18, color: appColor(0xFF4A3477)),
                   const SizedBox(width: 10),
                   Text(
                     'Category',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: _taskCategoryFilter != 'All' ? FontWeight.w700 : FontWeight.w500,
-                      color: const Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                   ),
                 ],
@@ -994,14 +995,14 @@ class TaskScreenState extends State<TaskScreen> {
                   if (_taskCategoryFilter != 'All')
                     Text(
                       _taskCategoryFilter,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF8B5CF6),
+                        color: appColor(0xFF8B5CF6),
                       ),
                     ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8E8E93)),
+                  Icon(Icons.chevron_right, size: 18, color: appColor(0xFF8E8E93)),
                 ],
               ),
             ],
@@ -1014,14 +1015,14 @@ class TaskScreenState extends State<TaskScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.pets_outlined, size: 18, color: Color(0xFF4A3477)),
+                  Icon(Icons.pets_outlined, size: 18, color: appColor(0xFF4A3477)),
                   const SizedBox(width: 10),
                   Text(
                     'Breed',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: _breedFilter != 'All' ? FontWeight.w700 : FontWeight.w500,
-                      color: const Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                   ),
                 ],
@@ -1031,14 +1032,14 @@ class TaskScreenState extends State<TaskScreen> {
                   if (_breedFilter != 'All')
                     Text(
                       _breedFilter,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF8B5CF6),
+                        color: appColor(0xFF8B5CF6),
                       ),
                     ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 18, color: Color(0xFF8E8E93)),
+                  Icon(Icons.chevron_right, size: 18, color: appColor(0xFF8E8E93)),
                 ],
               ),
             ],
@@ -1049,15 +1050,15 @@ class TaskScreenState extends State<TaskScreen> {
           PopupMenuItem<String>(
             value: 'clear',
             child: Row(
-              children: const [
-                Icon(Icons.clear, size: 16, color: Color(0xFFDC2626)),
+              children: [
+                Icon(Icons.clear, size: 16, color: appColor(0xFFDC2626)),
                 SizedBox(width: 10),
                 Text(
                   'Clear Filters',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFDC2626),
+                    color: appColor(0xFFDC2626),
                   ),
                 ),
               ],
@@ -1098,11 +1099,11 @@ class TaskScreenState extends State<TaskScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF2C2C2E),
+                  color: isSelected ? appColor(0xFF8B5CF6) : appColor(0xFF2C2C2E),
                 ),
               ),
               if (isSelected)
-                const Icon(Icons.check, size: 18, color: Color(0xFF8B5CF6)),
+                Icon(Icons.check, size: 18, color: appColor(0xFF8B5CF6)),
             ],
           ),
         );
@@ -1135,11 +1136,11 @@ class TaskScreenState extends State<TaskScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF2C2C2E),
+                  color: isSelected ? appColor(0xFF8B5CF6) : appColor(0xFF2C2C2E),
                 ),
               ),
               if (isSelected)
-                const Icon(Icons.check, size: 18, color: Color(0xFF8B5CF6)),
+                Icon(Icons.check, size: 18, color: appColor(0xFF8B5CF6)),
             ],
           ),
         );
@@ -1155,7 +1156,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildTabs() {
     return Container(
-      color: const Color(0xFF8F8A90),
+      color: appSurface(0xFF8F8A90),
       height: 46,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1259,7 +1260,7 @@ class TaskScreenState extends State<TaskScreen> {
             _showNewScheduleDialog(context);
           }
         },
-        backgroundColor: const Color(0xFFE6BEFE),
+        backgroundColor: appSurface(0xFFE6BEFE),
         elevation: 4,
         shape: const CircleBorder(),
         child: Icon(PhosphorIcons.plus(PhosphorIconsStyle.bold), color: Colors.white, size: 20),
@@ -1288,10 +1289,10 @@ class TaskScreenState extends State<TaskScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Text(
                 emptyText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF636366),
+                  color: appColor(0xFF636366),
                 ),
               ),
             )
@@ -1299,9 +1300,9 @@ class TaskScreenState extends State<TaskScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Column(
@@ -1320,17 +1321,17 @@ class TaskScreenState extends State<TaskScreen> {
     required bool isExpanded,
     required VoidCallback onToggle,
   }) {
-    Color headerBg = const Color(0xFFF2F2F7);
-    Color headerBorder = const Color(0xFFE5E5EA);
+    Color headerBg = appSurface(0xFFF2F2F7);
+    Color headerBorder = appSurface(0xFFE5E5EA);
     if (title.toUpperCase().contains('TODAY')) {
-      headerBg = const Color(0xFFFFBCE7); // Pink color from Home page
-      headerBorder = const Color(0xFFFFBCE7);
+      headerBg = appSurface(0xFFFFBCE7); // Pink color from Home page
+      headerBorder = appSurface(0xFFFFBCE7);
     } else if (title.toUpperCase().contains('UPCOMING')) {
-      headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
-      headerBorder = const Color(0xFFBAE5FD);
+      headerBg = appSurface(0xFFCDEEFE); // Soft pastel blue
+      headerBorder = appSurface(0xFFBAE5FD);
     } else if (title.toUpperCase().contains('ARCHIVE')) {
-      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
-      headerBorder = const Color(0xFFC0EFC0);
+      headerBg = appSurface(0xFFD4F7D4); // Soft pastel green
+      headerBorder = appSurface(0xFFC0EFC0);
     }
 
     return GestureDetector(
@@ -1349,10 +1350,10 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
                 letterSpacing: 0.6,
               ),
             ),
@@ -1361,17 +1362,17 @@ class TaskScreenState extends State<TaskScreen> {
               children: [
                 Text(
                   '$count',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Icon(
                   isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
                   size: 15,
-                  color: const Color(0xFF787880),
+                  color: appColor(0xFF787880),
                 ),
               ],
             ),
@@ -1387,7 +1388,7 @@ class TaskScreenState extends State<TaskScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFBCE7), // Pink from Home page (kHeaderPink)
+          color: appSurface(0xFFFFBCE7), // Pink from Home page (kHeaderPink)
           borderRadius: BorderRadius.circular(9),
         ),
         child: Row(
@@ -1396,10 +1397,10 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
                 letterSpacing: 0.6,
               ),
             ),
@@ -1408,10 +1409,10 @@ class TaskScreenState extends State<TaskScreen> {
             else if (count != null)
               Text(
                 '$count',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                 ),
               ),
           ],
@@ -1509,12 +1510,12 @@ class TaskScreenState extends State<TaskScreen> {
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
-          const Text(
+          Text(
             'NOTE PAD',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF6B5B95),
+              color: appColor(0xFF6B5B95),
               letterSpacing: 0.6,
             ),
           ),
@@ -1522,9 +1523,9 @@ class TaskScreenState extends State<TaskScreen> {
           Container(
             constraints: const BoxConstraints(minHeight: 280),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
+              border: Border.all(color: appSurface(0xFFE5E5EA)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
@@ -1543,29 +1544,29 @@ class TaskScreenState extends State<TaskScreen> {
               onChanged: (text) {
                 SettingsService.instance.setTaskNotes(text);
               },
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14.5,
-                color: Color(0xFF2C2C2E),
+                color: appColor(0xFF2C2C2E),
                 height: 1.5,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
                 hintText: 'Type your notes here...',
-                hintStyle: TextStyle(color: Color(0xFFC7C7CC), fontSize: 14.5),
+                hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 14.5),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Align(
+          Align(
             alignment: Alignment.centerRight,
             child: Text(
               'Auto Saved',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           ),
@@ -1611,10 +1612,10 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF3A3A3C),
+                color: appColor(0xFF3A3A3C),
               ),
             ),
             const SizedBox(height: 6),
@@ -1622,16 +1623,16 @@ class TaskScreenState extends State<TaskScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+                border: Border.all(color: appSurface(0xFFE5E5EA), width: 1.2),
               ),
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                 ),
               ),
             ),
@@ -1643,9 +1644,9 @@ class TaskScreenState extends State<TaskScreen> {
     Widget buildClassCard(String title, List<Widget> items) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE5E5EA), width: 1.2),
+          border: Border.all(color: appSurface(0xFFE5E5EA), width: 1.2),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -1653,14 +1654,14 @@ class TaskScreenState extends State<TaskScreen> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              color: const Color(0xFFEADBEE),
+              color: appSurface(0xFFEADBEE),
               child: Center(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2C2C2E),
+                    color: appColor(0xFF2C2C2E),
                   ),
                 ),
               ),
@@ -1678,7 +1679,7 @@ class TaskScreenState extends State<TaskScreen> {
     }
 
     return Container(
-      color: Colors.white,
+      color: kAppCardWhite,
       child: ListView(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1687,16 +1688,16 @@ class TaskScreenState extends State<TaskScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFBCE7), // Home Page Pink
+              color: appSurface(0xFFFFBCE7), // Home Page Pink
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
                 'Breeding Date Calculator',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: appColor(0xFF2C2C2E),
                   letterSpacing: 0.2,
                 ),
               ),
@@ -1708,12 +1709,12 @@ class TaskScreenState extends State<TaskScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Enter show date',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2E),
+                  color: appColor(0xFF2C2C2E),
                 ),
               ),
               GestureDetector(
@@ -1724,12 +1725,13 @@ class TaskScreenState extends State<TaskScreen> {
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2040),
                     builder: (context, child) {
-                      return Theme(
+                      if (isAppDark) return child!;
+        return Theme(
                         data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: Color(0xFFEADBEE),
-                            onPrimary: Color(0xFF2C2C2E),
-                            onSurface: Color(0xFF2C2C2E),
+                          colorScheme: ColorScheme.light(
+                            primary: appSurface(0xFFEADBEE),
+                            onPrimary: appColor(0xFF2C2C2E),
+                            onSurface: appColor(0xFF2C2C2E),
                           ),
                         ),
                         child: child!,
@@ -1743,24 +1745,24 @@ class TaskScreenState extends State<TaskScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: kAppCardWhite,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFD1D1D6), width: 1.2),
+                    border: Border.all(color: appSurface(0xFFD1D1D6), width: 1.2),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         DateFormat('MM-dd-yyyy').format(_breedingShowDate),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF787774)),
+                      Icon(Icons.calendar_today_rounded, size: 16, color: appColor(0xFF787774)),
                     ],
                   ),
                 ),
@@ -1803,12 +1805,12 @@ class TaskScreenState extends State<TaskScreen> {
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
-          const Text(
+          Text(
             'WAIT LIST',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF6B5B95),
+              color: appColor(0xFF6B5B95),
               letterSpacing: 0.6,
             ),
           ),
@@ -1943,7 +1945,7 @@ class TaskScreenState extends State<TaskScreen> {
 
     for (var entry in groups.entries) {
       final groupTasks = entry.value;
-      final rowBgColor = rowIndex.isEven ? const Color(0xFFF2F2F7) : Colors.white;
+      final rowBgColor = rowIndex.isEven ? appSurface(0xFFF2F2F7) : kAppCardWhite;
       final firstTask = groupTasks.first;
       final name = firstTask['name'] ?? firstTask['task'] ?? 'Task';
       final taskCategory = firstTask['category'] ?? 'Operations';
@@ -2002,7 +2004,7 @@ class TaskScreenState extends State<TaskScreen> {
     required bool isOverdue,
     required bool isToday,
     required List<Map<String, dynamic>> groupTasks,
-    Color backgroundColor = Colors.white,
+    Color backgroundColor = const AppSurfaceColor(0xFFFFFFFF, 0xFF1E2028),
   }) {
     return Container(
       margin: EdgeInsets.zero,
@@ -2024,10 +2026,10 @@ class TaskScreenState extends State<TaskScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                       height: 1.2,
                     ),
                     maxLines: 1,
@@ -2040,10 +2042,10 @@ class TaskScreenState extends State<TaskScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverdue
-                        ? const Color(0xFFEF4444)
+                        ? appColor(0xFFEF4444)
                         : isToday
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFF6B7280),
+                            ? appColor(0xFF10B981)
+                            : appColor(0xFF6B7280),
                     fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
@@ -2085,9 +2087,9 @@ class TaskScreenState extends State<TaskScreen> {
                         height: 17,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                          color: isCompleted ? appSurface(0xFFD6C3F9) : Colors.transparent,
                           border: Border.all(
-                            color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                            color: isCompleted ? appSurface(0xFFD6C3F9) : appSurface(0xFFB0B0B8),
                             width: 1.5,
                           ),
                         ),
@@ -2120,7 +2122,7 @@ class TaskScreenState extends State<TaskScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF8B5CF6),
+                            color: (isCompleted || isIgnored) ? appColor(0xFF9CA3AF) : appColor(0xFF8B5CF6),
                             decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
                             letterSpacing: 0.3,
                           ),
@@ -2135,9 +2137,9 @@ class TaskScreenState extends State<TaskScreen> {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _showTaskOptionsSheet(task),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                      child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                      child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                     ),
                   ),
                 ],
@@ -2161,7 +2163,7 @@ class TaskScreenState extends State<TaskScreen> {
     String? taskType,
     String? rabbitId,
     Map<String, dynamic>? task,
-    Color backgroundColor = Colors.white,
+    Color backgroundColor = const AppSurfaceColor(0xFFFFFFFF, 0xFF1E2028),
   }) {
     final isCompleted = task?['completedAt'] != null;
     final rawId = task?['id'];
@@ -2204,9 +2206,9 @@ class TaskScreenState extends State<TaskScreen> {
                     height: 17,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                      color: isCompleted ? appSurface(0xFFD6C3F9) : Colors.transparent,
                       border: Border.all(
-                        color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                        color: isCompleted ? appSurface(0xFFD6C3F9) : appSurface(0xFFB0B0B8),
                         width: 1.5,
                       ),
                     ),
@@ -2247,7 +2249,7 @@ class TaskScreenState extends State<TaskScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: (isCompleted || isIgnored) ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                            color: (isCompleted || isIgnored) ? appColor(0xFF9CA3AF) : appColor(0xFF4F4F56),
                             decoration: (isCompleted || isIgnored) ? TextDecoration.lineThrough : null,
                             height: 1.2,
                           ),
@@ -2258,10 +2260,10 @@ class TaskScreenState extends State<TaskScreen> {
                           const SizedBox(height: 3),
                           Text(
                             bunnyName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF8B5CF6),
+                              color: appColor(0xFF8B5CF6),
                               letterSpacing: 0.5,
                             ),
                             maxLines: 1,
@@ -2280,10 +2282,10 @@ class TaskScreenState extends State<TaskScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   color: isOverdue
-                      ? const Color(0xFFEF4444)
+                      ? appColor(0xFFEF4444)
                       : isToday
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF6B7280),
+                          ? appColor(0xFF10B981)
+                          : appColor(0xFF6B7280),
                   fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
@@ -2292,9 +2294,9 @@ class TaskScreenState extends State<TaskScreen> {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showTaskOptionsSheet(task),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                  child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                 ),
               ),
             ],
@@ -2336,7 +2338,7 @@ class TaskScreenState extends State<TaskScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -2353,24 +2355,24 @@ class TaskScreenState extends State<TaskScreen> {
                   _showEditTaskDialog(task);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('System tasks cannot be edited directly.'), backgroundColor: kPrimary),
+                    SnackBar(content: Text('System tasks cannot be edited directly.'), backgroundColor: kPrimary),
                   );
                 }
               },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: const Text(
+                child: Text(
                   'Edit',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
+                    color: appColor(0xFF1F2937),
                   ),
                 ),
               ),
             ),
-            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            Divider(height: 1, color: appSurface(0xFFF3F4F6)),
             InkWell(
               onTap: () async {
                 Navigator.pop(context);
@@ -2387,12 +2389,12 @@ class TaskScreenState extends State<TaskScreen> {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: const Text(
+                child: Text(
                   'Delete',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFEF4444),
+                    color: appColor(0xFFEF4444),
                   ),
                 ),
               ),
@@ -2404,7 +2406,7 @@ class TaskScreenState extends State<TaskScreen> {
     );
   }
 
-  Widget _buildGroupTaskFromMultiple({required String title, required String category, required String date, required bool isOverdue, required List<Map<String, dynamic>> tasks, Color backgroundColor = Colors.white}) {
+  Widget _buildGroupTaskFromMultiple({required String title, required String category, required String date, required bool isOverdue, required List<Map<String, dynamic>> tasks, Color backgroundColor = const AppSurfaceColor(0xFFFFFFFF, 0xFF1E2028)}) {
     final categoryColor = _getCategoryColor(category);
     final categoryTextColor = _getCategoryTextColor(category);
     final icon = _getCategoryIcon(category);
@@ -2476,7 +2478,7 @@ class TaskScreenState extends State<TaskScreen> {
         });
   }
 
-  Widget _buildGroupTaskFromEntities({required Map<String, dynamic> task, required bool isToday, Color backgroundColor = Colors.white}) {
+  Widget _buildGroupTaskFromEntities({required Map<String, dynamic> task, required bool isToday, Color backgroundColor = const AppSurfaceColor(0xFFFFFFFF, 0xFF1E2028)}) {
     final title = task['name'] ?? task['task'] ?? 'Task';
     final category = task['category'] ?? 'Operations';
     final rawId = task['id'];
@@ -2533,7 +2535,7 @@ class TaskScreenState extends State<TaskScreen> {
     required bool isExpanded,
     required bool allIgnored,
     required List<Map<String, dynamic>> subTasks,
-    Color backgroundColor = Colors.white,
+    Color backgroundColor = const AppSurfaceColor(0xFFFFFFFF, 0xFF1E2028),
     VoidCallback? onGroupIgnore,
     VoidCallback? onGroupComplete,
   }) {
@@ -2630,7 +2632,7 @@ class TaskScreenState extends State<TaskScreen> {
           ),
           if (isExpanded)
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: kNeutral50,
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(6)),
               ),
@@ -2689,7 +2691,7 @@ class TaskScreenState extends State<TaskScreen> {
                               if (subLoc.isNotEmpty)
                                 Text(
                                   subLoc,
-                                  style: const TextStyle(fontSize: 12, color: kNeutral500),
+                                  style: TextStyle(fontSize: 12, color: kNeutral500),
                                 ),
                             ],
                           ),
@@ -2718,7 +2720,7 @@ class TaskScreenState extends State<TaskScreen> {
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               color: kNeutral500,
               fontWeight: FontWeight.w500,
@@ -2733,7 +2735,7 @@ class TaskScreenState extends State<TaskScreen> {
                 _searchQuery = '';
                 _selectedCategory = 'Task';
               }),
-              child: const Text(
+              child: Text(
                 'Clear Filters',
                 style: TextStyle(
                   color: kLilacDeep,
@@ -2809,16 +2811,16 @@ class TaskScreenState extends State<TaskScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
+                  color: appSurface(0xFFF3E8FF),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2BFFB)),
+                  border: Border.all(color: appSurface(0xFFE2BFFB)),
                 ),
-                child: const Text(
+                child: Text(
                   'Add',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF8B5CF6),
+                    color: appColor(0xFF8B5CF6),
                   ),
                 ),
               ),
@@ -2855,21 +2857,21 @@ class TaskScreenState extends State<TaskScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           margin: const EdgeInsets.only(top: 6, bottom: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFBAE6FD), // Sky blue banner matching AvailableDoes.jpg
+            color: appSurface(0xFFBAE6FD), // Sky blue banner matching AvailableDoes.jpg
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             breed,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0C4A6E),
+              color: appColor(0xFF0C4A6E),
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: kNeutral200),
           ),
@@ -2927,7 +2929,7 @@ class TaskScreenState extends State<TaskScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+          border: isLast ? null : Border(bottom: BorderSide(color: appSurface(0xFFF2F2F7), width: 1)),
         ),
         child: Row(
           children: [
@@ -2937,10 +2939,10 @@ class TaskScreenState extends State<TaskScreen> {
                 children: [
                   Text(
                     titleText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -2948,10 +2950,10 @@ class TaskScreenState extends State<TaskScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Ready $formattedDate',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF787774),
+                      color: appColor(0xFF787774),
                     ),
                   ),
                 ],
@@ -2962,13 +2964,13 @@ class TaskScreenState extends State<TaskScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Text(
                     'Add Task',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFC7C7CC),
+                      color: appColor(0xFFC7C7CC),
                     ),
                   ),
                   SizedBox(height: 2),
@@ -2978,7 +2980,7 @@ class TaskScreenState extends State<TaskScreen> {
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF787774),
+                      color: appColor(0xFF787774),
                       height: 1.15,
                     ),
                   ),
@@ -2988,16 +2990,16 @@ class TaskScreenState extends State<TaskScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
+                  color: appSurface(0xFFF3E8FF),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2BFFB)),
+                  border: Border.all(color: appSurface(0xFFE2BFFB)),
                 ),
-                child: const Text(
+                child: Text(
                   'Add',
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF8B5CF6),
+                    color: appColor(0xFF8B5CF6),
                   ),
                 ),
               ),
@@ -3014,12 +3016,12 @@ class TaskScreenState extends State<TaskScreen> {
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
-          const Text(
+          Text(
             'CONTACTS',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF6B5B95),
+              color: appColor(0xFF6B5B95),
               letterSpacing: 0.6,
             ),
           ),
@@ -3028,9 +3030,9 @@ class TaskScreenState extends State<TaskScreen> {
             constraints: const BoxConstraints(minHeight: 380),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E5EA)),
+              border: Border.all(color: appSurface(0xFFE5E5EA)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
@@ -3040,14 +3042,14 @@ class TaskScreenState extends State<TaskScreen> {
               ],
             ),
             child: _contacts.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
                       child: Text(
                         'No contacts added yet.\nTap + to add one.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Color(0xFF71717A),
+                          color: appColor(0xFF71717A),
                           fontSize: 14,
                           height: 1.4,
                         ),
@@ -3082,19 +3084,19 @@ class TaskScreenState extends State<TaskScreen> {
       margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E5EA), width: 1),
+        border: Border.all(color: appSurface(0xFFE5E5EA), width: 1),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFFF2F0F7),
+            backgroundColor: appSurface(0xFFF2F0F7),
             child: Text(
               initialLetter,
-              style: const TextStyle(
-                color: Color(0xFF4A3477),
+              style: TextStyle(
+                color: appColor(0xFF4A3477),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -3107,30 +3109,30 @@ class TaskScreenState extends State<TaskScreen> {
               children: [
                 Text(
                   displayName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14.5,
-                    color: Color(0xFF18181B),
+                    color: appColor(0xFF18181B),
                   ),
                 ),
                 if (subtitleName != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitleName,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF71717A)),
+                    style: TextStyle(fontSize: 12, color: appColor(0xFF71717A)),
                   ),
                 ],
                 if (phone.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(PhosphorIcons.phone(), size: 12, color: const Color(0xFF71717A)),
+                      Icon(PhosphorIcons.phone(), size: 12, color: appColor(0xFF71717A)),
                       const SizedBox(width: 4),
                       Text(
                         FormatUtils.formatPhoneNumber(phone),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF71717A),
+                          color: appColor(0xFF71717A),
                         ),
                       ),
                     ],
@@ -3147,14 +3149,14 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildContactMenu(Map<String, dynamic> contact) {
     return PopupMenuButton<String>(
-      icon: Icon(PhosphorIcons.dotsThreeVertical(), color: const Color(0xFFC4C4C8), size: 18),
+      icon: Icon(PhosphorIcons.dotsThreeVertical(), color: appColor(0xFFC4C4C8), size: 18),
       onSelected: (val) {
         if (val == 'edit') _showAddContactDialog(existing: contact);
         if (val == 'delete') _deleteContact(contact['id']);
       },
       itemBuilder: (_) => [
         const PopupMenuItem(value: 'edit', child: Text('Edit')),
-        const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: kError))),
+        PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: kError))),
       ],
     );
   }
@@ -3202,9 +3204,9 @@ class TaskScreenState extends State<TaskScreen> {
       return Container(
         constraints: const BoxConstraints(minHeight: 380),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E5EA)),
+          border: Border.all(color: appSurface(0xFFE5E5EA)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -3213,14 +3215,14 @@ class TaskScreenState extends State<TaskScreen> {
             ),
           ],
         ),
-        child: const Center(
+        child: Center(
           child: Padding(
             padding: EdgeInsets.all(32),
             child: Text(
               'No waitlist entries yet.\nTap + to add one.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFF71717A),
+                color: appColor(0xFF71717A),
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -3241,9 +3243,9 @@ class TaskScreenState extends State<TaskScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       constraints: const BoxConstraints(minHeight: 380),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E5EA)),
+        border: Border.all(color: appSurface(0xFFE5E5EA)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -3259,14 +3261,14 @@ class TaskScreenState extends State<TaskScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: const Color(0xFFFFBCE7), // Pink bar from Home page (kHeaderPink)
+            color: appSurface(0xFFFFBCE7), // Pink bar from Home page (kHeaderPink)
             child: Center(
               child: Text(
                 breed,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                   letterSpacing: 0.2,
                 ),
               ),
@@ -3291,7 +3293,7 @@ class TaskScreenState extends State<TaskScreen> {
     final colorPref = (item['colorPreferred']?.toString() ?? '').trim();
     final gender = item['gender']?.toString();
     final isOdd = index % 2 == 1;
-    final rowBg = isOdd ? const Color(0xFFF9F9FB) : Colors.white;
+    final rowBg = isOdd ? appSurface(0xFFF9F9FB) : kAppCardWhite;
 
     return Material(
       color: rowBg,
@@ -3300,7 +3302,7 @@ class TaskScreenState extends State<TaskScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            border: isLast ? null : const Border(bottom: BorderSide(color: Color(0xFFF2F2F7), width: 1)),
+            border: isLast ? null : Border(bottom: BorderSide(color: appSurface(0xFFF2F2F7), width: 1)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3311,10 +3313,10 @@ class TaskScreenState extends State<TaskScreen> {
                   padding: const EdgeInsets.only(top: 1),
                   child: Text(
                     dateStr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF71717A),
+                      color: appColor(0xFF71717A),
                     ),
                   ),
                 ),
@@ -3328,10 +3330,10 @@ class TaskScreenState extends State<TaskScreen> {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF71717A),
+                        color: appColor(0xFF71717A),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -3345,10 +3347,10 @@ class TaskScreenState extends State<TaskScreen> {
                               : '${FormatUtils.currencySymbol}$clean';
                           return 'Deposit: $amount';
                         }(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF059669),
+                          color: appColor(0xFF059669),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -3373,10 +3375,10 @@ class TaskScreenState extends State<TaskScreen> {
                   padding: const EdgeInsets.only(top: 1),
                   child: Text(
                     colorPref.isNotEmpty ? colorPref : 'Any Color',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF71717A),
+                      color: appColor(0xFF71717A),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -3386,12 +3388,12 @@ class TaskScreenState extends State<TaskScreen> {
               InkWell(
                 onTap: () => _confirmDeleteWaitlist(item),
                 borderRadius: BorderRadius.circular(16),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(4),
                   child: Icon(
                     Icons.delete,
                     size: 19,
-                    color: Color(0xFFDC2626),
+                    color: appColor(0xFFDC2626),
                   ),
                 ),
               ),
@@ -3408,20 +3410,20 @@ class TaskScreenState extends State<TaskScreen> {
       return Icon(
         PhosphorIcons.genderMale(PhosphorIconsStyle.bold),
         size: 16,
-        color: const Color(0xFF2563EB), // Blue for buck
+        color: appColor(0xFF2563EB), // Blue for buck
       );
     } else if (g.contains('doe') || g.contains('female') || g.contains('♀')) {
       return Icon(
         PhosphorIcons.genderFemale(PhosphorIconsStyle.bold),
         size: 16,
-        color: const Color(0xFFEC4899), // Pink for doe
+        color: appColor(0xFFEC4899), // Pink for doe
       );
     }
     // Any is chosen -> Purple icon
     return Icon(
       PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold),
       size: 16,
-      color: const Color(0xFF9333EA), // Purple for Any
+      color: appColor(0xFF9333EA), // Purple for Any
     );
   }
 
@@ -3445,7 +3447,7 @@ class TaskScreenState extends State<TaskScreen> {
         clipBehavior: Clip.antiAlias,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Container(
-          color: Colors.white,
+          color: kAppCardWhite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3453,23 +3455,23 @@ class TaskScreenState extends State<TaskScreen> {
               // Header matching homepage pink with filled delete button (with lines inside) and close button
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                color: const Color(0xFFFFBCE7), // Pink like in the homepage
+                color: appSurface(0xFFFFBCE7), // Pink like in the homepage
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Waitlist Details',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                       ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Color(0xFFDC2626), size: 24),
+                          icon: Icon(Icons.delete, color: appColor(0xFFDC2626), size: 24),
                           tooltip: 'Delete',
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -3480,7 +3482,7 @@ class TaskScreenState extends State<TaskScreen> {
                         ),
                         const SizedBox(width: 14),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Color(0xFF4F4F56), size: 22),
+                          icon: Icon(Icons.close, color: appColor(0xFF4F4F56), size: 22),
                           tooltip: 'Close',
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -3523,12 +3525,12 @@ class TaskScreenState extends State<TaskScreen> {
                       _buildWaitlistDetailRow('Date Added', dateStr),
                       if (notes.isNotEmpty) ...[
                         const SizedBox(height: 10),
-                        const Text(
+                        Text(
                           'Special Notes',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF71717A),
+                            color: appColor(0xFF71717A),
                           ),
                         ),
                         const SizedBox(height: 5),
@@ -3536,15 +3538,15 @@ class TaskScreenState extends State<TaskScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF9FAFB),
+                            color: appSurface(0xFFF9FAFB),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                            border: Border.all(color: appSurface(0xFFE5E7EB)),
                           ),
                           child: Text(
                             notes,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF374151),
+                              color: appColor(0xFF374151),
                               height: 1.4,
                             ),
                           ),
@@ -3567,8 +3569,8 @@ class TaskScreenState extends State<TaskScreen> {
                     icon: const Icon(Icons.edit_outlined, size: 16),
                     label: const Text('Edit'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF4A3477),
-                      side: const BorderSide(color: Color(0xFFD8B4FE)),
+                      foregroundColor: appColor(0xFF4A3477),
+                      side: BorderSide(color: appSurface(0xFFD8B4FE)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -3595,10 +3597,10 @@ class TaskScreenState extends State<TaskScreen> {
             width: 130,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF71717A),
+                color: appColor(0xFF71717A),
               ),
             ),
           ),
@@ -3608,7 +3610,7 @@ class TaskScreenState extends State<TaskScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-                color: const Color(0xFF18181B),
+                color: appColor(0xFF18181B),
               ),
             ),
           ),
@@ -3694,8 +3696,8 @@ class TaskScreenState extends State<TaskScreen> {
             });
 
           return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             constraints: BoxConstraints(
@@ -3752,12 +3754,12 @@ class TaskScreenState extends State<TaskScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Breed Preferred',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -3775,9 +3777,9 @@ class TaskScreenState extends State<TaskScreen> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: kAppCardWhite,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFD6CEE2)),
+                                    border: Border.all(color: appSurface(0xFFD6CEE2)),
                                   ),
                                   child: Row(
                                     children: [
@@ -3787,12 +3789,12 @@ class TaskScreenState extends State<TaskScreen> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: selectedBreeds.isEmpty ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                                            color: selectedBreeds.isEmpty ? appColor(0xFF9CA3AF) : appColor(0xFF4F4F56),
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      const Icon(Icons.arrow_drop_down, color: Color(0xFF4A3E6D), size: 24),
+                                      Icon(Icons.arrow_drop_down, color: appColor(0xFF4A3E6D), size: 24),
                                     ],
                                   ),
                                 ),
@@ -3805,12 +3807,12 @@ class TaskScreenState extends State<TaskScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Gender',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -3828,7 +3830,7 @@ class TaskScreenState extends State<TaskScreen> {
                                           Icon(
                                             isSel ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                                             size: 20,
-                                            color: isSel ? const Color(0xFF7B6BA0) : const Color(0xFF9E9E9E),
+                                            color: isSel ? appColor(0xFF7B6BA0) : appColor(0xFF9E9E9E),
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
@@ -3836,7 +3838,7 @@ class TaskScreenState extends State<TaskScreen> {
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                              color: isSel ? const Color(0xFF4A3E6D) : const Color(0xFF4F4F56),
+                                              color: isSel ? appColor(0xFF4A3E6D) : appColor(0xFF4F4F56),
                                             ),
                                           ),
                                         ],
@@ -3878,7 +3880,7 @@ class TaskScreenState extends State<TaskScreen> {
                                 final name = nameController.text.trim();
                                 if (name.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Please enter a name'), backgroundColor: Color(0xFFDC2626)),
+                                    SnackBar(content: Text('Please enter a name'), backgroundColor: appSurface(0xFFDC2626)),
                                   );
                                   return;
                                 }
@@ -3910,7 +3912,7 @@ class TaskScreenState extends State<TaskScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(existing != null ? 'Waitlist entry updated' : 'Added to waitlist'),
-                                        backgroundColor: const Color(0xFF2C2C2E),
+                                        backgroundColor: appSurface(0xFF2C2C2E),
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
@@ -3919,7 +3921,7 @@ class TaskScreenState extends State<TaskScreen> {
                                 } catch (e) {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFDC2626)),
+                                      SnackBar(content: Text('Error saving: $e'), backgroundColor: appSurface(0xFFDC2626)),
                                     );
                                   }
                                 } finally {
@@ -3927,20 +3929,20 @@ class TaskScreenState extends State<TaskScreen> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE6BEFE), // Soft lilac matching WL3.jpg
-                                foregroundColor: const Color(0xFF4A3E6D),
-                                disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
+                                backgroundColor: appSurface(0xFFE6BEFE), // Soft lilac matching WL3.jpg
+                                foregroundColor: appColor(0xFF4A3E6D),
+                                disabledBackgroundColor: appSurface(0xFFE6BEFE).withValues(alpha: 0.6),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
                               ),
                               child: isSaving
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4A3E6D)))
+                                  ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: appColor(0xFF4A3E6D)))
                                   : Text(
                                       existing != null ? 'Update Waitlist' : 'Add to Waitlist',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4A3E6D),
+                                        color: appColor(0xFF4A3E6D),
                                       ),
                                     ),
                             ),
@@ -3971,26 +3973,26 @@ class TaskScreenState extends State<TaskScreen> {
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setPickerState) {
           return AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor: kAppCardWhite,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             contentPadding: EdgeInsets.zero,
             titlePadding: EdgeInsets.zero,
             title: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFECDDFB),
+              decoration: BoxDecoration(
+                color: appSurface(0xFFECDDFB),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Select Breeds',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF2C2C2E)),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(dialogCtx),
-                    child: const Icon(Icons.close, size: 20, color: Color(0xFF4A3477)),
+                    child: Icon(Icons.close, size: 20, color: appColor(0xFF4A3477)),
                   ),
                 ],
               ),
@@ -4009,13 +4011,13 @@ class TaskScreenState extends State<TaskScreen> {
                       return CheckboxListTile(
                         value: isChecked,
                         dense: true,
-                        activeColor: const Color(0xFF7B6BA0),
+                        activeColor: appColor(0xFF7B6BA0),
                         title: Text(
                           breed,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: isChecked ? FontWeight.w700 : FontWeight.w500,
-                            color: const Color(0xFF2C2C2E),
+                            color: appColor(0xFF2C2C2E),
                           ),
                         ),
                         controlAffinity: ListTileControlAffinity.leading,
@@ -4032,13 +4034,13 @@ class TaskScreenState extends State<TaskScreen> {
                     }),
                     ListTile(
                       dense: true,
-                      leading: const Icon(Icons.add, color: Color(0xFF7B6BA0)),
-                      title: const Text(
+                      leading: Icon(Icons.add, color: appColor(0xFF7B6BA0)),
+                      title: Text(
                         'Add Custom Breed...',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF7B6BA0),
+                          color: appColor(0xFF7B6BA0),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -4063,12 +4065,12 @@ class TaskScreenState extends State<TaskScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A), fontWeight: FontWeight.w600)),
+                child: Text('Cancel', style: TextStyle(color: appColor(0xFF71717A), fontWeight: FontWeight.w600)),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogCtx, selected.toList()),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7B6BA0),
+                  backgroundColor: appSurface(0xFF7B6BA0),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
@@ -4087,26 +4089,26 @@ class TaskScreenState extends State<TaskScreen> {
     return showDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: EdgeInsets.zero,
         titlePadding: EdgeInsets.zero,
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFFECDDFB), // Matching Consistency.jpg prompt header
+          decoration: BoxDecoration(
+            color: appSurface(0xFFECDDFB), // Matching Consistency.jpg prompt header
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Custom Breed',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF2C2C2E)),
               ),
               GestureDetector(
                 onTap: () => Navigator.pop(dialogCtx),
-                child: const Icon(Icons.close, size: 20, color: Color(0xFF4A3477)),
+                child: Icon(Icons.close, size: 20, color: appColor(0xFF4A3477)),
               ),
             ],
           ),
@@ -4117,24 +4119,24 @@ class TaskScreenState extends State<TaskScreen> {
             controller: customController,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
             decoration: InputDecoration(
               hintText: 'Enter breed name',
-              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(fontSize: 13, color: appColor(0xFF9CA3AF), fontWeight: FontWeight.w400),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: kAppCardWhite,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+                borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
               ),
             ),
           ),
@@ -4143,12 +4145,12 @@ class TaskScreenState extends State<TaskScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF71717A), fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF71717A), fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx, customController.text),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7B6BA0),
+              backgroundColor: appSurface(0xFF7B6BA0),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               elevation: 0,
@@ -4173,10 +4175,10 @@ class TaskScreenState extends State<TaskScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF4A3E6D),
+            color: appColor(0xFF4A3E6D),
           ),
         ),
         const SizedBox(height: 6),
@@ -4185,24 +4187,24 @@ class TaskScreenState extends State<TaskScreen> {
           maxLines: maxLines,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400),
+            hintStyle: TextStyle(fontSize: 13, color: appColor(0xFF9CA3AF), fontWeight: FontWeight.w400),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: kAppCardWhite,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFD6CEE2)),
+              borderSide: BorderSide(color: appSurface(0xFFD6CEE2)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
             ),
           ),
         ),
@@ -4226,7 +4228,7 @@ class TaskScreenState extends State<TaskScreen> {
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFECDDFB) : Colors.transparent,
+            color: isSelected ? appSurface(0xFFECDDFB) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -4242,7 +4244,7 @@ class TaskScreenState extends State<TaskScreen> {
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected ? const Color(0xFF4A3477) : const Color(0xFF787880),
+                  color: isSelected ? appColor(0xFF4A3477) : appColor(0xFF787880),
                 ),
               ),
             ],
@@ -4270,7 +4272,7 @@ class TaskScreenState extends State<TaskScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$name removed from waitlist'),
-            backgroundColor: const Color(0xFF2C2C2E),
+            backgroundColor: appSurface(0xFF2C2C2E),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -4284,8 +4286,8 @@ class TaskScreenState extends State<TaskScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -4306,7 +4308,7 @@ class TaskScreenState extends State<TaskScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3E8FF),
+                    color: appSurface(0xFFF3E8FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(PhosphorIcons.userPlus(), color: kLilacDeep),
@@ -4323,10 +4325,10 @@ class TaskScreenState extends State<TaskScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFCE7F3),
+                    color: appSurface(0xFFFCE7F3),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(PhosphorIcons.clipboardText(), color: const Color(0xFF9D3B66)),
+                  child: Icon(PhosphorIcons.clipboardText(), color: appColor(0xFF9D3B66)),
                 ),
                 title: const Text('Add Waitlist Entry', style: TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: const Text('Add a customer to the waitlist'),
@@ -4362,7 +4364,7 @@ class TaskScreenState extends State<TaskScreen> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(color: Color(0xFF555555), fontWeight: FontWeight.w700),
+              style: TextStyle(color: appColor(0xFF555555), fontWeight: FontWeight.w700),
             ),
           TextSpan(
             text: name,
@@ -4376,7 +4378,7 @@ class TaskScreenState extends State<TaskScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kNeutral200),
       ),
@@ -4415,7 +4417,7 @@ class TaskScreenState extends State<TaskScreen> {
                 if (doe == null) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Error: Doe not found'), backgroundColor: Color(0xFFD44C47)),
+                      SnackBar(content: Text('Error: Doe not found'), backgroundColor: appSurface(0xFFD44C47)),
                     );
                   }
                   return;
@@ -4447,14 +4449,14 @@ class TaskScreenState extends State<TaskScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text.rich(
-                          _buildRabbitNameSpan(doe, const Color(0xFFE04F9F), doeName),
+                          _buildRabbitNameSpan(doe, appColor(0xFFE04F9F), doeName),
                           style: const TextStyle(fontSize: 15),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text.rich(
-                          _buildRabbitNameSpan(buck, const Color(0xFF2196F3), buckName),
+                          _buildRabbitNameSpan(buck, appColor(0xFF2196F3), buckName),
                           style: const TextStyle(fontSize: 15),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -4466,7 +4468,7 @@ class TaskScreenState extends State<TaskScreen> {
                             const SizedBox(width: 4),
                             Text(
                               date != null ? DateFormat('MMM dd, yyyy').format(date) : 'No Date',
-                              style: const TextStyle(fontSize: 13, color: kNeutral600),
+                              style: TextStyle(fontSize: 13, color: kNeutral600),
                             ),
                           ],
                         ),
@@ -4510,27 +4512,27 @@ class TaskScreenState extends State<TaskScreen> {
     showDialog(
       context: context,
       builder: (context) => BrightPurpleDialog(
-        headerColor: const Color(0xFFE2BFFB),
-        borderColor: const Color(0xFFE2BFFB),
+        headerColor: appSurface(0xFFE2BFFB),
+        borderColor: appSurface(0xFFE2BFFB),
         title: 'Search Tasks',
         contentWidget: TextField(
           controller: searchController,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Search by task name, breed, location...',
-            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
-            prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: const Color(0xFF787774), size: 18),
+            hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 14),
+            prefixIcon: Icon(PhosphorIcons.magnifyingGlass(), color: appColor(0xFF787774), size: 18),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
@@ -4547,8 +4549,8 @@ class TaskScreenState extends State<TaskScreen> {
               Navigator.pop(context);
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF787774),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              foregroundColor: appColor(0xFF787774),
+              side: BorderSide(color: appSurface(0xFFE2E8F0)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -4561,18 +4563,18 @@ class TaskScreenState extends State<TaskScreen> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
-              foregroundColor: const Color(0xFF4A3E6D),
+              backgroundColor: appSurface(0xFFE6BEFE),
+              foregroundColor: appColor(0xFF4A3E6D),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text(
+            child: Text(
               'Search',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: Color(0xFF4A3E6D),
+                color: appColor(0xFF4A3E6D),
               ),
             ),
           ),
@@ -4613,13 +4615,13 @@ class TaskScreenState extends State<TaskScreen> {
               label,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: const Color(0xFF3B3B43),
+                color: appColor(0xFF3B3B43),
                 fontSize: 14,
               ),
             ),
           ),
           if (isSelected) ...[
-            const Icon(Icons.check, size: 16, color: kLilacDeep),
+            Icon(Icons.check, size: 16, color: kLilacDeep),
           ],
         ],
       ),
@@ -4694,10 +4696,10 @@ class TaskScreenState extends State<TaskScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          color: isSelected ? appSurface(0xFF8B5CF6) : appSurface(0xFF94A3B8),
                           width: isSelected ? 5.5 : 1.5,
                         ),
-                        color: Colors.white,
+                        color: kAppCardWhite,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -4706,7 +4708,7 @@ class TaskScreenState extends State<TaskScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? const Color(0xFF4A3E6D) : const Color(0xFF475569),
+                        color: isSelected ? appColor(0xFF4A3E6D) : appColor(0xFF475569),
                       ),
                     ),
                   ],
@@ -4806,8 +4808,8 @@ class TaskScreenState extends State<TaskScreen> {
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.88,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               padding: EdgeInsets.only(
@@ -4823,12 +4825,12 @@ class TaskScreenState extends State<TaskScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Category',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -4851,21 +4853,21 @@ class TaskScreenState extends State<TaskScreen> {
                             InputDecorator(
                               decoration: InputDecoration(
                                 labelText: 'Task',
-                                labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                                floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                                floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: kAppCardWhite,
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: (selectedTask == '+ Custom' || !currentTaskOptions.contains(selectedTask)) ? null : selectedTask,
-                                  hint: const Text('Select a task', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
+                                  hint: Text('Select a task', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
                                   isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                  icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                                   selectedItemBuilder: (BuildContext context) {
                                     return currentTaskOptions.map((e) => Align(
                                       alignment: Alignment.centerLeft,
@@ -4875,7 +4877,7 @@ class TaskScreenState extends State<TaskScreen> {
                                           fontSize: 15,
                                           fontWeight: FontWeight.w600,
                                           fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                          color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                          color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF3A3A3C),
                                         ),
                                       ),
                                     )).toList();
@@ -4890,7 +4892,7 @@ class TaskScreenState extends State<TaskScreen> {
                                         width: double.infinity,
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                          color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
@@ -4899,7 +4901,7 @@ class TaskScreenState extends State<TaskScreen> {
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
                                             fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                            color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF3A3A3C),
+                                            color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF3A3A3C),
                                           ),
                                         ),
                                       ),
@@ -4932,14 +4934,14 @@ class TaskScreenState extends State<TaskScreen> {
                                         customTaskController.clear();
                                       });
                                     },
-                                    child: const Padding(
+                                    child: Padding(
                                       padding: EdgeInsets.only(bottom: 6),
                                       child: Text(
                                         'Choose from list',
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF8B5CF6),
+                                          color: appColor(0xFF8B5CF6),
                                         ),
                                       ),
                                     ),
@@ -4962,26 +4964,26 @@ class TaskScreenState extends State<TaskScreen> {
                             onTap: pickRabbit,
                             onClear: isBreeding ? null : () => setSheetState(() => selectedRabbitsForLink = []),
                             prefixIcon: isBreeding ? Icons.female_rounded : Icons.pets_rounded,
-                            prefixColor: isBreeding ? const Color(0xFFE04F9F) : const Color(0xFF7B6BA0),
+                            prefixColor: isBreeding ? appColor(0xFFE04F9F) : appColor(0xFF7B6BA0),
                           ),
                           const SizedBox(height: 16),
                           InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Frequency',
-                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedFrequency,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                                 selectedItemBuilder: (BuildContext context) {
                                   return [
                                     'Select date',
@@ -5001,7 +5003,7 @@ class TaskScreenState extends State<TaskScreen> {
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                        color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
+                                        color: e == 'Select date' ? kNeutral400 : appColor(0xFF3A3A3C),
                                       ),
                                     ),
                                   )).toList();
@@ -5027,7 +5029,7 @@ class TaskScreenState extends State<TaskScreen> {
                                       width: double.infinity,
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                        color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -5035,7 +5037,7 @@ class TaskScreenState extends State<TaskScreen> {
                                         style: TextStyle(
                                           fontSize: 15,
                                           fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                          color: e == 'Select date' ? kNeutral400 : const Color(0xFF3A3A3C),
+                                          color: e == 'Select date' ? kNeutral400 : appColor(0xFF3A3A3C),
                                         ),
                                       ),
                                     ),
@@ -5077,13 +5079,13 @@ class TaskScreenState extends State<TaskScreen> {
                                 final finalTaskName = isEnteringCustomName ? customTaskController.text.trim() : (selectedTask ?? '');
                                 if (finalTaskName.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                    SnackBar(content: Text('Please select or enter a task name'), backgroundColor: appSurface(0xFFD44C47)),
                                   );
                                   return;
                                 }
                                 if (isBreeding && selectedRabbitsForLink.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: Color(0xFFD44C47)),
+                                    SnackBar(content: Text('Please select a Doe for this breeding task'), backgroundColor: appSurface(0xFFD44C47)),
                                   );
                                   return;
                                 }
@@ -5120,40 +5122,40 @@ class TaskScreenState extends State<TaskScreen> {
                                   Navigator.pop(sheetContext);
                                   await _loadScheduledTasks();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary),
+                                    SnackBar(content: Text('Task Saved'), backgroundColor: kPrimary),
                                   );
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error saving: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                    SnackBar(content: Text('Error saving: $e'), backgroundColor: appSurface(0xFFD44C47)),
                                   );
                                 } finally {
                                   if (mounted) setSheetState(() => isSaving = false);
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4B3EE), // Consistency.jpg purple
-                          disabledBackgroundColor: const Color(0xFFEAE3F2),
-                          foregroundColor: const Color(0xFF5C4A70),
+                          backgroundColor: appSurface(0xFFD4B3EE), // Consistency.jpg purple
+                          disabledBackgroundColor: appSurface(0xFFEAE3F2),
+                          foregroundColor: appColor(0xFF5C4A70),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5C4A70)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF5C4A70)),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'SAVE',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF5C4A70),
+                                  color: appColor(0xFF5C4A70),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -5183,8 +5185,8 @@ class TaskScreenState extends State<TaskScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           constraints: BoxConstraints(
@@ -5291,35 +5293,35 @@ class TaskScreenState extends State<TaskScreen> {
                                     _loadContacts();
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                      SnackBar(content: Text('Error: $e'), backgroundColor: appSurface(0xFFD44C47)),
                                     );
                                   } finally {
                                     if (mounted) setModalState(() => isSaving = false);
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE6BEFE),
-                            foregroundColor: const Color(0xFF4A3E6D),
+                            backgroundColor: appSurface(0xFFE6BEFE),
+                            foregroundColor: appColor(0xFF4A3E6D),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: isSaving
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 22,
                                   height: 22,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                    valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                                   ),
                                 )
                               : Text(
                                   existing == null ? 'Save Contact' : 'Update Contact',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF4A3E6D),
+                                    color: appColor(0xFF4A3E6D),
                                   ),
                                 ),
                         ),
@@ -5381,8 +5383,8 @@ class TaskScreenState extends State<TaskScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               constraints: BoxConstraints(
@@ -5411,27 +5413,27 @@ class TaskScreenState extends State<TaskScreen> {
                           InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Category',
-                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedCategory,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                                 items: [
                                   'Operations',
                                   'Health',
                                   if (SettingsService.instance.meatProductionEnabled) 'Butchering',
                                   'Pregnancy',
                                   'Other'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14, color: appColor(0xFF1E293B))))).toList(),
                                 onChanged: (val) {
                                   if (val != null) setSheetState(() => selectedCategory = val);
                                 },
@@ -5442,20 +5444,20 @@ class TaskScreenState extends State<TaskScreen> {
                           InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Frequency',
-                              labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                              floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                              floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedFrequency,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                                icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                                 items: [
                                   'Daily',
                                   'Weekly',
@@ -5466,7 +5468,7 @@ class TaskScreenState extends State<TaskScreen> {
                                   '4 Months starting',
                                   '6 Months starting',
                                   'Once'
-                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))))).toList(),
+                                ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14, color: appColor(0xFF1E293B))))).toList(),
                                 onChanged: (val) {
                                   if (val != null) setSheetState(() => selectedFrequency = val);
                                 },
@@ -5483,7 +5485,7 @@ class TaskScreenState extends State<TaskScreen> {
                                   : () async {
                                       if (taskNameController.text.trim().isEmpty) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Please enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                          SnackBar(content: Text('Please enter a task name'), backgroundColor: appSurface(0xFFD44C47)),
                                         );
                                         return;
                                       }
@@ -5503,39 +5505,39 @@ class TaskScreenState extends State<TaskScreen> {
                                         Navigator.pop(sheetContext);
                                         await _loadScheduledTasks();
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Task Updated'), backgroundColor: kPrimary),
+                                          SnackBar(content: Text('Task Updated'), backgroundColor: kPrimary),
                                         );
                                       } catch (e) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                          SnackBar(content: Text('Error updating: $e'), backgroundColor: appSurface(0xFFD44C47)),
                                         );
                                       } finally {
                                         if (mounted) setSheetState(() => isSaving = false);
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE6BEFE),
-                                foregroundColor: const Color(0xFF4A3E6D),
+                                backgroundColor: appSurface(0xFFE6BEFE),
+                                foregroundColor: appColor(0xFF4A3E6D),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: isSaving
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 22,
                                       height: 22,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                        valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                                       ),
                                     )
-                                  : const Text(
+                                  : Text(
                                       'Save Changes',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4A3E6D),
+                                        color: appColor(0xFF4A3E6D),
                                       ),
                                     ),
                             ),
@@ -5556,10 +5558,10 @@ class TaskScreenState extends State<TaskScreen> {
   Widget _buildModalHeader(BuildContext context, String title) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: const BoxDecoration(
-        color: Color(0xFFEADBEE), // Consistency.jpg top purple
+      decoration: BoxDecoration(
+        color: appSurface(0xFFEADBEE), // Consistency.jpg top purple
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFD6CEE2), width: 1)),
       ),
       child: Column(
         children: [
@@ -5569,7 +5571,7 @@ class TaskScreenState extends State<TaskScreen> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -5579,10 +5581,10 @@ class TaskScreenState extends State<TaskScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF4A3E6D),
+                  color: appColor(0xFF4A3E6D),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -5591,10 +5593,10 @@ class TaskScreenState extends State<TaskScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: kAppCardWhite.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                  child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                 ),
               ),
             ],
@@ -5620,17 +5622,17 @@ class TaskScreenState extends State<TaskScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
-        hintStyle: const TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        hintStyle: TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
-      style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+      style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
     );
   }
 
@@ -5648,35 +5650,36 @@ class TaskScreenState extends State<TaskScreen> {
           firstDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
           lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
           builder: (context, child) {
-            return Theme(
+            if (isAppDark) return child!;
+        return Theme(
               data: Theme.of(context).copyWith(
-                colorScheme: const ColorScheme.light(
-                  primary: Color(0xFF8B5CF6),
+                colorScheme: ColorScheme.light(
+                  primary: appColor(0xFF8B5CF6),
                   onPrimary: Colors.white,
                   surface: Colors.white,
-                  onSurface: Color(0xFF2C2C2E),
+                  onSurface: appColor(0xFF2C2C2E),
                 ),
                 datePickerTheme: DatePickerThemeData(
-                  headerBackgroundColor: const Color(0xFFE2BFFB),
-                  headerForegroundColor: const Color(0xFF463466),
-                  backgroundColor: Colors.white,
+                  headerBackgroundColor: appSurface(0xFFE2BFFB),
+                  headerForegroundColor: appColor(0xFF463466),
+                  backgroundColor: kAppCardWhite,
                   surfaceTintColor: Colors.transparent,
-                  todayBorder: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                  todayBorder: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
                   todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) return const Color(0xFF8B5CF6);
+                    if (states.contains(WidgetState.selected)) return appColor(0xFF8B5CF6);
                     return null;
                   }),
                   todayForegroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) return Colors.white;
-                    return const Color(0xFF8B5CF6);
+                    return appColor(0xFF8B5CF6);
                   }),
                   dayForegroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) return Colors.white;
-                    if (states.contains(WidgetState.disabled)) return const Color(0xFFC7C7CC);
-                    return const Color(0xFF2C2C2E);
+                    if (states.contains(WidgetState.disabled)) return appColor(0xFFC7C7CC);
+                    return appColor(0xFF2C2C2E);
                   }),
                   dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) return const Color(0xFF8B5CF6);
+                    if (states.contains(WidgetState.selected)) return appColor(0xFF8B5CF6);
                     return null;
                   }),
                 ),
@@ -5693,25 +5696,25 @@ class TaskScreenState extends State<TaskScreen> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               value != null ? FormatUtils.formatDate(value) : 'Select date',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: value != null ? const Color(0xFF4F4F56) : kNeutral400,
+                color: value != null ? appColor(0xFF4F4F56) : kNeutral400,
               ),
             ),
           ],
@@ -5738,8 +5741,8 @@ class TaskScreenState extends State<TaskScreen> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           prefixIcon: Icon(prefixIcon, color: prefixColor, size: 20),
           suffixIcon: selectedRabbits.isNotEmpty && onClear != null
@@ -5747,39 +5750,39 @@ class TaskScreenState extends State<TaskScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, size: 18, color: Color(0xFF787774)),
+                      icon: Icon(Icons.close, size: 18, color: appColor(0xFF787774)),
                       onPressed: onClear,
                     ),
-                    const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+                    Icon(Icons.arrow_drop_down, color: appColor(0xFF4F4F56)),
                     const SizedBox(width: 4),
                   ],
                 )
-              : const Icon(Icons.arrow_drop_down, color: Color(0xFF4F4F56)),
+              : Icon(Icons.arrow_drop_down, color: appColor(0xFF4F4F56)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: selectedRabbits.isEmpty
             ? Text(
                 hint,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
               )
             : isAllSelected
                 ? Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3E8FF),
+                      color: appSurface(0xFFF3E8FF),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: kLilacLight),
                     ),
-                    child: const Text(
+                    child: Text(
                       'ALL',
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -5792,7 +5795,7 @@ class TaskScreenState extends State<TaskScreen> {
                         children: selectedRabbits.map((r) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF3E8FF),
+                            color: appSurface(0xFFF3E8FF),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: kLilacLight),
                           ),
@@ -5805,7 +5808,7 @@ class TaskScreenState extends State<TaskScreen> {
 
   Widget _buildModalRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final nameColor = isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3);
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -5819,8 +5822,8 @@ class TaskScreenState extends State<TaskScreen> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -5834,8 +5837,8 @@ class TaskScreenState extends State<TaskScreen> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -5897,7 +5900,7 @@ class _CuteGlossyHeartPainter extends CustomPainter {
 
     // Base vibrant pink fill
     final mainPaint = Paint()
-      ..color = const Color(0xFFFF2E7E)
+      ..color = appColor(0xFFFF2E7E)
       ..style = PaintingStyle.fill;
     canvas.drawPath(heartPath, mainPaint);
 
@@ -5913,7 +5916,7 @@ class _CuteGlossyHeartPainter extends CustomPainter {
     shadePath.close();
 
     final shadePaint = Paint()
-      ..color = const Color(0xFFC2185B).withValues(alpha: 0.35)
+      ..color = appColor(0xFFC2185B).withValues(alpha: 0.35)
       ..style = PaintingStyle.fill;
     canvas.drawPath(shadePath, shadePaint);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../constants/app_colors.dart';
 
 /// Reusable Bright Purple Dialog matching the app's lilac pastel design system.
@@ -33,8 +34,8 @@ class BrightPurpleDialog extends StatelessWidget {
     this.cancelText,
     this.onConfirm,
     this.onCancel,
-    this.headerColor = const Color(0xFFC3B1E1), // Bright lilac / purple
-    this.borderColor = const Color(0xFFC3B1E1),
+    this.headerColor = const AppSurfaceColor(0xFFC3B1E1), // Bright lilac / purple
+    this.borderColor = const AppSurfaceColor(0xFFC3B1E1),
     this.confirmColor,
     this.isDestructive = false,
     this.showCloseButton = true,
@@ -50,7 +51,7 @@ class BrightPurpleDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: borderColor, width: 1.8),
           boxShadow: [
@@ -99,7 +100,7 @@ class BrightPurpleDialog extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: kAppCardWhite.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -121,10 +122,10 @@ class BrightPurpleDialog extends StatelessWidget {
                       ? Text(
                           content!,
                           textAlign: textAlign,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             height: 1.45,
-                            color: Color(0xFF3A3A3C),
+                            color: appColor(0xFF3A3A3C),
                             fontWeight: FontWeight.w500,
                           ),
                         )
@@ -156,7 +157,7 @@ class BrightPurpleDialog extends StatelessWidget {
                           }
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF787774),
+                          foregroundColor: appColor(0xFF787774),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         ),
                         child: Text(
@@ -180,7 +181,7 @@ class BrightPurpleDialog extends StatelessWidget {
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: isDestructive
-                              ? const Color(0xFFD44C47)
+                              ? appColor(0xFFD44C47)
                               : (confirmColor ?? kLilacDeep),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         ),
@@ -190,7 +191,7 @@ class BrightPurpleDialog extends StatelessWidget {
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: isDestructive
-                                ? const Color(0xFFD44C47)
+                                ? appColor(0xFFD44C47)
                                 : (confirmColor ?? kLilacDeep),
                           ),
                         ),
@@ -217,8 +218,8 @@ Future<T?> showBrightPurpleDialog<T>({
   String? cancelText,
   VoidCallback? onConfirm,
   VoidCallback? onCancel,
-  Color headerColor = const Color(0xFFC3B1E1),
-  Color borderColor = const Color(0xFFC3B1E1),
+  Color headerColor = const AppSurfaceColor(0xFFC3B1E1),
+  Color borderColor = const AppSurfaceColor(0xFFC3B1E1),
   Color? confirmColor,
   bool isDestructive = false,
   bool showCloseButton = true,

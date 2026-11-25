@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -66,7 +67,7 @@ class _CertificateCardState extends State<CertificateCard> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -85,7 +86,7 @@ class _CertificateCardState extends State<CertificateCard> {
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                color: isSelected ? appColor(0xFF5C4A70) : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -99,7 +100,7 @@ class _CertificateCardState extends State<CertificateCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kNeutral200),
         boxShadow: [
@@ -114,14 +115,14 @@ class _CertificateCardState extends State<CertificateCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               'BIRTH CERTIFICATE',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
                 letterSpacing: 0.8,
               ),
             ),
@@ -130,12 +131,12 @@ class _CertificateCardState extends State<CertificateCard> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Generate a printable birth certificate for this rabbit',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -144,9 +145,9 @@ class _CertificateCardState extends State<CertificateCard> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F7),
+                    color: appSurface(0xFFF2F2F7),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E5EA)),
+                    border: Border.all(color: appSurface(0xFFE5E5EA)),
                   ),
                   padding: const EdgeInsets.all(4),
                   child: Row(
@@ -165,19 +166,19 @@ class _CertificateCardState extends State<CertificateCard> {
                     icon: Icon(
                       PhosphorIcons.fileText(PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: const Color(0xFF5C4A70),
+                      color: appColor(0xFF5C4A70),
                     ),
-                    label: const Text(
+                    label: Text(
                       'Preview Certificate',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF5C4A70),
+                        color: appColor(0xFF5C4A70),
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4B3EE),
-                      foregroundColor: const Color(0xFF5C4A70),
+                      backgroundColor: appSurface(0xFFD4B3EE),
+                      foregroundColor: appColor(0xFF5C4A70),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -317,7 +318,7 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -336,7 +337,7 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                color: isSelected ? appColor(0xFF5C4A70) : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -351,8 +352,8 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
     final certData = _buildData();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       constraints: BoxConstraints(
@@ -375,7 +376,7 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Certificate Preview',
                   style: TextStyle(
                     fontSize: 18,
@@ -396,9 +397,9 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
+                color: appSurface(0xFFF2F2F7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
@@ -441,7 +442,7 @@ class _CertificatePreviewModalState extends State<_CertificatePreviewModal> {
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -470,7 +471,10 @@ class CertificatePreviewWidget extends StatelessWidget {
   const CertificatePreviewWidget({super.key, required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DarkModeGuard(child: _buildPreview(context));
+
+  Widget _buildPreview(BuildContext context) {
     final isColorWithPhoto = data.isColorWithPhoto;
 
     return AspectRatio(
@@ -479,7 +483,7 @@ class CertificatePreviewWidget extends StatelessWidget {
           : CertificateLayout.aspectRatio,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kNeutral300),
           boxShadow: [

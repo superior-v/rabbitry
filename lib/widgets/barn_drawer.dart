@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../models/barn.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -17,7 +18,7 @@ class BarnDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -27,14 +28,14 @@ class BarnDrawer extends StatelessWidget {
             padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: Color(0xFF14B8A6)),
+                Icon(PhosphorIcons.warehouse(PhosphorIconsStyle.duotone), color: appColor(0xFF14B8A6)),
                 SizedBox(width: 8),
                 Text(
                   'BARN & CAGES',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF787774),
+                    color: appColor(0xFF787774),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -67,10 +68,10 @@ class BarnDrawer extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 4),
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isActive ? Color(0xFFEDE9FE) : Colors.transparent,
+          color: isActive ? appSurface(0xFFEDE9FE) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? Color(0xFF7B6BA0) : Colors.transparent,
+            color: isActive ? appSurface(0xFF7B6BA0) : Colors.transparent,
           ),
         ),
         child: Row(
@@ -78,7 +79,7 @@ class BarnDrawer extends StatelessWidget {
             Icon(
               value == null ? Icons.circle : Icons.warning_amber_rounded,
               size: 20,
-              color: isActive ? Color(0xFF7B6BA0) : Color(0xFF787774),
+              color: isActive ? appColor(0xFF7B6BA0) : appColor(0xFF787774),
             ),
             SizedBox(width: 8),
             Text(
@@ -86,7 +87,7 @@ class BarnDrawer extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? Color(0xFF7B6BA0) : Colors.black87,
+                color: isActive ? appColor(0xFF7B6BA0) : appColor(0xDD000000, 0xFFF1F3F9),
               ),
             ),
           ],
@@ -106,7 +107,7 @@ class BarnDrawer extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF37352F),
+              color: appColor(0xFF37352F),
               letterSpacing: 0.5,
             ),
           ),

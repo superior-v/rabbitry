@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
@@ -49,7 +50,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             : (widget.doe.id.length >= 6 ? widget.doe.id.substring(0, 6) : widget.doe.id).trim())
         .toUpperCase();
     final isArchived = widget.doe.status == RabbitStatus.archived;
-    final nameColor = isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F);
+    final nameColor = isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F);
 
     return Text.rich(
       TextSpan(
@@ -57,10 +58,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -74,10 +75,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -96,7 +97,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               : (_buck!.id.length >= 6 ? _buck!.id.substring(0, 6) : _buck!.id).trim())
           .toUpperCase();
       final isArchived = _buck!.status == RabbitStatus.archived;
-      final nameColor = isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3);
+      final nameColor = isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3);
 
       return Text.rich(
         TextSpan(
@@ -104,10 +105,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             if (prefix.isNotEmpty)
               TextSpan(
                 text: '$prefix ',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                 ),
               ),
             TextSpan(
@@ -121,10 +122,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
               TextSpan(
                 text: ' $ear',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF787774),
+                  color: appColor(0xFF787774),
                 ),
               ),
           ],
@@ -142,19 +143,19 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
         children: [
           TextSpan(
             text: fallbackName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2196F3),
+              color: appColor(0xFF2196F3),
             ),
           ),
           if (buckId.isNotEmpty && !fallbackName.toUpperCase().contains(buckId))
             TextSpan(
               text: ' $buckId',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -175,8 +176,8 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -188,7 +189,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
           // Header banner (matches Consistency.jpg & task modals)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kLilacLight,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               border: Border(bottom: BorderSide(color: kLilac, width: 1)),
@@ -201,7 +202,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withOpacity(0.3),
+                      color: appSurface(0xFF4A3E6D).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -209,12 +210,12 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Log Palpation',
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -223,10 +224,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
+                          color: kAppCardWhite.withOpacity(0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -261,10 +262,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                   const SizedBox(width: 8),
                   Text(
                     _formattedBredDate,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF4A3E6D),
+                      color: appColor(0xFF4A3E6D),
                     ),
                   ),
                 ],
@@ -279,7 +280,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: kLilacLight),
               ),
@@ -317,28 +318,28 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               child: ElevatedButton(
                 onPressed: _isPregnant == null || _isSaving ? null : _saveResult,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE6BEFE),
-                  foregroundColor: const Color(0xFF4A3E6D),
+                  backgroundColor: appSurface(0xFFE6BEFE),
+                  foregroundColor: appColor(0xFF4A3E6D),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isSaving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 22,
                         width: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                          valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Confirm Palpation',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                         ),
                       ),
               ),
@@ -364,11 +365,11 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFF6F0FD)
-              : (isAlt ? const Color(0xFFF9F7FC) : Colors.white),
+              ? appSurface(0xFFF6F0FD)
+              : (isAlt ? appSurface(0xFFF9F7FC) : kAppCardWhite),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? const Color(0xFF8B5CF6) : Colors.transparent,
+            color: isSelected ? appSurface(0xFF8B5CF6) : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -380,10 +381,10 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                  color: isSelected ? appSurface(0xFF8B5CF6) : appSurface(0xFF94A3B8),
                   width: isSelected ? 5.5 : 1.5,
                 ),
-                color: Colors.white,
+                color: kAppCardWhite,
               ),
             ),
             const SizedBox(width: 12),
@@ -397,16 +398,16 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? const Color(0xFF4A3E6D) : const Color(0xFF3A3A3C),
+                      color: isSelected ? appColor(0xFF4A3E6D) : appColor(0xFF3A3A3C),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
-                      color: Color(0xFF787774),
+                      color: appColor(0xFF787774),
                     ),
                   ),
                 ],
@@ -436,7 +437,7 @@ class _ConfirmPregnancyModalState extends State<ConfirmPregnancyModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isPregnant! ? 'Palpation logged: Confirmed bred' : 'Palpation logged: Marked as open'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );

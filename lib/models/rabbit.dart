@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/format_utils.dart';
+import '../services/appearance_service.dart';
 
 enum RabbitType {
   doe,
@@ -52,34 +53,34 @@ extension ArchiveReasonExtension on ArchiveReason {
   Color get color {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFF7B6BA0); // Green
+        return appColor(0xFF7B6BA0); // Green
       case ArchiveReason.butchered:
-        return const Color(0xFF6B6B6B); // Gray
+        return appColor(0xFF6B6B6B); // Gray
       case ArchiveReason.dead:
-        return const Color(0xFF2C2C2C); // Black
+        return appColor(0xFF2C2C2C); // Black
       case ArchiveReason.cull:
-        return const Color(0xFFE63946); // Red
+        return appColor(0xFFE63946); // Red
       case ArchiveReason.stud:
-        return const Color(0xFF1976D2); // Blue
+        return appColor(0xFF1976D2); // Blue
       case ArchiveReason.donated:
-        return const Color(0xFF0D9488); // Teal
+        return appColor(0xFF0D9488); // Teal
     }
   }
 
   Color get backgroundColor {
     switch (this) {
       case ArchiveReason.sold:
-        return const Color(0xFFEDE9FE);
+        return appSurface(0xFFEDE9FE);
       case ArchiveReason.butchered:
-        return const Color(0xFFF5F5F5);
+        return appSurface(0xFFF5F5F5);
       case ArchiveReason.dead:
-        return const Color(0xFFE8E8E8);
+        return appSurface(0xFFE8E8E8);
       case ArchiveReason.cull:
-        return const Color(0xFFFFEBEC);
+        return appSurface(0xFFFFEBEC);
       case ArchiveReason.stud:
-        return const Color(0xFFE3F2FD);
+        return appSurface(0xFFE3F2FD);
       case ArchiveReason.donated:
-        return const Color(0xFFCCFBF1);
+        return appSurface(0xFFCCFBF1);
     }
   }
 }

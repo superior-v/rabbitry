@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:printing/printing.dart';
 import '../constants/app_colors.dart';
@@ -78,7 +79,7 @@ class _CoopCardSectionState extends State<CoopCardSection> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -98,8 +99,8 @@ class _CoopCardSectionState extends State<CoopCardSection> {
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFF5C4A70)
-                    : const Color(0xFF6B7280),
+                    ? appColor(0xFF5C4A70)
+                    : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -113,7 +114,7 @@ class _CoopCardSectionState extends State<CoopCardSection> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kNeutral200),
         boxShadow: [
@@ -128,14 +129,14 @@ class _CoopCardSectionState extends State<CoopCardSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               'COOP CARD',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
                 letterSpacing: 0.8,
               ),
             ),
@@ -144,12 +145,12 @@ class _CoopCardSectionState extends State<CoopCardSection> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                const Text(
+                Text(
                   'Generate a printable coop card for this rabbit',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -158,9 +159,9 @@ class _CoopCardSectionState extends State<CoopCardSection> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F7),
+                    color: appSurface(0xFFF2F2F7),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E5EA)),
+                    border: Border.all(color: appSurface(0xFFE5E5EA)),
                   ),
                   padding: const EdgeInsets.all(4),
                   child: Row(
@@ -191,9 +192,9 @@ class _CoopCardSectionState extends State<CoopCardSection> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2F2F7),
+                    color: appSurface(0xFFF2F2F7),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E5EA)),
+                    border: Border.all(color: appSurface(0xFFE5E5EA)),
                   ),
                   padding: const EdgeInsets.all(4),
                   child: Row(
@@ -222,19 +223,19 @@ class _CoopCardSectionState extends State<CoopCardSection> {
                       PhosphorIcons.identificationCard(
                           PhosphorIconsStyle.duotone),
                       size: 18,
-                      color: const Color(0xFF5C4A70),
+                      color: appColor(0xFF5C4A70),
                     ),
-                    label: const Text(
+                    label: Text(
                       'Preview Coop Card',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF5C4A70),
+                        color: appColor(0xFF5C4A70),
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4B3EE),
-                      foregroundColor: const Color(0xFF5C4A70),
+                      backgroundColor: appSurface(0xFFD4B3EE),
+                      foregroundColor: appColor(0xFF5C4A70),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -374,7 +375,7 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -394,8 +395,8 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFF5C4A70)
-                    : const Color(0xFF6B7280),
+                    ? appColor(0xFF5C4A70)
+                    : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -410,8 +411,8 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
     final cardData = _buildData();
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       constraints: BoxConstraints(
@@ -434,7 +435,7 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Coop Card Preview',
                   style: TextStyle(
                     fontSize: 18,
@@ -455,9 +456,9 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
+                color: appSurface(0xFFF2F2F7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
@@ -490,9 +491,9 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
+                color: appSurface(0xFFF2F2F7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
@@ -519,10 +520,10 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
                 children: [
                   Text(
                     _size.dimensionLabel(landscape: _landscape),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B7280),
+                      color: appColor(0xFF6B7280),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -565,7 +566,7 @@ class _CoopCardPreviewModalState extends State<CoopCardPreviewModal> {
                             fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -623,8 +624,8 @@ class CoopCardPreviewWidget extends StatelessWidget {
           aspectRatio: aspectRatio,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFF59595E), width: 1.2),
+              color: kAppCardWhite,
+              border: Border.all(color: appSurface(0xFF59595E), width: 1.2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -654,7 +655,7 @@ class CoopCardPreviewWidget extends StatelessWidget {
                           fontFamily: CertificateLayout.fontFamilyQuicksand,
                           fontSize: fieldFontSize,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF262629),
+                          color: appColor(0xFF262629),
                           height: 1.15,
                         ),
                       ),
@@ -665,7 +666,7 @@ class CoopCardPreviewWidget extends StatelessWidget {
                             fontFamily: CertificateLayout.fontFamilyQuicksand,
                             fontSize: fieldFontSize,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF262629),
+                            color: appColor(0xFF262629),
                             height: 1.15,
                           ),
                           maxLines: 1,
@@ -695,7 +696,7 @@ class CoopCardPreviewWidget extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: CertificateLayout.fontFamilyAscender,
                             fontSize: nameFontSize,
-                            color: Colors.black,
+                            color: appColor(0xFF000000),
                             height: 1.0,
                           ),
                           maxLines: 1,
@@ -704,7 +705,7 @@ class CoopCardPreviewWidget extends StatelessWidget {
                     ),
                     Container(
                       height: (landscape ? 36.0 : 32.0) * u,
-                      color: const Color(0xFFECECED),
+                      color: appSurface(0xFFECECED),
                       padding: EdgeInsets.symmetric(
                           horizontal: padH, vertical: 4 * u),
                       alignment: Alignment.center,
@@ -716,7 +717,7 @@ class CoopCardPreviewWidget extends StatelessWidget {
                             fontFamily: CertificateLayout.fontFamilyQuicksand,
                             fontSize: subtitleFontSize,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF545459),
+                            color: appColor(0xFF545459),
                             height: 1.1,
                           ),
                           maxLines: 1,
@@ -796,4 +797,3 @@ class CoopCardPreviewWidget extends StatelessWidget {
     );
   }
 }
-

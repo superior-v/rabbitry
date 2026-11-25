@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/settings_service.dart';
@@ -37,8 +37,8 @@ class RabbitActionSheet extends StatelessWidget {
         (rabbit.quarantineEndDate != null && DateTime.now().isBefore(rabbit.quarantineEndDate!));
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SingleChildScrollView(
@@ -48,8 +48,8 @@ class RabbitActionSheet extends StatelessWidget {
             // Top Purple Header Banner (matches Home Log Breeding style)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEADBEE),
+              decoration: BoxDecoration(
+                color: appSurface(0xFFEADBEE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
@@ -63,10 +63,10 @@ class RabbitActionSheet extends StatelessWidget {
                         if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
                           Text(
                             rabbit.breederPrefix!.trim(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF787774),
+                              color: appColor(0xFF787774),
                             ),
                           ),
                         Text(
@@ -74,16 +74,16 @@ class RabbitActionSheet extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                            color: isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3),
                           ),
                         ),
                         if (earNum.isNotEmpty)
                           Text(
                             earNum,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF787774),
+                              color: appColor(0xFF787774),
                             ),
                           ),
                       ],
@@ -91,9 +91,9 @@ class RabbitActionSheet extends StatelessWidget {
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(4.0),
-                      child: Icon(Icons.close_rounded, size: 22, color: Color(0xFF4A3E6D)),
+                      child: Icon(Icons.close_rounded, size: 22, color: appColor(0xFF4A3E6D)),
                     ),
                   ),
                 ],
@@ -104,9 +104,9 @@ class RabbitActionSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEADBEE),
+                  color: appSurface(0xFFEADBEE),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
+                  border: Border.all(color: appSurface(0xFFD4C2E2), width: 1.0),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -130,6 +130,15 @@ class RabbitActionSheet extends StatelessWidget {
                             'Move to Active',
                             () => _moveToOpen(context),
                           ),
+                          _buildOption(
+                            'Move to Grow-Out',
+                            () => _moveToGrowOut(context),
+                          ),
+                          if (rabbit.type != RabbitType.buck)
+                            _buildOption(
+                              'Move to Resting',
+                              () => _moveToResting(context),
+                            ),
                           _buildOption(
                             'Archive',
                             () => _showArchiveModal(context),
@@ -195,7 +204,12 @@ class RabbitActionSheet extends StatelessWidget {
                               () => _showArchiveModal(context),
                             ),
                           ] else ...[
-                            // OPEN, NURSING, Active Bucks, etc.
+                            // OPEN, NURSING, GROW-OUT, Active Bucks, etc.
+                            if (rabbit.status == RabbitStatus.growout)
+                              _buildOption(
+                                'Move to Active',
+                                () => _moveToOpen(context),
+                              ),
                             if (rabbit.type != RabbitType.buck)
                               _buildOption(
                                 'Move to Resting',
@@ -226,8 +240,8 @@ class RabbitActionSheet extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (moveCtx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -236,8 +250,8 @@ class RabbitActionSheet extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEADBEE),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFEADBEE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
@@ -248,22 +262,22 @@ class RabbitActionSheet extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 2,
                         children: [
-                          const Text(
+                          Text(
                             'Move',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                               letterSpacing: -0.5,
                             ),
                           ),
                           if ((rabbit.breederPrefix ?? '').trim().isNotEmpty)
                             Text(
                               rabbit.breederPrefix!.trim(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                           Text(
@@ -271,16 +285,16 @@ class RabbitActionSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: rabbit.type == RabbitType.doe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3),
+                              color: rabbit.type == RabbitType.doe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3),
                             ),
                           ),
                           if ((rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim()).isNotEmpty)
                             Text(
                               (rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim()),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                         ],
@@ -288,9 +302,9 @@ class RabbitActionSheet extends StatelessWidget {
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pop(moveCtx),
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(4.0),
-                        child: Icon(Icons.close_rounded, size: 22, color: Color(0xFF4A3E6D)),
+                        child: Icon(Icons.close_rounded, size: 22, color: appColor(0xFF4A3E6D)),
                       ),
                     ),
                   ],
@@ -301,9 +315,9 @@ class RabbitActionSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEADBEE),
+                    color: appSurface(0xFFEADBEE),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFD4C2E2), width: 1.0),
+                    border: Border.all(color: appSurface(0xFFD4C2E2), width: 1.0),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -418,20 +432,7 @@ class RabbitActionSheet extends StatelessWidget {
       }
     }
 
-    // 3. Check Grow-Out (< 5 months old or previously growout)
-    bool isUnderFiveMonths = false;
-    if (rabbit.dateOfBirth != null) {
-      final dob = rabbit.dateOfBirth!;
-      final fiveMonthsDate = DateTime(dob.year, dob.month + 5, dob.day);
-      isUnderFiveMonths = now.isBefore(fiveMonthsDate);
-    }
-    final prefs = await SharedPreferences.getInstance();
-    final savedStatusStr = prefs.getString('pre_quarantine_status_${rabbit.id}');
-    if (isUnderFiveMonths || (rabbit.dateOfBirth == null && savedStatusStr == RabbitStatus.growout.toString())) {
-      return RabbitStatus.growout;
-    }
-
-    // 4. Default active adult status
+    // Default active adult status (Move to Active always moves out of Grow-Out/Quarantine/Resting)
     return rabbit.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
   }
 
@@ -448,14 +449,39 @@ class RabbitActionSheet extends StatelessWidget {
       messenger.showSnackBar(
         SnackBar(
           content: Text('${rabbit.name} moved to Active'),
-          backgroundColor: const Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error moving rabbit: $e'),
-          backgroundColor: const Color(0xFFE63946),
+          backgroundColor: appSurface(0xFFE63946),
+        ),
+      );
+    }
+  }
+
+  Future<void> _moveToGrowOut(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    try {
+      final db = DatabaseService();
+      await db.endQuarantine(rabbit.id, RabbitStatus.growout, null);
+      await db.cancelQuarantineTasks(rabbit.id);
+      notifyDataChanged();
+      onActionComplete();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${rabbit.name} moved to Grow-Out'),
+          backgroundColor: appSurface(0xFF7B6BA0),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error moving rabbit: $e'),
+          backgroundColor: appSurface(0xFFE63946),
         ),
       );
     }
@@ -466,27 +492,28 @@ class RabbitActionSheet extends StatelessWidget {
     Navigator.pop(context);
     try {
       final db = DatabaseService();
-      final updated = rabbit.copyWith(status: RabbitStatus.resting);
-      await db.updateRabbit(updated);
+      await db.endQuarantine(rabbit.id, RabbitStatus.resting, null);
+      await db.cancelQuarantineTasks(rabbit.id);
+      notifyDataChanged();
       onActionComplete();
       messenger.showSnackBar(
         SnackBar(
           content: Text('${rabbit.name} moved to RESTING'),
-          backgroundColor: const Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error moving rabbit: $e'),
-          backgroundColor: const Color(0xFFE63946),
+          backgroundColor: appSurface(0xFFE63946),
         ),
       );
     }
   }
 
   Widget _buildOption(String label, VoidCallback onTap, {bool isDangerous = false}) {
-    final Color textColor = isDangerous ? const Color(0xFFD94452) : const Color(0xFF463466);
+    final Color textColor = isDangerous ? appColor(0xFFD94452) : appColor(0xFF463466);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -498,9 +525,9 @@ class RabbitActionSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E0F2), width: 0.8),
+            border: Border.all(color: appSurface(0xFFE5E0F2), width: 0.8),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Text(
@@ -677,7 +704,7 @@ class RabbitActionSheet extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${rabbit.name} deleted'),
-            backgroundColor: const Color(0xFFD44C47),
+            backgroundColor: appSurface(0xFFD44C47),
           ),
         );
       }
@@ -706,9 +733,9 @@ class RabbitActionSheet extends StatelessWidget {
     await db.markOpenForBreeding(rabbit.id);
     onActionComplete();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Marked as open for breeding'),
-        backgroundColor: Color(0xFF7B6BA0),
+        backgroundColor: appSurface(0xFF7B6BA0),
       ),
     );
   }
@@ -718,9 +745,9 @@ class RabbitActionSheet extends StatelessWidget {
     await db.promoteToBreeder(rabbit.id);
     onActionComplete();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Promoted to breeder'),
-        backgroundColor: Color(0xFF7B6BA0),
+        backgroundColor: appSurface(0xFF7B6BA0),
       ),
     );
   }
@@ -739,14 +766,14 @@ class RabbitActionSheet extends StatelessWidget {
           content: Text(
             newStatus == RabbitStatus.active ? '${rabbit.name} marked as ACTIVE' : '${rabbit.name} marked as INACTIVE',
           ),
-          backgroundColor: const Color(0xFF7B6BA0),
+          backgroundColor: appSurface(0xFF7B6BA0),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error updating status: $e'),
-          backgroundColor: const Color(0xFFE63946),
+          backgroundColor: appSurface(0xFFE63946),
         ),
       );
     }
@@ -764,24 +791,24 @@ class RabbitActionSheet extends StatelessWidget {
           children: [
             Text(
               'Are you sure you want to cancel the bred status for ${rabbit.name}?',
-              style: const TextStyle(fontSize: 14, color: Color(0xFF37352F)),
+              style: TextStyle(fontSize: 14, color: appColor(0xFF37352F)),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E6),
+                color: appSurface(0xFFFFF8E6),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                border: Border.all(color: appSurface(0xFF8B5CF6).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Color(0xFF8B5CF6), size: 20),
+                  Icon(Icons.warning_amber_rounded, color: appColor(0xFF8B5CF6), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This will also delete all related tasks (palpation, nest box, kindle, wean)',
-                      style: TextStyle(fontSize: 12, color: const Color(0xFF8B5CF6).withOpacity(0.9)),
+                      style: TextStyle(fontSize: 12, color: appColor(0xFF8B5CF6).withOpacity(0.9)),
                     ),
                   ),
                 ],
@@ -792,7 +819,7 @@ class RabbitActionSheet extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Keep Status', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Keep Status', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -807,20 +834,20 @@ class RabbitActionSheet extends StatelessWidget {
                 ScaffoldMessenger.of(actionSheetContext).showSnackBar(
                   SnackBar(
                     content: Text('Bred status cancelled for ${rabbit.name}'),
-                    backgroundColor: const Color(0xFF7B6BA0),
+                    backgroundColor: appSurface(0xFF7B6BA0),
                   ),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(actionSheetContext).showSnackBar(
                   SnackBar(
                     content: Text('Error: $e'),
-                    backgroundColor: const Color(0xFFE63946),
+                    backgroundColor: appSurface(0xFFE63946),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
+              backgroundColor: appSurface(0xFFD44C47),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Cancel Pregnancy', style: TextStyle(color: Colors.white)),

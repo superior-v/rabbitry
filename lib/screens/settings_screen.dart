@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../services/settings_service.dart'; // ✅ ADD THIS
+import '../services/appearance_service.dart';
 import '../services/database_service.dart'; // ✅ ADD THIS for scheduled tasks
 import '../services/format_utils.dart';
 import '../models/breed.dart';
@@ -56,6 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   bool financeSales = true;
 
   // Pedigree display toggles
+  bool pedigreeShowPhoto = true;
   bool pedigreeShowGenotype = true;
   bool pedigreeShowOwnerName = true;
   bool pedigreeShowAddress = true;
@@ -180,19 +182,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   };
 
   // Color Palette Constants
-  static const Color kLilac = Color(0xFFC3B1E1);
-  static const Color kLilacLight = Color(0xFFE8DFFA);
-  static const Color kLilacWash = Color(0xFFF5F1FC);
-  static const Color kLilacDeep = Color(0xFF7B6BA0);
-  static const Color kLilacText = Color(0xFF5A4880);
-  static const Color kNeutral900 = Color(0xFF2C2C2E);
-  static const Color kNeutral600 = Color(0xFF8E8E93);
-  static const Color kNeutral500 = Color(0xFFAEAEB2);
-  static const Color kNeutral400 = Color(0xFFC7C7CC);
-  static const Color kNeutral300 = Color(0xFFE5E5EA);
-  static const Color kNeutral200 = Color(0xFFF2F2F7);
-  static const Color kNeutral100 = Color(0xFFF8F8FA);
-  static const Color kNeutral50 = Color(0xFFFAFAFA);
+  static Color get kLilac => appSurface(0xFFC3B1E1);
+  static Color get kLilacLight => appSurface(0xFFE8DFFA);
+  static Color get kLilacWash => appSurface(0xFFF5F1FC);
+  static Color get kLilacDeep => appColor(0xFF7B6BA0);
+  static Color get kLilacText => appColor(0xFF5A4880);
+  static Color get kNeutral900 => appColor(0xFF2C2C2E);
+  static Color get kNeutral600 => appColor(0xFF8E8E93);
+  static Color get kNeutral500 => appSurface(0xFFAEAEB2);
+  static Color get kNeutral400 => appColor(0xFFC7C7CC);
+  static Color get kNeutral300 => appSurface(0xFFE5E5EA);
+  static Color get kNeutral200 => appSurface(0xFFF2F2F7);
+  static Color get kNeutral100 => appSurface(0xFFF8F8FA);
+  static Color get kNeutral50 => appSurface(0xFFFAFAFA);
 
   @override
   void initState() {
@@ -297,6 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         _farmSocialLinkController.text = _settings.farmSocialLink;
 
         // Pedigree Display Toggles
+        pedigreeShowPhoto = _settings.pedigreeShowPhoto;
         pedigreeShowGenotype = _settings.pedigreeShowGenotype;
         pedigreeShowOwnerName = _settings.pedigreeShowOwnerName;
         pedigreeShowAddress = _settings.pedigreeShowAddress;
@@ -455,6 +458,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _settings.setFarmSocialLink(_farmSocialLinkController.text.trim());
 
       // Pedigree Display Toggles
+      await _settings.setPedigreeShowPhoto(pedigreeShowPhoto);
       await _settings.setPedigreeShowGenotype(pedigreeShowGenotype);
       await _settings.setPedigreeShowOwnerName(pedigreeShowOwnerName);
       await _settings.setPedigreeShowAddress(pedigreeShowAddress);
@@ -565,7 +569,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to pick image: $e'),
-          backgroundColor: const Color(0xFFD44C47),
+          backgroundColor: appSurface(0xFFD44C47),
         ),
       );
     }
@@ -576,8 +580,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -622,7 +626,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   Navigator.pop(context);
                   setState(() => _logoPath = null);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('Logo removed. Remember to tap Save!'),
                       backgroundColor: kLilacDeep,
                     ),
@@ -651,7 +655,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           children: [
             Icon(
               icon,
-              color: isDestructive ? const Color(0xFFD44C47) : const Color(0xFF787774),
+              color: isDestructive ? appColor(0xFFD44C47) : appColor(0xFF787774),
               size: 22,
             ),
             const SizedBox(width: 14),
@@ -659,7 +663,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               label,
               style: TextStyle(
                 fontSize: 15,
-                color: isDestructive ? const Color(0xFFD44C47) : Colors.black87,
+                color: isDestructive ? appColor(0xFFD44C47) : appColor(0xDD000000, 0xFFF1F3F9),
               ),
             ),
           ],
@@ -672,9 +676,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFEEDAFE),
+        backgroundColor: appSurface(0xFFEEDAFE),
         appBar: _buildHeader(),
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep),
           ),
@@ -682,7 +686,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       );
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFEEDAFE),
+      backgroundColor: appSurface(0xFFEEDAFE),
       appBar: _buildHeader(),
       body: Column(
         children: [
@@ -707,18 +711,18 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   PreferredSizeWidget _buildHeader() {
     return AppBar(
-      backgroundColor: const Color(0xFFE6BEFE),
+      backgroundColor: appSurface(0xFFE6BEFE),
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Color(0xFF4F4F56)),
+        icon: Icon(Icons.arrow_back, color: appColor(0xFF4F4F56)),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text(
+      title: Text(
         'Settings',
         style: TextStyle(
-          color: Color(0xFF4F4F56),
+          color: appColor(0xFF4F4F56),
           fontWeight: FontWeight.w700,
           fontSize: 20,
           letterSpacing: -0.3,
@@ -731,7 +735,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             child: GestureDetector(
               onTap: _isSaving ? null : _saveSettings,
               child: _isSaving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
@@ -739,7 +743,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep),
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Save',
                       style: TextStyle(
                         color: kLilacDeep,
@@ -758,9 +762,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final sections = ['MY FARM', 'TIMELINE', 'OPERATIONS', 'AUTOMATION', 'DATA', 'CONTACT US'];
     return Container(
       height: 46,
-      decoration: const BoxDecoration(
-        color: Color(0xFF8F8A90),
-        border: Border(bottom: BorderSide(color: Color(0xFF7A757C), width: 0.5)),
+      decoration: BoxDecoration(
+        color: appSurface(0xFF8F8A90),
+        border: Border(bottom: BorderSide(color: appSurface(0xFF7A757C), width: 0.5)),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -871,7 +875,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 controller: _farmZipController,
                 hintText: 'e.g. L9W 3Y4 or 90210',
               ),
-              description: 'Address details are shown in certificates and pedigrees.',
             ),
             _buildVerticalSetting(
               'Farm Email',
@@ -879,8 +882,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 controller: _farmEmailController,
                 hintText: 'e.g. contact@rabbitry.com',
                 keyboardType: TextInputType.emailAddress,
+                textCapitalization: TextCapitalization.none,
               ),
-              description: 'Shown in the certificate footer.',
             ),
             _buildVerticalSetting(
               'Farm Phone',
@@ -892,7 +895,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   PhoneNumberFormatter(countryCode: 'usd'),
                 ],
               ),
-              description: 'Formatted automatically as xxx-xxx-xxxx.',
             ),
             _buildVerticalSetting(
               'Website',
@@ -900,14 +902,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 controller: _farmWebsiteController,
                 hintText: 'e.g. www.myrabbitry.com',
                 keyboardType: TextInputType.url,
+                textCapitalization: TextCapitalization.none,
               ),
             ),
             _buildVerticalSetting(
               'FB / Instagram Link',
               _buildStandardTextField(
                 controller: _farmSocialLinkController,
-                hintText: 'e.g. fb.com/myrabbitry or @myrabbitry',
+                hintText: '',
                 keyboardType: TextInputType.url,
+                textCapitalization: TextCapitalization.none,
               ),
             ),
             _buildVerticalSetting(
@@ -916,13 +920,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 children: [
                   GestureDetector(
                     onTap: _showLogoUploadOptions,
-                    child: Container(
+                    child: DarkModeGuard(child: Container(
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1ECF7),
+                        color: appSurface(0xFFF1ECF7),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD6CEE2)),
+                        border: Border.all(color: appSurface(0xFFD6CEE2)),
                         image: _logoPath != null && File(_logoPath!).existsSync()
                             ? DecorationImage(
                                 image: FileImage(File(_logoPath!)),
@@ -931,9 +935,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             : null,
                       ),
                       child: _logoPath == null || !File(_logoPath!).existsSync()
-                          ? const Icon(PhosphorIconsBold.image, size: 26, color: Color(0xFF6E6E73))
+                          ? Icon(PhosphorIconsBold.image, size: 26, color: appColor(0xFF6E6E73))
                           : null,
-                    ),
+                    )),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -947,7 +951,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         foregroundColor: kLilacDeep,
-                        side: const BorderSide(color: kLilacDeep),
+                        side: BorderSide(color: kLilacDeep),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
@@ -968,8 +972,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               _buildStandardDropdown<String>(
                 value: weightUnit,
                 items: [
-                  const DropdownMenuItem(value: 'lbs', child: Text('Pounds (lbs)', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  const DropdownMenuItem(value: 'kg', child: Text('Kilograms (kg)', style: TextStyle(color: Color(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'lbs', child: Text('Pounds (lbs)', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'kg', child: Text('Kilograms (kg)', style: TextStyle(color: appColor(0xFF4F4F56)))),
                 ],
                 onChanged: (value) async {
                   if (value != null && value != weightUnit) {
@@ -993,14 +997,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Currency',
               _buildStandardDropdown<String>(
                 value: currency,
-                items: const [
-                  DropdownMenuItem(value: 'usd', child: Text('\$ - USD', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'cad', child: Text('C\$ - CAD', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'eur', child: Text('€ - EUR', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'gbp', child: Text('£ - GBP', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'inr', child: Text('₹ - INR', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'aud', child: Text('A\$ - AUD', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'cny', child: Text('¥ - CNY', style: TextStyle(color: Color(0xFF4F4F56)))),
+                items: [
+                  DropdownMenuItem(value: 'usd', child: Text('\$ - USD', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'cad', child: Text('C\$ - CAD', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'eur', child: Text('€ - EUR', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'gbp', child: Text('£ - GBP', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'inr', child: Text('₹ - INR', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'aud', child: Text('A\$ - AUD', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'cny', child: Text('¥ - CNY', style: TextStyle(color: appColor(0xFF4F4F56)))),
                 ],
                 onChanged: (value) async {
                   if (value != null && value != currency) {
@@ -1030,10 +1034,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         : (dateFormat == 'MM/dd/yyyy'
                             ? 'MM-dd-yyyy'
                             : (dateFormat == 'dd/MM/yyyy' ? 'dd-MM-yyyy' : 'MMM dd, yyyy'))),
-                items: const [
-                  DropdownMenuItem(value: 'MMM dd, yyyy', child: Text('Jan 24, 2026 (Default)', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'MM-dd-yyyy', child: Text('MM-DD-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'dd-MM-yyyy', child: Text('DD-MM-YYYY', style: TextStyle(color: Color(0xFF4F4F56)))),
+                items: [
+                  DropdownMenuItem(value: 'MMM dd, yyyy', child: Text('Jan 24, 2026 (Default)', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'MM-dd-yyyy', child: Text('MM-DD-YYYY', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'dd-MM-yyyy', child: Text('DD-MM-YYYY', style: TextStyle(color: appColor(0xFF4F4F56)))),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -1047,9 +1051,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'Sort Doe/Buck',
               _buildStandardDropdown<String>(
                 value: sortDoeBuck,
-                items: const [
-                  DropdownMenuItem(value: 'Ear Number', child: Text('Ear Number', style: TextStyle(color: Color(0xFF4F4F56)))),
-                  DropdownMenuItem(value: 'Bunny Name', child: Text('Bunny Name', style: TextStyle(color: Color(0xFF4F4F56)))),
+                items: [
+                  DropdownMenuItem(value: 'Ear Number', child: Text('Ear Number', style: TextStyle(color: appColor(0xFF4F4F56)))),
+                  DropdownMenuItem(value: 'Bunny Name', child: Text('Bunny Name', style: TextStyle(color: appColor(0xFF4F4F56)))),
                 ],
                 onChanged: (value) async {
                   if (value != null) {
@@ -1058,6 +1062,29 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   }
                 },
               ),
+            ),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: AppearanceService.instance.mode,
+              builder: (context, current, _) {
+                return _buildVerticalSetting(
+                  'Appearance Theme',
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                        ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                        ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                      ],
+                      selected: {current},
+                      onSelectionChanged: (s) =>
+                          AppearanceService.instance.setMode(s.first),
+                    ),
+                  ),
+                  description: 'Light: always light • Dark: always dark • System: follows phone setting.',
+                );
+              },
             ),
           ],
         ),
@@ -1083,6 +1110,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           'Pedigree Details',
           PhosphorIconsDuotone.treeStructure,
           [
+            _buildSwitchRow(
+              'Photo',
+              'Show the rabbit\'s photo on generated pedigrees.',
+              pedigreeShowPhoto,
+              (val) {
+                setState(() => pedigreeShowPhoto = val);
+                _settings.setPedigreeShowPhoto(val);
+              },
+            ),
             _buildSwitchRow(
               'Genotype',
               'Show the rabbit\'s genotype on generated pedigrees.',
@@ -1185,23 +1221,25 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     TextInputType? keyboardType,
     int maxLines = 1,
     List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
       maxLines: maxLines,
-      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF9E9EA7), fontWeight: FontWeight.w500),
+        hintStyle: TextStyle(color: appColor(0xFF9E9EA7), fontWeight: FontWeight.w500),
         filled: true,
-        fillColor: const Color(0xFFF1ECF7),
+        fillColor: appSurface(0xFFF1ECF7),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD6CEE2))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD6CEE2))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kLilacDeep, width: 1.5)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: appSurface(0xFFD6CEE2))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: appSurface(0xFFD6CEE2))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kLilacDeep, width: 1.5)),
       ),
     );
   }
@@ -1210,9 +1248,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1ECF7),
+        color: appSurface(0xFFF1ECF7),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFD6CEE2)),
+        border: Border.all(color: appSurface(0xFFD6CEE2)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
@@ -1220,9 +1258,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           items: items,
           onChanged: onChanged,
           isDense: true,
-          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
-          icon: const Icon(PhosphorIconsBold.caretDown, size: 14, color: Color(0xFF6E6E73)),
-          dropdownColor: Colors.white,
+          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
+          icon: Icon(PhosphorIconsBold.caretDown, size: 14, color: appColor(0xFF6E6E73)),
+          dropdownColor: kAppCardWhite,
           borderRadius: BorderRadius.circular(10),
         ),
       ),
@@ -1244,7 +1282,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           padding: const EdgeInsets.only(bottom: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Breeding Timeline',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900, letterSpacing: -0.4),
@@ -1259,7 +1297,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             border: Border.all(color: kLilacLight),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
@@ -1423,7 +1461,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onTap: _cleanUpTasks,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(PhosphorIconsBold.broom, size: 12, color: kLilacDeep),
                     SizedBox(width: 4),
                     Text('Clean Up', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kLilacDeep)),
@@ -1442,7 +1480,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onTap: _cleanUpTasks,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(PhosphorIconsBold.broom, size: 12, color: kLilacDeep),
                     SizedBox(width: 4),
                     Text('Clean Up', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kLilacDeep)),
@@ -1498,7 +1536,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           'About Rabbitry Manager',
           PhosphorIconsDuotone.info,
           [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               child: Text(
                 'Version 2.4.0 (Build 82)\nPremium Edition\n\n© 2026 Rabbitry Intelligence Systems.',
@@ -1521,7 +1559,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           [
             _buildSettingRow(
               'Support Email',
-              const Text(
+              Text(
                 'support@rabbitry.app',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kLilacDeep),
               ),
@@ -1555,7 +1593,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       if (allRabbits.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No rabbit data to export'), backgroundColor: Color(0xFFD44C47)),
+            SnackBar(content: Text('No rabbit data to export'), backgroundColor: appSurface(0xFFD44C47)),
           );
         }
         return;
@@ -1614,7 +1652,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     Share.shareXFiles([XFile(file.path)]);
                   },
-                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                  child: Text('SHARE', style: TextStyle(color: appColor(0xFFE6BEFE), fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1631,7 +1669,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -1644,7 +1682,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       if (contacts.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No contact data to export'), backgroundColor: Color(0xFFD44C47)),
+            SnackBar(content: Text('No contact data to export'), backgroundColor: appSurface(0xFFD44C47)),
           );
         }
         return;
@@ -1699,7 +1737,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     Share.shareXFiles([XFile(file.path)]);
                   },
-                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                  child: Text('SHARE', style: TextStyle(color: appColor(0xFFE6BEFE), fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1716,7 +1754,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -1729,7 +1767,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       if (transactions.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No ledger data to export'), backgroundColor: Color(0xFFD44C47)),
+            SnackBar(content: Text('No ledger data to export'), backgroundColor: appSurface(0xFFD44C47)),
           );
         }
         return;
@@ -1781,7 +1819,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     Share.shareXFiles([XFile(file.path)]);
                   },
-                  child: const Text('SHARE', style: TextStyle(color: Color(0xFFE6BEFE), fontWeight: FontWeight.bold)),
+                  child: Text('SHARE', style: TextStyle(color: appColor(0xFFE6BEFE), fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1798,7 +1836,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -1848,7 +1886,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
         ),
         child: Row(
@@ -1916,7 +1954,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(color: kNeutral100, border: Border.all(color: kNeutral200), borderRadius: BorderRadius.circular(12)),
-                  child: Text(digestTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
+                  child: Text(digestTime, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kNeutral900)),
                 ),
               ),
               description: 'When to send task summary.',
@@ -2014,7 +2052,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kLilacLight),
         ),
@@ -2023,8 +2061,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           children: [
             Icon(icon, size: 14, color: kLilacDeep),
             const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kNeutral900)),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kNeutral600)),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kNeutral900)),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kNeutral600)),
           ],
         ),
       ),
@@ -2034,8 +2072,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildContactControls() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         border: Border(bottom: BorderSide(color: kNeutral200)),
       ),
       child: Column(
@@ -2073,7 +2111,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onTap: () => _showAddEditContactDialog(),
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(color: Color(0xFFE6BEFE), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: appSurface(0xFFE6BEFE), shape: BoxShape.circle),
                   child: Icon(PhosphorIconsBold.plus, size: 18, color: kLilacText),
                 ),
               ),
@@ -2092,7 +2130,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? kLilacDeep : Colors.white,
+          color: active ? kLilacDeep : kAppCardWhite,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? kLilacDeep : kNeutral300),
         ),
@@ -2124,7 +2162,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           children: [
             Icon(PhosphorIconsDuotone.addressBook, size: 64, color: kLilacDeep.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('No contacts found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kNeutral600)),
+            Text('No contacts found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kNeutral600)),
           ],
         ),
       );
@@ -2147,12 +2185,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final id = contact['id'].toString();
     final initials = contact['name'].toString().isNotEmpty ? contact['name'].toString().substring(0, 1).toUpperCase() : '?';
     final type = contact['type'] ?? 'Buyer';
-    final typeColor = type == 'Breeder' ? const Color(0xFF7B6BA0) : const Color(0xFF10B981);
+    final typeColor = type == 'Breeder' ? appColor(0xFF7B6BA0) : appColor(0xFF10B981);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -2181,7 +2219,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(contact['name'], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kNeutral900)),
+                        Text(contact['name'], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kNeutral900)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -2192,9 +2230,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             ),
                             if (contact['phone'] != null && contact['phone'].isNotEmpty) ...[
                               const SizedBox(width: 8),
-                              const Icon(PhosphorIconsBold.phone, size: 10, color: kNeutral500),
+                              Icon(PhosphorIconsBold.phone, size: 10, color: kNeutral500),
                               const SizedBox(width: 4),
-                              Text(contact['phone'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: kNeutral600)),
+                              Text(contact['phone'], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: kNeutral600)),
                             ],
                           ],
                         ),
@@ -2210,7 +2248,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           if (expanded)
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: kNeutral50,
                 border: Border(top: BorderSide(color: kNeutral200)),
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
@@ -2231,7 +2269,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           label: const Text('Edit'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: kLilacDeep,
-                            side: const BorderSide(color: kLilacDeep),
+                            side: BorderSide(color: kLilacDeep),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
@@ -2320,8 +2358,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -2338,7 +2376,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(isEdit ? 'Edit Contact' : 'Add Contact', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900)),
+                    Text(isEdit ? 'Edit Contact' : 'Add Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900)),
                     IconButton(onPressed: () => Navigator.pop(context), icon: Icon(PhosphorIconsBold.x, size: 20)),
                   ],
                 ),
@@ -2351,7 +2389,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     children: [
                       _buildDialogField('Full Name *', nameController, PhosphorIconsBold.user),
                       const SizedBox(height: 16),
-                      const Text('Contact Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral600)),
+                      Text('Contact Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral600)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -2420,7 +2458,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE6BEFE),
+                            backgroundColor: appSurface(0xFFE6BEFE),
                             foregroundColor: kLilacText,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
@@ -2445,7 +2483,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: active ? kLilacDeep : Colors.white,
+          color: active ? kLilacDeep : kAppCardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: active ? kLilacDeep : kNeutral300),
         ),
@@ -2462,7 +2500,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral600)),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kNeutral600)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -2490,7 +2528,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kLilacLight),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
@@ -2506,7 +2544,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kNeutral50,
               border: Border(bottom: BorderSide(color: kNeutral200)),
               borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
@@ -2517,10 +2555,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 const SizedBox(width: 7),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -2536,7 +2574,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildSettingRow(String label, Widget trailing, {String? description}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
@@ -2549,19 +2587,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
                 if (description != null) ...[
                   const SizedBox(height: 1),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF6E6E73),
+                      color: appColor(0xFF6E6E73),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2579,7 +2617,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildSwitchRow(String label, String? description, bool value, Function(bool) onChanged) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Row(
@@ -2590,19 +2628,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
                 if (description != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF6E6E73),
+                      color: appColor(0xFF6E6E73),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2624,7 +2662,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildVerticalSetting(String label, Widget child, {String? description}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kNeutral100)),
       ),
       child: Column(
@@ -2632,10 +2670,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF4F4F56),
+              color: appColor(0xFF4F4F56),
             ),
           ),
           const SizedBox(height: 6),
@@ -2644,9 +2682,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             const SizedBox(height: 4),
             Text(
               description,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
-                color: Color(0xFF6E6E73),
+                color: appColor(0xFF6E6E73),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -2676,7 +2714,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        border: isLast ? null : Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: isLast ? null : Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2685,7 +2723,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             width: 10,
             height: 10,
             margin: const EdgeInsets.only(top: 3),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kLilacDeep,
               shape: BoxShape.circle,
             ),
@@ -2700,19 +2738,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                        color: appColor(0xFF1E293B),
                       ),
                     ),
                     if (dayLabel != null && !hasToggle)
                       Text(
                         dayLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
+                          color: appColor(0xFF64748B),
                         ),
                       )
                     else if (hasToggle && toggleValue != null && onToggle != null)
@@ -2728,13 +2766,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   ],
                 ),
                 if (title == 'Breeding')
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 1),
                     child: Text(
                       'The start of the cycle. Always enabled.',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF64748B),
+                        color: appColor(0xFF64748B),
                       ),
                     ),
                   ),
@@ -2752,7 +2790,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Schedule Day',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -2774,13 +2812,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       height: 28,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: kAppCardWhite,
                                         border: Border.all(color: kNeutral200),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         dayValue?.toString() ?? '0',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: kNeutral900,
@@ -2791,7 +2829,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     const SizedBox(width: 6),
                                     Text(
                                       dayUnit,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         color: kNeutral600,
                                       ),
@@ -2806,7 +2844,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Auto-create Task',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -2833,7 +2871,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             children: [
                               Text(
                                 extraToggle['label'],
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: kNeutral900,
@@ -2860,7 +2898,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'ON COMPLETION',
                         style: TextStyle(
                           fontSize: 9.5,
@@ -2877,13 +2915,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: kAppCardWhite,
                                     border: Border.all(color: kNeutral200),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     action['tag']!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: kNeutral900,
@@ -2891,12 +2929,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                const Icon(Icons.arrow_forward, size: 12, color: kNeutral400),
+                                Icon(Icons.arrow_forward, size: 12, color: kNeutral400),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     action['desc']!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11.5,
                                       color: kNeutral600,
                                     ),
@@ -2920,7 +2958,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: kNeutral50,
       ),
       child: Row(
@@ -2928,10 +2966,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6E6E73),
+              color: appColor(0xFF6E6E73),
               letterSpacing: 0.8,
             ),
           ),
@@ -2946,12 +2984,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(PhosphorIconsBold.plusCircle, size: 15, color: kLilacDeep),
             SizedBox(width: 6),
             Text(
@@ -2974,31 +3012,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       onTap: handleTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
-          color: Colors.white,
+          color: kAppCardWhite,
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                 ),
               ),
             ),
             if (onEdit != null)
               IconButton(
-                icon: const Icon(PhosphorIconsBold.pencilSimple, size: 15, color: Color(0xFF8E8E93)),
+                icon: Icon(PhosphorIconsBold.pencilSimple, size: 15, color: appColor(0xFF8E8E93)),
                 onPressed: onEdit,
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 constraints: const BoxConstraints(),
               ),
             IconButton(
-              icon: const Icon(PhosphorIconsBold.trash, size: 15, color: Color(0xFF8E8E93)),
+              icon: Icon(PhosphorIconsBold.trash, size: 15, color: appColor(0xFF8E8E93)),
               onPressed: onDelete,
               padding: const EdgeInsets.symmetric(horizontal: 6),
               constraints: const BoxConstraints(),
@@ -3013,7 +3051,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -3026,7 +3064,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                 ),
                 SizedBox(height: 2),
@@ -3034,7 +3072,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
               ],
@@ -3042,9 +3080,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           ),
           Row(
             children: [
-              Icon(Icons.edit_outlined, size: 18, color: Color(0xFF94A3B8)),
+              Icon(Icons.edit_outlined, size: 18, color: appColor(0xFF94A3B8)),
               SizedBox(width: 12),
-              Icon(Icons.delete_outline, size: 18, color: Color(0xFF94A3B8)),
+              Icon(Icons.delete_outline, size: 18, color: appColor(0xFF94A3B8)),
             ],
           ),
         ],
@@ -3087,7 +3125,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       onTap: () => _showScheduleDetails(schedule),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
         ),
         child: Row(
@@ -3103,19 +3141,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(schedule['task'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56))),
+                  Text(schedule['task'], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: appColor(0xFF4F4F56))),
                   Row(
                     children: [
-                      Text(schedule['frequency'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                      Text(schedule['frequency'], style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: appColor(0xFF6E6E73))),
                       if (entityLabel.isNotEmpty) ...[
                         const SizedBox(width: 4),
-                        const Text('•', style: TextStyle(fontSize: 11, color: Color(0xFF8E8E93))),
+                        Text('•', style: TextStyle(fontSize: 11, color: appColor(0xFF8E8E93))),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             entityLabel,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: appColor(0xFF7B6BA0)),
                           ),
                         ),
                       ],
@@ -3124,7 +3162,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ],
               ),
             ),
-            const Icon(PhosphorIconsBold.caretRight, size: 13, color: Color(0xFF8E8E93)),
+            Icon(PhosphorIconsBold.caretRight, size: 13, color: appColor(0xFF8E8E93)),
           ],
         ),
       ),
@@ -3136,7 +3174,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     String entityName = task['rabbitName'] ?? task['litterName'] ?? '';
     String category = task['category'] ?? 'Pipeline';
     String dueDateDisplay = '';
-    Color dueDateColor = const Color(0xFF6E6E73);
+    Color dueDateColor = appColor(0xFF6E6E73);
     IconData taskIcon = PhosphorIconsDuotone.gitBranch;
 
     if (task['dueDate'] != null) {
@@ -3155,7 +3193,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           dueDateColor = Colors.red;
         } else {
           dueDateDisplay = 'In $diff day${diff == 1 ? '' : 's'}';
-          dueDateColor = const Color(0xFF6E6E73);
+          dueDateColor = appColor(0xFF6E6E73);
         }
       } catch (_) {
         dueDateDisplay = task['dueDate'];
@@ -3187,7 +3225,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       onTap: () => _showPipelineTaskDetails(task),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral100)),
         ),
         child: Row(
@@ -3195,7 +3233,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Container(
               width: 26,
               height: 26,
-              decoration: const BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: kLilacWash, shape: BoxShape.circle),
               child: Icon(taskIcon, size: 13, color: kLilacDeep),
             ),
             const SizedBox(width: 8),
@@ -3209,14 +3247,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         child: Text(
                           taskName,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4F4F56)),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: appColor(0xFF4F4F56)),
                         ),
                       ),
                       const SizedBox(width: 5),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(color: kLilacWash, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('PIPELINE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: kLilacDeep)),
+                        child: Text('PIPELINE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: kLilacDeep)),
                       ),
                     ],
                   ),
@@ -3225,9 +3263,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     Row(
                       children: [
                         if (entityName.isNotEmpty) ...[
-                          const Icon(PhosphorIconsRegular.rabbit, size: 11, color: Color(0xFF8E8E93)),
+                          Icon(PhosphorIconsRegular.rabbit, size: 11, color: appColor(0xFF8E8E93)),
                           const SizedBox(width: 3),
-                          Text(entityName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF6E6E73))),
+                          Text(entityName, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: appColor(0xFF6E6E73))),
                           const SizedBox(width: 6),
                         ],
                         if (dueDateDisplay.isNotEmpty) ...[
@@ -3244,11 +3282,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(color: kNeutral100, borderRadius: BorderRadius.circular(4)),
-              child: Text(category.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF6E6E73))),
+              child: Text(category.toUpperCase(), style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: appColor(0xFF6E6E73))),
             ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(PhosphorIconsBold.trash, size: 14, color: Color(0xFF94A3B8)),
+              icon: Icon(PhosphorIconsBold.trash, size: 14, color: appColor(0xFF94A3B8)),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               tooltip: 'Remove task',
@@ -3264,7 +3302,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -3277,7 +3315,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                 ),
                 SizedBox(height: 4),
@@ -3285,7 +3323,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
               ],
@@ -3297,7 +3335,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 icon: Icon(
                   PhosphorIconsRegular.pencilSimple,
                   size: 20,
-                  color: Color(0xFF94A3B8),
+                  color: appColor(0xFF94A3B8),
                 ),
                 onPressed: onEdit, // ⬅️ Now actually edits
                 padding: EdgeInsets.zero,
@@ -3308,7 +3346,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 icon: Icon(
                   PhosphorIconsRegular.trash,
                   size: 20,
-                  color: Color(0xFF94A3B8),
+                  color: appColor(0xFF94A3B8),
                 ),
                 onPressed: onDelete, // ⬅️ Now actually deletes
                 padding: EdgeInsets.zero,
@@ -3327,14 +3365,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               PhosphorIconsBold.plus,
-              color: Color(0xFF7B6BA0),
+              color: appColor(0xFF7B6BA0),
               size: 16,
             ),
             SizedBox(width: 8),
@@ -3343,7 +3381,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF7B6BA0),
+                color: appColor(0xFF7B6BA0),
               ),
             ),
           ],
@@ -3356,7 +3394,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3367,7 +3405,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
+                color: appColor(0xFF1E293B),
               ),
             ),
             if (description != null) ...[
@@ -3376,7 +3414,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 description,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                  color: appColor(0xFF64748B),
                 ),
               ),
             ],
@@ -3387,7 +3425,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
+                color: appColor(0xFF1E293B),
               ),
             ),
             SizedBox(height: 4),
@@ -3408,9 +3446,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       width: 18,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: isChecked ? Color(0xFF7B6BA0) : Colors.transparent,
+                        color: isChecked ? appSurface(0xFF7B6BA0) : Colors.transparent,
                         border: Border.all(
-                          color: isChecked ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0),
+                          color: isChecked ? appSurface(0xFF7B6BA0) : appSurface(0xFFE2E8F0),
                           width: 2,
                         ),
                         borderRadius: BorderRadius.circular(4),
@@ -3422,7 +3460,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       item['label']!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF1E293B),
+                        color: appColor(0xFF1E293B),
                       ),
                     ),
                   ],
@@ -3439,7 +3477,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3453,7 +3491,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                 ),
                 SizedBox(height: 2),
@@ -3461,7 +3499,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   description,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
               ],
@@ -3480,11 +3518,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(color: appSurface(0xFFE2E8F0)),
                     ),
                   ),
                 ),
@@ -3492,7 +3530,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               SizedBox(width: 8),
               Text(
                 unit,
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: appColor(0xFF64748B)),
               ),
             ],
           ),
@@ -3504,8 +3542,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildHealthIssueItemWithInput(String name, String treatment) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3516,31 +3554,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   PhosphorIconsRegular.trash,
                   size: 15,
-                  color: Color(0xFF94A3B8),
+                  color: appColor(0xFF94A3B8),
                 ),
                 onPressed: () {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: Colors.white,
+                      backgroundColor: kAppCardWhite,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       title: const Text('Remove Issue'),
                       content: Text('Remove "$name" from the registry?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+                          child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -3551,7 +3589,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             });
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD44C47),
+                            backgroundColor: appSurface(0xFFD44C47),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           child: const Text('Remove', style: TextStyle(color: Colors.white)),
@@ -3569,14 +3607,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             const SizedBox(height: 2),
             Row(
               children: [
-                const Icon(PhosphorIconsRegular.firstAid, size: 12, color: Color(0xFF94A3B8)),
+                Icon(PhosphorIconsRegular.firstAid, size: 12, color: appColor(0xFF94A3B8)),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     treatment,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF6E6E73),
+                      color: appColor(0xFF6E6E73),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -3593,8 +3631,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final genotypeController = TextEditingController(text: breed.genetics.join(', '));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3604,17 +3642,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             children: [
               Text(
                 breed.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                 ),
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   PhosphorIconsRegular.trash,
                   size: 15,
-                  color: Color(0xFF94A3B8),
+                  color: appColor(0xFF94A3B8),
                 ),
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
@@ -3640,7 +3678,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('${breed.name} removed'),
-                          backgroundColor: const Color(0xFF7B6BA0),
+                          backgroundColor: appSurface(0xFF7B6BA0),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -3655,11 +3693,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           const SizedBox(height: 4),
           Row(
             children: [
-              const Text(
+              Text(
                 'Genotype Template:',
                 style: TextStyle(
                   fontSize: 11.5,
-                  color: Color(0xFF6E6E73),
+                  color: appColor(0xFF6E6E73),
                 ),
               ),
               const SizedBox(width: 6),
@@ -3668,15 +3706,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   height: 28,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1ECF7),
-                    border: Border.all(color: const Color(0xFFD6CEE2)),
+                    color: appSurface(0xFFF1ECF7),
+                    border: Border.all(color: appSurface(0xFFD6CEE2)),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: TextField(
                     controller: genotypeController,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF4F4F56),
+                      color: appColor(0xFF4F4F56),
                       fontFamily: 'monospace',
                     ),
                     decoration: const InputDecoration(
@@ -3700,7 +3738,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Genotype updated for ${breed.name}'),
-                            backgroundColor: const Color(0xFF7B6BA0),
+                            backgroundColor: appSurface(0xFF7B6BA0),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -3720,7 +3758,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -3733,7 +3771,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1E293B),
+                    color: appColor(0xFF1E293B),
                   ),
                 ),
                 SizedBox(height: 2),
@@ -3741,13 +3779,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   'Default Treatment: $treatment',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
               ],
             ),
           ),
-          Icon(Icons.delete_outline, size: 18, color: Color(0xFF94A3B8)),
+          Icon(Icons.delete_outline, size: 18, color: appColor(0xFF94A3B8)),
         ],
       ),
     );
@@ -3759,7 +3797,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$label - Coming soon'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3767,7 +3805,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+          border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -3792,7 +3830,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Color(0xFFEF4444)),
+        border: Border.all(color: appSurface(0xFFEF4444)),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
       ),
       child: Row(
@@ -3807,7 +3845,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFEF4444),
+                    color: appColor(0xFFEF4444),
                   ),
                 ),
                 SizedBox(height: 2),
@@ -3815,7 +3853,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   'Permanently delete all data',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF64748B),
+                    color: appColor(0xFF64748B),
                   ),
                 ),
               ],
@@ -3842,9 +3880,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           await prefs.clear();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text('All data has been deleted. Restarting...'),
-                                backgroundColor: Color(0xFFEF4444),
+                                backgroundColor: appSurface(0xFFEF4444),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
@@ -3855,23 +3893,23 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Reset failed: $e'),
-                                backgroundColor: const Color(0xFFEF4444),
+                                backgroundColor: appSurface(0xFFEF4444),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
                           }
                         }
                       },
-                      child: Text('Reset', style: TextStyle(color: Color(0xFFEF4444))),
+                      child: Text('Reset', style: TextStyle(color: appColor(0xFFEF4444))),
                     ),
                   ],
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Color(0xFFEF4444),
-              side: BorderSide(color: Color(0xFFE2E8F0)),
+              backgroundColor: kAppCardWhite,
+              foregroundColor: appColor(0xFFEF4444),
+              side: BorderSide(color: appSurface(0xFFE2E8F0)),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -3904,7 +3942,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Task deleted'),
-        backgroundColor: Color(0xFF7B6BA0),
+        backgroundColor: appSurface(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
         duration: Duration(milliseconds: 800),
       ),
@@ -3921,7 +3959,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Task removed from directory'),
-        backgroundColor: Color(0xFF7B6BA0),
+        backgroundColor: appSurface(0xFF7B6BA0),
         behavior: SnackBarBehavior.floating,
         duration: Duration(milliseconds: 800),
       ),
@@ -3934,26 +3972,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (context) => BrightPurpleDialog(
-        headerColor: const Color(0xFFE2BFFB),
-        borderColor: const Color(0xFFE2BFFB),
+        headerColor: appSurface(0xFFE2BFFB),
+        borderColor: appSurface(0xFFE2BFFB),
         title: 'Define New $category Task',
         contentWidget: TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Enter task name',
-            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
+            hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 14),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
             ),
           ),
           autofocus: true,
@@ -3962,7 +4000,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
           ),
           const SizedBox(width: 8),
           ElevatedButton(
@@ -3983,13 +4021,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
-              foregroundColor: const Color(0xFF4A3E6D),
+              backgroundColor: appSurface(0xFFE6BEFE),
+              foregroundColor: appColor(0xFF4A3E6D),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
+            child: Text('Add', style: TextStyle(color: appColor(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),
@@ -4012,8 +4050,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
     BoxDecoration inputDeco() {
       return BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(12),
       );
     }
@@ -4088,8 +4126,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFF0ECFE) : Colors.white,
-                    border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE2E8F0)),
+                    color: isSelected ? appSurface(0xFFF0ECFE) : kAppCardWhite,
+                    border: Border.all(color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE2E8F0)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -4100,12 +4138,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         height: 16,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE2E8F0), width: 1.5),
+                          border: Border.all(color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE2E8F0), width: 1.5),
                         ),
-                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF7B6BA0), shape: BoxShape.circle))) : null,
+                        child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: BoxDecoration(color: appSurface(0xFF7B6BA0), shape: BoxShape.circle))) : null,
                       ),
                       const SizedBox(width: 8),
-                      Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
+                      Text(label, style: TextStyle(fontSize: 13, color: appColor(0xFF1E293B), fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
@@ -4113,8 +4151,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             }
 
             return Dialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
+              backgroundColor: kAppCardWhite,
+              surfaceTintColor: Colors.transparent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               insetPadding: const EdgeInsets.all(16),
               child: Container(
@@ -4130,19 +4168,19 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'New Schedule',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: appColor(0xFF1E293B)),
                           ),
                           GestureDetector(
                             onTap: () => Navigator.pop(dialogContext),
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF5F7FA),
+                              decoration: BoxDecoration(
+                                color: appSurface(0xFFF5F7FA),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                              child: Icon(Icons.close, size: 20, color: appColor(0xFF64748B)),
                             ),
                           ),
                         ],
@@ -4182,10 +4220,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF94A3B8),
+                                      color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFF94A3B8),
                                       width: isSelected ? 5.5 : 1.5,
                                     ),
-                                    color: Colors.white,
+                                    color: kAppCardWhite,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -4194,7 +4232,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                    color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                                    color: isSelected ? appColor(0xFF1E293B) : appColor(0xFF475569),
                                   ),
                                 ),
                               ],
@@ -4231,9 +4269,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: (selectedTask == '+ Custom...') ? null : selectedTask,
-                              hint: const Text('Select a task...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                              hint: Text('Select a task...', style: TextStyle(fontSize: 14, color: appColor(0xFF94A3B8))),
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                              icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF64748B)),
                               items: currentTaskOptions.map((e) => DropdownMenuItem(
                                 value: e,
                                 child: Text(
@@ -4241,7 +4279,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontStyle: e == '+ Custom...' ? FontStyle.italic : FontStyle.normal,
-                                    color: e == '+ Custom...' ? const Color(0xFF7B6BA0) : const Color(0xFF1E293B),
+                                    color: e == '+ Custom...' ? appColor(0xFF7B6BA0) : appColor(0xFF1E293B),
                                   ),
                                 ),
                               )).toList(),
@@ -4266,10 +4304,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           controller: customTaskController,
                           decoration: InputDecoration(
                             hintText: 'Enter custom task name...',
-                            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                            hintStyle: TextStyle(fontSize: 14, color: appColor(0xFF94A3B8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0))),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE2E8F0))),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0))),
                           ),
                         ),
                       ],
@@ -4285,7 +4323,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             child: DropdownButton<String>(
                               value: selectedFrequency,
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                              icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF64748B)),
                               items: [
                                 'Select date',
                                 'Daily',
@@ -4328,10 +4366,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                       : FormatUtils.formatDate(selectedCustomDate!),
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: selectedCustomDate == null ? const Color(0xFF94A3B8) : const Color(0xFF1E293B),
+                                    color: selectedCustomDate == null ? appColor(0xFF94A3B8) : appColor(0xFF1E293B),
                                   ),
                                 ),
-                                const Icon(Icons.calendar_today, size: 18, color: Color(0xFF64748B)),
+                                Icon(Icons.calendar_today, size: 18, color: appColor(0xFF64748B)),
                               ],
                             ),
                           ),
@@ -4341,7 +4379,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                       // --- Link To (Radio Chips) ---
                       _buildModalLabel(isBreeding ? 'Link to Doe (Female Only)' : 'Link To'),
-                      Text(isBreeding ? 'Select female rabbit(s) for this breeding task' : 'Choose what this task applies to', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      Text(isBreeding ? 'Select female rabbit(s) for this breeding task' : 'Choose what this task applies to', style: TextStyle(fontSize: 12, color: appColor(0xFF64748B))),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -4374,15 +4412,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   runSpacing: 6,
                                   children: [
                                     if (linkedEntities.isEmpty)
-                                      const Padding(
+                                      Padding(
                                         padding: EdgeInsets.only(top: 4, left: 4, bottom: 4),
-                                        child: Text('Select...', style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8))),
+                                        child: Text('Select...', style: TextStyle(fontSize: 14, color: appColor(0xFF94A3B8))),
                                       ),
                                     ...linkedEntities.map((e) => Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFF5F7FA),
-                                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            color: appSurface(0xFFF5F7FA),
+                                            border: Border.all(color: appSurface(0xFFE2E8F0)),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Row(
@@ -4396,7 +4434,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                                     linkedEntities.removeWhere((item) => item['id'] == e['id']);
                                                   });
                                                 },
-                                                child: const Icon(Icons.close, size: 14, color: Color(0xFF64748B)),
+                                                child: Icon(Icons.close, size: 14, color: appColor(0xFF64748B)),
                                               )
                                             ],
                                           ),
@@ -4404,7 +4442,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   ],
                                 ),
                               ),
-                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              Divider(height: 1, color: appSurface(0xFFE2E8F0)),
                               // Scrollable list of options (filtered for does if Breeding)
                               Container(
                                 height: 150,
@@ -4430,15 +4468,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                         },
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          color: isSelected ? const Color(0xFFF5F7FA) : Colors.transparent,
+                                          color: isSelected ? appSurface(0xFFF5F7FA) : Colors.transparent,
                                           child: Row(
                                             children: [
                                               Container(
                                                 width: 18,
                                                 height: 18,
                                                 decoration: BoxDecoration(
-                                                  color: isSelected ? const Color(0xFF7B6BA0) : Colors.transparent,
-                                                  border: Border.all(color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF64748B), width: 1.5),
+                                                  color: isSelected ? appSurface(0xFF7B6BA0) : Colors.transparent,
+                                                  border: Border.all(color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFF64748B), width: 1.5),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
@@ -4448,9 +4486,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                                 child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Text(entity['name']!, style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B))),
+                                                    Text(entity['name']!, style: TextStyle(fontSize: 14, color: appColor(0xFF1E293B))),
                                                     if (entity.containsKey('code') && (entity['code']?.isNotEmpty ?? false))
-                                                      Text(entity['code']!, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                                      Text(entity['code']!, style: TextStyle(fontSize: 11, color: appColor(0xFF64748B))),
                                                   ],
                                                 ),
                                               )
@@ -4478,7 +4516,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                             if (finalTaskName.isEmpty || finalTaskName == 'Unknown') {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                SnackBar(content: Text('Please select or enter a task name'), backgroundColor: appSurface(0xFFD44C47)),
                               );
                               return;
                             }
@@ -4504,21 +4542,21 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
                               Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Schedule Saved'), backgroundColor: Color(0xFF7B6BA0)),
+                                SnackBar(content: Text('Schedule Saved'), backgroundColor: appSurface(0xFF7B6BA0)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error saving schedule: $e'), backgroundColor: const Color(0xFFD44C47)),
+                                SnackBar(content: Text('Error saving schedule: $e'), backgroundColor: appSurface(0xFFD44C47)),
                               );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE6BEFE),
+                            backgroundColor: appSurface(0xFFE6BEFE),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: const Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
+                          child: Text('Save Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kLilacText)),
                         ),
                       ),
 
@@ -4528,7 +4566,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         width: double.infinity,
                         child: TextButton(
                           onPressed: () => Navigator.pop(dialogContext),
-                          child: Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+                          child: Text('Cancel', style: TextStyle(fontSize: 14, color: appColor(0xFF64748B))),
                         ),
                       ),
                     ],
@@ -4546,7 +4584,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildModalLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
+      child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: appColor(0xFF1E293B))),
     );
   }
 
@@ -4554,8 +4592,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Color(0xFFE9E9E7)),
+        color: kAppCardWhite,
+        border: Border.all(color: appSurface(0xFFE9E9E7)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
@@ -4577,9 +4615,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFFFDF3E8) : Colors.white, // Very light teal background if selected
+          color: isSelected ? appSurface(0xFFFDF3E8) : kAppCardWhite, // Very light teal background if selected
           border: Border.all(
-            color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFE2E8F0), // Teal border if selected
+            color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE2E8F0), // Teal border if selected
             width: isSelected ? 1.5 : 1.0,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -4593,13 +4631,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? Color(0xFF7B6BA0) : Color(0xFFCBD5E1), width: isSelected ? 5 : 1.5 // Thicker border simulates the "dot" inside
+                border: Border.all(color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFCBD5E1), width: isSelected ? 5 : 1.5 // Thicker border simulates the "dot" inside
                     ),
-                color: Colors.white,
+                color: kAppCardWhite,
               ),
             ),
             SizedBox(width: 10),
-            Text(label, style: TextStyle(fontSize: 14, color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(fontSize: 14, color: appColor(0xFF1E293B), fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -4616,8 +4654,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           constraints: BoxConstraints(
@@ -4632,10 +4670,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               // Header matching Consistency.jpg / Tasks Add Contact
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEADBEE), // Consistency.jpg top purple
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFEADBEE), // Consistency.jpg top purple
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
+                  border: Border(bottom: BorderSide(color: appSurface(0xFFD6CEE2), width: 1)),
                 ),
                 child: Column(
                   children: [
@@ -4645,7 +4683,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                          color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -4653,12 +4691,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Add Breed',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A3E6D),
+                            color: appColor(0xFF4A3E6D),
                             letterSpacing: -0.2,
                           ),
                         ),
@@ -4666,11 +4704,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           onTap: () => Navigator.pop(ctx),
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: kAppCardWhite,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, size: 18, color: Color(0xFF4A3E6D)),
+                            child: Icon(Icons.close, size: 18, color: appColor(0xFF4A3E6D)),
                           ),
                         ),
                       ],
@@ -4690,17 +4728,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         decoration: InputDecoration(
                           labelText: 'Breed Name',
                           hintText: 'e.g. Holland Lop',
-                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
-                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
+                          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8DFFA))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE8DFFA))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: kAppCardWhite,
                         ),
-                        style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                        style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -4708,17 +4746,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         decoration: InputDecoration(
                           labelText: 'Genotype Template',
                           hintText: 'e.g. aa B- C- D- E-',
-                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
-                          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 15, fontWeight: FontWeight.w400),
+                          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE8DFFA))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE8DFFA))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: kAppCardWhite,
                         ),
-                        style: const TextStyle(fontSize: 15, fontFamily: 'monospace', color: Color(0xFF2C2C2E)),
+                        style: TextStyle(fontSize: 15, fontFamily: 'monospace', color: appColor(0xFF2C2C2E)),
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
@@ -4745,25 +4783,25 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('${newBreed.name} added to breed library'),
-                                  backgroundColor: const Color(0xFF7B6BA0),
+                                  backgroundColor: appSurface(0xFF7B6BA0),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE6BEFE), // Consistency.jpg button
-                            foregroundColor: const Color(0xFF4A3E6D),
-                            disabledBackgroundColor: const Color(0xFFE6BEFE).withValues(alpha: 0.6),
+                            backgroundColor: appSurface(0xFFE6BEFE), // Consistency.jpg button
+                            foregroundColor: appColor(0xFF4A3E6D),
+                            disabledBackgroundColor: appSurface(0xFFE6BEFE).withValues(alpha: 0.6),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: const Text(
+                          child: Text(
                             'Add Breed',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                         ),
@@ -4797,7 +4835,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Add Health Issue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         content: Column(
@@ -4813,7 +4851,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+                  borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
                 ),
               ),
             ),
@@ -4827,7 +4865,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+                  borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
                 ),
               ),
             ),
@@ -4836,7 +4874,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -4850,10 +4888,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
+              backgroundColor: appSurface(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: kLilacText)),
+            child: Text('Add', style: TextStyle(color: kLilacText)),
           ),
         ],
       ),
@@ -4867,7 +4905,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Add Color', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         content: TextField(
@@ -4880,14 +4918,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 2),
+              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -4901,10 +4939,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
+              backgroundColor: appSurface(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add', style: TextStyle(color: kLilacText)),
+            child: Text('Add', style: TextStyle(color: kLilacText)),
           ),
         ],
       ),
@@ -4915,14 +4953,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Remove Color'),
         content: Text('Remove "$color" from the directory?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -4933,7 +4971,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               });
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD44C47),
+              backgroundColor: appSurface(0xFFD44C47),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Remove', style: TextStyle(color: Colors.white)),
@@ -4946,8 +4984,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildColorItem(String color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: appSurface(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -4955,28 +4993,28 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: const Color(0xFFF1ECF7),
+              color: appSurface(0xFFF1ECF7),
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFD6CEE2)),
+              border: Border.all(color: appSurface(0xFFD6CEE2)),
             ),
-            child: const Icon(Icons.circle, size: 10, color: Color(0xFF7B6BA0)),
+            child: Icon(Icons.circle, size: 10, color: appColor(0xFF7B6BA0)),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               color,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               PhosphorIconsRegular.trash,
               size: 15,
-              color: Color(0xFF94A3B8),
+              color: appColor(0xFF94A3B8),
             ),
             onPressed: () => _removeColorItem(color),
             padding: EdgeInsets.zero,
@@ -4999,8 +5037,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -5011,12 +5049,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Schedule Details',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: appColor(0xFF1E293B)),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                  icon: Icon(Icons.close, color: appColor(0xFF64748B)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -5026,16 +5064,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             // Task Title
             Text(
               schedule['task'],
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF7B6BA0)),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: appColor(0xFF7B6BA0)),
             ),
             const SizedBox(height: 16),
 
             // Meta Tags Row
             Row(
               children: [
-                _buildDetailBadge((schedule['category'] as String).toUpperCase(), const Color(0xFFF1F5F9), const Color(0xFF64748B)),
+                _buildDetailBadge((schedule['category'] as String).toUpperCase(), appSurface(0xFFF1F5F9), appColor(0xFF64748B)),
                 const SizedBox(width: 8),
-                _buildDetailBadge(schedule['frequency'], const Color(0xFFF1F5F9), const Color(0xFF64748B)),
+                _buildDetailBadge(schedule['frequency'], appSurface(0xFFF1F5F9), appColor(0xFF64748B)),
                 const SizedBox(width: 8),
                 // Link Type Badge
                 if (linkType != 'unlinked') _buildDetailBadge(linkType[0].toUpperCase() + linkType.substring(1), colors['bg']!, colors['text']!),
@@ -5049,16 +5087,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: appSurface(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: appSurface(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'LINKED ${linkType.toUpperCase()}S',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: appColor(0xFF94A3B8)),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
@@ -5069,16 +5107,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            color: kAppCardWhite,
+                            border: Border.all(color: appSurface(0xFFE2E8F0)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(PhosphorIconsBold.link, size: 12, color: const Color(0xFF7B6BA0)),
+                              Icon(PhosphorIconsBold.link, size: 12, color: appColor(0xFF7B6BA0)),
                               const SizedBox(width: 6),
-                              Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500)),
+                              Text(label, style: TextStyle(fontSize: 13, color: appColor(0xFF334155), fontWeight: FontWeight.w500)),
                             ],
                           ),
                         );
@@ -5103,8 +5141,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     label: const Text('Edit'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: const Color(0xFF7B6BA0),
-                      side: const BorderSide(color: Color(0xFF7B6BA0)),
+                      foregroundColor: appColor(0xFF7B6BA0),
+                      side: BorderSide(color: appSurface(0xFF7B6BA0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -5120,7 +5158,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     label: const Text('Delete'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: const Color(0xFFEF4444),
+                      backgroundColor: appSurface(0xFFEF4444),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -5150,13 +5188,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Schedule deleted'), backgroundColor: Color(0xFF7B6BA0)),
+          SnackBar(content: Text('Schedule deleted'), backgroundColor: appSurface(0xFF7B6BA0)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting schedule: $e'), backgroundColor: Color(0xFFD44C47)),
+          SnackBar(content: Text('Error deleting schedule: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -5171,13 +5209,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pipeline task removed'), backgroundColor: Color(0xFF7B6BA0)),
+          SnackBar(content: Text('Pipeline task removed'), backgroundColor: appSurface(0xFF7B6BA0)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error removing task: $e'), backgroundColor: Color(0xFFD44C47)),
+          SnackBar(content: Text('Error removing task: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -5188,7 +5226,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -5206,12 +5244,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             const SizedBox(height: 16),
             Text(
               task['task'] ?? task['name'] ?? 'Pipeline Task',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: appColor(0xFF1E293B)),
             ),
             const SizedBox(height: 4),
             Text(
               'Category: ${task['category'] ?? 'Reproduction'} • Auto-generated Pipeline',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 13, color: appColor(0xFF64748B), fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             if (entityName.isNotEmpty)
@@ -5219,11 +5257,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
-                    const Icon(PhosphorIconsBold.rabbit, size: 16, color: Color(0xFF7B6BA0)),
+                    Icon(PhosphorIconsBold.rabbit, size: 16, color: appColor(0xFF7B6BA0)),
                     const SizedBox(width: 8),
                     Text(
                       'Linked Entity: $entityName',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF334155)),
                     ),
                   ],
                 ),
@@ -5231,11 +5269,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             if (task['dueDate'] != null)
               Row(
                 children: [
-                  const Icon(PhosphorIconsBold.calendar, size: 16, color: Color(0xFF7B6BA0)),
+                  Icon(PhosphorIconsBold.calendar, size: 16, color: appColor(0xFF7B6BA0)),
                   const SizedBox(width: 8),
                   Text(
                     'Due Date: ${task['dueDate']}',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+                    style: TextStyle(fontSize: 13, color: appColor(0xFF334155)),
                   ),
                 ],
               ),
@@ -5263,7 +5301,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     label: const Text('Remove Task'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: const Color(0xFFEF4444),
+                      backgroundColor: appSurface(0xFFEF4444),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -5292,14 +5330,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Cleaned up $schedRemoved duplicate schedule(s) and $pipeRemoved stale pipeline task(s)'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cleaning up tasks: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Error cleaning up tasks: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     }
@@ -5309,30 +5347,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Map<String, Color> _getLinkColor(String type) {
     if (type == 'rabbit') {
       return {
-        'bg': const Color(0xFFFEF9C3), // Softer Yellow background
-        'text': const Color(0xFFCA8A04), // Golden/Orange text
-        'border': const Color(0xFFFEF08A), // Light yellow border
+        'bg': appSurface(0xFFFEF9C3), // Softer Yellow background
+        'text': appColor(0xFFCA8A04), // Golden/Orange text
+        'border': appSurface(0xFFFEF08A), // Light yellow border
       };
     }
     if (type == 'litter') {
       return {
-        'bg': const Color(0xFFDBEAFE), // Light Blue
-        'text': const Color(0xFF2563EB), // Blue Text
-        'border': const Color(0xFFBFDBFE), // Blue Border
+        'bg': appSurface(0xFFDBEAFE), // Light Blue
+        'text': appColor(0xFF2563EB), // Blue Text
+        'border': appSurface(0xFFBFDBFE), // Blue Border
       };
     }
     if (type == 'kit') {
       return {
-        'bg': const Color(0xFFFCE7F3), // Light Pink
-        'text': const Color(0xFFDB2777), // Pink Text
-        'border': const Color(0xFFFBCFE8), // Pink Border
+        'bg': appSurface(0xFFFCE7F3), // Light Pink
+        'text': appColor(0xFFDB2777), // Pink Text
+        'border': appSurface(0xFFFBCFE8), // Pink Border
       };
     }
     // Unlinked / Default
     return {
-      'bg': const Color(0xFFF1F5F9), // Light Slate
-      'text': const Color(0xFF64748B), // Slate Text
-      'border': const Color(0xFFE2E8F0), // Slate Border
+      'bg': appSurface(0xFFF1F5F9), // Light Slate
+      'text': appColor(0xFF64748B), // Slate Text
+      'border': appSurface(0xFFE2E8F0), // Slate Border
     };
   }
 
@@ -5351,28 +5389,27 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final nameController = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Barn / Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900)),
-        content: TextField(
+      builder: (ctx) => BrightPurpleDialog(
+        title: 'Add Barn / Location',
+        contentWidget: TextField(
           controller: nameController,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             labelText: 'Location Name',
-            hintText: 'e.g. Main Barn, Quonset Hut...',
+            hintText: 'Barn 1',
+            hintStyle: TextStyle(color: appColor(0xFFA0A0A8)),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kLilacDeep, width: 2),
+              borderSide: BorderSide(color: kLilacDeep, width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: kNeutral600, fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: TextStyle(color: kNeutral600, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -5389,10 +5426,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
+              backgroundColor: appSurface(0xFFE6BEFE),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
-            child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+            child: Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -5402,16 +5440,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _deleteLocationItem(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Location'),
-        content: const Text('Are you sure? This will remove the location entry.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (ctx) => BrightPurpleDialog(
+        title: 'Delete Location',
+        content: 'Are you sure? This will remove the location entry.',
+        cancelText: 'Cancel',
+        confirmText: 'Delete',
+        isDestructive: true,
+        onCancel: () => Navigator.pop(ctx, false),
+        onConfirm: () => Navigator.pop(ctx, true),
       ),
     );
     if (confirm == true) {
@@ -5443,26 +5479,36 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       final rowCtrl = TextEditingController();
       final name = await showDialog<String>(
         context: context,
-        builder: (dCtx) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Add Row / Section', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kNeutral900)),
-          content: TextField(
+        builder: (dCtx) => BrightPurpleDialog(
+          title: 'Add Row / Section',
+          contentWidget: TextField(
             controller: rowCtrl,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               labelText: 'Row Name',
-              hintText: 'e.g. Row A, Breeding Row...',
+              hintText: 'Row A',
+              hintStyle: TextStyle(color: appColor(0xFFA0A0A8)),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: kLilacDeep, width: 2),
+              ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: Text('Cancel', style: TextStyle(color: kNeutral600, fontWeight: FontWeight.w600)),
+            ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dCtx, rowCtrl.text.trim()),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE6BEFE)),
-              child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: appSurface(0xFFE6BEFE),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -5477,26 +5523,36 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       final cageCtrl = TextEditingController();
       final input = await showDialog<String>(
         context: context,
-        builder: (dCtx) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Add Cage Number(s)', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kNeutral900)),
-          content: TextField(
+        builder: (dCtx) => BrightPurpleDialog(
+          title: 'Add Cage Number(s)',
+          contentWidget: TextField(
             controller: cageCtrl,
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
               labelText: 'Cage Number(s)',
               hintText: 'e.g. A1 or A1, A2, A3',
+              hintStyle: TextStyle(color: appColor(0xFFA0A0A8)),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: kLilacDeep, width: 2),
+              ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: Text('Cancel', style: TextStyle(color: kNeutral600, fontWeight: FontWeight.w600)),
+            ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dCtx, cageCtrl.text.trim()),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE6BEFE)),
-              child: const Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: appSurface(0xFFE6BEFE),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: Text('Add', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -5518,7 +5574,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         return StatefulBuilder(
@@ -5536,13 +5592,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           Expanded(
                             child: Text(
                               '${barn['name']} Cages',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900),
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kNeutral900),
                             ),
                           ),
                           TextButton.icon(
                             onPressed: () => promptAddRow(setModalState),
-                            icon: const Icon(Icons.add, size: 18, color: kLilacDeep),
-                            label: const Text('Add Row', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w700)),
+                            icon: Icon(Icons.add, size: 18, color: kLilacDeep),
+                            label: Text('Add Row', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w700)),
                           ),
                         ],
                       ),
@@ -5553,7 +5609,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Column(
                               children: [
-                                const Text('No cages defined in this location.', style: TextStyle(color: kNeutral600)),
+                                Text('No cages defined in this location.', style: TextStyle(color: kNeutral600)),
                                 const SizedBox(height: 12),
                                 ElevatedButton.icon(
                                   onPressed: () async {
@@ -5561,10 +5617,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     await persistRows(setModalState);
                                     if (mounted) await promptAddCage(setModalState, 0);
                                   },
-                                  icon: const Icon(Icons.add, size: 18, color: kLilacText),
-                                  label: const Text('Add First Cage', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+                                  icon: Icon(Icons.add, size: 18, color: kLilacText),
+                                  label: Text('Add First Cage', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFE6BEFE),
+                                    backgroundColor: appSurface(0xFFE6BEFE),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
                                 ),
@@ -5587,13 +5643,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     Expanded(
                                       child: Text(
                                         row['name'] as String,
-                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kNeutral900),
+                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kNeutral900),
                                       ),
                                     ),
                                     TextButton.icon(
                                       onPressed: () => promptAddCage(setModalState, idx),
-                                      icon: const Icon(Icons.add, size: 16, color: kLilacDeep),
-                                      label: const Text('Add Cage', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w600, fontSize: 13)),
+                                      icon: Icon(Icons.add, size: 16, color: kLilacDeep),
+                                      label: Text('Add Cage', style: TextStyle(color: kLilacDeep, fontWeight: FontWeight.w600, fontSize: 13)),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
@@ -5606,7 +5662,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 ),
                                 const SizedBox(height: 4),
                                 if (cages.isEmpty)
-                                  const Text('No cages in this row yet.', style: TextStyle(fontSize: 12, color: kNeutral500))
+                                  Text('No cages in this row yet.', style: TextStyle(fontSize: 12, color: kNeutral500))
                                 else
                                   Wrap(
                                     spacing: 8,
@@ -5652,7 +5708,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       await _loadTaskDirectory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task removed from directory'), backgroundColor: kLilacDeep),
+          SnackBar(content: Text('Task removed from directory'), backgroundColor: kLilacDeep),
         );
       }
     }
@@ -5664,26 +5720,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (context) => BrightPurpleDialog(
-        headerColor: const Color(0xFFE2BFFB),
-        borderColor: const Color(0xFFE2BFFB),
+        headerColor: appSurface(0xFFE2BFFB),
+        borderColor: appSurface(0xFFE2BFFB),
         title: 'Edit $category Task',
         contentWidget: TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Enter task name',
-            hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 14),
+            hintStyle: TextStyle(color: appColor(0xFFC7C7CC), fontSize: 14),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kLilacLight),
+              borderSide: BorderSide(color: kLilacLight),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+              borderSide: BorderSide(color: appSurface(0xFF8B5CF6), width: 1.5),
             ),
           ),
           autofocus: true,
@@ -5692,7 +5748,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774), fontWeight: FontWeight.w600, fontSize: 15)),
           ),
           const SizedBox(width: 8),
           ElevatedButton(
@@ -5714,13 +5770,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE6BEFE),
-              foregroundColor: const Color(0xFF4A3E6D),
+              backgroundColor: appSurface(0xFFE6BEFE),
+              foregroundColor: appColor(0xFF4A3E6D),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Save', style: TextStyle(color: Color(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
+            child: Text('Save', style: TextStyle(color: appColor(0xFF4A3E6D), fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),
@@ -5795,7 +5851,7 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
       height: 28,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: _SettingsScreenState.kNeutral300),
         borderRadius: BorderRadius.circular(6),
       ),
@@ -5813,7 +5869,7 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
           contentPadding: EdgeInsets.symmetric(vertical: 4),
           isDense: true,
         ),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: _SettingsScreenState.kNeutral900,
@@ -5830,5 +5886,3 @@ class _PipelineDayInputFieldState extends State<_PipelineDayInputField> {
     );
   }
 }
-
-

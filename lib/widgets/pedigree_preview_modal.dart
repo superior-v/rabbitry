@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
@@ -7,6 +8,7 @@ import '../models/pedigree.dart';
 import 'pedigree_layout.dart';
 import '../constants/app_colors.dart';
 import '../services/format_utils.dart';
+import '../services/settings_service.dart';
 
 /// Bottom sheet modal to preview and export the Pedigree chart PDF
 class PedigreePreviewSheet extends StatefulWidget {
@@ -57,7 +59,7 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -76,7 +78,7 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                color: isSelected ? appColor(0xFF5C4A70) : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -91,8 +93,8 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
     final activeData = widget.data.copyWith(orientation: _orientation);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       constraints: BoxConstraints(
@@ -115,7 +117,7 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Pedigree Chart Preview',
                   style: TextStyle(
                     fontSize: 18,
@@ -137,9 +139,9 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
+                color: appSurface(0xFFF2F2F7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
@@ -181,7 +183,7 @@ class _PedigreePreviewSheetState extends State<PedigreePreviewSheet> {
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -210,7 +212,10 @@ class PedigreePreviewWidget extends StatelessWidget {
   const PedigreePreviewWidget({super.key, required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DarkModeGuard(child: _buildPreview(context));
+
+  Widget _buildPreview(BuildContext context) {
     final currentAspectRatio = data.isPortrait
         ? PedigreeLayout.portraitAspectRatio
         : PedigreeLayout.aspectRatio;
@@ -219,7 +224,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       aspectRatio: currentAspectRatio,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kNeutral300),
           boxShadow: [
@@ -246,44 +251,50 @@ class PedigreePreviewWidget extends StatelessWidget {
     );
   }
 
-  // ─── PORTRAIT PREVIEW ───────────────────────────────────────────────────────
+  // ─── PORTRAIT PREVIEW (Matches PortraitPedigree.pdf 1:1) ────────────────────
   Widget _buildPortraitPreview(BuildContext context, double W, double H) {
     final scaleW = W / PedigreeLayout.portraitPageWidthPt;
     final scaleH = H / PedigreeLayout.portraitPageHeightPt;
 
-    final hasPhoto = data.subjectPhotoPath != null &&
-        data.subjectPhotoPath!.isNotEmpty &&
-        File(data.subjectPhotoPath!).existsSync();
-
     final tree = data.tree;
 
-    // Auto-scale farm title font size
-    double farmTitleSize = 30.0 * scaleW;
-    if (data.farmName.length > 20) {
-      farmTitleSize = (farmTitleSize * 20 / data.farmName.length)
-          .clamp(18.0 * scaleW, 30.0 * scaleW);
+    double farmTitleSize = 21.0 * scaleW;
+    if (data.farmName.length > 26) {
+      farmTitleSize = (farmTitleSize * 26 / data.farmName.length)
+          .clamp(14.0 * scaleW, 21.0 * scaleW);
     }
+
+    final String breedSubtitle = data.subjectBreed.trim().isNotEmpty
+        ? '${data.subjectBreed.trim()} Pedigree'
+        : 'Pedigree';
 
     return Stack(
       children: [
-        // ─── Header ──────────────────────────────────────────
-        // Farm Title
+        // Purple header band
         Positioned(
-          left: 16.0 * scaleW,
-          top: 18.0 * scaleH,
-          width: 380.0 * scaleW,
-          height: 44.0 * scaleH,
-          child: Align(
-            alignment: Alignment.centerLeft,
+          left: 0.5 * scaleW,
+          top: 0.3 * scaleH,
+          width: 611.0 * scaleW,
+          height: 60.5 * scaleH,
+          child: Container(color: PedigreeLayout.portraitBandColor),
+        ),
+
+        // ─── Header: Farm Name (Cabinet of the Outlander, 21pt, centered) ───
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 8.0 * scaleH,
+          height: 26.0 * scaleH,
+          child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
               child: Text(
                 data.farmName,
                 style: TextStyle(
-                  fontFamily: PedigreeLayout.fontFamilyTitle,
+                  fontFamily: 'Overthink',
+                  fontFamilyFallback: const ['Shakies', PedigreeLayout.fontFamilyTitle],
                   fontSize: farmTitleSize,
-                  color: PedigreeLayout.colorHeaderTitle,
+                  color: Colors.white,
                 ),
                 maxLines: 1,
               ),
@@ -291,379 +302,455 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Farm Contact Line
+        // ─── Header: Breed Pedigree Subtitle (Myriad Pro, 18pt, centered) ───
         Positioned(
-          left: 16.0 * scaleW,
-          top: 58.0 * scaleH,
-          width: 490.0 * scaleW,
-          height: 26.0 * scaleH,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                [
-                  if (data.farmAddress.isNotEmpty) data.farmAddress,
-                  if (data.farmEmail.isNotEmpty) data.farmEmail,
-                  if (data.farmPhone.isNotEmpty) data.farmPhone,
-                ].join('  •  '),
+          left: 0,
+          right: 0,
+          top: 34.0 * scaleH,
+          height: 22.0 * scaleH,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                breedSubtitle,
                 style: TextStyle(
-                  fontFamily: PedigreeLayout.fontFamilyDetails,
-                  fontSize: 9.5 * scaleW,
-                  color: PedigreeLayout.colorHeaderContact,
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontWeight: FontWeight.w400,
+                  fontSize: 18.0 * scaleW,
+                  color: Colors.white,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-              if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
-                Text(
-                  [
-                    if (data.farmWebsite.isNotEmpty) data.farmWebsite,
-                    if (data.farmSocialLink.isNotEmpty) data.farmSocialLink,
-                  ].join('  •  '),
-                  style: TextStyle(
-                    fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontSize: 8.5 * scaleW,
-                    color: PedigreeLayout.colorHeaderContact,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+
+        // ─── Top Double Horizontal Rule ───────────────────────────────────
+        Positioned(
+          left: 4.875 * scaleW,
+          top: 60.55 * scaleH,
+          width: 602.25 * scaleW,
+          height: (0.5 * scaleH).clamp(0.5, 1.5),
+          child: Container(color: Colors.black),
+        ),
+        Positioned(
+          left: 5.875 * scaleW,
+          top: 63.44 * scaleH,
+          width: 602.25 * scaleW,
+          height: (0.5 * scaleH).clamp(0.5, 1.5),
+          child: Container(color: Colors.black),
+        ),
+
+        // ─── Subject Details: Column 1 (Name, Ear #, Reg #, Sold to) ──────
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 21.875,
+          topPt: 66.5,
+          widthPt: 195.0,
+          label: 'Name:  ',
+          value: data.subjectName,
+          semiboldValue: true,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 21.875,
+          topPt: 80.9,
+          widthPt: 195.0,
+          label: 'Ear #: ',
+          value: data.subjectEarNo,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 21.875,
+          topPt: 95.3,
+          widthPt: 195.0,
+          label: 'Reg #: ',
+          value: data.subjectRegNo,
+        ),
+        if (data.soldTo.trim().isNotEmpty)
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 28.9,
+          topPt: 530.0,
+          widthPt: 160.0,
+          label: 'Sold to: ',
+          value: data.soldTo,
+        ),
+
+        // ─── Subject Details: Column 2 (Breed, Sex, Color, Sold on) ───────
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 220.87,
+          topPt: 66.5,
+          widthPt: 195.0,
+          label: 'Breed: ',
+          value: data.subjectBreed,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 220.87,
+          topPt: 80.9,
+          widthPt: 195.0,
+          label: 'Sex:  ',
+          value: data.subjectSex,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 220.87,
+          topPt: 95.3,
+          widthPt: 195.0,
+          label: 'Color: ',
+          value: data.subjectColor,
+        ),
+        if (data.soldOn.trim().isNotEmpty)
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 28.9,
+          topPt: 544.0,
+          widthPt: 160.0,
+          label: 'Sold on: ',
+          value: data.soldOn,
+        ),
+
+        // ─── Subject Details: Column 3 (Born, Weight, Legs) ───────────────
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 420.89,
+          topPt: 66.5,
+          widthPt: 180.0,
+          label: 'Born:  ',
+          value: data.subjectDob,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 420.89,
+          topPt: 80.9,
+          widthPt: 180.0,
+          label: 'Weight:  ',
+          value: data.subjectWeight,
+        ),
+        _buildPortraitSubjectField(
+          scaleW: scaleW,
+          scaleH: scaleH,
+          leftPt: 420.89,
+          topPt: 95.3,
+          widthPt: 180.0,
+          label: 'Legs: ',
+          value: data.subjectLegs,
+        ),
+
+        // ─── Bottom Double Horizontal Rule ────────────────────────────────
+        Positioned(
+          left: 4.875 * scaleW,
+          top: 116.55 * scaleH,
+          width: 602.25 * scaleW,
+          height: (0.5 * scaleH).clamp(0.5, 1.5),
+          child: Container(color: Colors.black),
+        ),
+        Positioned(
+          left: 4.875 * scaleW,
+          top: 119.4 * scaleH,
+          width: 602.25 * scaleW,
+          height: (0.5 * scaleH).clamp(0.5, 1.5),
+          child: Container(color: Colors.black),
+        ),
+
+        // ─── Generation Column Headers ────────────────────────────────────
+        Positioned(
+          left: 20.99 * scaleW,
+          top: 125.0 * scaleH,
+          child: Text(
+            'PARENTS',
+            style: TextStyle(
+              fontFamily: 'Myriad Pro',
+              fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+              fontWeight: FontWeight.w400,
+              fontSize: 11.0 * scaleW,
+              color: const Color(0xFF262626),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 220.28 * scaleW,
+          top: 125.0 * scaleH,
+          child: Text(
+            'GRANDPARENTS',
+            style: TextStyle(
+              fontFamily: 'Myriad Pro',
+              fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+              fontWeight: FontWeight.w400,
+              fontSize: 11.0 * scaleW,
+              color: const Color(0xFF262626),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 420.05 * scaleW,
+          top: 125.0 * scaleH,
+          child: Text(
+            'GREAT-GRAND PARENTS',
+            style: TextStyle(
+              fontFamily: 'Myriad Pro',
+              fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+              fontWeight: FontWeight.w400,
+              fontSize: 11.0 * scaleW,
+              color: const Color(0xFF262626),
+            ),
+          ),
+        ),
+
+        // ─── Connector lines ──────────────────────────────────────────────
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _PortraitConnectorPainter(scaleW, scaleH),
+          ),
+        ),
+
+        // ─── Subject photo square (fits whole photo, grey filler) ─────────
+        if (SettingsService.instance.pedigreeShowPhoto)
+          Positioned(
+            left: PedigreeLayout.portraitPhotoLeft * scaleW,
+            top: PedigreeLayout.portraitPhotoTop * scaleH,
+            width: PedigreeLayout.portraitPhotoSize * scaleW,
+            height: PedigreeLayout.portraitPhotoSize * scaleH,
+            child: Container(
+              decoration: BoxDecoration(
+                color: (data.subjectPhotoPath != null &&
+                        data.subjectPhotoPath!.isNotEmpty &&
+                        File(data.subjectPhotoPath!).existsSync())
+                    ? const Color(0xFFEBEBEB)
+                    : null,
+                border: Border.all(
+                  color: PedigreeLayout.portraitPhotoBorder,
+                  width: 2.0 * scaleW,
                 ),
+              ),
+              child: (data.subjectPhotoPath != null &&
+                      data.subjectPhotoPath!.isNotEmpty &&
+                      File(data.subjectPhotoPath!).existsSync())
+                  ? Image.file(File(data.subjectPhotoPath!), fit: BoxFit.contain)
+                  : null,
+            ),
+          ),
+
+        // ─── Column 1: PARENTS ────────────────────────────────────────────
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 19.74, 267.18, tree?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 20.74, 566.42, tree?.dam),
+
+        // ─── Column 2: GRANDPARENTS ───────────────────────────────────────
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 219.68, 192.31, tree?.sire?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 219.68, 342.06, tree?.sire?.dam),
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 220.68, 491.05, tree?.dam?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 220.68, 641.80, tree?.dam?.dam),
+
+        // ─── Column 3: GREAT-GRAND PARENTS ────────────────────────────────
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 419.62, 157.39, tree?.sire?.sire?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 419.62, 226.27, tree?.sire?.sire?.dam),
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 419.62, 307.14, tree?.sire?.dam?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 419.62, 376.02, tree?.sire?.dam?.dam),
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 420.62, 455.88, tree?.dam?.sire?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 420.62, 524.76, tree?.dam?.sire?.dam),
+        ..._buildPortraitCard(scaleW, scaleH, 'Sire', 420.62, 606.63, tree?.dam?.dam?.sire),
+        ..._buildPortraitCard(scaleW, scaleH, 'Dam', 420.62, 675.51, tree?.dam?.dam?.dam),
+
+        // ─── Bottom Left: Certification (3 lines) ─────────────────────────
+        Positioned(
+          left: 24.83 * scaleW,
+          top: 650.5 * scaleH,
+          width: 185.0 * scaleW,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'I hereby certify that this pedigree',
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontSize: 10.5 * scaleW,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 1.5 * scaleH),
+              Text(
+                'is correct to the best',
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontSize: 10.5 * scaleW,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 1.5 * scaleH),
+              Text(
+                'of my knowledge',
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontSize: 10.5 * scaleW,
+                  color: Colors.black,
+                ),
+              ),
             ],
           ),
         ),
 
-        // Bunny Logo (Top Right)
+        // ─── Bottom Left: Signature (Overthink) + Email + Website ─────────
         Positioned(
-          right: 16.0 * scaleW,
-          top: 16.0 * scaleH,
-          width: 76.0 * scaleW,
-          height: 66.0 * scaleH,
-          child: Image.asset(PedigreeLayout.logoAsset, fit: BoxFit.contain),
-        ),
-
-        // Separator line
-        Positioned(
-          left: 16.0 * scaleW,
-          right: 16.0 * scaleW,
-          top: 86.0 * scaleH,
-          height: 0.8,
-          child: Container(color: PedigreeLayout.colorHeaderUnderline),
-        ),
-
-        // ─── Subject Box & Photo ──────────────────────────────
-        // Subject Box (Cyan)
-        Positioned(
-          left: 16.0 * scaleW,
-          top: 96.0 * scaleH,
-          width: 390.0 * scaleW,
-          height: 126.0 * scaleH,
-          child: Container(
-            decoration: BoxDecoration(
-              color: PedigreeLayout.colorSubjectBoxBg,
-              borderRadius: BorderRadius.circular(8.0 * scaleW),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 10.0 * scaleW, vertical: 8.0 * scaleH),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Subject: ',
-                        style: TextStyle(
-                          fontFamily: PedigreeLayout.fontFamilyDetails,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 13.0 * scaleW,
-                          color: PedigreeLayout.colorSubjectText,
-                        ),
-                      ),
-                      TextSpan(
-                        text: data.subjectName,
-                        style: TextStyle(
-                          fontFamily: PedigreeLayout.fontFamilyDetails,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 13.0 * scaleW,
-                          color: PedigreeLayout.colorSubjectText,
-                        ),
-                      ),
-                      if (data.subjectBreed.isNotEmpty)
-                        TextSpan(
-                          text: ' (${data.subjectBreed})',
-                          style: TextStyle(
-                            fontFamily: PedigreeLayout.fontFamilyDetails,
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12.0 * scaleW,
-                            color: PedigreeLayout.colorSubjectText,
-                          ),
-                        ),
-                    ],
+          left: 25.74 * scaleW,
+          top: 710.0 * scaleH,
+          width: 190.0 * scaleW,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (data.ownerName.trim().isNotEmpty)
+                Text(
+                  data.ownerName.trim(),
+                  style: TextStyle(
+                    fontFamily: 'TheDecember',
+                    fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
+                    fontSize: 11.0 * scaleW,
+                    color: Colors.black,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                _buildPortraitSubjectRow('Color:', data.subjectColor, 'Sex:', data.subjectSex, scaleW),
-                _buildPortraitSubjectRow('DOB:', data.subjectDob, 'Ear No.:', data.subjectEarNo, scaleW),
-                _buildPortraitSubjectRow('Weight:', data.subjectWeight, 'Reg No.:', data.subjectRegNo, scaleW),
-                _buildPortraitSubjectRow(
-                  'Legs:',
-                  data.subjectLegs,
-                  data.subjectGenotype.isNotEmpty ? 'Genotype:' : '',
-                  data.subjectGenotype,
-                  scaleW,
+              if (data.farmEmail.trim().isNotEmpty) ...[
+                SizedBox(height: 2.0 * scaleH),
+                Text(
+                  data.farmEmail.trim(),
+                  style: TextStyle(
+                    fontFamily: 'Myriad Pro',
+                    fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                    fontSize: 11.0 * scaleW,
+                    color: Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-        ),
-
-        // Subject Photo Box
-        Positioned(
-          left: 416.0 * scaleW,
-          top: 96.0 * scaleH,
-          width: 180.0 * scaleW,
-          height: 126.0 * scaleH,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0 * scaleW),
-              border: Border.all(
-                color: PedigreeLayout.colorSubjectPhotoOutline,
-                width: 1.5,
-              ),
-              color: hasPhoto ? null : Colors.black.withValues(alpha: 0.04),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: hasPhoto
-                ? Image.file(File(data.subjectPhotoPath!), fit: BoxFit.cover)
-                : Center(
-                    child: Icon(
-                      PhosphorIcons.rabbit(PhosphorIconsStyle.duotone),
-                      size: 40.0 * scaleW,
-                      color: PedigreeLayout.colorSubjectPhotoOutline.withValues(alpha: 0.6),
-                    ),
+              if (data.farmWebsite.trim().isNotEmpty || data.farmSocialLink.trim().isNotEmpty) ...[
+                SizedBox(height: 1.5 * scaleH),
+                Text(
+                  data.farmWebsite.trim().isNotEmpty
+                      ? data.farmWebsite.trim()
+                      : data.farmSocialLink.trim(),
+                  style: TextStyle(
+                    fontFamily: 'Myriad Pro',
+                    fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                    fontSize: 11.0 * scaleW,
+                    color: Colors.black,
                   ),
-          ),
-        ),
-
-        // ─── Tree Area (3 Columns: Gen 1, Gen 2, Gen 3) ───────
-        // Sire Side (Top Half)
-        ..._buildPortraitCard(scaleW, scaleH, 1, 'Sire', true, 16.0, 234.0, 178.0, 226.0, tree?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 2, 'G.Sire', true, 202.0, 234.0, 186.0, 108.0, tree?.sire?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 2, 'G.Dam', false, 202.0, 352.0, 186.0, 108.0, tree?.sire?.dam),
-
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Sire', true, 396.0, 234.0, 200.0, 50.0, tree?.sire?.sire?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Dam', false, 396.0, 292.0, 200.0, 50.0, tree?.sire?.sire?.dam),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Sire', true, 396.0, 352.0, 200.0, 50.0, tree?.sire?.dam?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Dam', false, 396.0, 410.0, 200.0, 50.0, tree?.sire?.dam?.dam),
-
-        // Dam Side (Bottom Half)
-        ..._buildPortraitCard(scaleW, scaleH, 1, 'Dam', false, 16.0, 480.0, 178.0, 226.0, tree?.dam),
-        ..._buildPortraitCard(scaleW, scaleH, 2, 'G.Sire', true, 202.0, 480.0, 186.0, 108.0, tree?.dam?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 2, 'G.Dam', false, 202.0, 598.0, 186.0, 108.0, tree?.dam?.dam),
-
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Sire', true, 396.0, 480.0, 200.0, 50.0, tree?.dam?.sire?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Dam', false, 396.0, 538.0, 200.0, 50.0, tree?.dam?.sire?.dam),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Sire', true, 396.0, 598.0, 200.0, 50.0, tree?.dam?.dam?.sire),
-        ..._buildPortraitCard(scaleW, scaleH, 3, 'G.G.Dam', false, 396.0, 656.0, 200.0, 50.0, tree?.dam?.dam?.dam),
-
-        // ─── Footer (Certification & Signature) ───────────────
-        Positioned(
-          left: 16.0 * scaleW,
-          top: 722.0 * scaleH,
-          width: 380.0 * scaleW,
-          child: Text(
-            'I hereby certify this pedigree is correct to the best of my knowledge.',
-            style: TextStyle(
-              fontFamily: PedigreeLayout.fontFamilyDetails,
-              fontSize: 9.0 * scaleW,
-              color: PedigreeLayout.colorFooterCertify,
-            ),
-          ),
-        ),
-
-        // Signature Line
-        Positioned(
-          left: 16.0 * scaleW,
-          top: 760.0 * scaleH,
-          width: 180.0 * scaleW,
-          height: 0.75,
-          child: Container(color: PedigreeLayout.colorHeaderUnderline),
-        ),
-        if (data.ownerName.trim().isNotEmpty)
-          Positioned(
-            left: 18.0 * scaleW,
-            top: 738.0 * scaleH,
-            child: Text(
-              data.ownerName.trim(),
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilySignature,
-                fontSize: 18.0 * scaleW,
-                color: PedigreeLayout.colorFooterSignature,
-              ),
-            ),
-          ),
-
-        // Sold info (center footer)
-        if (data.soldTo.isNotEmpty || data.soldOn.isNotEmpty)
-          Positioned(
-            left: 210.0 * scaleW,
-            top: 738.0 * scaleH,
-            width: 230.0 * scaleW,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (data.soldTo.isNotEmpty)
-                  Text(
-                    'Sold To: ${data.soldTo}',
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: 9.5 * scaleW,
-                      color: PedigreeLayout.colorFooterPhone,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                if (data.soldOn.isNotEmpty)
-                  Text(
-                    'Sold On: ${data.soldOn}',
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: 9.5 * scaleW,
-                      color: PedigreeLayout.colorFooterPhone,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
-            ),
+            ],
           ),
-
-        // Phone
-        if (data.farmPhone.trim().isNotEmpty)
-          Positioned(
-            right: 16.0 * scaleW,
-            top: 742.0 * scaleH,
-            child: Text(
-              'Tel: ${data.farmPhone.trim()}',
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: 10.0 * scaleW,
-                color: PedigreeLayout.colorFooterPhone,
-              ),
-            ),
-          ),
+        ),
       ],
     );
   }
 
-  static Widget _buildPortraitSubjectRow(
-    String label1,
-    String val1,
-    String label2,
-    String val2,
-    double scaleW,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 6,
-          child: RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: '$label1 ',
-                  style: TextStyle(
-                    fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 10.0 * scaleW,
-                    color: PedigreeLayout.colorSubjectText,
-                  ),
+  static Widget _buildPortraitSubjectField({
+    required double scaleW,
+    required double scaleH,
+    required double leftPt,
+    required double topPt,
+    required double widthPt,
+    required String label,
+    required String value,
+    bool semiboldValue = false,
+  }) {
+    return Positioned(
+      left: leftPt * scaleW,
+      top: topPt * scaleH,
+      width: widthPt * scaleW,
+      height: 14.4 * scaleH,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: label,
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12.0 * scaleW,
+                  color: Colors.black,
                 ),
-                TextSpan(
-                  text: val1,
-                  style: TextStyle(
-                    fontFamily: PedigreeLayout.fontFamilyDetails,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 10.0 * scaleW,
-                    color: PedigreeLayout.colorSubjectText,
-                  ),
-                ),
-              ],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (label2.isNotEmpty)
-          Expanded(
-            flex: 5,
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$label2 ',
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontWeight: FontWeight.w400,
-                      fontSize: 10.0 * scaleW,
-                      color: PedigreeLayout.colorSubjectText,
-                    ),
-                  ),
-                  TextSpan(
-                    text: val2,
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontWeight: FontWeight.w400,
-                      fontSize: 10.0 * scaleW,
-                      color: PedigreeLayout.colorSubjectText,
-                    ),
-                  ),
-                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          )
-        else
-          const Spacer(flex: 5),
-      ],
+              TextSpan(
+                text: value,
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontWeight: semiboldValue ? FontWeight.w700 : FontWeight.w400,
+                  fontSize: 12.0 * scaleW,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
     );
   }
 
   static List<Widget> _buildPortraitCard(
     double scaleW,
     double scaleH,
-    int generation,
     String role,
-    bool isSireSide,
     double leftPt,
     double topPt,
-    double widthPt,
-    double heightPt,
     PedigreeRabbit? rabbit,
   ) {
-    final String name = rabbit?.name ?? '';
+    const double widthPt = 172.645;
+    const double heightPt = 62.24;
+    final String name = rabbit?.displayName ?? '';
     final String color = rabbit?.color ?? '';
+    final String earNo = rabbit?.earNumber ?? '';
+    final String regNo = rabbit?.registrationNumber ?? '';
     final String dob = rabbit?.dateOfBirth != null
         ? FormatUtils.formatCertificateDate(rabbit!.dateOfBirth)
         : '';
     final String wt = _formatCardWeight(rabbit?.weight);
-    final String earNo = rabbit?.earNumber ?? '';
+    final String gcNo = rabbit?.grandChampionNumber ?? '';
     final String legs = (rabbit?.legs != null && rabbit!.legs! > 0)
         ? '${rabbit.legs}'
         : '';
     final String winnings = (rabbit?.winnings ?? '').trim();
 
-    final double titleSize = generation == 1
-        ? 11.5 * scaleW
-        : (generation == 2 ? 9.5 * scaleW : 8.0 * scaleW);
-    final double textSize = generation == 1
-        ? 10.5 * scaleW
-        : (generation == 2 ? 8.5 * scaleW : 7.0 * scaleW);
+    final double textSize = 10.0 * scaleW;
 
     return [
+      // Top shaded header strip (5% gray)
+      Positioned(
+        left: (leftPt + 0.44) * scaleW,
+        top: (topPt + 0.44) * scaleH,
+        width: 171.763 * scaleW,
+        height: 14.62 * scaleH,
+        child: Container(
+          color: role == 'Dam'
+              ? PedigreeLayout.portraitDamTint
+              : PedigreeLayout.portraitSireTint,
+        ),
+      ),
+      // Card outer border + 5 rows
       Positioned(
         left: leftPt * scaleW,
         top: topPt * scaleH,
@@ -671,131 +758,79 @@ class PedigreePreviewWidget extends StatelessWidget {
         height: heightPt * scaleH,
         child: Container(
           decoration: BoxDecoration(
-            color: isSireSide
-                ? PedigreeLayout.colorSireCardBg
-                : PedigreeLayout.colorDamCardBg,
-            borderRadius: BorderRadius.circular(6.0 * scaleW),
+            border: Border.all(
+              color: const Color(0xFF1A1A1A),
+              width: (0.5 * scaleW).clamp(0.5, 1.2),
+            ),
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: 6.0 * scaleW,
-            vertical: (generation == 3 ? 3.0 : 6.0) * scaleH,
+          padding: EdgeInsets.fromLTRB(
+            4.2 * scaleW,
+            1.2 * scaleH,
+            4.0 * scaleW,
+            1.2 * scaleH,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Row 0: Role & Name
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '$role: ',
-                      style: TextStyle(
-                        fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w400,
-                        fontSize: titleSize,
-                        color: PedigreeLayout.colorCardText,
-                      ),
-                    ),
-                    TextSpan(
-                      text: name,
-                      style: TextStyle(
-                        fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w400,
-                        fontSize: titleSize,
-                        color: PedigreeLayout.colorCardText,
-                      ),
-                    ),
-                  ],
+              // Row 1: Sire/Dam + Name (Myriad Pro Semi Bold, 10pt)
+              Text(
+                '$role:  $name',
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontWeight: FontWeight.w700,
+                  fontSize: textSize,
+                  color: Colors.black,
+                  height: 1.05,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
-              // Row 1: Color
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Color: ',
-                      style: TextStyle(
-                        fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w400,
-                        fontSize: textSize,
-                        color: PedigreeLayout.colorCardText,
-                      ),
-                    ),
-                    TextSpan(
-                      text: color,
-                      style: TextStyle(
-                        fontFamily: PedigreeLayout.fontFamilyDetails,
-                        fontWeight: FontWeight.w400,
-                        fontSize: textSize,
-                        color: PedigreeLayout.colorCardText,
-                      ),
-                    ),
-                  ],
+              // Row 2: Color
+              Text(
+                'Color:  $color',
+                style: TextStyle(
+                  fontFamily: 'Myriad Pro',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                  fontWeight: FontWeight.w400,
+                  fontSize: textSize,
+                  color: Colors.black,
+                  height: 1.05,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
-              // Row 2: DOB & Wt
+              // Row 3: Ear # & Reg#
               Row(
                 children: [
                   Expanded(
-                    flex: 6,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'DOB: ',
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                          TextSpan(
-                            text: dob,
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                        ],
+                    flex: 56,
+                    child: Text(
+                      'Ear #:  $earNo',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Expanded(
-                    flex: 5,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Wt: ',
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                          TextSpan(
-                            text: wt,
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                        ],
+                    flex: 44,
+                    child: Text(
+                      'Reg#: $regNo',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -803,63 +838,73 @@ class PedigreePreviewWidget extends StatelessWidget {
                   ),
                 ],
               ),
-
-              // Row 3: Ear No. & Legs
+              // Row 4: DOB & Wt
               Row(
                 children: [
                   Expanded(
-                    flex: 6,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Ear No.: ',
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                          TextSpan(
-                            text: earNo,
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                        ],
+                    flex: 56,
+                    child: Text(
+                      'DOB:  $dob',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Expanded(
-                    flex: 5,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Legs: ',
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                          TextSpan(
-                            text: legs,
-                            style: TextStyle(
-                              fontFamily: PedigreeLayout.fontFamilyDetails,
-                              fontWeight: FontWeight.w400,
-                              fontSize: textSize,
-                              color: PedigreeLayout.colorCardText,
-                            ),
-                          ),
-                        ],
+                    flex: 44,
+                    child: Text(
+                      'Wt:  $wt',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              // Row 5: GC# & Legs
+              Row(
+                children: [
+                  Expanded(
+                    flex: 56,
+                    child: Text(
+                      'GC#:  $gcNo',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 44,
+                    child: Text(
+                      'Legs: $legs',
+                      style: TextStyle(
+                        fontFamily: 'Myriad Pro',
+                        fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                        fontWeight: FontWeight.w400,
+                        fontSize: textSize,
+                        color: Colors.black,
+                        height: 1.05,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -879,9 +924,10 @@ class PedigreePreviewWidget extends StatelessWidget {
           child: Text(
             winnings,
             style: TextStyle(
-              fontFamily: PedigreeLayout.fontFamilyDetails,
-              fontSize: (generation == 1 ? 5.0 : (generation == 2 ? 4.5 : 4.0)) * scaleW,
-              color: PedigreeLayout.colorCardText,
+              fontFamily: 'Myriad Pro',
+              fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+              fontSize: 7.0 * scaleW,
+              color: Colors.black,
             ),
           ),
         ),
@@ -911,7 +957,8 @@ class PedigreePreviewWidget extends StatelessWidget {
               child: Text(
                 data.farmName,
                 style: TextStyle(
-                  fontFamily: PedigreeLayout.fontFamilyTitle,
+                  fontFamily: 'Overthink',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilyTitle],
                   fontSize: W * PedigreeLayout.fontRatioFarmTitle,
                   color: PedigreeLayout.colorHeaderTitle,
                 ),
@@ -921,45 +968,62 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // Address & Email (2 lines, smaller, no underline)
+        // Address + Email on one line, grey underline, breed subtitle
         if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
           Positioned(
-            left: W * PedigreeLayout.pedigreeHeaderLeft,
-            top: H * (PedigreeLayout.farmTitleCenterY + PedigreeLayout.farmTitleBoxHeight / 2) + 1.0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            left: W * PedigreeLayout.addressLeft,
+            top: H * (PedigreeLayout.contactCenterY - PedigreeLayout.contactBoxHeight / 2),
+            child: Row(
               children: [
                 if (data.farmAddress.isNotEmpty)
                   Text(
                     data.farmAddress,
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact * 0.82,
+                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
                       color: PedigreeLayout.colorHeaderContact,
                     ),
                   ),
+                if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
+                  const SizedBox(width: 14),
                 if (data.farmEmail.isNotEmpty)
                   Text(
                     data.farmEmail,
                     style: TextStyle(
                       fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact * 0.82,
+                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
                       color: PedigreeLayout.colorHeaderContact,
                     ),
                   ),
               ],
             ),
           ),
-
-        // Website & FB/Instagram link below the email line
+        Positioned(
+          left: W * PedigreeLayout.underlineX0,
+          top: H * PedigreeLayout.underlineY,
+          width: W * (PedigreeLayout.underlineX1 - PedigreeLayout.underlineX0),
+          height: 1.0,
+          child: Container(color: PedigreeLayout.colorHeaderUnderline),
+        ),
+        if (data.subjectBreed.trim().isNotEmpty)
+          Positioned(
+            left: W * PedigreeLayout.breedSubtitleLeft,
+            top: H * PedigreeLayout.breedSubtitleTop,
+            child: Text(
+              '${data.subjectBreed.trim()} Pedigree',
+              style: TextStyle(
+                fontFamily: PedigreeLayout.fontFamilyDetails,
+                fontSize: W * PedigreeLayout.fontRatioSubject,
+                color: PedigreeLayout.colorSubjectText,
+              ),
+              maxLines: 1,
+            ),
+          ),
         if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
           Positioned(
-            left: W * PedigreeLayout.pedigreeHeaderLeft,
-            top: H * (PedigreeLayout.farmTitleCenterY + PedigreeLayout.farmTitleBoxHeight / 2) +
-                1.0 +
-                (W * PedigreeLayout.fontRatioHeaderContact * 0.82 * 1.25 *
-                    ((data.farmAddress.isNotEmpty ? 1 : 0) + (data.farmEmail.isNotEmpty ? 1 : 0))),
-            width: W * 0.45,
+            left: W * PedigreeLayout.addressLeft,
+            top: H * PedigreeLayout.websiteTop,
+            width: W * 0.30,
             child: Text(
               [
                 if (data.farmWebsite.isNotEmpty) data.farmWebsite,
@@ -967,7 +1031,7 @@ class PedigreePreviewWidget extends StatelessWidget {
               ].join('  •  '),
               style: TextStyle(
                 fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: W * (PedigreeLayout.fontRatioHeaderContact * 0.75),
+                fontSize: W * (PedigreeLayout.fontRatioHeaderContact * 0.9),
                 color: PedigreeLayout.colorHeaderContact,
               ),
               maxLines: 1,
@@ -1027,30 +1091,36 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
 
         // Subject Photo Ellipse
-        Positioned(
-          left: W * PedigreeLayout.photoLeft,
-          top: H * PedigreeLayout.photoTop,
-          width: W * PedigreeLayout.photoWidth,
-          height: H * PedigreeLayout.photoHeight,
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: PedigreeLayout.colorSubjectPhotoOutline,
-                width: 1.5,
+        if (SettingsService.instance.pedigreeShowPhoto)
+          Positioned(
+            left: W * PedigreeLayout.photoLeft,
+            top: H * PedigreeLayout.photoTop,
+            width: W * PedigreeLayout.photoWidth,
+            height: H * PedigreeLayout.photoHeight,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: PedigreeLayout.colorSubjectPhotoOutline,
+                  width: 1.5,
+                ),
+                color: hasPhoto ? null : Colors.black.withValues(alpha: 0.05),
               ),
-              color: hasPhoto ? null : Colors.black.withValues(alpha: 0.05),
+              child: hasPhoto
+                  ? ClipOval(
+                      child: Container(
+                        color: const Color(0xFFE6E6E6),
+                        child: Image.file(
+                          File(data.subjectPhotoPath!),
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
+                    )
+                  : const SizedBox(),
             ),
-            child: hasPhoto
-                ? ClipOval(
-                    child: Image.file(
-                      File(data.subjectPhotoPath!),
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : const SizedBox(),
           ),
-        ),
 
         // Gen 1 (Parents)
         ..._buildAncestorCard(W, H, 1, 'Sire', true, PedigreeLayout.sireLeft, PedigreeLayout.sireTop, tree?.sire),
@@ -1115,7 +1185,8 @@ class PedigreePreviewWidget extends StatelessWidget {
               child: Text(
                 data.ownerName.trim(),
                 style: TextStyle(
-                  fontFamily: PedigreeLayout.fontFamilySignature,
+                  fontFamily: 'TheDecember',
+                  fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
                   fontSize: W * PedigreeLayout.fontRatioSignature,
                   color: PedigreeLayout.colorFooterSignature,
                 ),
@@ -1339,7 +1410,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         ? W * PedigreeLayout.fontRatioGen3
         : (generation == 2 ? W * PedigreeLayout.fontRatioGen2 : W * PedigreeLayout.fontRatioGen1);
 
-    final String name = rabbit?.name ?? '';
+    final String name = rabbit?.displayName ?? '';
     final String color = rabbit?.color ?? '';
     final String dob = rabbit?.dateOfBirth != null ? FormatUtils.formatCertificateDate(rabbit!.dateOfBirth) : '';
     final String wt = _formatCardWeight(rabbit?.weight);
@@ -1612,4 +1683,29 @@ class PedigreePreviewWidget extends StatelessWidget {
     }
     return wtStr.trim();
   }
+}
+
+class _PortraitConnectorPainter extends CustomPainter {
+  final double scaleW;
+  final double scaleH;
+  _PortraitConnectorPainter(this.scaleW, this.scaleH);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF47474A)
+      ..strokeWidth = 0.75 * scaleW
+      ..style = PaintingStyle.stroke;
+    for (final c in PedigreeLayout.portraitConnectors) {
+      canvas.drawLine(
+        Offset(c[0] * scaleW, c[1] * scaleH),
+        Offset(c[2] * scaleW, c[3] * scaleH),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PortraitConnectorPainter old) =>
+      old.scaleW != scaleW || old.scaleH != scaleH;
 }

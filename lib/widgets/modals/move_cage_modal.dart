@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/barn.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
@@ -66,8 +67,8 @@ class _MoveCageModalState extends State<MoveCageModal> {
     final isDoe = rabbit.type == RabbitType.doe;
     final isArchived = rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -84,7 +85,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -101,7 +102,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -114,8 +115,8 @@ class _MoveCageModalState extends State<MoveCageModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -125,7 +126,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
           // Header banner (matches NEW TASK modal style)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: kLilacLight,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               border: Border(bottom: BorderSide(color: kLilac, width: 1)),
@@ -138,7 +139,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                      color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -150,12 +151,12 @@ class _MoveCageModalState extends State<MoveCageModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Move Cage',
                             style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -165,10 +166,10 @@ class _MoveCageModalState extends State<MoveCageModal> {
                             const SizedBox(height: 2),
                             Text(
                               'Current: ${widget.rabbit.location ?? 'N/A'} • ${widget.rabbit.cage ?? 'N/A'}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                             ),
                           ],
@@ -180,10 +181,10 @@ class _MoveCageModalState extends State<MoveCageModal> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: kAppCardWhite.withValues(alpha: 0.7),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -194,7 +195,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
 
           // Modal body fields
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(40),
               child: Center(
                 child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(kLilacDeep)),
@@ -210,40 +211,40 @@ class _MoveCageModalState extends State<MoveCageModal> {
                   InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Location / Barn',
-                      labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                       floatingLabelBehavior: FloatingLabelBehavior.always,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: kLilacLight),
+                        borderSide: BorderSide(color: kLilacLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: kAppCardWhite,
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedLocation,
-                        hint: const Text(
+                        hint: Text(
                           'Select Location',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
                         ),
                         isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4A3E6D)),
+                        icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
                         items: [
                           ..._buildLocationDropdownItems(),
-                          const DropdownMenuItem<String>(
+                          DropdownMenuItem<String>(
                             value: '__add_new__',
                             child: Text(
                               '+ Add New Location',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF8B5CF6),
+                                color: appColor(0xFF8B5CF6),
                               ),
                             ),
                           ),
@@ -269,23 +270,23 @@ class _MoveCageModalState extends State<MoveCageModal> {
                     decoration: InputDecoration(
                       labelText: 'Cage / Hutch ID',
                       hintText: 'e.g., A-01, Row 1 Cage 3',
-                      hintStyle: const TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
-                      labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                      hintStyle: TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
+                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
                       floatingLabelBehavior: FloatingLabelBehavior.always,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: kLilacLight),
+                        borderSide: BorderSide(color: kLilacLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: kAppCardWhite,
                     ),
-                    style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                    style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
                   ),
 
                   const SizedBox(height: 24),
@@ -297,26 +298,26 @@ class _MoveCageModalState extends State<MoveCageModal> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveCage,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE6BEFE),
-                        foregroundColor: const Color(0xFF4A3E6D),
+                        backgroundColor: appSurface(0xFFE6BEFE),
+                        foregroundColor: appColor(0xFF4A3E6D),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A3E6D)),
+                                valueColor: AlwaysStoppedAnimation<Color>(appColor(0xFF4A3E6D)),
                               ),
                             )
-                          : const Text(
+                          : Text(
                               'Move',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF4A3E6D),
+                                color: appColor(0xFF4A3E6D),
                               ),
                             ),
                     ),
@@ -344,7 +345,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
-                color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -352,18 +353,18 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 children: [
                   Text(
                     row.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF3A3A3C),
+                      color: appColor(0xFF3A3A3C),
                     ),
                   ),
                   Text(
                     barn.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF8E8E93),
+                      color: appColor(0xFF8E8E93),
                     ),
                   ),
                 ],
@@ -387,14 +388,14 @@ class _MoveCageModalState extends State<MoveCageModal> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: kAppCardWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Add New Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D))),
+          title: Text('Add New Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: appColor(0xFF4A3E6D))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Barn', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56))),
+              Text('Barn', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56))),
               const SizedBox(height: 6),
               Container(
                 decoration: BoxDecoration(
@@ -403,7 +404,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 ),
                 child: DropdownButtonFormField<String>(
                   value: selectedBarnId,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 12),
                     hintText: 'Select barn',
@@ -415,9 +416,9 @@ class _MoveCageModalState extends State<MoveCageModal> {
                           value: b.id,
                           child: Text(b.name),
                         )),
-                    const DropdownMenuItem(
+                    DropdownMenuItem(
                       value: '__new_barn__',
-                      child: Text('+ Create New Barn', style: TextStyle(color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600)),
+                      child: Text('+ Create New Barn', style: TextStyle(color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600)),
                     ),
                   ],
                   onChanged: (val) {
@@ -435,25 +436,25 @@ class _MoveCageModalState extends State<MoveCageModal> {
               ),
               if (isNewBarn) ...[
                 const SizedBox(height: 12),
-                const Text('New Barn Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56))),
+                Text('New Barn Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56))),
                 const SizedBox(height: 6),
                 TextField(
                   controller: barnController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
                     hintText: 'e.g., Barn 3',
-                    hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                    hintStyle: TextStyle(color: kNeutral400, fontSize: 14),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                      borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   ),
                 ),
               ],
               const SizedBox(height: 16),
-              const Text('Row / Location Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56))),
+              Text('Row / Location Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56))),
               const SizedBox(height: 6),
               TextField(
                 controller: rowController,
@@ -461,11 +462,11 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   hintText: 'e.g., Row 5',
-                  hintStyle: const TextStyle(color: kNeutral400, fontSize: 14),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+                  hintStyle: TextStyle(color: kNeutral400, fontSize: 14),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                    borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 ),
@@ -475,7 +476,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+              child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -516,7 +517,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
                 setState(() => _selectedLocation = rowName);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7B6BA0),
+                backgroundColor: appSurface(0xFF7B6BA0),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -530,7 +531,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
   Future<void> _saveCage() async {
     if (_selectedLocation == null || _selectedLocation!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a location'), backgroundColor: Color(0xFFD44C47)),
+        SnackBar(content: Text('Please select a location'), backgroundColor: appSurface(0xFFD44C47)),
       );
       return;
     }
@@ -548,14 +549,14 @@ class _MoveCageModalState extends State<MoveCageModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Moved ${widget.rabbit.name} to $_selectedLocation${cage.isNotEmpty ? ' • $cage' : ''}'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFD44C47)),
+          SnackBar(content: Text('Error: $e'), backgroundColor: appSurface(0xFFD44C47)),
         );
       }
     } finally {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -101,7 +102,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         border: Border.all(color: kNeutral200),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -110,13 +111,13 @@ class _GeneticsCardState extends State<GeneticsCard> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
                   'GENETICS',
                   style: TextStyle(
@@ -143,7 +144,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
                   ),
                   child: Text(
                     displayString,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       fontFamily: 'monospace',
@@ -193,7 +194,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
           children: [
             Text(
               name.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 color: kNeutral500,
@@ -204,14 +205,14 @@ class _GeneticsCardState extends State<GeneticsCard> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(6),
               ),
               width: double.infinity,
               alignment: Alignment.center,
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: kNeutral900,
@@ -236,7 +237,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
           children: [
             Text(
               'Select genotype for $locus',
-              style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+              style: TextStyle(fontSize: 14, color: appColor(0xFF787774)),
             ),
             const SizedBox(height: 16),
             _buildGenotypeOption(locus, '${locus.toUpperCase()}${locus.toUpperCase()}', currentValue),
@@ -247,7 +248,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
         ],
       ),
@@ -268,10 +269,10 @@ class _GeneticsCardState extends State<GeneticsCard> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF7B6BA0).withOpacity(0.1) : const Color(0xFFF7F7F5),
+          color: isSelected ? appSurface(0xFF7B6BA0).withOpacity(0.1) : appSurface(0xFFF7F7F5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFFE9E9E7),
+            color: isSelected ? appSurface(0xFF7B6BA0) : appSurface(0xFFE9E9E7),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -279,7 +280,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
           children: [
             Icon(
               isSelected ? PhosphorIcons.radioButton(PhosphorIconsStyle.fill) : PhosphorIcons.circle(),
-              color: isSelected ? const Color(0xFF7B6BA0) : const Color(0xFF9B9A97),
+              color: isSelected ? appColor(0xFF7B6BA0) : appColor(0xFF9B9A97),
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -289,7 +290,7 @@ class _GeneticsCardState extends State<GeneticsCard> {
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 fontFamily: 'monospace',
-                color: const Color(0xFF37352F),
+                color: appColor(0xFF37352F),
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -99,11 +100,11 @@ class _TasksCardState extends State<TasksCard> {
       return Container(
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: kNeutral200),
         ),
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep)),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep)),
       );
     }
 
@@ -114,7 +115,7 @@ class _TasksCardState extends State<TasksCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kNeutral200),
       ),
@@ -128,12 +129,12 @@ class _TasksCardState extends State<TasksCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'TASKS',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -143,7 +144,7 @@ class _TasksCardState extends State<TasksCard> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6BEFE),
+                      color: appSurface(0xFFE6BEFE),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -156,10 +157,10 @@ class _TasksCardState extends State<TasksCard> {
               ],
             ),
           ),
-          const Divider(height: 1, color: kNeutral100),
+          Divider(height: 1, color: kNeutral100),
 
           if (allEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Center(
                 child: Padding(
@@ -169,7 +170,7 @@ class _TasksCardState extends State<TasksCard> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF787774),
+                      color: appColor(0xFF787774),
                     ),
                   ),
                 ),
@@ -259,19 +260,19 @@ class _TasksCardState extends State<TasksCard> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Text(
                 emptyText,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF8E8E93),
+                  color: appColor(0xFF8E8E93),
                 ),
               ),
             )
           else
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kAppCardWhite,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5E5EA)),
+                border: Border.all(color: appSurface(0xFFE5E5EA)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Column(
@@ -290,17 +291,17 @@ class _TasksCardState extends State<TasksCard> {
     required bool isExpanded,
     required VoidCallback onToggle,
   }) {
-    Color headerBg = const Color(0xFFF2F2F7);
-    Color headerBorder = const Color(0xFFE5E5EA);
+    Color headerBg = appSurface(0xFFF2F2F7);
+    Color headerBorder = appSurface(0xFFE5E5EA);
     if (title.toUpperCase().contains('TODAY')) {
-      headerBg = const Color(0xFFFFBCE7); // Pink color from Home page
-      headerBorder = const Color(0xFFFFBCE7);
+      headerBg = appSurface(0xFFFFBCE7); // Pink color from Home page
+      headerBorder = appSurface(0xFFFFBCE7);
     } else if (title.toUpperCase().contains('UPCOMING')) {
-      headerBg = const Color(0xFFCDEEFE); // Soft pastel blue
-      headerBorder = const Color(0xFFBAE5FD);
+      headerBg = appSurface(0xFFCDEEFE); // Soft pastel blue
+      headerBorder = appSurface(0xFFBAE5FD);
     } else if (title.toUpperCase().contains('ARCHIVE')) {
-      headerBg = const Color(0xFFD4F7D4); // Soft pastel green
-      headerBorder = const Color(0xFFC0EFC0);
+      headerBg = appSurface(0xFFD4F7D4); // Soft pastel green
+      headerBorder = appSurface(0xFFC0EFC0);
     }
 
     return GestureDetector(
@@ -319,10 +320,10 @@ class _TasksCardState extends State<TasksCard> {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
                 letterSpacing: 0.6,
               ),
             ),
@@ -331,17 +332,17 @@ class _TasksCardState extends State<TasksCard> {
               children: [
                 Text(
                   '$count',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Icon(
                   isExpanded ? PhosphorIcons.caretUp() : PhosphorIcons.caretDown(),
                   size: 15,
-                  color: const Color(0xFF787880),
+                  color: appColor(0xFF787880),
                 ),
               ],
             ),
@@ -374,13 +375,13 @@ class _TasksCardState extends State<TasksCard> {
       fontSize: 12,
       fontWeight: (isOverdue || isToday) ? FontWeight.w600 : FontWeight.w400,
       color: isOverdue 
-          ? const Color(0xFFEF4444) 
+          ? appColor(0xFFEF4444) 
           : isToday 
-              ? const Color(0xFF10B981) 
-              : const Color(0xFF6B7280),
+              ? appColor(0xFF10B981) 
+              : appColor(0xFF6B7280),
     );
 
-    final rowBg = index.isEven ? const Color(0xFFF2F2F7) : Colors.white;
+    final rowBg = index.isEven ? appSurface(0xFFF2F2F7) : kAppCardWhite;
     final bunnyName = widget.rabbit.name.isNotEmpty ? widget.rabbit.name.toUpperCase() : '';
 
     return Container(
@@ -413,9 +414,9 @@ class _TasksCardState extends State<TasksCard> {
                     height: 17,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isCompleted ? const Color(0xFFD6C3F9) : Colors.transparent,
+                      color: isCompleted ? appSurface(0xFFD6C3F9) : Colors.transparent,
                       border: Border.all(
-                        color: isCompleted ? const Color(0xFFD6C3F9) : const Color(0xFFB0B0B8),
+                        color: isCompleted ? appSurface(0xFFD6C3F9) : appSurface(0xFFB0B0B8),
                         width: 1.5,
                       ),
                     ),
@@ -450,7 +451,7 @@ class _TasksCardState extends State<TasksCard> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: isCompleted ? const Color(0xFF9CA3AF) : const Color(0xFF4F4F56),
+                            color: isCompleted ? appColor(0xFF9CA3AF) : appColor(0xFF4F4F56),
                             decoration: isCompleted ? TextDecoration.lineThrough : null,
                             height: 1.2,
                           ),
@@ -461,10 +462,10 @@ class _TasksCardState extends State<TasksCard> {
                           const SizedBox(height: 3),
                           Text(
                             bunnyName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF8B5CF6),
+                              color: appColor(0xFF8B5CF6),
                               letterSpacing: 0.5,
                             ),
                             maxLines: 1,
@@ -485,9 +486,9 @@ class _TasksCardState extends State<TasksCard> {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showTaskOptions(task),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                  child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                 ),
               ),
             ],
@@ -539,10 +540,10 @@ class _TasksCardState extends State<TasksCard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                  color: appSurface(0xFF8B5CF6).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.check_circle_outline, color: Color(0xFF8B5CF6), size: 20),
+                child: Icon(Icons.check_circle_outline, color: appColor(0xFF8B5CF6), size: 20),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -559,7 +560,7 @@ class _TasksCardState extends State<TasksCard> {
             children: [
               Text(
                 taskTitle,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF787774)),
+                style: TextStyle(fontSize: 14, color: appColor(0xFF787774)),
               ),
               const SizedBox(height: 16),
               CheckboxListTile(
@@ -604,7 +605,7 @@ class _TasksCardState extends State<TasksCard> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: appSurface(0xFF8B5CF6),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -691,10 +692,10 @@ class _TasksCardState extends State<TasksCard> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF8B5CF6) : const Color(0xFF94A3B8),
+                          color: isSelected ? appSurface(0xFF8B5CF6) : appSurface(0xFF94A3B8),
                           width: isSelected ? 5.5 : 1.5,
                         ),
-                        color: Colors.white,
+                        color: kAppCardWhite,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -703,7 +704,7 @@ class _TasksCardState extends State<TasksCard> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF475569),
+                        color: isSelected ? appColor(0xFF1E293B) : appColor(0xFF475569),
                       ),
                     ),
                   ],
@@ -789,8 +790,8 @@ class _TasksCardState extends State<TasksCard> {
             }
 
             return Dialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
+              backgroundColor: kAppCardWhite,
+              surfaceTintColor: Colors.transparent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               insetPadding: const EdgeInsets.all(16),
               clipBehavior: Clip.antiAlias,
@@ -803,21 +804,21 @@ class _TasksCardState extends State<TasksCard> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEADBEE), // Consistency.jpg top purple
+                      decoration: BoxDecoration(
+                        color: appSurface(0xFFEADBEE), // Consistency.jpg top purple
                         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        border: Border(bottom: BorderSide(color: Color(0xFFD6CEE2), width: 1)),
+                        border: Border(bottom: BorderSide(color: appSurface(0xFFD6CEE2), width: 1)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF4A3E6D))),
+                          Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: appColor(0xFF4A3E6D))),
                           GestureDetector(
                             onTap: () => Navigator.pop(dialogContext),
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle),
-                              child: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF4A3E6D)),
+                              decoration: BoxDecoration(color: kAppCardWhite.withValues(alpha: 0.7), shape: BoxShape.circle),
+                              child: Icon(Icons.close_rounded, size: 20, color: appColor(0xFF4A3E6D)),
                             ),
                           ),
                         ],
@@ -853,9 +854,9 @@ class _TasksCardState extends State<TasksCard> {
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: (selectedTask == '+ Custom' || !currentTaskOptions.contains(selectedTask)) ? null : selectedTask,
-                              hint: const Text('Select a task', style: TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400)),
+                              hint: Text('Select a task', style: TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400)),
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
+                              icon: Icon(Icons.keyboard_arrow_down, color: kNeutral500),
                               selectedItemBuilder: (BuildContext context) {
                                 return currentTaskOptions.map((e) => Align(
                                   alignment: Alignment.centerLeft,
@@ -864,7 +865,7 @@ class _TasksCardState extends State<TasksCard> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                      color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                      color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF1E293B),
                                     ),
                                   ),
                                 )).toList();
@@ -879,7 +880,7 @@ class _TasksCardState extends State<TasksCard> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                      color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -887,7 +888,7 @@ class _TasksCardState extends State<TasksCard> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontStyle: e == '+ Custom' ? FontStyle.italic : FontStyle.normal,
-                                        color: e == '+ Custom' ? const Color(0xFF8B5CF6) : const Color(0xFF1E293B),
+                                        color: e == '+ Custom' ? appColor(0xFF8B5CF6) : appColor(0xFF1E293B),
                                       ),
                                     ),
                                   ),
@@ -921,14 +922,14 @@ class _TasksCardState extends State<TasksCard> {
                                     customTaskController.clear();
                                   });
                                 },
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.only(bottom: 6),
                                   child: Text(
                                     'Choose from list',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF8B5CF6),
+                                      color: appColor(0xFF8B5CF6),
                                     ),
                                   ),
                                 ),
@@ -939,10 +940,10 @@ class _TasksCardState extends State<TasksCard> {
                           controller: customTaskController,
                           decoration: InputDecoration(
                             hintText: 'Enter task name',
-                            hintStyle: const TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400),
+                            hintStyle: TextStyle(fontSize: 14, color: kNeutral400, fontWeight: FontWeight.w400),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kNeutral200)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF8B5CF6))),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kNeutral200)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF8B5CF6))),
                           ),
                         ),
                       ],
@@ -957,7 +958,7 @@ class _TasksCardState extends State<TasksCard> {
                             child: DropdownButton<String>(
                               value: selectedFrequency,
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down, color: kNeutral500),
+                              icon: Icon(Icons.keyboard_arrow_down, color: kNeutral500),
                               selectedItemBuilder: (BuildContext context) {
                                 return [
                                   'Select date',
@@ -977,7 +978,7 @@ class _TasksCardState extends State<TasksCard> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                      color: e == 'Select date' ? kNeutral400 : const Color(0xFF1E293B),
+                                      color: e == 'Select date' ? kNeutral400 : appColor(0xFF1E293B),
                                     ),
                                   ),
                                 )).toList();
@@ -1003,7 +1004,7 @@ class _TasksCardState extends State<TasksCard> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: isAlt ? const Color(0xFFF6F0FD) : Colors.white,
+                                      color: isAlt ? appSurface(0xFFF6F0FD) : kAppCardWhite,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -1011,7 +1012,7 @@ class _TasksCardState extends State<TasksCard> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: e == 'Select date' ? FontWeight.w400 : FontWeight.w600,
-                                        color: e == 'Select date' ? kNeutral400 : const Color(0xFF1E293B),
+                                        color: e == 'Select date' ? kNeutral400 : appColor(0xFF1E293B),
                                       ),
                                     ),
                                   ),
@@ -1047,7 +1048,7 @@ class _TasksCardState extends State<TasksCard> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: selectedCustomDate == null ? FontWeight.w400 : FontWeight.w600,
-                                    color: selectedCustomDate == null ? kNeutral400 : const Color(0xFF1F2937),
+                                    color: selectedCustomDate == null ? kNeutral400 : appColor(0xFF1F2937),
                                   ),
                                 ),
                                 Icon(Icons.calendar_today, size: 18, color: kNeutral500),
@@ -1066,7 +1067,7 @@ class _TasksCardState extends State<TasksCard> {
                             String finalTaskName = isEnteringCustomName ? customTaskController.text.trim() : (selectedTask ?? '');
                             if (finalTaskName.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please select or enter a task name'), backgroundColor: Color(0xFFD44C47)),
+                                SnackBar(content: Text('Please select or enter a task name'), backgroundColor: appSurface(0xFFD44C47)),
                               );
                               return;
                             }
@@ -1086,21 +1087,21 @@ class _TasksCardState extends State<TasksCard> {
                               Navigator.pop(dialogContext);
                               _loadTasks();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Task Saved'), backgroundColor: Color(0xFF8B5CF6)),
+                                SnackBar(content: Text('Task Saved'), backgroundColor: appSurface(0xFF8B5CF6)),
                               );
                             } catch (e) {
                               print(e);
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4B3EE),
-                            disabledBackgroundColor: const Color(0xFFEAE3F2),
-                            foregroundColor: const Color(0xFF5C4A70),
+                            backgroundColor: appSurface(0xFFD4B3EE),
+                            disabledBackgroundColor: appSurface(0xFFEAE3F2),
+                            foregroundColor: appColor(0xFF5C4A70),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             elevation: 0,
                           ),
-                          child: const Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF5C4A70), letterSpacing: 0.5)),
+                          child: Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: appColor(0xFF5C4A70), letterSpacing: 0.5)),
                         ),
                       ),
                     ],
@@ -1120,7 +1121,7 @@ class _TasksCardState extends State<TasksCard> {
   void _showTaskOptions(Map<String, dynamic> task) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1137,24 +1138,24 @@ class _TasksCardState extends State<TasksCard> {
                   _showEditTaskDialog(task);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('System tasks cannot be edited directly.'), backgroundColor: Color(0xFF8B5CF6)),
+                    SnackBar(content: Text('System tasks cannot be edited directly.'), backgroundColor: appSurface(0xFF8B5CF6)),
                   );
                 }
               },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: const Text(
+                child: Text(
                   'Edit',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
+                    color: appColor(0xFF1F2937),
                   ),
                 ),
               ),
             ),
-            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            Divider(height: 1, color: appSurface(0xFFF3F4F6)),
             InkWell(
               onTap: () async {
                 Navigator.pop(context);
@@ -1170,12 +1171,12 @@ class _TasksCardState extends State<TasksCard> {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: const Text(
+                child: Text(
                   'Delete',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFEF4444),
+                    color: appColor(0xFFEF4444),
                   ),
                 ),
               ),
@@ -1202,14 +1203,14 @@ class _TasksCardState extends State<TasksCard> {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(builder: (context, setDialogState) {
           BoxDecoration inputDec() => BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: kAppCardWhite,
+                border: Border.all(color: appSurface(0xFFE2E8F0)),
                 borderRadius: BorderRadius.circular(12),
               );
 
           return Dialog(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
+            backgroundColor: kAppCardWhite,
+            surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             insetPadding: const EdgeInsets.all(16),
             child: Container(
@@ -1224,22 +1225,22 @@ class _TasksCardState extends State<TasksCard> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Edit Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
-                        GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xFFF5F7FA), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)))),
+                        Text('Edit Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: appColor(0xFF1E293B))),
+                        GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: appSurface(0xFFF5F7FA), shape: BoxShape.circle), child: Icon(Icons.close, size: 20, color: appColor(0xFF64748B)))),
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task Title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Task Title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: appColor(0xFF1E293B)))),
                     TextField(
                       controller: taskNameController,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF8B5CF6))),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE2E8F0))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF8B5CF6))),
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: appColor(0xFF1E293B)))),
                     Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: inputDec(),
@@ -1247,7 +1248,7 @@ class _TasksCardState extends State<TasksCard> {
                             child: DropdownButton<String>(
                                 value: selectedCategory,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF64748B)),
                                 items: [
                                   'Operations',
                                   'Health',
@@ -1257,7 +1258,7 @@ class _TasksCardState extends State<TasksCard> {
                                 ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
                                 onChanged: (val) => setDialogState(() => selectedCategory = val!)))),
                     const SizedBox(height: 14),
-                    const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)))),
+                    Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Frequency', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: appColor(0xFF1E293B)))),
                     Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: inputDec(),
@@ -1265,7 +1266,7 @@ class _TasksCardState extends State<TasksCard> {
                             child: DropdownButton<String>(
                                 value: selectedFrequency,
                                 isExpanded: true,
-                                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF64748B)),
+                                icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF64748B)),
                                 items: [
                                   'Daily',
                                   'Weekly',
@@ -1280,7 +1281,7 @@ class _TasksCardState extends State<TasksCard> {
                         child: ElevatedButton(
                           onPressed: () async {
                             if (taskNameController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a task name'), backgroundColor: Color(0xFFD44C47)));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter a task name'), backgroundColor: appSurface(0xFFD44C47)));
                               return;
                             }
                             try {
@@ -1299,23 +1300,23 @@ class _TasksCardState extends State<TasksCard> {
                               );
                               Navigator.pop(dialogContext);
                               _loadTasks();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Updated'), backgroundColor: Color(0xFF8B5CF6)));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Task Updated'), backgroundColor: appSurface(0xFF8B5CF6)));
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating: $e'), backgroundColor: const Color(0xFFD44C47)));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating: $e'), backgroundColor: appSurface(0xFFD44C47)));
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4B3EE),
-                            disabledBackgroundColor: const Color(0xFFEAE3F2),
-                            foregroundColor: const Color(0xFF5C4A70),
+                            backgroundColor: appSurface(0xFFD4B3EE),
+                            disabledBackgroundColor: appSurface(0xFFEAE3F2),
+                            foregroundColor: appColor(0xFF5C4A70),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             elevation: 0,
                           ),
-                          child: const Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF5C4A70), letterSpacing: 0.5)),
+                          child: Text('SAVE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: appColor(0xFF5C4A70), letterSpacing: 0.5)),
                         )),
                     const SizedBox(height: 8),
-                    SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))))),
+                    SizedBox(width: double.infinity, child: TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(fontSize: 14, color: appColor(0xFF64748B))))),
                   ],
                 ),
               ),
@@ -1329,7 +1330,7 @@ class _TasksCardState extends State<TasksCard> {
   Widget _buildDialogLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+      child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: appColor(0xFF374151))),
     );
   }
 
@@ -1352,7 +1353,7 @@ class DashedRectPainter extends CustomPainter {
   final double radius;
 
   DashedRectPainter({
-    this.color = const Color(0xFFD1D5DB),
+    this.color = const AppColor(0xFFD1D5DB),
     this.strokeWidth = 1.5,
     this.gap = 3.0,
     this.radius = 6.0,
@@ -1409,4 +1410,3 @@ class DashedRectPainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth || oldDelegate.gap != gap || oldDelegate.radius != radius;
   }
 }
-

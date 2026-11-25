@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:intl/intl.dart';
@@ -165,9 +166,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE3E3E8)),
+            border: Border.all(color: appSurface(0xFFE3E3E8)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),
@@ -182,16 +183,16 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF6EEFC),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFF6EEFC),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
-                child: const Text(
+                child: Text(
                   'LITTER HISTORY',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF5A4D6E),
+                    color: appColor(0xFF5A4D6E),
                     letterSpacing: 0.4,
                   ),
                 ),
@@ -204,16 +205,16 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F2FD),
+                    color: appSurface(0xFFF7F2FD),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
                     child: Text(
                       '$totalLitters litters • $totalKits kits lifetime • $survival',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF76668F),
+                        color: appColor(0xFF76668F),
                       ),
                     ),
                   ),
@@ -222,7 +223,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               const SizedBox(height: 4),
               // 3. Compact space below summary pill
               if (_filteredLitters.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(32),
                   child: Text('No litters found', style: TextStyle(color: kNeutral400)),
                 )
@@ -326,9 +327,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isExpanded ? const Color(0xFFF7F3FB) : Colors.white,
+        color: isExpanded ? appSurface(0xFFF7F3FB) : kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isExpanded ? const Color(0xFFE2D6EE) : const Color(0xFFE4E4EA)),
+        border: Border.all(color: isExpanded ? appSurface(0xFFE2D6EE) : appSurface(0xFFE4E4EA)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -362,10 +363,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       isMissedLitter
                           ? 'Missed Litter'
                           : (alive == 0 ? 'Litter Died' : litter.id),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -374,7 +375,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       child: Icon(
                         isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                         size: 18,
-                        color: const Color(0xFF787880),
+                        color: appColor(0xFF787880),
                       ),
                     ),
                   ],
@@ -384,9 +385,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _showLitterActionsMenu(context, litter),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: Icon(Icons.more_horiz, size: 22, color: Color(0xFF787774)),
+                  child: Icon(Icons.more_horiz, size: 22, color: appColor(0xFF787774)),
                 ),
               ),
             ],
@@ -410,10 +411,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           constraints: const BoxConstraints(minHeight: 35.5),
                           child: Text(
                             partnerDisplay,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               height: 1.25,
                             ),
                             maxLines: 2,
@@ -424,10 +425,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           const SizedBox(height: 3),
                           Text(
                             '$born Born • $alive Alive',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               height: 1.25,
                             ),
                             maxLines: 1,
@@ -444,20 +445,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     children: [
                       Text(
                         'Bred $bredDateStr',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF4F4F56),
+                          color: appColor(0xFF4F4F56),
                           height: 1.25,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         isMissedLitter ? 'Due $dueDateStr' : 'Born $bornDateStr',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF4F4F56),
+                          color: appColor(0xFF4F4F56),
                           height: 1.25,
                         ),
                       ),
@@ -465,10 +466,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         const SizedBox(height: 3),
                         Text(
                           fullAgeStr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             height: 1.25,
                           ),
                         ),
@@ -482,14 +483,14 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
           // Expandable children kits & notes matching Nursery page
           if (isExpanded) ...[
-            const Divider(height: 20, color: Color(0xFFE5E5EA)),
+            Divider(height: 20, color: appSurface(0xFFE5E5EA)),
             if (litter.kits.isEmpty) ...[
               if (!isMissedLitter)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                   child: Text(
                     'No kits recorded in this litter',
-                    style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontStyle: FontStyle.italic),
+                    style: TextStyle(color: appColor(0xFF8E8E93), fontSize: 13, fontStyle: FontStyle.italic),
                   ),
                 ),
             ] else
@@ -528,6 +529,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     final bool isFosteredIn = kit.id.startsWith('F-') ||
         kit.id.startsWith('foster_') ||
         (kit.details != null && kit.details!.toLowerCase().contains('fostered from'));
+    final bool isDead = rawStatus == 'dead' || rawStatus == 'died' || rawStatus == 'deceased';
+    final bool isPeanut = _isPeanutKit(litter, kit);
+    final bool isDeadPeanut = isDead && isPeanut;
 
     final String displayKitId = _getKitDisplayTag(litter, kit);
 
@@ -535,9 +539,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       onTap: () => _showKitActions(litter, kit),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFF2F2F7))),
-          color: Colors.white,
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: appSurface(0xFFF2F2F7))),
+          color: kAppCardWhite,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -549,13 +553,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               constraints: const BoxConstraints(minWidth: 40),
               decoration: BoxDecoration(
                 color: isFosteredIn
-                    ? const Color(0xFF3A3A3C)
-                    : (isOutcome ? const Color(0xFFF2F2F7) : const Color(0xFFF5F1FC)),
+                    ? appSurface(0xFF3A3A3C)
+                    : (isOutcome ? appSurface(0xFFF2F2F7) : appSurface(0xFFF5F1FC)),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: isFosteredIn
-                      ? const Color(0xFF55555A)
-                      : (isOutcome ? const Color(0xFFE5E5EA) : const Color(0xFFE8DFFA)),
+                      ? appSurface(0xFF55555A)
+                      : (isOutcome ? appColor(0xFFE5E5EA) : appSurface(0xFFE8DFFA)),
                 ),
               ),
               child: Center(
@@ -565,8 +569,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: isFosteredIn
-                        ? const Color(0xFFE2BFFB)
-                        : (isOutcome ? const Color(0xFF8E8E93) : const Color(0xFF5A4880)),
+                        ? appColor(0xFFE2BFFB)
+                        : (isOutcome ? appColor(0xFF8E8E93) : appColor(0xFF5A4880)),
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -583,31 +587,35 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     runSpacing: 2,
                     children: [
                       Text(
-                        kit.color.isNotEmpty ? kit.color : 'Kit $displayKitId',
+                        isDeadPeanut
+                            ? 'Peanut'
+                            : (kit.color.isNotEmpty ? kit.color : 'Kit $displayKitId'),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isOutcome ? const Color(0xFF8E8E93) : const Color(0xFF37352F),
+                          color: isOutcome ? appColor(0xFF8E8E93) : appColor(0xFF37352F),
                         ),
                       ),
-                      Icon(
-                        kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
-                        size: 14,
-                        color: kit.sex == 'M' ? const Color(0xFF5B8AD0) : (kit.sex == 'F' ? const Color(0xFFD4809A) : const Color(0xFF7B6BA0)),
-                      ),
+                      if (!isDeadPeanut)
+                        Icon(
+                          kit.sex == 'M' ? PhosphorIcons.genderMale(PhosphorIconsStyle.bold) : (kit.sex == 'F' ? PhosphorIcons.genderFemale(PhosphorIconsStyle.bold) : PhosphorIcons.genderIntersex(PhosphorIconsStyle.bold)),
+                          size: 14,
+                          color: kit.sex == 'M' ? appColor(0xFF5B8AD0) : (kit.sex == 'F' ? appColor(0xFFD4809A) : appColor(0xFF7B6BA0)),
+                        ),
                     ],
                   ),
                   if (kit.weight > 0)
                     Text(
                       'Weight: ${FormatUtils.formatWeight(kit.weight)}',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFAEAEB2), fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 11, color: appColor(0xFFAEAEB2), fontWeight: FontWeight.w500),
                     ),
-                  if (kit.details != null && kit.details!.isNotEmpty) ...[
+                  if ((kit.details != null && kit.details!.isNotEmpty) || (isPeanut && !isDeadPeanut)) ...[
                     Builder(
                       builder: (context) {
                         final displayDetails = FormatUtils.formatDisplayKitDetails(kit.details);
-                        if (displayDetails.isEmpty ||
-                            (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold')) {
+                        if (!isPeanut &&
+                            (displayDetails.isEmpty ||
+                                (kit.status.toLowerCase().trim() == 'sold' && displayDetails.toLowerCase() == 'sold'))) {
                           return const SizedBox.shrink();
                         }
                         final detailParts = displayDetails
@@ -615,6 +623,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             .map((p) => p.trim())
                             .where((p) => p.isNotEmpty)
                             .toList();
+                        if (isPeanut && !isDeadPeanut) {
+                          if (!detailParts.any((p) => p.toLowerCase().contains('peanut'))) {
+                            detailParts.add('Peanut');
+                          }
+                        } else if (isDeadPeanut) {
+                          detailParts.removeWhere((p) {
+                            final lower = p.toLowerCase();
+                            return lower == 'peanut' || lower == 'deceased' || lower == 'dead' || lower == 'died';
+                          });
+                        }
+                        if (detailParts.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Column(
@@ -623,7 +644,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             children: detailParts
                                 .map((part) => Text(
                                       '• $part',
-                                      style: const TextStyle(fontSize: 11, color: Color(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                                      style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
                                     ))
                                 .toList(),
                           ),
@@ -642,15 +663,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               _buildUniformKitBadge(
                 label: 'HERD',
                 bgColor: (kit.sex.toUpperCase() == 'M' || kit.sex.toLowerCase() == 'buck')
-                    ? const Color(0xFF4AA8E8)
-                    : const Color(0xFFEC6FA7),
+                    ? appColor(0xFF4AA8E8)
+                    : appColor(0xFFEC6FA7),
                 textColor: Colors.white,
               ),
               const SizedBox(width: 6),
             ] else if (_isKitGrowOut(kit)) ...[
               _buildUniformKitBadge(
                 label: 'GROW',
-                bgColor: const Color(0xFF7B6BA0),
+                bgColor: appSurface(0xFF7B6BA0),
                 textColor: Colors.white,
               ),
               const SizedBox(width: 6),
@@ -660,12 +681,36 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               maintainSize: true,
               maintainAnimation: true,
               maintainState: true,
-              child: const Icon(PhosphorIconsRegular.caretRight, size: 16, color: Color(0xFFE5E5EA)),
+              child: Icon(PhosphorIconsRegular.caretRight, size: 16, color: appColor(0xFFE5E5EA)),
             ),
           ],
         ),
       ),
     );
+  }
+
+  bool _isPeanutKit(Litter litter, Kit kit) {
+    final detailsLower = (kit.details ?? '').toLowerCase();
+    final colorLower = kit.color.trim().toLowerCase();
+    if (detailsLower.contains('peanut') || colorLower == 'peanut') {
+      return true;
+    }
+    final int peanuts = litter.peanutsProduced ?? 0;
+    if (peanuts <= 0) return false;
+    final ownKits = litter.kits.where((k) {
+      final bool isFosteredIn = k.id.startsWith('F-') ||
+          k.id.startsWith('foster_') ||
+          (k.details != null && k.details!.toLowerCase().contains('fostered from'));
+      return !isFosteredIn;
+    }).toList();
+    if (ownKits.isEmpty) return false;
+    final bool anyExplicit = ownKits.any((k) =>
+        (k.details ?? '').toLowerCase().contains('peanut') ||
+        k.color.trim().toLowerCase() == 'peanut');
+    if (anyExplicit) return false;
+    final int idx = ownKits.indexOf(kit);
+    if (idx == -1) return false;
+    return idx >= (ownKits.length - peanuts).clamp(0, ownKits.length);
   }
 
   bool _isKitPromoted(Kit kit) {
@@ -792,7 +837,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit ${_getKitDisplayTag(litter, kit)} marked as sold'),
-            backgroundColor: const Color(0xFF6B2D6D),
+            backgroundColor: appSurface(0xFF6B2D6D),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1149,8 +1194,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -1166,7 +1211,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E5EA),
+                    color: appSurface(0xFFE5E5EA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1180,26 +1225,26 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         children: [
                           Text(
                             'Kit $kitTag',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: appColor(0xFF2C2C2E),
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             displayStageName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF8E8E93),
+                              color: appColor(0xFF8E8E93),
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF2C2C2E), size: 24),
+                      icon: Icon(Icons.close, color: appColor(0xFF2C2C2E), size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -1210,7 +1255,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE6F6),
+                    color: appSurface(0xFFEDE6F6),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -1238,7 +1283,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -1260,7 +1305,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isDestructive ? const Color(0xFFD32F2F) : const Color(0xFF2C2C2E),
+                color: isDestructive ? appColor(0xFFD32F2F) : appColor(0xFF2C2C2E),
               ),
             ),
           ),
@@ -1291,7 +1336,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       content: 'Do you want to cancel the reservation for Kit $kitTag and restore it to available status?',
       cancelText: 'Keep',
       confirmText: 'Cancel Reservation',
-      confirmColor: const Color(0xFFD32F2F),
+      confirmColor: appColor(0xFFD32F2F),
     );
 
     if (confirmed == true) {
@@ -1402,8 +1447,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.88,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -1412,8 +1457,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 // Top Header matching Log Birth purple theme
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE6BEFE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -1421,10 +1466,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     children: [
                       Text(
                         isEditing ? 'Edit Reservation' : 'Reserve Kit',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -1433,10 +1478,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.6),
+                            color: kAppCardWhite.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -1455,28 +1500,28 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF787774),
+                                  color: appColor(0xFF787774),
                                 ),
                               ),
                             ],
@@ -1485,12 +1530,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         const SizedBox(height: 16),
 
                         // 1. Buyer name
-                        const Text(
+                        Text(
                           'Buyer name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1499,29 +1544,29 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           controller: buyerController,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.person_outline, size: 20, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
 
                         // 2. Phone number
-                        const Text(
+                        Text(
                           'Phone number',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1531,29 +1576,29 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           keyboardType: TextInputType.phone,
                           inputFormatters: [PhoneNumberFormatter()],
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.phone_outlined, size: 20, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
 
                         // 3. User name
-                        const Text(
+                        Text(
                           'User name',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1561,17 +1606,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         TextField(
                           controller: usernameController,
                           decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.alternate_email, size: 19, color: Color(0xFF7B6BA0)),
+                            prefixIcon: Icon(Icons.alternate_email, size: 19, color: appColor(0xFF7B6BA0)),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: kAppCardWhite,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                              borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                              borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                             ),
                           ),
                         ),
@@ -1584,12 +1629,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Sales amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -1600,15 +1645,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                     decoration: InputDecoration(
                                       prefixText: '${FormatUtils.currencySymbol} ',
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                                       ),
                                     ),
                                   ),
@@ -1620,12 +1665,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Deposit amount',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -1636,15 +1681,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                     decoration: InputDecoration(
                                       prefixText: '${FormatUtils.currencySymbol} ',
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                                       ),
                                     ),
                                   ),
@@ -1656,12 +1701,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         const SizedBox(height: 14),
 
                         // 6. Pick up date
-                        const Text(
+                        Text(
                           'Pick up date',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1674,13 +1719,14 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               firstDate: DateTime.now().subtract(const Duration(days: 30)),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                               builder: (context, child) {
-                                return Theme(
+                                if (isAppDark) return child!;
+        return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B6BA0),
+                                    colorScheme: ColorScheme.light(
+                                      primary: appColor(0xFF7B6BA0),
                                       onPrimary: Colors.white,
                                       surface: Colors.white,
-                                      onSurface: Color(0xFF2C2C2E),
+                                      onSurface: appColor(0xFF2C2C2E),
                                     ),
                                   ),
                                   child: child!,
@@ -1694,22 +1740,22 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.2),
+                              border: Border.all(color: appSurface(0xFFC7C7CC), width: 1.2),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   DateFormat('EEEE, MMM d, yyyy').format(pickupDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF4F4F56),
+                                    color: appColor(0xFF4F4F56),
                                   ),
                                 ),
-                                const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                                Icon(Icons.calendar_today_rounded, size: 18, color: appColor(0xFF7B6BA0)),
                               ],
                             ),
                           ),
@@ -1803,12 +1849,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                       await _cancelKitReservation(litter, kit);
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE2BFFB),
-                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      backgroundColor: appSurface(0xFFE2BFFB),
+                                      foregroundColor: appColor(0xFF4A3E6D),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                        side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                       ),
                                     ),
                                     child: const FittedBox(
@@ -1832,12 +1878,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                   child: ElevatedButton(
                                     onPressed: () => saveReservation(),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE2BFFB),
-                                      foregroundColor: const Color(0xFF4A3E6D),
+                                      backgroundColor: appSurface(0xFFE2BFFB),
+                                      foregroundColor: appColor(0xFF4A3E6D),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                        side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                       ),
                                     ),
                                     child: const FittedBox(
@@ -1862,12 +1908,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             child: ElevatedButton(
                               onPressed: () => saveReservation(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE2BFFB),
-                                foregroundColor: const Color(0xFF4A3E6D),
+                                backgroundColor: appSurface(0xFFE2BFFB),
+                                foregroundColor: appColor(0xFF4A3E6D),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(color: Color(0xFFC9A2EC), width: 1.2),
+                                  side: BorderSide(color: appSurface(0xFFC9A2EC), width: 1.2),
                                 ),
                               ),
                               child: const Text(
@@ -1969,23 +2015,23 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       isScrollControlled: true,
       builder: (ctx) => Container(
         height: MediaQuery.of(context).size.height * 0.90,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFE9E9E7))),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: appSurface(0xFFE9E9E7))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Birth Certificate Preview',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF2C2C2E)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: appColor(0xFF2C2C2E)),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, size: 22),
@@ -2058,8 +2104,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.only(
@@ -2071,19 +2117,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE6BEFE),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Log Weight',
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF2C2C2E),
+                        color: appColor(0xFF2C2C2E),
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -2092,10 +2138,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
+                          color: kAppCardWhite.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                       ),
                     ),
                   ],
@@ -2112,29 +2158,29 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F2FA),
+                        color: appSurface(0xFFF7F2FA),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                        border: Border.all(color: appSurface(0xFFE8DFFA)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Kit ${_getKitDisplayTag(litter, kit)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2146,12 +2192,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text(
+                    Text(
                       'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2164,13 +2210,14 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           firstDate: DateTime(2000),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                           builder: (context, child) {
-                            return Theme(
+                            if (isAppDark) return child!;
+        return Theme(
                               data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.light(
-                                  primary: Color(0xFF7B6BA0),
+                                colorScheme: ColorScheme.light(
+                                  primary: appColor(0xFF7B6BA0),
                                   onPrimary: Colors.white,
                                   surface: Colors.white,
-                                  onSurface: Color(0xFF2C2C2E),
+                                  onSurface: appColor(0xFF2C2C2E),
                                 ),
                               ),
                               child: child!,
@@ -2185,37 +2232,37 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kAppCardWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFC7C7CC)),
+                          border: Border.all(color: appSurface(0xFFC7C7CC)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               FormatUtils.formatDate(selectedDate),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
-                                color: Color(0xFF2C2C2E),
+                                color: appColor(0xFF2C2C2E),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.calendar_today_outlined,
                               size: 20,
-                              color: Color(0xFF7B6BA0),
+                              color: appColor(0xFF7B6BA0),
                             ),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Weight',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2229,7 +2276,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixIcon: const Padding(
+                              suffixIcon: Padding(
                                 padding: EdgeInsets.only(right: 14),
                                 child: Center(
                                   widthFactor: 1.0,
@@ -2238,7 +2285,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF8E8E93),
+                                      color: appColor(0xFF8E8E93),
                                     ),
                                   ),
                                 ),
@@ -2246,21 +2293,21 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 1.5,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                           ),
                         ),
@@ -2272,7 +2319,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              suffixIcon: const Padding(
+                              suffixIcon: Padding(
                                 padding: EdgeInsets.only(right: 14),
                                 child: Center(
                                   widthFactor: 1.0,
@@ -2281,7 +2328,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF8E8E93),
+                                      color: appColor(0xFF8E8E93),
                                     ),
                                   ),
                                 ),
@@ -2289,21 +2336,21 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               suffixIconConstraints: const BoxConstraints(minHeight: 0, minWidth: 0),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 1.5,
                                 ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                             ),
                           ),
                         ),
@@ -2348,36 +2395,36 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 if (mounted) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text('Weight updated'),
-                                      backgroundColor: Color(0xFF7B6BA0),
+                                      backgroundColor: appSurface(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
+                          backgroundColor: appSurface(0xFFE6BEFE),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Save Weight',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               ),
                       ),
@@ -2405,8 +2452,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: kAppCardWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: EdgeInsets.only(
@@ -2418,19 +2465,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE6BEFE),
+                decoration: BoxDecoration(
+                  color: appSurface(0xFFE6BEFE),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Record Health',
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF2C2C2E),
+                        color: appColor(0xFF2C2C2E),
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -2440,10 +2487,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.6),
+                          color: kAppCardWhite.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                       ),
                     ),
                   ],
@@ -2460,29 +2507,29 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F2FA),
+                        color: appSurface(0xFFF7F2FA),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE8DFFA)),
+                        border: Border.all(color: appSurface(0xFFE8DFFA)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Kit ${_getKitDisplayTag(litter, kit)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               '${kit.sex == 'M' ? 'Buck' : (kit.sex == 'F' ? 'Doe' : 'Unknown')} • ${kit.color.isNotEmpty ? kit.color : 'Unknown'} • ${kit.weight} ${FormatUtils.weightUnit}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF787774),
+                                color: appColor(0xFF787774),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -2494,12 +2541,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text(
+                    Text(
                       'Date of entry',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2512,13 +2559,14 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           firstDate: DateTime(2000),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                           builder: (context, child) {
-                            return Theme(
+                            if (isAppDark) return child!;
+        return Theme(
                               data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.light(
-                                  primary: Color(0xFF7B6BA0),
+                                colorScheme: ColorScheme.light(
+                                  primary: appColor(0xFF7B6BA0),
                                   onPrimary: Colors.white,
                                   surface: Colors.white,
-                                  onSurface: Color(0xFF2C2C2E),
+                                  onSurface: appColor(0xFF2C2C2E),
                                 ),
                               ),
                               child: child!,
@@ -2533,37 +2581,37 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kAppCardWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFC7C7CC)),
+                          border: Border.all(color: appSurface(0xFFC7C7CC)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               FormatUtils.formatDate(selectedDate),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
-                                color: Color(0xFF2C2C2E),
+                                color: appColor(0xFF2C2C2E),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.calendar_today_outlined,
                               size: 20,
-                              color: Color(0xFF7B6BA0),
+                              color: appColor(0xFF7B6BA0),
                             ),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Type',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2574,21 +2622,21 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 1.5,
                           ),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: kAppCardWhite,
                       ),
                       items: const [
                         DropdownMenuItem(value: 'treatment', child: Text('Treatment')),
@@ -2603,12 +2651,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Condition / diagnosis',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2620,30 +2668,30 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 1.5,
                           ),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: kAppCardWhite,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Notes',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4F4F56),
+                        color: appColor(0xFF4F4F56),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -2656,21 +2704,21 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFC7C7CC)),
+                          borderSide: BorderSide(color: appSurface(0xFFC7C7CC)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF7B6BA0),
+                          borderSide: BorderSide(
+                            color: appSurface(0xFF7B6BA0),
                             width: 1.5,
                           ),
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: kAppCardWhite,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -2695,36 +2743,36 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 if (mounted) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text('Health record saved'),
-                                      backgroundColor: Color(0xFF7B6BA0),
+                                      backgroundColor: appSurface(0xFF7B6BA0),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
+                          backgroundColor: appSurface(0xFFE6BEFE),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Save Record',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               ),
                       ),
@@ -2758,8 +2806,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -2767,19 +2815,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               children: [
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE6BEFE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFE6BEFE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Sell Kit',
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -2788,10 +2836,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 20),
                         ),
                       ),
                     ],
@@ -2808,28 +2856,28 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Kit ${_getKitDisplayTag(litter, kit)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 '${kit.sex == 'M' ? 'Buck' : 'Doe'} • ${kit.color} • ${kit.weight} ${FormatUtils.weightUnit}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF787774),
+                                  color: appColor(0xFF787774),
                                 ),
                               ),
                             ],
@@ -2841,17 +2889,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Mark as sold',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF2C2C2E),
+                                color: appColor(0xFF2C2C2E),
                               ),
                             ),
                             Switch(
                               value: markAsSold,
-                              activeColor: const Color(0xFF8B5CF6),
+                              activeColor: appColor(0xFF8B5CF6),
                               onChanged: (val) {
                                 setModalState(() {
                                   markAsSold = val;
@@ -2862,12 +2910,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         const SizedBox(height: 16),
 
-                        const Text(
+                        Text(
                           'Date sold',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -2880,13 +2928,14 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               firstDate: DateTime(2000),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                               builder: (context, child) {
-                                return Theme(
+                                if (isAppDark) return child!;
+        return Theme(
                                   data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B6BA0),
+                                    colorScheme: ColorScheme.light(
+                                      primary: appColor(0xFF7B6BA0),
                                       onPrimary: Colors.white,
                                       surface: Colors.white,
-                                      onSurface: Color(0xFF2C2C2E),
+                                      onSurface: appColor(0xFF2C2C2E),
                                     ),
                                   ),
                                   child: child!,
@@ -2901,25 +2950,25 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: kAppCardWhite,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
+                              border: Border.all(color: appSurface(0xFFC7C7CC), width: 1.5),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   FormatUtils.formatDate(soldDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF2C2C2E),
+                                    color: appColor(0xFF2C2C2E),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.calendar_today_outlined,
                                   size: 20,
-                                  color: Color(0xFF7B6BA0),
+                                  color: appColor(0xFF7B6BA0),
                                 ),
                               ],
                             ),
@@ -2927,12 +2976,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         ),
                         if (!markAsSold) ...[
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             'Sale price',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -2944,28 +2993,28 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               hintText: '0.00',
                               prefixText: '${FormatUtils.currencySymbol} ',
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.5),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF7B6BA0),
+                                borderSide: BorderSide(
+                                  color: appSurface(0xFF7B6BA0),
                                   width: 2,
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          Text(
                             'Buyer name',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF4F4F56),
+                              color: appColor(0xFF4F4F56),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -2998,16 +3047,16 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                     decoration: InputDecoration(
                                       hintText: 'Select or enter buyer',
                                       filled: true,
-                                      fillColor: Colors.white,
+                                      fillColor: kAppCardWhite,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.5),
+                                        borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.5),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(
-                                          color: Color(0xFF7B6BA0),
+                                        borderSide: BorderSide(
+                                          color: appSurface(0xFF7B6BA0),
                                           width: 2,
                                         ),
                                       ),
@@ -3082,28 +3131,28 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text('Kit marked as sold'),
-                              backgroundColor: Color(0xFF6B2D6D),
+                              backgroundColor: appSurface(0xFF6B2D6D),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE6BEFE),
-                        foregroundColor: const Color(0xFF2C2C2E),
+                        backgroundColor: appSurface(0xFFE6BEFE),
+                        foregroundColor: appColor(0xFF2C2C2E),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Record Sale',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
                     ),
@@ -3189,7 +3238,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Sale cancelled for Kit $kitTag'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3262,7 +3311,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit ${_getKitDisplayTag(litter, kit)} moved to $displayStage'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3316,8 +3365,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.88,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: kAppCardWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
@@ -3326,8 +3375,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 // Top Header matching Consistency.jpg
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEADBEE),
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFEADBEE),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
@@ -3335,10 +3384,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     children: [
                       Text(
                         'Foster Kit - ${_getKitDisplayTag(litter, kit)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF4A3E6D),
+                          color: appColor(0xFF4A3E6D),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -3347,10 +3396,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                         ),
                       ),
                     ],
@@ -3369,9 +3418,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F2FA),
+                            color: appSurface(0xFFF7F2FA),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE8DFFA)),
+                            border: Border.all(color: appSurface(0xFFE8DFFA)),
                           ),
                           child: Row(
                             children: [
@@ -3384,7 +3433,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 ),
                                 child: Text(
                                   _getKitDisplayTag(litter, kit),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
                                     color: kLilacText,
@@ -3400,10 +3449,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                       children: [
                                         Text(
                                           kit.color.isNotEmpty ? kit.color : 'Unknown',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF37352F),
+                                            color: appColor(0xFF37352F),
                                           ),
                                         ),
                                         const SizedBox(width: 6),
@@ -3413,18 +3462,18 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                               : (kit.sex == 'F' ? Icons.female : Icons.transgender),
                                           size: 16,
                                           color: kit.sex == 'M'
-                                              ? const Color(0xFF2196F3)
-                                              : (kit.sex == 'F' ? const Color(0xFFE04F9F) : kLilacDeep),
+                                              ? appColor(0xFF2196F3)
+                                              : (kit.sex == 'F' ? appColor(0xFFE04F9F) : kLilacDeep),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       'Birth Mother: ${litter.doeName.isNotEmpty ? litter.doeName : litter.dam}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
-                                        color: Color(0xFF7B6BA0),
+                                        color: appColor(0xFF7B6BA0),
                                       ),
                                     ),
                                   ],
@@ -3436,12 +3485,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         const SizedBox(height: 18),
 
                         // Section Header
-                        const Text(
+                        Text(
                           'SELECT NURSING FOSTER MOTHER',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4F4F56),
+                            color: appColor(0xFF4F4F56),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -3452,20 +3501,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F2FA),
+                              color: appSurface(0xFFF7F2FA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE8DFFA)),
+                              border: Border.all(color: appSurface(0xFFE8DFFA)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.info_outline_rounded, color: Color(0xFF7B6BA0), size: 22),
+                                Icon(Icons.info_outline_rounded, color: appColor(0xFF7B6BA0), size: 22),
                                 SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     'No active nursing litters found to foster with.',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Color(0xFF4F4F56),
+                                      color: appColor(0xFF4F4F56),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -3477,12 +3526,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           DropdownButtonFormField<String>(
                             value: selectedLitterId,
                             isExpanded: true,
-                            hint: const Text(
+                            hint: Text(
                               'Select Foster Doe / Litter',
-                              style: TextStyle(color: Color(0xFF8E8E93), fontSize: 14),
+                              style: TextStyle(color: appColor(0xFF8E8E93), fontSize: 14),
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7B6BA0)),
-                            dropdownColor: Colors.white,
+                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: appColor(0xFF7B6BA0)),
+                            dropdownColor: kAppCardWhite,
                             items: fosterLitters.map((l) {
                               final fosterDoeName = l.doeName.isNotEmpty ? l.doeName : l.dam;
                               final shortLitterId = l.id.length > 6 ? l.id.substring(l.id.length - 4) : l.id;
@@ -3493,10 +3542,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                                 value: l.id,
                                 child: Text(
                                   '$fosterDoeName (Litter #$shortLitterId • $nursingKitsCount kits)',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF37352F),
+                                    color: appColor(0xFF37352F),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -3505,15 +3554,15 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             onChanged: (val) => setModalState(() => selectedLitterId = val),
                             decoration: InputDecoration(
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: kAppCardWhite,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFC7C7CC), width: 1.2),
+                                borderSide: BorderSide(color: appSurface(0xFFC7C7CC), width: 1.2),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.8),
+                                borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.8),
                               ),
                             ),
                           ),
@@ -3523,21 +3572,21 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF7F2FA),
+                              color: appSurface(0xFFF7F2FA),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFE8DFFA)),
+                              border: Border.all(color: appSurface(0xFFE8DFFA)),
                             ),
-                            child: const Row(
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF7B6BA0)),
+                                Icon(Icons.info_outline_rounded, size: 16, color: appColor(0xFF7B6BA0)),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     'This will transfer the kit to the surrogate doe with a note indicating its birth dam.',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF555555),
+                                      color: appColor(0xFF555555),
                                       height: 1.35,
                                     ),
                                   ),
@@ -3567,17 +3616,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                               await _handleFosterKitSingle(litter, target, kit);
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2BFFB),
-                        foregroundColor: const Color(0xFF4A3E6D),
-                        disabledBackgroundColor: const Color(0xFFF2EAF9),
-                        disabledForegroundColor: const Color(0xFFB3A7C2),
+                        backgroundColor: appSurface(0xFFE2BFFB),
+                        foregroundColor: appColor(0xFF4A3E6D),
+                        disabledBackgroundColor: appSurface(0xFFF2EAF9),
+                        disabledForegroundColor: appColor(0xFFB3A7C2),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
                             color: (selectedLitterId == null || fosterLitters.isEmpty)
-                                ? const Color(0xFFE8DFFA)
-                                : const Color(0xFFC9A2EC),
+                                ? appSurface(0xFFE8DFFA)
+                                : appSurface(0xFFC9A2EC),
                             width: 1.2,
                           ),
                         ),
@@ -3634,7 +3683,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit fostered to $targetDoeName'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3666,9 +3715,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Foster cancelled'),
-            backgroundColor: Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3748,7 +3797,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit $kitTag deleted'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -3777,7 +3826,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           children: [
             Text(
               'Are you sure you want to mark Kit $kitTag as culled?',
-              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
+              style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -3785,11 +3834,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacLight),
+                  borderSide: BorderSide(color: kLilacLight),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+                  borderSide: BorderSide(color: kLilacDeep, width: 1.8),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -3857,7 +3906,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Kit $kitTag marked as culled'),
-                backgroundColor: const Color(0xFF7B6BA0),
+                backgroundColor: appSurface(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -3882,7 +3931,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           children: [
             Text(
               'Record cause of death for Kit $kitTag:',
-              style: const TextStyle(fontSize: 15, color: Color(0xFF3A3A3C), height: 1.4),
+              style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -3890,11 +3939,11 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacLight),
+                  borderSide: BorderSide(color: kLilacLight),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kLilacDeep, width: 1.8),
+                  borderSide: BorderSide(color: kLilacDeep, width: 1.8),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
@@ -3922,9 +3971,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
               if ((isExactId || isNumericMatch) && !updated) {
                 updated = true;
+                final bool wasPeanut = _isPeanutKit(currentLitter, k);
+                final String reasonText = reasonController.text.trim();
+                String newDetails;
+                if (wasPeanut) {
+                  newDetails = reasonText.isNotEmpty
+                      ? (reasonText.toLowerCase().contains('peanut') ? reasonText : 'Peanut • $reasonText')
+                      : 'Peanut';
+                } else {
+                  newDetails = reasonText.isNotEmpty ? reasonText : 'Deceased';
+                }
                 return k.copyWith(
                   status: 'Dead',
-                  details: reasonController.text.isNotEmpty ? reasonController.text : 'Deceased',
+                  details: newDetails,
                 );
               }
               return k;
@@ -3962,7 +4021,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Kit $kitTag marked as died'),
-                backgroundColor: const Color(0xFF7B6BA0),
+                backgroundColor: appSurface(0xFF7B6BA0),
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -4004,13 +4063,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
           if ((isExactId || isNumericMatch) && !updated) {
             updated = true;
-            String? cleanDetails;
-            if (k.details != null && k.details!.toLowerCase().contains('fostered')) {
-              final fosterParts = k.details!.split('•').where((p) => p.toLowerCase().contains('fostered')).toList();
-              cleanDetails = fosterParts.isNotEmpty ? fosterParts.first.trim() : null;
-            } else {
-              cleanDetails = null;
+            final bool wasPeanut = _isPeanutKit(currentLitter, k);
+            final List<String> keptParts = [];
+            if (k.details != null && k.details!.isNotEmpty) {
+              for (final p in k.details!.split('•').map((e) => e.trim())) {
+                final lower = p.toLowerCase();
+                if (lower.contains('fostered') || lower.contains('peanut')) {
+                  keptParts.add(p);
+                }
+              }
             }
+            if (wasPeanut && !keptParts.any((p) => p.toLowerCase().contains('peanut'))) {
+              keptParts.add('Peanut');
+            }
+            final String? cleanDetails = keptParts.isNotEmpty ? keptParts.join(' • ') : null;
             return k.copyWith(status: restoredStatus, details: cleanDetails);
           }
           return k;
@@ -4048,7 +4114,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Kit $kitTag restored to life'),
-            backgroundColor: const Color(0xFF2E7B32),
+            backgroundColor: appSurface(0xFF2E7B32),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -4075,7 +4141,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32),
+            color: appSurface(0xFF2E7D32),
             borderRadius: BorderRadius.circular(5),
           ),
           child: const Text(
@@ -4093,36 +4159,36 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     if (s == 'sold') {
       return _buildUniformKitBadge(
         label: 'SOLD',
-        bgColor: const Color(0xFF1E1E24),
+        bgColor: appSurface(0xFF1E1E24),
         onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     if (s == 'cull' || s == 'culled') {
       return _buildUniformKitBadge(
         label: 'CULL',
-        bgColor: const Color(0xFFD32F2F),
+        bgColor: appSurface(0xFFD32F2F),
         onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     if (s == 'dead' || s == 'died' || s == 'deceased') {
       return _buildUniformKitBadge(
         label: 'DIED',
-        bgColor: const Color(0xFFD32F2F),
+        bgColor: appSurface(0xFFD32F2F),
         onTap: (litter != null && kit != null) ? () => _showKitActions(litter, kit) : null,
       );
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
+        color: appSurface(0xFFF2F2F7),
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
         status.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w800,
-          color: Color(0xFF8E8E93),
+          color: appColor(0xFF8E8E93),
         ),
       ),
     );
@@ -4138,20 +4204,20 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         child: RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
+              TextSpan(
                 text: 'Notes: ',
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF787880),
+                  color: appColor(0xFF787880),
                 ),
               ),
               TextSpan(
                 text: litter.notes!.trim(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF4F4F56),
+                  color: appColor(0xFF4F4F56),
                   height: 1.35,
                 ),
               ),
@@ -4169,8 +4235,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     bool isDangerous = false,
   }) {
     final bool isOdd = index % 2 == 1;
-    final Color bgColor = isOdd ? const Color(0xFFF4F0FA) : Colors.white;
-    final Color textColor = isDangerous ? const Color(0xFFD94452) : const Color(0xFF463466);
+    final Color bgColor = isOdd ? appSurface(0xFFF4F0FA) : kAppCardWhite;
+    final Color textColor = isDangerous ? appColor(0xFFD94452) : appColor(0xFF463466);
     
     return InkWell(
       onTap: onTap,
@@ -4197,7 +4263,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     required VoidCallback onTap,
     bool isDangerous = false,
   }) {
-    final Color textColor = isDangerous ? const Color(0xFFD94452) : const Color(0xFF463466);
+    final Color textColor = isDangerous ? appColor(0xFFD94452) : appColor(0xFF463466);
     
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -4207,9 +4273,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E0F2), width: 0.8),
+            border: Border.all(color: appSurface(0xFFE5E0F2), width: 0.8),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Text(
@@ -4230,8 +4296,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: kAppCardWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -4244,7 +4310,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE5FA),
+                    color: appSurface(0xFFEDE5FA),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -4267,7 +4333,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             : (litter.aliveKits ?? born);
                         final bool isMissed = litter.missedLitter == true || (born == 0 && alive == 0 && litter.kits.isEmpty);
                         final String menuTitle = isMissed ? 'Missed Litter' : (alive == 0 ? 'Litter Died' : 'Litter ${litter.id}');
-                        return Text(menuTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF4F4F56), letterSpacing: -0.5));
+                        return Text(menuTitle, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: appColor(0xFF4F4F56), letterSpacing: -0.5));
                       },
                     ),
                     const Spacer(),
@@ -4283,7 +4349,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF4F0FA),
+                    color: appSurface(0xFFF4F0FA),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   padding: const EdgeInsets.all(12),
@@ -4339,7 +4405,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -4351,7 +4417,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Litter record ${litter.id} deleted'),
-                      backgroundColor: const Color(0xFF7B6BA0),
+                      backgroundColor: appSurface(0xFF7B6BA0),
                     ),
                   );
                 }
@@ -4367,7 +4433,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE63946),
+              backgroundColor: appSurface(0xFFE63946),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -4387,7 +4453,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF787774))),
+            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -4395,7 +4461,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               await _handleLitterDied(litter);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC47070),
+              backgroundColor: appSurface(0xFFC47070),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Confirm', style: TextStyle(color: Colors.white)),
@@ -4435,9 +4501,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       await _loadLitterHistory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Litter marked as died — doe reset to OPEN'),
-            backgroundColor: Color(0xFFC47070),
+            backgroundColor: appSurface(0xFFC47070),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -4477,7 +4543,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         Litter? selectedTarget;
@@ -4494,7 +4560,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 Container(
                   width: 40, height: 4,
                   margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: appSurface(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -4511,7 +4577,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     controller: scrollController,
                     padding: const EdgeInsets.all(16),
                     children: [
-                      const Text('SELECT KITS TO FOSTER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9E9E9E), letterSpacing: 0.6)),
+                      Text('SELECT KITS TO FOSTER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: appColor(0xFF9E9E9E), letterSpacing: 0.6)),
                       const SizedBox(height: 8),
                       ...aliveKits.map((kit) => CheckboxListTile(
                         value: selectedKitIds.contains(kit.id),
@@ -4525,13 +4591,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                         dense: true,
                       )),
                       const SizedBox(height: 16),
-                      const Text('FOSTER INTO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF9E9E9E), letterSpacing: 0.6)),
+                      Text('FOSTER INTO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: appColor(0xFF9E9E9E), letterSpacing: 0.6)),
                       const SizedBox(height: 8),
                       if (candidates.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: const Color(0xFFFFF3CD), borderRadius: BorderRadius.circular(12)),
-                          child: const Text('No other active litters available to foster into.', style: TextStyle(color: Color(0xFF856404))),
+                          decoration: BoxDecoration(color: appSurface(0xFFFFF3CD), borderRadius: BorderRadius.circular(12)),
+                          child: Text('No other active litters available to foster into.', style: TextStyle(color: appColor(0xFF856404))),
                         )
                       else
                         ...candidates.map((targetLitter) => RadioListTile<Litter>(
@@ -4557,7 +4623,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             }
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B6BA0),
+                        backgroundColor: appSurface(0xFF7B6BA0),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
@@ -4624,7 +4690,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${kitsToMove.length} kit${kitsToMove.length > 1 ? 's' : ''} fostered to $targetDoeName'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -4645,18 +4711,18 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
+        color: appSurface(0xFFF5F5F7),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE8E8EE)),
+        border: Border.all(color: appSurface(0xFFE8E8EE)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF7A7A82),
+              color: appColor(0xFF7A7A82),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -4666,9 +4732,9 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
               value,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF4F4F57),
+                color: appColor(0xFF4F4F57),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -4686,7 +4752,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: kAppCardWhite,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: kNeutral200),
           ),
@@ -4705,7 +4771,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral50, letterSpacing: 0.6)),
+      child: Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kNeutral50, letterSpacing: 0.6)),
     );
   }
 
@@ -4720,24 +4786,24 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: kAppCardWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFC7C7CC), width: 1.5),
+          border: Border.all(color: appSurface(0xFFC7C7CC), width: 1.5),
         ),
         child: TextFormField(
           initialValue: initialValue ?? '',
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF4F4F56),
+            color: appColor(0xFF4F4F56),
           ),
           decoration: InputDecoration(
             labelText: label,
-            labelStyle: const TextStyle(
+            labelStyle: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF9B9B9E),
+              color: appColor(0xFF9B9B9E),
             ),
             floatingLabelBehavior: FloatingLabelBehavior.always,
             isDense: true,

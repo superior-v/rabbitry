@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -7,6 +9,521 @@ import '../services/format_utils.dart';
 import '../constants/app_colors.dart';
 import 'pedigree_layout.dart';
 import 'pedigree_preview_modal.dart';
+
+bool isPedigreeAncestorRecorded(Rabbit? r) {
+  if (r == null) return false;
+  final name = r.name.trim();
+  final ear = (r.earNumber ?? '').trim();
+  return name.isNotEmpty || ear.isNotEmpty;
+}
+
+Future<Rabbit> savePedigreeSlotOnPath({
+  required DatabaseService db,
+  required Rabbit baseRabbit,
+  required List<String> path,
+  required Rabbit? selectedRabbit,
+}) async {
+  Rabbit root = (await db.getRabbit(baseRabbit.id)) ?? baseRabbit;
+  if (await db.getRabbit(root.id) == null) {
+    await db.insertRabbit(root);
+  }
+
+  Rabbit node = root;
+  for (int i = 0; i < path.length - 1; i++) {
+    final step = path[i];
+    final childId = step == 'sire' ? node.sireId : node.damId;
+    Rabbit? child = (childId != null && childId.isNotEmpty)
+        ? await db.getRabbit(childId)
+        : null;
+    if (child == null) {
+      child = Rabbit(
+        id: 'PED-${DateTime.now().microsecondsSinceEpoch}_$i',
+        name: '',
+        type: step == 'sire' ? RabbitType.buck : RabbitType.doe,
+        status: RabbitStatus.archived,
+        breed: root.breed,
+      );
+      await db.insertRabbit(child);
+      if (step == 'sire') {
+        node.sireId = child.id;
+      } else {
+        node.damId = child.id;
+      }
+      await db.updateRabbit(node);
+      if (i == 0) root = node;
+    }
+    node = child;
+  }
+
+  final lastStep = path.last;
+  final oldSlotId = lastStep == 'sire' ? node.sireId : node.damId;
+  final Rabbit? oldSlotRabbit = (oldSlotId != null && oldSlotId.isNotEmpty)
+      ? await db.getRabbit(oldSlotId)
+      : null;
+
+  if (selectedRabbit != null &&
+      oldSlotRabbit != null &&
+      selectedRabbit.id != oldSlotRabbit.id) {
+    bool needUpdateSelected = false;
+    if ((selectedRabbit.sireId == null || selectedRabbit.sireId!.isEmpty) &&
+        oldSlotRabbit.sireId != null &&
+        oldSlotRabbit.sireId!.isNotEmpty) {
+      selectedRabbit.sireId = oldSlotRabbit.sireId;
+      needUpdateSelected = true;
+    }
+    if ((selectedRabbit.damId == null || selectedRabbit.damId!.isEmpty) &&
+        oldSlotRabbit.damId != null &&
+        oldSlotRabbit.damId!.isNotEmpty) {
+      selectedRabbit.damId = oldSlotRabbit.damId;
+      needUpdateSelected = true;
+    }
+    if (needUpdateSelected) {
+      await db.updateRabbit(selectedRabbit);
+    }
+  }
+
+  if (lastStep == 'sire') {
+    node.sireId = selectedRabbit?.id;
+  } else {
+    node.damId = selectedRabbit?.id;
+  }
+  await db.updateRabbit(node);
+  if (path.length == 1) {
+    root = node;
+  }
+  return (await db.getRabbit(root.id)) ?? root;
+}
+
+class PedigreeThreeColumnTree extends StatelessWidget {
+  final int generations;
+  final Rabbit? sire;
+  final Rabbit? dam;
+  final Rabbit? ss;
+  final Rabbit? sd;
+  final Rabbit? ds;
+  final Rabbit? dd;
+  final Rabbit? sss;
+  final Rabbit? ssd;
+  final Rabbit? sds;
+  final Rabbit? sdd;
+  final Rabbit? dss;
+  final Rabbit? dsd;
+  final Rabbit? dds;
+  final Rabbit? ddd;
+  final void Function(List<String> path, String label, RabbitType type, Rabbit? current) onTapSlot;
+
+  const PedigreeThreeColumnTree({
+    super.key,
+    this.generations = 4,
+    required this.sire,
+    required this.dam,
+    required this.ss,
+    required this.sd,
+    required this.ds,
+    required this.dd,
+    required this.sss,
+    required this.ssd,
+    required this.sds,
+    required this.sdd,
+    required this.dss,
+    required this.dsd,
+    required this.dds,
+    required this.ddd,
+    required this.onTapSlot,
+  });
+
+  int get _recordedCount {
+    final all = <Rabbit?>[
+      sire,
+      dam,
+      ss,
+      sd,
+      ds,
+      dd,
+      sss,
+      ssd,
+      sds,
+      sdd,
+      dss,
+      dsd,
+      dds,
+      ddd,
+    ];
+    return all.where(isPedigreeAncestorRecorded).length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const double boxHeight = 46.0;
+    const double gap = 6.0;
+    const double pairHeight = boxHeight * 2 + gap; // 98.0
+    const double halfHeight = boxHeight * 4 + gap * 3; // 202.0
+    const double colGap = 8.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$_recordedCount of 14 ancestors recorded',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: appColor(0xFF4F4F56, 0xFFB4B9C8),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Column headers
+        Row(
+          children: [
+            Expanded(
+              flex: 10,
+              child: Text(
+                'Parents',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: appColor(0xFF6B7280, 0xFF9EA6B8),
+                ),
+              ),
+            ),
+            if (generations >= 3) ...[
+              const SizedBox(width: colGap),
+              Expanded(
+                flex: 10,
+                child: Text(
+                  'Grandparents',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: appColor(0xFF6B7280, 0xFF9EA6B8),
+                  ),
+                ),
+              ),
+            ],
+            if (generations >= 4) ...[
+              const SizedBox(width: colGap),
+              Expanded(
+                flex: 11,
+                child: Text(
+                  'Great GrandParents',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: appColor(0xFF6B7280, 0xFF9EA6B8),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // TOP HALF: Paternal (Sire) Branch
+        SizedBox(
+          height: halfHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Parents Column: Sire
+              Expanded(
+                flex: 10,
+                child: Center(
+                  child: _buildAncestorBox(
+                    rabbit: sire,
+                    isMale: true,
+                    height: boxHeight,
+                    onTap: () => onTapSlot(['sire'], 'Sire', RabbitType.buck, sire),
+                  ),
+                ),
+              ),
+              if (generations >= 3) ...[
+                const SizedBox(width: colGap),
+                // Grandparents Column: Sire's Sire & Sire's Dam
+                Expanded(
+                  flex: 10,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: pairHeight,
+                        child: Center(
+                          child: _buildAncestorBox(
+                            rabbit: ss,
+                            isMale: true,
+                            height: boxHeight,
+                            onTap: () => onTapSlot(['sire', 'sire'], "Sire's Sire", RabbitType.buck, ss),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: gap),
+                      SizedBox(
+                        height: pairHeight,
+                        child: Center(
+                          child: _buildAncestorBox(
+                            rabbit: sd,
+                            isMale: false,
+                            height: boxHeight,
+                            onTap: () => onTapSlot(['sire', 'dam'], "Sire's Dam", RabbitType.doe, sd),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (generations >= 4) ...[
+                const SizedBox(width: colGap),
+                // Great GrandParents Column: Paternal 4
+                Expanded(
+                  flex: 11,
+                  child: Column(
+                    children: [
+                      _buildAncestorBox(
+                        rabbit: sss,
+                        isMale: true,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['sire', 'sire', 'sire'], "Sire's Paternal G.Sire", RabbitType.buck, sss),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: ssd,
+                        isMale: false,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['sire', 'sire', 'dam'], "Sire's Paternal G.Dam", RabbitType.doe, ssd),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: sds,
+                        isMale: true,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['sire', 'dam', 'sire'], "Sire's Maternal G.Sire", RabbitType.buck, sds),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: sdd,
+                        isMale: false,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['sire', 'dam', 'dam'], "Sire's Maternal G.Dam", RabbitType.doe, sdd),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // BOTTOM HALF: Maternal (Dam) Branch
+        SizedBox(
+          height: halfHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Parents Column: Dam
+              Expanded(
+                flex: 10,
+                child: Center(
+                  child: _buildAncestorBox(
+                    rabbit: dam,
+                    isMale: false,
+                    height: boxHeight,
+                    onTap: () => onTapSlot(['dam'], 'Dam', RabbitType.doe, dam),
+                  ),
+                ),
+              ),
+              if (generations >= 3) ...[
+                const SizedBox(width: colGap),
+                // Grandparents Column: Dam's Sire & Dam's Dam
+                Expanded(
+                  flex: 10,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: pairHeight,
+                        child: Center(
+                          child: _buildAncestorBox(
+                            rabbit: ds,
+                            isMale: true,
+                            height: boxHeight,
+                            onTap: () => onTapSlot(['dam', 'sire'], "Dam's Sire", RabbitType.buck, ds),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: gap),
+                      SizedBox(
+                        height: pairHeight,
+                        child: Center(
+                          child: _buildAncestorBox(
+                            rabbit: dd,
+                            isMale: false,
+                            height: boxHeight,
+                            onTap: () => onTapSlot(['dam', 'dam'], "Dam's Dam", RabbitType.doe, dd),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (generations >= 4) ...[
+                const SizedBox(width: colGap),
+                // Great GrandParents Column: Maternal 4
+                Expanded(
+                  flex: 11,
+                  child: Column(
+                    children: [
+                      _buildAncestorBox(
+                        rabbit: dss,
+                        isMale: true,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['dam', 'sire', 'sire'], "Dam's Paternal G.Sire", RabbitType.buck, dss),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: dsd,
+                        isMale: false,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['dam', 'sire', 'dam'], "Dam's Paternal G.Dam", RabbitType.doe, dsd),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: dds,
+                        isMale: true,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['dam', 'dam', 'sire'], "Dam's Maternal G.Sire", RabbitType.buck, dds),
+                      ),
+                      const SizedBox(height: gap),
+                      _buildAncestorBox(
+                        rabbit: ddd,
+                        isMale: false,
+                        height: boxHeight,
+                        onTap: () => onTapSlot(['dam', 'dam', 'dam'], "Dam's Maternal G.Dam", RabbitType.doe, ddd),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAncestorBox({
+    required Rabbit? rabbit,
+    required bool isMale,
+    required double height,
+    required VoidCallback onTap,
+  }) {
+    final bool recorded = isPedigreeAncestorRecorded(rabbit);
+    final Color bgColor = isMale
+        ? appSurface(0xFFEAF4FF, 0xFF202830)
+        : appSurface(0xFFFFEEF6, 0xFF292029);
+    final Color borderColor = isMale
+        ? appSurface(0xFF7CBDF5, 0xFF334456)
+        : appSurface(0xFFF49AC6, 0xFF4C3344);
+    final Color accentColor = isMale
+        ? appColor(0xFF3B96E8, 0xFF7CC4FA)
+        : appColor(0xFFE85C9E, 0xFFF49AC6);
+
+    String primaryLine = '-';
+    String secondaryLine = '';
+
+    if (recorded && rabbit != null) {
+      final prefix = (rabbit.breederPrefix ?? '').trim();
+      final name = rabbit.name.trim();
+      final fullName = prefix.isNotEmpty && name.isNotEmpty
+          ? '$prefix $name'
+          : (name.isNotEmpty ? name : prefix);
+      final ear = (rabbit.earNumber ?? '').trim();
+
+      if (ear.isNotEmpty && fullName.isNotEmpty) {
+        primaryLine = '$ear · $fullName';
+      } else if (fullName.isNotEmpty) {
+        primaryLine = fullName;
+      } else if (ear.isNotEmpty) {
+        primaryLine = ear;
+      }
+
+      if (rabbit.dateOfBirth != null) {
+        secondaryLine = DateFormat('MMM d, yyyy').format(rabbit.dateOfBirth!);
+      } else if ((rabbit.color ?? '').trim().isNotEmpty) {
+        secondaryLine = rabbit.color!.trim();
+      } else if (rabbit.breed.trim().isNotEmpty) {
+        secondaryLine = rabbit.breed.trim();
+      }
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: 1.1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3.5,
+              color: accentColor,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      primaryLine,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: recorded
+                            ? appColor(0xFF1F2937, 0xFFF1F5F9)
+                            : (isMale
+                                ? appColor(0xFF5A8BB8, 0xFF8CA8C4)
+                                : appColor(0xFFB86B90, 0xFFC48AA8)),
+                        height: 1.15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (secondaryLine.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        secondaryLine,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                          color: appColor(0xFF55555C, 0xFF9EA6B8),
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class PedigreeInlineCard extends StatefulWidget {
   final Rabbit rabbit;
@@ -109,7 +626,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -128,7 +645,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                color: isSelected ? appColor(0xFF5C4A70) : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -141,12 +658,12 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
+      return Center(child: CircularProgressIndicator(strokeWidth: 2, color: kPinkDeep));
     }
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kAppCardWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kNeutral200),
       ),
@@ -158,12 +675,12 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'PEDIGREE',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4F4F56),
+                    color: appColor(0xFF4F4F56),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -189,7 +706,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     ),
                     child: Row(
                       children: [
-                        Text('$selectedGenerations Generations', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                        Text('$selectedGenerations Generations', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: appColor(0xFF374151))),
                         const SizedBox(width: 4),
                         Icon(Icons.keyboard_arrow_down, size: 16, color: kNeutral500),
                       ],
@@ -207,7 +724,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                       children: [
                         Icon(PhosphorIcons.downloadSimple(), size: 14, color: kNeutral600),
                         const SizedBox(width: 6),
-                        const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
+                        Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kNeutral600)),
                       ],
                     ),
                   ),
@@ -216,176 +733,114 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             ),
           ),
 
-          const Divider(height: 1, color: kNeutral100),
+          Divider(height: 1, color: kNeutral100),
 
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                 _buildSubjectCard(),
+                PedigreeThreeColumnTree(
+                  generations: selectedGenerations,
+                  sire: _sire,
+                  dam: _dam,
+                  ss: _ss,
+                  sd: _sd,
+                  ds: _ds,
+                  dd: _dd,
+                  sss: _sss,
+                  ssd: _ssd,
+                  sds: _sds,
+                  sdd: _sdd,
+                  dss: _dss,
+                  dsd: _dsd,
+                  dds: _dds,
+                  ddd: _ddd,
+                  onTapSlot: _editSlotOnPath,
+                ),
 
-                 if (selectedGenerations >= 2) ...[
-                   const SizedBox(height: 20),
-                   _buildLabel('PARENTS'),
-                   Row(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       Expanded(
-                         child: _buildParentCard(
-                           label: 'SIRE',
-                           rabbit: _sire,
-                           isMale: true,
-                           onTap: () => _updateParent(RabbitType.buck, true),
-                         ),
-                       ),
-                       const SizedBox(width: 12),
-                       Expanded(
-                         child: _buildParentCard(
-                           label: 'DAM',
-                           rabbit: _dam,
-                           isMale: false,
-                           onTap: () => _updateParent(RabbitType.doe, true),
-                         ),
-                       ),
-                     ],
-                   ),
-                 ],
-
-                 if (selectedGenerations >= 3) ...[
-                   const SizedBox(height: 20),
-                   _buildLabel('GRANDPARENTS'),
-                   Row(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       // Sire's Parents
-                       Expanded(
-                         child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
-                             _buildBaseCard(
-                               name: _ss?.name ?? 'Sire\'s Sire',
-                               id: _ss?.id ?? '--',
-                               borderColor: kBlueDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
-                             ),
-                             const SizedBox(height: 8),
-                             _buildBaseCard(
-                               name: _sd?.name ?? 'Sire\'s Dam',
-                               id: _sd?.id ?? '--',
-                               borderColor: kPinkDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
-                             ),
-                           ],
-                         ),
-                       ),
-                       const SizedBox(width: 12),
-                       // Dam's Parents
-                       Expanded(
-                         child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
-                             _buildBaseCard(
-                               name: _ds?.name ?? 'Dam\'s Sire',
-                               id: _ds?.id ?? '--',
-                               borderColor: kBlueDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
-                             ),
-                             const SizedBox(height: 8),
-                             _buildBaseCard(
-                               name: _dd?.name ?? 'Dam\'s Dam',
-                               id: _dd?.id ?? '--',
-                               borderColor: kPinkDeep,
-                               isSmall: true,
-                               onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
-                             ),
-                           ],
-                         ),
-                       ),
-                     ],
-                   ),
-                 ],
-
-                 if (selectedGenerations >= 4) ...[
-                    const SizedBox(height: 20),
-                    _buildLabel('GREAT-GRANDPARENTS'),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildAncestorCol(_ss, 'Sire\'s paternal', _sss, _ssd)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildAncestorCol(_sd, 'Sire\'s maternal', _sds, _sdd)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildAncestorCol(_ds, 'Dam\'s paternal', _dss, _dsd)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildAncestorCol(_dd, 'Dam\'s maternal', _dds, _ddd)),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 20),
-                  // 2 Options / Toggle Buttons: Landscape & Portrait
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F7),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E5EA)),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        _buildOrientationToggle('Landscape', PedigreeOrientation.landscape),
-                        _buildOrientationToggle('Portrait', PedigreeOrientation.portrait),
-                      ],
-                    ),
+                const SizedBox(height: 20),
+                // 2 Options / Toggle Buttons: Landscape & Portrait
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: appSurface(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: appSurface(0xFFE5E5EA)),
                   ),
-                  const SizedBox(height: 14),
-                  // Preview Pedigree Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _exportPedigree,
-                      icon: Icon(
-                        PhosphorIcons.treeStructure(PhosphorIconsStyle.duotone),
-                        size: 18,
-                        color: const Color(0xFF5C4A70),
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    children: [
+                      _buildOrientationToggle('Landscape', PedigreeOrientation.landscape),
+                      _buildOrientationToggle('Portrait', PedigreeOrientation.portrait),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // Preview Pedigree Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _exportPedigree,
+                    icon: Icon(
+                      PhosphorIcons.treeStructure(PhosphorIconsStyle.duotone),
+                      size: 18,
+                      color: appColor(0xFF5C4A70),
+                    ),
+                    label: Text(
+                      'Preview Pedigree',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: appColor(0xFF5C4A70),
                       ),
-                      label: const Text(
-                        'Preview Pedigree',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5C4A70),
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4B3EE),
-                        foregroundColor: const Color(0xFF5C4A70),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: appSurface(0xFFD4B3EE),
+                      foregroundColor: appColor(0xFF5C4A70),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-     );
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editSlotOnPath(
+    List<String> path,
+    String label,
+    RabbitType gender,
+    Rabbit? currentSlotRabbit,
+  ) async {
+    final Rabbit? existingRecorded =
+        isPedigreeAncestorRecorded(currentSlotRabbit) ? currentSlotRabbit : null;
+    final suggestedPrefix = existingRecorded == null
+        ? await pedigreeSuggestedPrefix(_db, widget.rabbit, path)
+        : null;
+    _showParentPickerDialog(
+      label,
+      gender,
+      (selectedRabbit) async {
+        await savePedigreeSlotOnPath(
+          db: _db,
+          baseRabbit: widget.rabbit,
+          path: path,
+          selectedRabbit: selectedRabbit,
+        );
+        await _loadPedigree();
+        if (widget.onUpdated != null) widget.onUpdated!();
+      },
+      currentRabbit: existingRecorded,
+      suggestedPrefix: suggestedPrefix,
+    );
   }
 
   Widget _buildSubjectCard() {
@@ -395,17 +850,17 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       decoration: BoxDecoration(
         color: kHeaderPink,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF7B4DE), width: 0.8),
+        border: Border.all(color: appSurface(0xFFF7B4DE), width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'SUBJECT',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF55555C),
+              color: appColor(0xFF55555C),
               letterSpacing: 1.4,
             ),
           ),
@@ -416,18 +871,18 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 if ((widget.rabbit.breederPrefix ?? '').isNotEmpty)
                   TextSpan(
                     text: '${widget.rabbit.breederPrefix} ',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                   ),
                 TextSpan(
                   text: widget.rabbit.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2C2C2E),
+                    color: appColor(0xFF2C2C2E),
                   ),
                 ),
               ],
@@ -437,10 +892,10 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             const SizedBox(height: 3),
             Text(
               widget.rabbit.breed,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF55555C),
+                color: appColor(0xFF55555C),
               ),
             ),
           ],
@@ -448,20 +903,20 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             const SizedBox(height: 2),
             Text(
               'Ear #: ${widget.rabbit.earNumber}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF8E8E93),
+                color: appColor(0xFF8E8E93),
               ),
             ),
           ] else if (widget.rabbit.id.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
               'ID: ${widget.rabbit.id}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF8E8E93),
+                color: appColor(0xFF8E8E93),
               ),
             ),
           ],
@@ -477,15 +932,15 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     required VoidCallback onTap,
   }) {
     final Gradient cardGradient = isMale
-        ? const LinearGradient(
+        ? LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+            colors: [appSurface(0xFF86DAFF), appSurface(0xFFF0F9FF)],
           )
-        : const LinearGradient(
+        : LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFBCE7), Color(0xFFFFF0F9)],
+            colors: [appSurface(0xFFFFBCE7), appSurface(0xFFFFF0F9)],
           );
 
     final bool hasDetails = rabbit != null;
@@ -498,7 +953,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
           gradient: cardGradient,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
+            color: isMale ? appSurface(0xFFBFE0F7) : appSurface(0xFFF7B4DE),
             width: 0.8,
           ),
         ),
@@ -510,17 +965,17 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF55555C),
+                    color: appColor(0xFF55555C),
                     letterSpacing: 1.4,
                   ),
                 ),
                 Icon(
                   hasDetails ? Icons.edit : Icons.add_circle_outline,
                   size: 14,
-                  color: const Color(0xFF55555C).withValues(alpha: 0.6),
+                  color: appColor(0xFF55555C).withValues(alpha: 0.6),
                 ),
               ],
             ),
@@ -528,19 +983,19 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             if (!hasDetails) ...[
               Text(
                 isMale ? 'Add Sire' : 'Add Dam',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF55555C),
+                  color: appColor(0xFF55555C),
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Tap to select',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF8E8E93),
+                  color: appColor(0xFF8E8E93),
                 ),
               ),
             ] else ...[
@@ -550,18 +1005,18 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                     if ((rabbit.breederPrefix ?? '').isNotEmpty)
                       TextSpan(
                         text: '${rabbit.breederPrefix} ',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
                     TextSpan(
                       text: rabbit.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2C2C2E),
+                        color: appColor(0xFF2C2C2E),
                       ),
                     ),
                   ],
@@ -571,10 +1026,10 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 const SizedBox(height: 3),
                 Text(
                   rabbit.breed,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF55555C),
+                    color: appColor(0xFF55555C),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -584,10 +1039,10 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 const SizedBox(height: 2),
                 Text(
                   'Ear #: ${rabbit.earNumber}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF8E8E93),
+                    color: appColor(0xFF8E8E93),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -596,10 +1051,10 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                 const SizedBox(height: 2),
                 Text(
                   'ID: ${rabbit.id}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF8E8E93),
+                    color: appColor(0xFF8E8E93),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -641,7 +1096,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4F4F56), letterSpacing: 0.8),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: appColor(0xFF4F4F56), letterSpacing: 0.8),
       ),
     );
   }
@@ -651,7 +1106,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF55555C), letterSpacing: 0.3),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: appColor(0xFF55555C), letterSpacing: 0.3),
       ),
     );
   }
@@ -710,7 +1165,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
     );
   }
 
-  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit}) async {
+  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit, String? suggestedPrefix}) async {
     final options = await _db.getRabbitsByType(type);
     if (!mounted) return;
 
@@ -726,6 +1181,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         db: _db,
         breed: widget.rabbit.breed,
         currentRabbit: currentRabbit,
+        suggestedPrefix: suggestedPrefix,
       ),
     );
   }
@@ -749,7 +1205,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
         width: double.infinity,
         padding: EdgeInsets.all(isSmall ? 10 : 12),
         decoration: BoxDecoration(
-          color: color ?? (isPlaceholder ? kNeutral50.withValues(alpha: 0.5) : const Color(0xFFFAFAFA)),
+          color: color ?? (isPlaceholder ? kNeutral50.withValues(alpha: 0.5) : appSurface(0xFFFAFAFA)),
           borderRadius: BorderRadius.circular(12),
           border: isFullBorder
               ? Border.all(color: borderColor, width: 1.5)
@@ -769,13 +1225,13 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   style: TextStyle(
                     fontSize: isSmall ? 12 : 14,
                     fontWeight: FontWeight.w800,
-                    color: isPlaceholder ? const Color(0xFF787880) : const Color(0xFF2C2C2E),
+                    color: isPlaceholder ? appColor(0xFF787880) : appColor(0xFF2C2C2E),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: const Color(0xFF787880).withValues(alpha: 0.6)),
+              if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: appColor(0xFF787880).withValues(alpha: 0.6)),
             ],
           ),
           Text(
@@ -783,7 +1239,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             style: TextStyle(
               fontSize: isSmall ? 10 : 11,
               fontWeight: FontWeight.w600,
-              color: isPlaceholder ? const Color(0xFFAEAEB2) : const Color(0xFF55555C),
+              color: isPlaceholder ? appColor(0xFFAEAEB2) : appColor(0xFF55555C),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -792,7 +1248,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
             const SizedBox(height: 2),
             Text(
               breed,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFF55555C)),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: appColor(0xFF55555C)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -804,7 +1260,29 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
   }
 }
 
+/// Finds the prefix to pre-fill for a new ancestor at [path]: the prefix of its
+/// nearest ancestor on that path (e.g. "Sire's Sire" -> the Sire's prefix).
+/// Returns null for direct parents (path length 1) or when none is found.
+Future<String?> pedigreeSuggestedPrefix(
+  DatabaseService db,
+  Rabbit base,
+  List<String> path,
+) async {
+  String? found;
+  Rabbit? cur = base;
+  for (final step in path.take(path.length - 1)) {
+    final id = step == 'sire' ? cur?.sireId : cur?.damId;
+    if (id == null || id.isEmpty) break;
+    cur = await db.getRabbit(id);
+    if (cur == null) break;
+    final p = (cur.breederPrefix ?? '').trim();
+    if (p.isNotEmpty) found = p;
+  }
+  return found?.toUpperCase();
+}
+
 class PedigreeEntryModal extends StatefulWidget {
+  final String? suggestedPrefix;
   final String label;
   final RabbitType type;
   final List<Rabbit> options;
@@ -822,6 +1300,7 @@ class PedigreeEntryModal extends StatefulWidget {
     required this.db,
     this.breed,
     this.currentRabbit,
+    this.suggestedPrefix,
   });
 
   @override
@@ -855,9 +1334,29 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
   DateTime? _acquiredDate;
   bool _isBroken = false;
 
+  // Auto-filled prefix shown in light grey until accepted or replaced.
+  final _nameFocus = FocusNode();
+  bool _prefixIsSuggestion = false;
+
+  void _onNameFocus() {
+    if (_nameFocus.hasFocus && _prefixIsSuggestion) {
+      setState(() => _prefixIsSuggestion = false); // accepted
+    }
+  }
+
+  void _onPrefixTap() {
+    if (_prefixIsSuggestion) {
+      setState(() {
+        _prefixIsSuggestion = false;
+        _prefixController.clear(); // wrong prefix: start fresh
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _nameFocus.addListener(_onNameFocus);
     final bool hasExisting = widget.currentRabbit != null;
     _tabController = TabController(
       length: 2,
@@ -893,11 +1392,16 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       if ((widget.breed ?? '').isNotEmpty) {
         _breedController.text = widget.breed!;
       }
+      if ((widget.suggestedPrefix ?? '').isNotEmpty) {
+        _prefixController.text = widget.suggestedPrefix!;
+        _prefixIsSuggestion = true;
+      }
     }
   }
 
   @override
   void dispose() {
+    _nameFocus.dispose();
     _tabController.dispose();
     _herdSearchController.dispose();
     _prefixController.dispose();
@@ -937,7 +1441,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
 
   Widget _buildRabbitNameWidget(Rabbit rabbit, {double fontSize = 15}) {
     final isDoe = rabbit.type == RabbitType.doe || widget.type == RabbitType.doe;
-    final nameColor = isDoe ? const Color(0xFFE04F9F) : const Color(0xFF2196F3);
+    final nameColor = isDoe ? appColor(0xFFE04F9F) : appColor(0xFF2196F3);
     final prefix = (rabbit.breederPrefix ?? '').trim();
     final name = rabbit.name.trim();
     final ear = (rabbit.earNumber?.trim().isNotEmpty == true
@@ -951,8 +1455,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -966,8 +1470,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
-                color: Color(0xFF787774),
+              style: TextStyle(
+                color: appColor(0xFF787774),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -984,8 +1488,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9F7FA),
+      decoration: BoxDecoration(
+        color: appSurface(0xFFF9F7FA),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -993,8 +1497,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
           // Purple Top Banner matching Log Birth Modal
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE6BEFE),
+            decoration: BoxDecoration(
+              color: appSurface(0xFFE6BEFE),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -1005,7 +1509,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4A3E6D).withValues(alpha: 0.3),
+                      color: appSurface(0xFF4A3E6D).withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1015,10 +1519,10 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                   children: [
                     Text(
                       widget.currentRabbit != null ? 'Edit ${widget.label}' : 'Set ${widget.label}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF4A3E6D),
+                        color: appColor(0xFF4A3E6D),
                       ),
                     ),
                     GestureDetector(
@@ -1026,10 +1530,10 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: kAppCardWhite.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close_rounded, color: Color(0xFF4A3E6D), size: 20),
+                        child: Icon(Icons.close_rounded, color: appColor(0xFF4A3E6D), size: 20),
                       ),
                     ),
                   ],
@@ -1040,9 +1544,9 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
 
           TabBar(
             controller: _tabController,
-            indicatorColor: const Color(0xFF6B2D6D),
-            labelColor: const Color(0xFF6B2D6D),
-            unselectedLabelColor: const Color(0xFF787880),
+            indicatorColor: appColor(0xFF6B2D6D),
+            labelColor: appColor(0xFF6B2D6D),
+            unselectedLabelColor: appColor(0xFF787880),
             labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             tabs: const [
               Tab(text: 'SELECT FROM HERD'),
@@ -1078,11 +1582,11 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 hintText: 'Search by name, prefix, ear #, breed...',
-                hintStyle: const TextStyle(color: Color(0xFF9E9EA7), fontSize: 13.5),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF7B6BA0), size: 20),
+                hintStyle: TextStyle(color: appColor(0xFF9E9EA7), fontSize: 13.5),
+                prefixIcon: Icon(Icons.search_rounded, color: appColor(0xFF7B6BA0), size: 20),
                 suffixIcon: _herdSearchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF7B6BA0)),
+                        icon: Icon(Icons.clear_rounded, size: 18, color: appColor(0xFF7B6BA0)),
                         onPressed: () {
                           _herdSearchController.clear();
                           setState(() => _herdSearchQuery = '');
@@ -1090,15 +1594,15 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                       )
                     : null,
                 filled: true,
-                fillColor: const Color(0xFFF7F2FD),
+                fillColor: appSurface(0xFFF7F2FD),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFEDE5FA)),
+                  borderSide: BorderSide(color: appSurface(0xFFEDE5FA)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5),
+                  borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
                 ),
               ),
             ),
@@ -1119,16 +1623,16 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F7),
+                      color: appSurface(0xFFF2F2F7),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE5E5EA)),
+                      border: Border.all(color: appSurface(0xFFE5E5EA)),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Leave Blank',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: Color(0xFF636366),
+                        color: appColor(0xFF636366),
                       ),
                     ),
                   ),
@@ -1150,9 +1654,9 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: kAppCardWhite,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5DEEC)),
+                    border: Border.all(color: appSurface(0xFFE5DEEC)),
                   ),
                   child: Row(
                     children: [
@@ -1165,10 +1669,10 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                               const SizedBox(height: 3),
                               Text(
                                 details.join(' • '),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF787774),
+                                  color: appColor(0xFF787774),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1177,7 +1681,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF94A3B8)),
+                      Icon(Icons.chevron_right_rounded, size: 20, color: appColor(0xFF94A3B8)),
                     ],
                   ),
                 ),
@@ -1199,9 +1703,9 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kAppCardWhite,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5DEEC)),
+              border: Border.all(color: appSurface(0xFFE5DEEC)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1211,12 +1715,21 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                   children: [
                     Expanded(
                       flex: 2,
-                      child: _buildOutlinedField('Prefix', _prefixController, isUpperCase: true),
+                      child: _buildOutlinedField(
+                        'Prefix',
+                        _prefixController,
+                        isUpperCase: true,
+                        onTap: _onPrefixTap,
+                        textColor: _prefixIsSuggestion ? appColor(0xFFB5B5BC) : null,
+                        onChanged: (_) {
+                          if (_prefixIsSuggestion) setState(() => _prefixIsSuggestion = false);
+                        },
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       flex: 5,
-                      child: _buildOutlinedField('Name', _nameController),
+                      child: _buildOutlinedField('Name', _nameController, focusNode: _nameFocus),
                     ),
                   ],
                 ),
@@ -1298,13 +1811,13 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                     widget.onSelect(null);
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF636366),
-                    side: const BorderSide(color: Color(0xFFDCDCE0)),
-                    backgroundColor: Colors.white,
+                    foregroundColor: appColor(0xFF636366),
+                    side: BorderSide(color: appSurface(0xFFDCDCE0)),
+                    backgroundColor: kAppCardWhite,
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Leave Blank', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF636366))),
+                  child: Text('Leave Blank', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: appColor(0xFF636366))),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1321,7 +1834,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                   ),
                   child: Text(
                     widget.currentRabbit != null ? 'Update Ancestor' : 'Save Ancestor',
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kLilacText),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kLilacText),
                   ),
                 ),
               ),
@@ -1394,6 +1907,10 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     bool isUpperCase = false,
     String? hintText,
     String? suffixText,
+    FocusNode? focusNode,
+    VoidCallback? onTap,
+    ValueChanged<String>? onChanged,
+    Color? textColor,
   }) {
     final List<TextInputFormatter>? formatters = isNumber
         ? null
@@ -1402,6 +1919,9 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
           ];
     return TextField(
       controller: controller,
+      focusNode: focusNode,
+      onTap: onTap,
+      onChanged: onChanged,
       keyboardType: isMultiline
           ? TextInputType.multiline
           : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
@@ -1412,21 +1932,21 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       textInputAction: isMultiline ? TextInputAction.newline : null,
       minLines: isMultiline ? 2 : 1,
       maxLines: isMultiline ? 6 : 1,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4F4F56)),
+      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor ?? appColor(0xFF4F4F56)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         hintText: hintText,
         suffixText: suffixText,
-        suffixStyle: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
-        hintStyle: const TextStyle(color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
+        suffixStyle: TextStyle(color: appColor(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
+        hintStyle: TextStyle(color: appColor(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE5DEEC))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
       ),
     );
   }
@@ -1445,25 +1965,25 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 13),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 14),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5DEEC))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFFE5DEEC))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF4F4F56)),
+            Icon(Icons.calendar_today_rounded, size: 16, color: appColor(0xFF4F4F56)),
             const SizedBox(width: 8),
             Text(
               value != null ? FormatUtils.formatDate(value) : '',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF4F4F56),
+                color: appColor(0xFF4F4F56),
               ),
             ),
           ],

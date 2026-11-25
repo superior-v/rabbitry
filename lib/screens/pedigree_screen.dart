@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/rabbit.dart';
 import '../services/database_service.dart';
@@ -122,7 +123,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? kAppCardWhite : Colors.transparent,
             borderRadius: BorderRadius.circular(9),
             boxShadow: isSelected
                 ? [
@@ -141,7 +142,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF5C4A70) : const Color(0xFF6B7280),
+                color: isSelected ? appColor(0xFF5C4A70) : appColor(0xFF6B7280),
                 height: 1.15,
               ),
             ),
@@ -151,7 +152,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     );
   }
 
-  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit}) async {
+  void _showParentPickerDialog(String label, RabbitType type, Function(Rabbit?) onSelect, {Rabbit? currentRabbit, String? suggestedPrefix}) async {
     final options = await _db.getRabbitsByType(type);
     if (!mounted) return;
 
@@ -167,6 +168,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         db: _db,
         breed: _baseRabbit.breed,
         currentRabbit: currentRabbit,
+        suggestedPrefix: suggestedPrefix,
       ),
     );
   }
@@ -228,193 +230,138 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     }, currentRabbit: existing);
   }
 
+  Future<void> _editSlotOnPath(
+    List<String> path,
+    String label,
+    RabbitType gender,
+    Rabbit? currentSlotRabbit,
+  ) async {
+    final Rabbit? existingRecorded =
+        isPedigreeAncestorRecorded(currentSlotRabbit) ? currentSlotRabbit : null;
+    final suggestedPrefix = existingRecorded == null
+        ? await pedigreeSuggestedPrefix(_db, _baseRabbit, path)
+        : null;
+    _showParentPickerDialog(
+      label,
+      gender,
+      (selectedRabbit) async {
+        final updatedBase = await savePedigreeSlotOnPath(
+          db: _db,
+          baseRabbit: _baseRabbit,
+          path: path,
+          selectedRabbit: selectedRabbit,
+        );
+        if (mounted) {
+          setState(() => _baseRabbit = updatedBase);
+        }
+        await _loadPedigreeData();
+      },
+      currentRabbit: existingRecorded,
+      suggestedPrefix: suggestedPrefix,
+    );
+  }
+
+  String _buildSubjectSubtitle() {
+    if (_isLoading) return '';
+    final ear = (_baseRabbit.earNumber ?? '').trim();
+    final prefix = (_baseRabbit.breederPrefix ?? '').trim();
+    final name = _baseRabbit.name.trim();
+    final fullName = prefix.isNotEmpty && name.isNotEmpty
+        ? '$prefix $name'
+        : (name.isNotEmpty ? name : prefix);
+    if (ear.isNotEmpty && fullName.isNotEmpty) {
+      return '$ear · $fullName';
+    }
+    return fullName.isNotEmpty ? fullName : ear;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final subtitle = _buildSubjectSubtitle();
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
+      backgroundColor: appSurface(0xFFF9F9FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kAppCardWhite,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1F2937), size: 18),
+          icon: Icon(Icons.arrow_back, color: appColor(0xFF1F2937), size: 22),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Pedigree Chart',
-          style: TextStyle(color: Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          PopupMenuButton<int>(
-            offset: const Offset(0, 40),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            onSelected: (val) {
-              setState(() {
-                _generations = val;
-                _loadPedigreeData();
-              });
-            },
-            itemBuilder: (context) => [2, 3, 4].map((g) => PopupMenuItem(
-              value: g,
-              child: Text('$g Generations', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            )).toList(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                children: [
-                  Text('$_generations Generations', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xFF6B7280)),
-                ],
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pedigree',
+              style: TextStyle(
+                color: appColor(0xFF1F2937),
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
+            if (subtitle.isNotEmpty)
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: appColor(0xFF6B7280),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ),
+        actions: [
           IconButton(
-            icon: Icon(PhosphorIcons.downloadSimple(), color: const Color(0xFF1F2937), size: 20),
-            tooltip: 'Export Pedigree PDF',
+            icon: Icon(Icons.share_outlined, color: appColor(0xFF1F2937), size: 21),
+            tooltip: 'Export / Share Pedigree',
             onPressed: _exportPedigree,
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD4809A)))
+          ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: appColor(0xFFD4809A)))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: kAppCardWhite,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E5EA)),
+                  border: Border.all(color: appSurface(0xFFE5E5EA)),
                 ),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSubjectCard(),
-
-                    if (_generations >= 2) ...[
-                      const SizedBox(height: 20),
-                      _buildLabel('PARENTS'),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _buildParentCard(
-                              label: 'SIRE',
-                              rabbit: _sire,
-                              isMale: true,
-                              onTap: () => _updateParent(RabbitType.buck, true),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildParentCard(
-                              label: 'DAM',
-                              rabbit: _dam,
-                              isMale: false,
-                              onTap: () => _updateParent(RabbitType.doe, true),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-
-                    if (_generations >= 3) ...[
-                      const SizedBox(height: 20),
-                      _buildLabel('GRANDPARENTS'),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Sire's Parents
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSubLabel('${_sire?.name ?? "Sire"}\'s parents'),
-                                _buildBaseCard(
-                                  name: _ss?.name ?? 'Sire\'s Sire',
-                                  id: _ss?.id ?? '--',
-                                  borderColor: kBlueDeep,
-                                  isSmall: true,
-                                  onTap: () => _updateGrandparent(_sire, RabbitType.buck, 'Sire\'s Sire'),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildBaseCard(
-                                  name: _sd?.name ?? 'Sire\'s Dam',
-                                  id: _sd?.id ?? '--',
-                                  borderColor: kPinkDeep,
-                                  isSmall: true,
-                                  onTap: () => _updateGrandparent(_sire, RabbitType.doe, 'Sire\'s Dam'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Dam's Parents
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSubLabel('${_dam?.name ?? "Dam"}\'s parents'),
-                                _buildBaseCard(
-                                  name: _ds?.name ?? 'Dam\'s Sire',
-                                  id: _ds?.id ?? '--',
-                                  borderColor: kBlueDeep,
-                                  isSmall: true,
-                                  onTap: () => _updateGrandparent(_dam, RabbitType.buck, 'Dam\'s Sire'),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildBaseCard(
-                                  name: _dd?.name ?? 'Dam\'s Dam',
-                                  id: _dd?.id ?? '--',
-                                  borderColor: kPinkDeep,
-                                  isSmall: true,
-                                  onTap: () => _updateGrandparent(_dam, RabbitType.doe, 'Dam\'s Dam'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-
-                    if (_generations >= 4) ...[
-                      const SizedBox(height: 20),
-                      _buildLabel('GREAT-GRANDPARENTS'),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildAncestorCol(_ss, 'Sire\'s paternal', _sss, _ssd)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildAncestorCol(_sd, 'Sire\'s maternal', _sds, _sdd)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildAncestorCol(_ds, 'Dam\'s paternal', _dss, _dsd)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildAncestorCol(_dd, 'Dam\'s maternal', _dds, _ddd)),
-                        ],
-                      ),
-                    ],
+                    PedigreeThreeColumnTree(
+                      generations: _generations,
+                      sire: _sire,
+                      dam: _dam,
+                      ss: _ss,
+                      sd: _sd,
+                      ds: _ds,
+                      dd: _dd,
+                      sss: _sss,
+                      ssd: _ssd,
+                      sds: _sds,
+                      sdd: _sdd,
+                      dss: _dss,
+                      dsd: _dsd,
+                      dds: _dds,
+                      ddd: _ddd,
+                      onTapSlot: _editSlotOnPath,
+                    ),
 
                     const SizedBox(height: 20),
                     // 2 Options / Toggle Buttons: Landscape & Portrait
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF2F2F7),
+                        color: appSurface(0xFFF2F2F7),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE5E5EA)),
+                        border: Border.all(color: appSurface(0xFFE5E5EA)),
                       ),
                       padding: const EdgeInsets.all(4),
                       child: Row(
@@ -433,19 +380,19 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                         icon: Icon(
                           PhosphorIcons.treeStructure(PhosphorIconsStyle.duotone),
                           size: 18,
-                          color: const Color(0xFF5C4A70),
+                          color: appColor(0xFF5C4A70),
                         ),
-                        label: const Text(
+                        label: Text(
                           'Preview Pedigree',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF5C4A70),
+                            color: appColor(0xFF5C4A70),
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4B3EE),
-                          foregroundColor: const Color(0xFF5C4A70),
+                          backgroundColor: appSurface(0xFFD4B3EE),
+                          foregroundColor: appColor(0xFF5C4A70),
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -468,17 +415,17 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       decoration: BoxDecoration(
         color: kHeaderPink,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF7B4DE), width: 0.8),
+        border: Border.all(color: appSurface(0xFFF7B4DE), width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'SUBJECT',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF55555C),
+              color: appColor(0xFF55555C),
               letterSpacing: 1.4,
             ),
           ),
@@ -489,18 +436,18 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 if ((_baseRabbit.breederPrefix ?? '').isNotEmpty)
                   TextSpan(
                     text: '${_baseRabbit.breederPrefix} ',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF2C2C2E),
+                      color: appColor(0xFF2C2C2E),
                     ),
                   ),
                 TextSpan(
                   text: _baseRabbit.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2C2C2E),
+                    color: appColor(0xFF2C2C2E),
                   ),
                 ),
               ],
@@ -510,10 +457,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             const SizedBox(height: 3),
             Text(
               _baseRabbit.breed,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF55555C),
+                color: appColor(0xFF55555C),
               ),
             ),
           ],
@@ -521,20 +468,20 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             const SizedBox(height: 2),
             Text(
               'Ear #: ${_baseRabbit.earNumber}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF8E8E93),
+                color: appColor(0xFF8E8E93),
               ),
             ),
           ] else if (_baseRabbit.id.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
               'ID: ${_baseRabbit.id}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF8E8E93),
+                color: appColor(0xFF8E8E93),
               ),
             ),
           ],
@@ -550,15 +497,15 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
     required VoidCallback onTap,
   }) {
     final Gradient cardGradient = isMale
-        ? const LinearGradient(
+        ? LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF86DAFF), Color(0xFFF0F9FF)],
+            colors: [appSurface(0xFF86DAFF), appSurface(0xFFF0F9FF)],
           )
-        : const LinearGradient(
+        : LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFBCE7), Color(0xFFFFF0F9)],
+            colors: [appSurface(0xFFFFBCE7), appSurface(0xFFFFF0F9)],
           );
 
     final bool hasDetails = rabbit != null;
@@ -571,7 +518,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
           gradient: cardGradient,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isMale ? const Color(0xFFBFE0F7) : const Color(0xFFF7B4DE),
+            color: isMale ? appSurface(0xFFBFE0F7) : appSurface(0xFFF7B4DE),
             width: 0.8,
           ),
         ),
@@ -583,17 +530,17 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF55555C),
+                    color: appColor(0xFF55555C),
                     letterSpacing: 1.4,
                   ),
                 ),
                 Icon(
                   hasDetails ? Icons.edit : Icons.add_circle_outline,
                   size: 14,
-                  color: const Color(0xFF55555C).withValues(alpha: 0.6),
+                  color: appColor(0xFF55555C).withValues(alpha: 0.6),
                 ),
               ],
             ),
@@ -601,19 +548,19 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
             if (!hasDetails) ...[
               Text(
                 isMale ? 'Add Sire' : 'Add Dam',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF55555C),
+                  color: appColor(0xFF55555C),
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Tap to select',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF8E8E93),
+                  color: appColor(0xFF8E8E93),
                 ),
               ),
             ] else ...[
@@ -623,18 +570,18 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                     if ((rabbit.breederPrefix ?? '').isNotEmpty)
                       TextSpan(
                         text: '${rabbit.breederPrefix} ',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                         ),
                       ),
                     TextSpan(
                       text: rabbit.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2C2C2E),
+                        color: appColor(0xFF2C2C2E),
                       ),
                     ),
                   ],
@@ -644,10 +591,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 const SizedBox(height: 3),
                 Text(
                   rabbit.breed,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF55555C),
+                    color: appColor(0xFF55555C),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -657,10 +604,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'Ear #: ${rabbit.earNumber}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF8E8E93),
+                    color: appColor(0xFF8E8E93),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -669,10 +616,10 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'ID: ${rabbit.id}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF8E8E93),
+                    color: appColor(0xFF8E8E93),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -714,7 +661,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4F4F56), letterSpacing: 0.8),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: appColor(0xFF4F4F56), letterSpacing: 0.8),
       ),
     );
   }
@@ -724,7 +671,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF55555C), letterSpacing: 0.3),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: appColor(0xFF55555C), letterSpacing: 0.3),
       ),
     );
   }
@@ -748,7 +695,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
         width: double.infinity,
         padding: EdgeInsets.all(isSmall ? 10 : 12),
         decoration: BoxDecoration(
-          color: color ?? (isPlaceholder ? const Color(0xFFF9F9FB).withValues(alpha: 0.5) : const Color(0xFFFAFAFA)),
+          color: color ?? (isPlaceholder ? appSurface(0xFFF9F9FB).withValues(alpha: 0.5) : appSurface(0xFFFAFAFA)),
           borderRadius: BorderRadius.circular(12),
           border: isFullBorder
               ? Border.all(color: borderColor, width: 1.5)
@@ -768,13 +715,13 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
                     style: TextStyle(
                       fontSize: isSmall ? 12 : 14,
                       fontWeight: FontWeight.w800,
-                      color: isPlaceholder ? const Color(0xFF787880) : const Color(0xFF2C2C2E),
+                      color: isPlaceholder ? appColor(0xFF787880) : appColor(0xFF2C2C2E),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: const Color(0xFF787880).withValues(alpha: 0.6)),
+                if (!isPlaceholder && showEditIcon) Icon(Icons.edit, size: 10, color: appColor(0xFF787880).withValues(alpha: 0.6)),
               ],
             ),
             Text(
@@ -782,7 +729,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               style: TextStyle(
                 fontSize: isSmall ? 10 : 11,
                 fontWeight: FontWeight.w600,
-                color: isPlaceholder ? const Color(0xFFAEAEB2) : const Color(0xFF55555C),
+                color: isPlaceholder ? appColor(0xFFAEAEB2) : appColor(0xFF55555C),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -791,7 +738,7 @@ class _PedigreeScreenState extends State<PedigreeScreen> {
               const SizedBox(height: 2),
               Text(
                 breed,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFF55555C)),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: appColor(0xFF55555C)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

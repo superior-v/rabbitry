@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/appearance_service.dart';
 import '../services/purchase_service.dart';
 
 class PaywallScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kAppCardWhite,
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -23,7 +24,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               Icon(
                 Icons.pets,
                 size: 100,
-                color: Color(0xFF14B8A6),
+                color: appColor(0xFF14B8A6),
               ),
               SizedBox(height: 32),
               Text(
@@ -31,7 +32,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: appColor(0xDD000000, 0xFFF1F3F9),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -56,7 +57,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handlePurchase,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF14B8A6),
+                    backgroundColor: appSurface(0xFF14B8A6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -86,7 +87,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 child: Text(
                   'Restore Purchase',
                   style: TextStyle(
-                    color: Color(0xFF14B8A6),
+                    color: appColor(0xFF14B8A6),
                     fontSize: 16,
                   ),
                 ),
@@ -105,7 +106,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         children: [
           Icon(
             Icons.check_circle,
-            color: Color(0xFF14B8A6),
+            color: appColor(0xFF14B8A6),
             size: 24,
           ),
           SizedBox(width: 12),
@@ -114,7 +115,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               text,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.black87,
+                color: appColor(0xDD000000, 0xFFF1F3F9),
               ),
             ),
           ),

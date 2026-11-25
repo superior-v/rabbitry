@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/appearance_service.dart';
 import '../../models/rabbit.dart';
 import '../../services/database_service.dart';
 import '../../services/format_utils.dart';
@@ -90,8 +91,8 @@ class _LogWeightModalState extends State<LogWeightModal> {
     final isDoe = widget.rabbit.type == RabbitType.doe;
     final isArchived = widget.rabbit.status == RabbitStatus.archived;
     final nameColor = isDoe
-        ? (isArchived ? const Color(0xFFF48FB1) : const Color(0xFFE04F9F))
-        : (isArchived ? const Color(0xFF80BFFF) : const Color(0xFF2196F3));
+        ? (isArchived ? appColor(0xFFF48FB1) : appColor(0xFFE04F9F))
+        : (isArchived ? appColor(0xFF80BFFF) : appColor(0xFF2196F3));
     final prefix = (widget.rabbit.breederPrefix ?? '').trim();
     final name = widget.rabbit.name.trim();
     final ear = (widget.rabbit.earNumber?.trim().isNotEmpty == true
@@ -105,10 +106,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
           if (prefix.isNotEmpty)
             TextSpan(
               text: '$prefix ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
           TextSpan(
@@ -122,10 +123,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
           if (ear.isNotEmpty && !name.toUpperCase().endsWith(ear))
             TextSpan(
               text: ' $ear',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF787774),
+                color: appColor(0xFF787774),
               ),
             ),
         ],
@@ -148,12 +149,13 @@ class _LogWeightModalState extends State<LogWeightModal> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        if (isAppDark) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF7B6BA0),
+            colorScheme: ColorScheme.light(
+              primary: appColor(0xFF7B6BA0),
               onPrimary: Colors.white,
-              onSurface: Color(0xFF2C2C2E),
+              onSurface: appColor(0xFF2C2C2E),
             ),
           ),
           child: child!,
@@ -173,9 +175,9 @@ class _LogWeightModalState extends State<LogWeightModal> {
 
     if (lbs <= 0 && oz <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please enter a valid weight in lbs or oz'),
-          backgroundColor: Color(0xFFE63946),
+          backgroundColor: appSurface(0xFFE63946),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -202,7 +204,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Weight logged: $formattedDisplay'),
-            backgroundColor: const Color(0xFF7B6BA0),
+            backgroundColor: appSurface(0xFF7B6BA0),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -240,10 +242,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
     int maxLines = 1,
     Function(String)? onChanged,
     String? Function(String?)? validator,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
     Color? labelColor,
   }) {
-    final effectiveLabelColor = labelColor ?? const Color(0xFF4F4F56);
+    final effectiveLabelColor = labelColor ?? appColor(0xFF4F4F56);
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
@@ -256,16 +258,16 @@ class _LogWeightModalState extends State<LogWeightModal> {
         labelStyle: TextStyle(color: effectiveLabelColor, fontWeight: FontWeight.w600, fontSize: 17),
         floatingLabelStyle: TextStyle(color: effectiveLabelColor, fontWeight: FontWeight.w600, fontSize: 17),
         hintText: hint,
-        hintStyle: const TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
+        hintStyle: TextStyle(color: kNeutral400, fontWeight: FontWeight.w400),
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: effectiveLabelColor, size: 18) : null,
         suffixText: suffixText,
-        suffixStyle: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7B6BA0)),
+        suffixStyle: TextStyle(fontWeight: FontWeight.w700, color: appColor(0xFF7B6BA0)),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7B6BA0), width: 1.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: kAppCardWhite,
       ),
     );
   }
@@ -274,24 +276,24 @@ class _LogWeightModalState extends State<LogWeightModal> {
     required String label,
     required DateTime value,
     required VoidCallback onTap,
-    Color textColor = const Color(0xFF3A3A3C),
+    Color textColor = const AppColor(0xFF3A3A3C),
   }) {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
+          floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 17),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kLilacLight)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kLilacLight)),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: kAppCardWhite,
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: Color(0xFF4F4F56), size: 18),
+            Icon(Icons.calendar_today_rounded, color: appColor(0xFF4F4F56), size: 18),
             const SizedBox(width: 8),
             Text(
               FormatUtils.formatDate(value),
@@ -309,8 +311,8 @@ class _LogWeightModalState extends State<LogWeightModal> {
 
     return Container(
       height: screenHeight * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: kAppCardWhite,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -321,8 +323,8 @@ class _LogWeightModalState extends State<LogWeightModal> {
             // Top Lilac Header Banner (matches consistency.jpg)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEDAFE),
+              decoration: BoxDecoration(
+                color: appSurface(0xFFEEDAFE),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
@@ -332,12 +334,12 @@ class _LogWeightModalState extends State<LogWeightModal> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Log Weight',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2C2C2E),
+                          color: appColor(0xFF2C2C2E),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -347,10 +349,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: kAppCardWhite.withOpacity(0.6),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded, color: Color(0xFF2C2C2E), size: 18),
+                          child: Icon(Icons.close_rounded, color: appColor(0xFF2C2C2E), size: 18),
                         ),
                       ),
                     ],
@@ -368,10 +370,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
                           padding: const EdgeInsets.only(left: 42),
                           child: Text(
                             FormatUtils.formatDate(_selectedDate),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A3E6D),
+                              color: appColor(0xFF4A3E6D),
                             ),
                           ),
                         ),
@@ -406,20 +408,20 @@ class _LogWeightModalState extends State<LogWeightModal> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: kAppCardWhite,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: kLilacLight),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.monitor_weight_outlined, size: 18, color: Color(0xFF7B6BA0)),
+                                  Icon(Icons.monitor_weight_outlined, size: 18, color: appColor(0xFF7B6BA0)),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Current Weight: ${FormatUtils.formatWeight(_currentRabbit.weight!)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4A3E6D),
+                                      color: appColor(0xFF4A3E6D),
                                     ),
                                   ),
                                 ],
@@ -491,14 +493,14 @@ class _LogWeightModalState extends State<LogWeightModal> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.history_rounded, size: 18, color: Color(0xFF4A3E6D)),
+                              Icon(Icons.history_rounded, size: 18, color: appColor(0xFF4A3E6D)),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Log Weight',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF4A3E6D),
+                                  color: appColor(0xFF4A3E6D),
                                 ),
                               ),
                               const Spacer(),
@@ -506,7 +508,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF7B6BA0),
+                                    color: appSurface(0xFF7B6BA0),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -522,13 +524,13 @@ class _LogWeightModalState extends State<LogWeightModal> {
                           ),
                           const SizedBox(height: 10),
                           if (_loadingHistory)
-                            const Center(
+                            Center(
                               child: Padding(
                                 padding: EdgeInsets.all(12.0),
                                 child: SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7B6BA0)),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: appColor(0xFF7B6BA0)),
                                 ),
                               ),
                             )
@@ -536,12 +538,12 @@ class _LogWeightModalState extends State<LogWeightModal> {
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              child: const Text(
+                              child: Text(
                                 'No previous weight entries recorded yet.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF8E8E93),
+                                  color: appColor(0xFF8E8E93),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -567,7 +569,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                 return Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: kAppCardWhite,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: kLilacLight),
                                   ),
@@ -581,10 +583,10 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                               children: [
                                                 Text(
                                                   _formatLbsOz(recordWeight),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF2C2C2E),
+                                                    color: appColor(0xFF2C2C2E),
                                                   ),
                                                 ),
                                               ],
@@ -596,9 +598,9 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                                   if (parsedDate != null)
                                                     Text(
                                                       FormatUtils.formatDate(parsedDate),
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontSize: 12,
-                                                        color: Color(0xFF787774),
+                                                        color: appColor(0xFF787774),
                                                       ),
                                                     ),
                                                   if (recordNotes != null && recordNotes.isNotEmpty) ...[
@@ -606,9 +608,9 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                                     Expanded(
                                                       child: Text(
                                                         '• $recordNotes',
-                                                        style: const TextStyle(
+                                                        style: TextStyle(
                                                           fontSize: 12,
-                                                          color: Color(0xFF787774),
+                                                          color: appColor(0xFF787774),
                                                           fontStyle: FontStyle.italic,
                                                         ),
                                                         overflow: TextOverflow.ellipsis,
@@ -623,7 +625,7 @@ class _LogWeightModalState extends State<LogWeightModal> {
                                       ),
                                       if (recordId != null)
                                         IconButton(
-                                          icon: const Icon(Icons.delete, size: 18, color: Color(0xFF8E8E93)),
+                                          icon: Icon(Icons.delete, size: 18, color: appColor(0xFF8E8E93)),
                                           visualDensity: VisualDensity.compact,
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
@@ -646,27 +648,27 @@ class _LogWeightModalState extends State<LogWeightModal> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveWeight,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6BEFE),
+                          backgroundColor: appSurface(0xFFE6BEFE),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 22,
                                 width: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Save Weight',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF2C2C2E),
+                                  color: appColor(0xFF2C2C2E),
                                 ),
                               ),
                       ),

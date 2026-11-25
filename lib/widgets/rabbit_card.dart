@@ -1,3 +1,4 @@
+import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../models/rabbit.dart';
@@ -34,9 +35,9 @@ class RabbitCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white, // Kept the full structure color white as requested
+          color: kAppCardWhite, // Kept the full structure color white as requested
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE9E9E7)),
+          border: Border.all(color: appSurface(0xFFE9E9E7)),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.03),
@@ -66,7 +67,7 @@ class RabbitCard extends StatelessWidget {
                     width: 68,
                     height: 68,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: kAppCardWhite,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -76,13 +77,13 @@ class RabbitCard extends StatelessWidget {
                         fit: StackFit.expand,
                         children: [
                           isPhotoValid
-                              ? Image.file(
+                              ? DarkModeGuard(child: Image.file(
                                   File(photoPath),
                                   fit: BoxFit.cover,
                                   key: ValueKey('${rabbit.id}_${photoPath}_${File(photoPath).lastModifiedSync().millisecondsSinceEpoch}'),
                                   errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(),
                                   cacheWidth: 200,
-                                )
+                                ))
                               : _buildDefaultIcon(),
                           if (rabbit.salePrice != null)
                             Positioned.fill(
@@ -103,10 +104,10 @@ class RabbitCard extends StatelessWidget {
                       children: [
                         Text(
                           '${rabbit.breederPrefix != null ? '${rabbit.breederPrefix} ' : ''}${rabbit.name}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
+                            color: appColor(0xFF1E293B),
                             letterSpacing: -0.2,
                           ),
                           maxLines: 1,
@@ -115,9 +116,9 @@ class RabbitCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${rabbit.breed}${rabbit.color != null ? '\n${rabbit.color}' : ''}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF787774),
+                            color: appColor(0xFF787774),
                             height: 1.3,
                             fontWeight: FontWeight.w500,
                           ),
@@ -137,16 +138,16 @@ class RabbitCard extends StatelessWidget {
                           margin: const EdgeInsets.only(top: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF2F2F7),
+                            color: appSurface(0xFFF2F2F7),
                             borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: const Color(0xFFDCDCE0)),
+                            border: Border.all(color: appSurface(0xFFDCDCE0)),
                           ),
                           child: Text(
                             _getStatusLetter(rabbit),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF636366),
+                              color: appColor(0xFF636366),
                             ),
                           ),
                         ),
@@ -155,9 +156,9 @@ class RabbitCard extends StatelessWidget {
                       InkWell(
                         onTap: onTap,
                         borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
+                        child: Padding(
                           padding: EdgeInsets.all(4.0),
-                          child: Icon(Icons.more_horiz, color: Color(0xFF787774), size: 22),
+                          child: Icon(Icons.more_horiz, color: appColor(0xFF787774), size: 22),
                         ),
                       ),
                     ],
@@ -243,9 +244,9 @@ class RabbitCard extends StatelessWidget {
           width: 55, // Fixed width keeps the columns aligned
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF9B9A97),
+              color: appColor(0xFF9B9A97),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -253,9 +254,9 @@ class RabbitCard extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF1E293B),
+              color: appColor(0xFF1E293B),
               fontWeight: FontWeight.w600,
             ),
             maxLines: 1,
