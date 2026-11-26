@@ -494,7 +494,10 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                   ),
                 ),
             ] else
-              ...litter.kits.map((kit) => _buildKitRow(litter, kit)),
+              ..._orderedKits(litter, litter.kits)
+                  .asMap()
+                  .entries
+                  .map((e) => _buildKitRow(litter, e.value, index: e.key)),
             const SizedBox(height: 8),
             _buildLitterNotesBox(litter),
             const SizedBox(height: 4),
@@ -504,7 +507,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
     );
   }
 
-  Widget _buildKitRow(Litter litter, Kit kit) {
+  Widget _buildKitRow(Litter litter, Kit kit, {int index = 0}) {
     final String rawStatus = kit.status.toLowerCase().trim();
     final bool isSold = rawStatus == 'sold';
     final bool isReserved = !isSold && (rawStatus == 'reserved' || (kit.details != null && kit.details!.toLowerCase().contains('reserved:')));
@@ -541,15 +544,17 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: appSurface(0xFFF2F2F7))),
-          color: kAppCardWhite,
+          // Alternate rows: white / light grey
+          color: index.isOdd ? appSurface(0xFFF4F4F7) : kAppCardWhite,
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          // Kit tag lines up with the kit name (first line), not the middle
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Index Pill (Purple matching Nursery)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              height: 24,
+              height: 20,
               constraints: const BoxConstraints(minWidth: 40),
               decoration: BoxDecoration(
                 color: isFosteredIn
@@ -587,7 +592,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     runSpacing: 2,
                     children: [
                       Text(
-                        isDeadPeanut
+                        (isPeanut && (isDeadPeanut || kit.color.trim().isEmpty || kit.color.trim().toLowerCase() == 'unknown'))
                             ? 'Peanut'
                             : (kit.color.isNotEmpty ? kit.color : 'Kit $displayKitId'),
                         style: TextStyle(
@@ -605,9 +610,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                     ],
                   ),
                   if (kit.weight > 0)
-                    Text(
-                      'Weight: ${FormatUtils.formatWeight(kit.weight)}',
-                      style: TextStyle(fontSize: 11, color: appColor(0xFFAEAEB2), fontWeight: FontWeight.w500),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '• Weight: ${FormatUtils.formatWeight(kit.weight)}',
+                        style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                      ),
                     ),
                   if ((kit.details != null && kit.details!.isNotEmpty) || (isPeanut && !isDeadPeanut)) ...[
                     Builder(
@@ -623,15 +631,19 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                             .map((p) => p.trim())
                             .where((p) => p.isNotEmpty)
                             .toList();
-                        if (isPeanut && !isDeadPeanut) {
-                          if (!detailParts.any((p) => p.toLowerCase().contains('peanut'))) {
-                            detailParts.add('Peanut');
+                        if (isPeanut) {
+                          // Same as Nursery: name says "Peanut", detail line shows only the date
+                          final cleaned = <String>[];
+                          for (final part in detailParts) {
+                            var t = part.replaceAll(RegExp(r'peanut', caseSensitive: false), '').trim();
+                            t = t.replaceAllMapped(RegExp(r'^\((.*)\)$'), (m) => m.group(1) ?? '').trim();
+                            final lower = t.toLowerCase();
+                            if (t.isEmpty || lower == 'deceased' || lower == 'dead' || lower == 'died') continue;
+                            cleaned.add(t);
                           }
-                        } else if (isDeadPeanut) {
-                          detailParts.removeWhere((p) {
-                            final lower = p.toLowerCase();
-                            return lower == 'peanut' || lower == 'deceased' || lower == 'dead' || lower == 'died';
-                          });
+                          detailParts
+                            ..clear()
+                            ..addAll(cleaned);
                         }
                         if (detailParts.isEmpty) {
                           return const SizedBox.shrink();
@@ -687,6 +699,58 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
         ),
       ),
     );
+  }
+
+  /// "Not Peanut": turn a peanut back into a regular live kit.
+  Future<void> _markKitNotPeanut(Litter litter, Kit kit) async {
+    final idx = _litters.indexWhere((l) => l.id == litter.id);
+    final current = idx != -1 ? _litters[idx] : litter;
+    bool done = false;
+    final kits = current.kits.map((k) {
+      if (!done && k.id == kit.id) {
+        done = true;
+        final remaining = (k.details ?? '')
+            .split('•')
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty && !p.toLowerCase().contains('peanut'))
+            .join(' • ');
+        return k.copyWith(
+          color: k.color.trim().toLowerCase() == 'peanut' ? 'Unknown' : k.color,
+          details: remaining.isEmpty ? null : remaining,
+        );
+      }
+      return k;
+    }).toList();
+    final p = current.peanutsProduced ?? 0;
+    await _db.updateLitter(current.copyWith(kits: kits, peanutsProduced: p > 0 ? p - 1 : 0));
+    await _loadLitterHistory();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Kit ${_getKitDisplayTag(litter, kit)} is no longer a peanut'),
+          backgroundColor: appSurface(0xFF7B6BA0),
+          duration: const Duration(milliseconds: 1200),
+        ),
+      );
+    }
+  }
+
+  /// Kit display order: regular kits by number (K-1, K-2, ...), peanuts last.
+  List<Kit> _orderedKits(Litter litter, List<Kit> kits) {
+    int num(Kit k) => int.tryParse(k.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 9999;
+    bool foster(Kit k) => k.id.startsWith('F-') || k.id.startsWith('foster_') ||
+        (k.details ?? '').toLowerCase().contains('fostered from');
+    final list = List<Kit>.from(kits);
+    final original = {for (var i = 0; i < kits.length; i++) kits[i]: i};
+    list.sort((a, b) {
+      final pa = _isPeanutKit(litter, a) ? 1 : 0, pb = _isPeanutKit(litter, b) ? 1 : 0;
+      if (pa != pb) return pa - pb;
+      final fa = foster(a) ? 1 : 0, fb = foster(b) ? 1 : 0;
+      if (fa != fb) return fa - fb;
+      final c = num(a).compareTo(num(b));
+      return c != 0 ? c : (original[a]! - original[b]!);
+    });
+    return list;
   }
 
   bool _isPeanutKit(Litter litter, Kit kit) {
@@ -864,6 +928,43 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
 
     // Kits already added to the Herd have NO options in Litter History.
     if (_isKitPromoted(currentKit)) return;
+
+    // Peanuts: same options as the Nursery (applied just before the sheet opens)
+    final List<Widget>? peanutActions =
+        (_isPeanutKit(litter, currentKit) && !isSold) ? <Widget>[] : null;
+    if (peanutActions != null) {
+      if (isDeadOrCulled) {
+        peanutActions.add(_buildKitActionPill(
+          label: 'Bring Back to Life',
+          onTap: () {
+            Navigator.pop(context);
+            _showReverseKitDiedDialog(litter, currentKit);
+          },
+        ));
+      } else {
+        peanutActions.add(_buildKitActionPill(
+          label: 'Not Peanut',
+          onTap: () {
+            Navigator.pop(context);
+            _markKitNotPeanut(litter, currentKit);
+          },
+        ));
+        peanutActions.add(_buildKitActionPill(
+          label: 'Cull',
+          onTap: () {
+            Navigator.pop(context);
+            _markKitAsCulled(litter, currentKit);
+          },
+        ));
+        peanutActions.add(_buildKitActionPill(
+          label: 'Died',
+          onTap: () {
+            Navigator.pop(context);
+            _markKitAsDied(litter, currentKit);
+          },
+        ));
+      }
+    }
 
     if (_isKitGrowOut(currentKit) && !isSold && !isReserved) {
       actions.add(_buildKitActionPill(
@@ -1165,6 +1266,12 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           _showDeleteKitConfirm(litter, kit);
         },
       ));
+    }
+
+    if (peanutActions != null) {
+      actions
+        ..clear()
+        ..addAll(peanutActions);
     }
 
     String displayStageName;
@@ -3919,6 +4026,7 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   void _markKitAsDied(Litter litter, Kit kit) {
     final TextEditingController reasonController = TextEditingController();
     final kitTag = _getKitDisplayTag(litter, kit);
+    final bool isPeanutKit = _isPeanutKit(litter, kit);
 
     showDialog(
       context: context,
@@ -3930,10 +4038,13 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Record cause of death for Kit $kitTag:',
+              isPeanutKit
+                  ? 'Peanut Kit $kitTag died on ${FormatUtils.formatDate(DateTime.now())}'
+                  : 'Record cause of death for Kit $kitTag:',
               style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
             ),
-            const SizedBox(height: 14),
+            if (!isPeanutKit) const SizedBox(height: 14),
+            if (!isPeanutKit)
             TextField(
               controller: reasonController,
               decoration: InputDecoration(
@@ -3975,9 +4086,8 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
                 final String reasonText = reasonController.text.trim();
                 String newDetails;
                 if (wasPeanut) {
-                  newDetails = reasonText.isNotEmpty
-                      ? (reasonText.toLowerCase().contains('peanut') ? reasonText : 'Peanut • $reasonText')
-                      : 'Peanut';
+                  // Peanuts: record only the date of death (same as Nursery)
+                  newDetails = 'Peanut (${FormatUtils.formatDate(DateTime.now())})';
                 } else {
                   newDetails = reasonText.isNotEmpty ? reasonText : 'Deceased';
                 }
@@ -4398,47 +4508,37 @@ class _LitterHistoryCardState extends State<LitterHistoryCard> {
   void _confirmDeleteLitter(BuildContext context, Litter litter) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Record', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: Text('Are you sure you want to delete this litter record (${litter.id})? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: appColor(0xFF787774))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await _db.deleteLitter(litter.id);
-                if (mounted) {
-                  await _loadLitterHistory();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Litter record ${litter.id} deleted'),
-                      backgroundColor: appSurface(0xFF7B6BA0),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting litter: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: appSurface(0xFFE63946),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      builder: (ctx) => BrightPurpleDialog(
+        title: 'Delete Record',
+        content: 'Are you sure you want to delete this litter record (${litter.id})? This cannot be undone.',
+        cancelText: 'Cancel',
+        confirmText: 'Delete',
+        isDestructive: true,
+        onCancel: () => Navigator.pop(ctx),
+        onConfirm: () async {
+          Navigator.pop(ctx);
+          try {
+            await _db.deleteLitter(litter.id);
+            if (mounted) {
+              await _loadLitterHistory();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Litter record ${litter.id} deleted'),
+                  backgroundColor: appSurface(0xFF7B6BA0),
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error deleting litter: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        },
       ),
     );
   }

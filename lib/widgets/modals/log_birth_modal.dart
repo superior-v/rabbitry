@@ -315,64 +315,78 @@ class _LogBirthModalState extends State<LogBirthModal> {
   void _adjustKitDetailsToMatchAliveBorn() {
     final aliveBorn = int.tryParse(_aliveBornController.text) ?? int.tryParse(_totalBornController.text) ?? 0;
     final avgWeight = double.tryParse(_weightAvgController.text) ?? 0.0;
-    final targetActiveCount = aliveBorn;
 
-    bool isKitDeadOrTerminal(Map<String, dynamic> k) {
+    bool isDead(Map<String, dynamic> k) {
       final s = (k['status'] ?? '').toString().toLowerCase().trim();
       return s == 'dead' || s == 'died' || s == 'deceased' || s == 'cull' || s == 'culled';
     }
 
-    int currentAliveCount = _kitDetails.where((k) => !isKitDeadOrTerminal(k)).length;
+    bool isPeanutKit(Map<String, dynamic> k) =>
+        (k['details'] ?? k['notes'] ?? '').toString().toLowerCase().contains('peanut');
 
-    if (currentAliveCount < targetActiveCount) {
-      int nextNum = _kitDetails.length + 1;
-      final existingIds = _kitDetails.map((k) => (k['id'] ?? '').toString().toLowerCase()).toSet();
-      final toAdd = targetActiveCount - currentAliveCount;
-      for (int i = 0; i < toAdd; i++) {
-        while (existingIds.contains('k-$nextNum')) {
-          nextNum++;
-        }
-        final newId = 'K-$nextNum';
-        existingIds.add(newId.toLowerCase());
-        _kitDetails.add({
-          'id': newId,
+    // Kits Alive INCLUDES peanuts: Alive 5 + Peanuts 2 => K-1, K-2, K-3, Peanut, Peanut
+    final deadKits = _kitDetails.where(isDead).toList();
+    final alive = _kitDetails.where((k) => !isDead(k)).toList();
+    final normal = alive.where((k) => !isPeanutKit(k)).toList();
+    final peas = alive.where(isPeanutKit).toList();
+
+    final peanutCount = (int.tryParse(_peanutsProducedController.text) ?? 0).clamp(0, aliveBorn);
+    final normalCount = aliveBorn - peanutCount;
+
+    final usedIds = deadKits.map((k) => (k['id'] ?? '').toString().toLowerCase()).toSet();
+    Map<String, dynamic> newKit({bool peanut = false}) => {
+          'id': '',
           'sex': 'U',
-          'color': 'Unknown',
+          'color': peanut ? 'Peanut' : 'Unknown',
           'weight': avgWeight,
           'status': 'Nursing',
-        });
-        nextNum++;
+          if (peanut) 'details': 'Peanut',
+          if (peanut) 'notes': 'Peanut',
+        };
+
+    while (normal.length > normalCount) {
+      normal.removeLast();
+    }
+    while (normal.length < normalCount) {
+      normal.add(newKit());
+    }
+    while (peas.length > peanutCount) {
+      peas.removeLast();
+    }
+    while (peas.length < peanutCount) {
+      peas.add(newKit(peanut: true));
+    }
+    for (final k in peas) {
+      final c = (k['color'] ?? '').toString().trim().toLowerCase();
+      if (c.isEmpty || c == 'unknown') k['color'] = 'Peanut';
+    }
+
+    // Number the kits K-1, K-2, ... (normal kits first, peanuts last).
+    // Kits that already moved on (sold, grow-out...) keep their id.
+    int next = 1;
+    String takeId() {
+      while (usedIds.contains('k-$next')) {
+        next++;
       }
-    } else if (currentAliveCount > targetActiveCount) {
-      int toRemove = currentAliveCount - targetActiveCount;
-      for (int i = _kitDetails.length - 1; i >= 0 && toRemove > 0; i--) {
-        if (!isKitDeadOrTerminal(_kitDetails[i])) {
-          _kitDetails.removeAt(i);
-          toRemove--;
-        }
+      final id = 'K-$next';
+      usedIds.add(id.toLowerCase());
+      next++;
+      return id;
+    }
+
+    final ordered = [...normal, ...peas];
+    for (final k in ordered) {
+      final st = (k['status'] ?? 'Nursing').toString().toLowerCase().trim();
+      final id = (k['id'] ?? '').toString();
+      final renumber = id.isEmpty || st == 'nursing';
+      if (renumber) {
+        k['id'] = takeId();
+      } else {
+        usedIds.add(id.toLowerCase());
       }
     }
 
-    final aliveIndices = <int>[];
-    for (int i = 0; i < _kitDetails.length; i++) {
-      if (!isKitDeadOrTerminal(_kitDetails[i])) {
-        aliveIndices.add(i);
-      }
-    }
-
-    final peanutsCount = (int.tryParse(_peanutsProducedController.text) ?? 0).clamp(0, aliveIndices.length);
-    if (peanutsCount > 0 && aliveIndices.isNotEmpty) {
-      final startIdx = aliveIndices.length - peanutsCount;
-      for (int j = startIdx; j < aliveIndices.length; j++) {
-        final idx = aliveIndices[j];
-        final existingDetails = (_kitDetails[idx]['details'] ?? _kitDetails[idx]['notes'] ?? '').toString().trim();
-        if (!existingDetails.toLowerCase().contains('peanut')) {
-          final updated = existingDetails.isEmpty ? 'Peanut' : '$existingDetails • Peanut';
-          _kitDetails[idx]['details'] = updated;
-          _kitDetails[idx]['notes'] = updated;
-        }
-      }
-    }
+    _kitDetails = [...deadKits, ...ordered];
   }
 
   @override
@@ -1141,7 +1155,13 @@ class _LogBirthModalState extends State<LogBirthModal> {
           aliveKits: aliveBorn,
           kits: _isMissedLitter ? const [] : updatedKits,
           missedLitter: _isMissedLitter,
-          status: _isMissedLitter ? 'archived' : widget.existingLitter!.status,
+          status: _isMissedLitter
+              ? 'archived'
+              : (aliveBorn <= 0 && totalBorn > 0
+                  ? 'Died' // every kit born dead -> Litter Died
+                  : (widget.existingLitter!.status.toLowerCase() == 'died'
+                      ? 'nursing'
+                      : widget.existingLitter!.status)),
           colorsProduced: _isMissedLitter ? '' : _colorsProducedController.text,
           patternsProduced: _isMissedLitter ? '' : _patternsProducedController.text,
           bucksProduced: _isMissedLitter ? 0 : (int.tryParse(_bucksProducedController.text) ?? 0),

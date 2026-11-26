@@ -262,6 +262,8 @@ class PedigreeData {
   final String subjectGenotype;
   final String soldTo;
   final String soldOn;
+  final bool showSoldTo;
+  final bool showSoldOn;
   final String? subjectPhotoPath;
 
   // 4-Generation Pedigree Tree Root
@@ -290,6 +292,8 @@ class PedigreeData {
     this.subjectGenotype = '',
     this.soldTo = '',
     this.soldOn = '',
+    this.showSoldTo = false,
+    this.showSoldOn = false,
     this.subjectPhotoPath,
     this.tree,
     this.orientation = PedigreeOrientation.landscape,
@@ -317,6 +321,8 @@ class PedigreeData {
     String? subjectGenotype,
     String? soldTo,
     String? soldOn,
+    bool? showSoldTo,
+    bool? showSoldOn,
     String? subjectPhotoPath,
     PedigreeRabbit? tree,
     PedigreeOrientation? orientation,
@@ -341,6 +347,8 @@ class PedigreeData {
       subjectGenotype: subjectGenotype ?? this.subjectGenotype,
       soldTo: soldTo ?? this.soldTo,
       soldOn: soldOn ?? this.soldOn,
+      showSoldTo: showSoldTo ?? this.showSoldTo,
+      showSoldOn: showSoldOn ?? this.showSoldOn,
       subjectPhotoPath: subjectPhotoPath ?? this.subjectPhotoPath,
       tree: tree ?? this.tree,
       orientation: orientation ?? this.orientation,
@@ -414,7 +422,7 @@ class PedigreeData {
       ownerName:
           appSettings.pedigreeShowOwnerName ? appSettings.ownerName.trim() : '',
       subjectName: [
-        (rabbit.breederPrefix ?? '').trim(),
+        possessivePrefix(rabbit.breederPrefix),
         rabbit.name.trim(),
       ].where((e) => e.isNotEmpty).join(' '),
       subjectBreed: rabbit.breed.trim(),
@@ -430,9 +438,117 @@ class PedigreeData {
           : '',
       soldTo: soldToVal,
       soldOn: soldOnVal,
+      showSoldTo: appSettings.pedigreeShowSoldTo,
+      showSoldOn: appSettings.pedigreeShowSoldOn,
       subjectPhotoPath: photo,
       tree: tree,
       orientation: orientation,
     );
   }
+}
+
+/// One ancestor card on the NEW landscape pedigree (points on a 792x612 page,
+/// extracted from the supplied Landscape.pdf design).
+class LandscapeCardSpec {
+  final String role;
+  final bool isSire;
+  final int gen;
+  final double left;
+  final double top;
+  final String path; // 's'/'d' steps from the subject, e.g. 'sd' = sire's dam
+  const LandscapeCardSpec(this.role, this.isSire, this.gen, this.left, this.top, this.path);
+
+  double get width => gen == 3 ? 179.9 : 186.4;
+  double get height => gen == 3 ? 70.0 : 95.1;
+  double get fontSize => gen == 3 ? 10.0 : 11.0;
+  double get textDx => gen == 3 ? 5.8 : 5.5;
+  double get col2Dx => gen == 3 ? 94.7 : 110.4;
+  double get row0 => gen == 3 ? 2.0 : 5.0;
+  double get pitch => gen == 3 ? 13.1 : 18.15;
+}
+
+class LandscapeCell {
+  final String text;
+  final double x;
+  final double y;
+  final double w;
+  const LandscapeCell(this.text, this.x, this.y, this.w);
+}
+
+class LandscapeLayout {
+  static const double pageW = 792.0;
+  static const double pageH = 612.0;
+  static const double cardRadius = 13.0;
+
+  static const Color sireCard = Color.fromRGBO(163, 155, 165, 1);
+  static const Color damCard = Color.fromRGBO(204, 152, 196, 1);
+  static const Color subjectBox = Color.fromRGBO(198, 232, 248, 1);
+  static const Color photoBorder = Color.fromRGBO(65, 199, 242, 1);
+  static const PdfColor pdfSireCard = PdfColor(0.6399, 0.6076, 0.6473);
+  static const PdfColor pdfDamCard = PdfColor(0.8002, 0.5948, 0.7705);
+  static const PdfColor pdfSubjectBox = PdfColor(0.7752, 0.9113, 0.9720);
+  static const PdfColor pdfPhotoBorder = PdfColor(0.2568, 0.7809, 0.9484);
+
+  static const List<LandscapeCardSpec> specs = [
+    LandscapeCardSpec('Sire', true, 1, 210.8, 108.6, 's'),
+    LandscapeCardSpec('Dam', false, 1, 210.8, 417.9, 'd'),
+    LandscapeCardSpec('G.Sire', true, 2, 405.8, 34.7, 'ss'),
+    LandscapeCardSpec('G.Dam', false, 2, 405.8, 184.7, 'sd'),
+    LandscapeCardSpec('G.Sire', true, 2, 405.8, 332.2, 'ds'),
+    LandscapeCardSpec('G.Dam', false, 2, 405.8, 481.3, 'dd'),
+    LandscapeCardSpec('G.G.Sire', true, 3, 601.1, 10.6, 'sss'),
+    LandscapeCardSpec('G.G.Dam', false, 3, 601.1, 84.0, 'ssd'),
+    LandscapeCardSpec('G.G.Sire', true, 3, 601.1, 160.2, 'sds'),
+    LandscapeCardSpec('G.G.Dam', false, 3, 601.1, 233.6, 'sdd'),
+    LandscapeCardSpec('G.G.Sire', true, 3, 601.1, 308.5, 'dss'),
+    LandscapeCardSpec('G.G.Dam', false, 3, 601.1, 381.9, 'dsd'),
+    LandscapeCardSpec('G.G.Sire', true, 3, 601.1, 457.1, 'dds'),
+    LandscapeCardSpec('G.G.Dam', false, 3, 601.1, 530.5, 'ddd'),
+  ];
+
+  static PedigreeRabbit? resolve(PedigreeRabbit? tree, String path) {
+    PedigreeRabbit? cur = tree;
+    for (final c in path.split('')) {
+      if (cur == null) return null;
+      cur = c == 's' ? cur.sire : cur.dam;
+    }
+    return cur;
+  }
+
+  /// Text cells (relative to the card) in the order of the reference design:
+  /// name / color / DOB+Wt / Ear No.+Reg # / GC#+Legs.
+  static List<LandscapeCell> cardCells(
+      LandscapeCardSpec c, PedigreeRabbit? r, String weight) {
+    final dob = r?.dateOfBirth != null
+        ? FormatUtils.formatCertificateDate(r!.dateOfBirth)
+        : '';
+    final legs = (r?.legs != null && r!.legs! > 0) ? '${r.legs}' : '';
+    final w1 = c.col2Dx - c.textDx - 2;
+    final w2 = c.width - c.col2Dx - 4;
+    double y(int i) => c.row0 + i * c.pitch;
+    return [
+      LandscapeCell('${c.role}: ${r?.displayName ?? ''}', c.textDx, y(0), c.width - c.textDx - 4),
+      LandscapeCell('Color: ${r?.color ?? ''}', c.textDx, y(1), c.width - c.textDx - 4),
+      LandscapeCell('DOB: $dob', c.textDx, y(2), w1),
+      LandscapeCell('Wt: $weight', c.col2Dx, y(2), w2),
+      LandscapeCell('Ear No.: ${r?.earNumber ?? ''}', c.textDx, y(3), w1),
+      LandscapeCell('Reg #: ${r?.registrationNumber ?? ''}', c.col2Dx, y(3), w2),
+      LandscapeCell('GC#: ${r?.grandChampionNumber ?? ''}', c.textDx, y(4), w1),
+      LandscapeCell('Legs: $legs', c.col2Dx, y(4), w2),
+    ];
+  }
+
+  /// Subject (blue box) text cells in absolute page points.
+  static List<LandscapeCell> subjectCells(PedigreeData d) => [
+        LandscapeCell('Name: ${d.subjectName}', 31.4, 225.3, 160),
+        LandscapeCell('Color: ${d.subjectColor}', 31.4, 248.9, 160),
+        LandscapeCell('Breed: ${d.subjectBreed}', 31.4, 272.5, 160),
+        LandscapeCell('Sex: ${d.subjectSex}', 31.9, 296.0, 82),
+        LandscapeCell('Reg No.: ${d.subjectRegNo}', 117.2, 296.0, 76),
+        LandscapeCell('DOB: ${d.subjectDob}', 31.6, 319.6, 160),
+        LandscapeCell('Ear No.: ${d.subjectEarNo}', 31.9, 343.2, 82),
+        LandscapeCell('Wt: ${d.subjectWeight}', 117.4, 344.7, 76),
+        LandscapeCell('GC No.:', 33.1, 368.3, 80),
+        LandscapeCell('Legs: ${d.subjectLegs}', 116.3, 368.3, 76),
+      ];
 }

@@ -39,9 +39,9 @@ class PedigreeRabbit {
     this.isExternal = false,
   });
 
-  /// Prefix + name, e.g. "ABC Bella".
+  /// Prefix (possessive) + name, e.g. "ABC's Bella".
   String get displayName {
-    final p = (breederPrefix ?? '').trim();
+    final p = possessivePrefix(breederPrefix);
     return p.isEmpty ? name : '$p $name';
   }
 
@@ -136,4 +136,13 @@ class PedigreeRabbit {
       isExternal: json['isExternal'] ?? false,
     );
   }
+}
+
+/// "SBS" -> "SBS's" (left as-is when it already ends in 's).
+String possessivePrefix(String? prefix) {
+  final p = (prefix ?? '').trim();
+  if (p.isEmpty) return '';
+  final l = p.toLowerCase();
+  if (l.endsWith("'s") || l.endsWith('’s')) return p;
+  return "$p's";
 }

@@ -347,7 +347,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 66.5,
+          topPt: 65.0,
           widthPt: 195.0,
           label: 'Name:  ',
           value: data.subjectName,
@@ -357,7 +357,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 80.9,
+          topPt: 78.5,
           widthPt: 195.0,
           label: 'Ear #: ',
           value: data.subjectEarNo,
@@ -366,18 +366,18 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 95.3,
+          topPt: 92.0,
           widthPt: 195.0,
           label: 'Reg #: ',
           value: data.subjectRegNo,
         ),
-        if (data.soldTo.trim().isNotEmpty)
+        if (data.showSoldTo)
         _buildPortraitSubjectField(
           scaleW: scaleW,
           scaleH: scaleH,
-          leftPt: 28.9,
-          topPt: 530.0,
-          widthPt: 160.0,
+          leftPt: 21.875,
+          topPt: 105.5,
+          widthPt: 195.0,
           label: 'Sold to: ',
           value: data.soldTo,
         ),
@@ -387,7 +387,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 66.5,
+          topPt: 65.0,
           widthPt: 195.0,
           label: 'Breed: ',
           value: data.subjectBreed,
@@ -396,7 +396,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 80.9,
+          topPt: 78.5,
           widthPt: 195.0,
           label: 'Sex:  ',
           value: data.subjectSex,
@@ -405,18 +405,18 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 95.3,
+          topPt: 92.0,
           widthPt: 195.0,
           label: 'Color: ',
           value: data.subjectColor,
         ),
-        if (data.soldOn.trim().isNotEmpty)
+        if (data.showSoldOn)
         _buildPortraitSubjectField(
           scaleW: scaleW,
           scaleH: scaleH,
-          leftPt: 28.9,
-          topPt: 544.0,
-          widthPt: 160.0,
+          leftPt: 220.87,
+          topPt: 105.5,
+          widthPt: 195.0,
           label: 'Sold on: ',
           value: data.soldOn,
         ),
@@ -426,7 +426,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 66.5,
+          topPt: 65.0,
           widthPt: 180.0,
           label: 'Born:  ',
           value: data.subjectDob,
@@ -435,7 +435,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 80.9,
+          topPt: 78.5,
           widthPt: 180.0,
           label: 'Weight:  ',
           value: data.subjectWeight,
@@ -444,7 +444,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 95.3,
+          topPt: 92.0,
           widthPt: 180.0,
           label: 'Legs: ',
           value: data.subjectLegs,
@@ -453,14 +453,14 @@ class PedigreePreviewWidget extends StatelessWidget {
         // ─── Bottom Double Horizontal Rule ────────────────────────────────
         Positioned(
           left: 4.875 * scaleW,
-          top: 116.55 * scaleH,
+          top: 121.0 * scaleH,
           width: 602.25 * scaleW,
           height: (0.5 * scaleH).clamp(0.5, 1.5),
           child: Container(color: Colors.black),
         ),
         Positioned(
           left: 4.875 * scaleW,
-          top: 119.4 * scaleH,
+          top: 123.85 * scaleH,
           width: 602.25 * scaleW,
           height: (0.5 * scaleH).clamp(0.5, 1.5),
           child: Container(color: Colors.black),
@@ -469,7 +469,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         // ─── Generation Column Headers ────────────────────────────────────
         Positioned(
           left: 20.99 * scaleW,
-          top: 125.0 * scaleH,
+          top: 128.5 * scaleH,
           child: Text(
             'PARENTS',
             style: TextStyle(
@@ -483,7 +483,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         ),
         Positioned(
           left: 220.28 * scaleW,
-          top: 125.0 * scaleH,
+          top: 128.5 * scaleH,
           child: Text(
             'GRANDPARENTS',
             style: TextStyle(
@@ -497,7 +497,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         ),
         Positioned(
           left: 420.05 * scaleW,
-          top: 125.0 * scaleH,
+          top: 128.5 * scaleH,
           child: Text(
             'GREAT-GRAND PARENTS',
             style: TextStyle(
@@ -619,7 +619,7 @@ class PedigreePreviewWidget extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'TheDecember',
                     fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
-                    fontSize: 11.0 * scaleW,
+                    fontSize: 16.0 * scaleW,
                     color: Colors.black,
                   ),
                   maxLines: 1,
@@ -926,7 +926,7 @@ class PedigreePreviewWidget extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Myriad Pro',
               fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-              fontSize: 7.0 * scaleW,
+              fontSize: 9.5 * scaleW,
               color: Colors.black,
             ),
           ),
@@ -936,289 +936,171 @@ class PedigreePreviewWidget extends StatelessWidget {
 
   // ─── LANDSCAPE PREVIEW ──────────────────────────────────────────────────────
   Widget _buildLandscapePreview(BuildContext context, double W, double H) {
+    final double s = W / LandscapeLayout.pageW;
     final hasPhoto = data.subjectPhotoPath != null &&
         data.subjectPhotoPath!.isNotEmpty &&
         File(data.subjectPhotoPath!).existsSync();
-
     final tree = data.tree;
 
-    return Stack(
-      children: [
-        // Top Left: Farm Header
-        Positioned(
-          left: W * PedigreeLayout.pedigreeHeaderLeft,
-          top: H * PedigreeLayout.farmTitleCenterY - (H * PedigreeLayout.farmTitleBoxHeight / 2),
-          width: W * PedigreeLayout.farmTitleMaxWidth,
-          height: H * PedigreeLayout.farmTitleBoxHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                data.farmName,
-                style: TextStyle(
-                  fontFamily: 'Overthink',
-                  fontFamilyFallback: const [PedigreeLayout.fontFamilyTitle],
-                  fontSize: W * PedigreeLayout.fontRatioFarmTitle,
-                  color: PedigreeLayout.colorHeaderTitle,
-                ),
-                maxLines: 1,
-              ),
+    const Color headGrey = Color(0xFFA7A9AC);
+    const Color subjInk = Color(0xFF707273);
+    const Color lineInk = Color(0xFF6D6E71);
+    const Color certInk = Color(0xFF808285);
+    const Color rule = Color(0xFF93959A);
+
+    Widget txt(String t, double x, double y, double w, double fs, Color c,
+        {String? family, List<String>? fallback}) {
+      return Positioned(
+        left: x * s,
+        top: y * s,
+        width: w * s,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            t,
+            maxLines: 1,
+            style: TextStyle(
+              fontFamily: family ?? 'Myriad Pro',
+              fontFamilyFallback: fallback ?? const [PedigreeLayout.fontFamilyDetails],
+              fontSize: fs * s,
+              color: c,
+              height: 1.2,
             ),
           ),
         ),
+      );
+    }
 
-        // Address + Email on one line, grey underline, breed subtitle
-        if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.addressLeft,
-            top: H * (PedigreeLayout.contactCenterY - PedigreeLayout.contactBoxHeight / 2),
-            child: Row(
-              children: [
-                if (data.farmAddress.isNotEmpty)
-                  Text(
-                    data.farmAddress,
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
-                      color: PedigreeLayout.colorHeaderContact,
-                    ),
-                  ),
-                if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
-                  const SizedBox(width: 14),
-                if (data.farmEmail.isNotEmpty)
-                  Text(
-                    data.farmEmail,
-                    style: TextStyle(
-                      fontFamily: PedigreeLayout.fontFamilyDetails,
-                      fontSize: W * PedigreeLayout.fontRatioHeaderContact,
-                      color: PedigreeLayout.colorHeaderContact,
-                    ),
-                  ),
-              ],
-            ),
-          ),
+    final children = <Widget>[
+      txt(data.farmName, 20.8, 14.5, 330, 33.2, headGrey,
+          family: 'Overthink', fallback: const [PedigreeLayout.fontFamilyTitle]),
+      if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
         Positioned(
-          left: W * PedigreeLayout.underlineX0,
-          top: H * PedigreeLayout.underlineY,
-          width: W * (PedigreeLayout.underlineX1 - PedigreeLayout.underlineX0),
-          height: 1.0,
-          child: Container(color: PedigreeLayout.colorHeaderUnderline),
+          left: 23.9 * s,
+          top: 56.8 * s,
+          child: Row(children: [
+            if (data.farmAddress.isNotEmpty)
+              Text(data.farmAddress,
+                  style: TextStyle(
+                      fontFamily: 'Myriad Pro',
+                      fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                      fontSize: 11 * s,
+                      height: 1.2,
+                      color: headGrey)),
+            if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty) SizedBox(width: 14 * s),
+            if (data.farmEmail.isNotEmpty)
+              Text(data.farmEmail,
+                  style: TextStyle(
+                      fontFamily: 'Myriad Pro',
+                      fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                      fontSize: 11 * s,
+                      height: 1.2,
+                      color: headGrey)),
+          ]),
         ),
-        if (data.subjectBreed.trim().isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.breedSubtitleLeft,
-            top: H * PedigreeLayout.breedSubtitleTop,
-            child: Text(
-              '${data.subjectBreed.trim()} Pedigree',
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: W * PedigreeLayout.fontRatioSubject,
-                color: PedigreeLayout.colorSubjectText,
-              ),
-              maxLines: 1,
-            ),
+      Positioned(
+        left: 22.4 * s,
+        top: 71.2 * s,
+        width: 253.0 * s,
+        height: 1.0 * s,
+        child: Container(color: rule),
+      ),
+      if (data.subjectBreed.trim().isNotEmpty)
+        txt('${data.subjectBreed.trim()} Pedigree', 23.6, 75.8, 300, 14, lineInk),
+      Positioned(
+        left: 52.7 * s,
+        top: 121.0 * s,
+        width: 110.0 * s,
+        height: 112.0 * s,
+        child: Image.asset(PedigreeLayout.logoAsset, fit: BoxFit.contain),
+      ),
+      Positioned(
+        left: 21.8 * s,
+        top: 216.2 * s,
+        width: 173.7 * s,
+        height: 178.8 * s,
+        child: Container(
+          decoration: BoxDecoration(
+            color: LandscapeLayout.subjectBox,
+            borderRadius: BorderRadius.circular(18 * s),
           ),
-        if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.addressLeft,
-            top: H * PedigreeLayout.websiteTop,
-            width: W * 0.30,
-            child: Text(
-              [
-                if (data.farmWebsite.isNotEmpty) data.farmWebsite,
-                if (data.farmSocialLink.isNotEmpty) data.farmSocialLink,
-              ].join('  •  '),
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: W * (PedigreeLayout.fontRatioHeaderContact * 0.9),
-                color: PedigreeLayout.colorHeaderContact,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-
-        // "Bunny Pedigree" Logo Image
-        Positioned(
-          left: W * PedigreeLayout.logoLeft,
-          top: H * PedigreeLayout.logoTop,
-          width: W * PedigreeLayout.logoWidth,
-          height: H * PedigreeLayout.logoHeight,
-          child: Image.asset(PedigreeLayout.logoAsset, fit: BoxFit.contain),
         ),
-
-        // Subject Box Background
+      ),
+      for (final c in LandscapeLayout.subjectCells(data)) txt(c.text, c.x, c.y, c.w, 12, subjInk),
+      if (data.showSoldTo) txt('Sold To: ${data.soldTo}', 24.2, 414.5, 175, 11, lineInk),
+      if (data.showSoldOn) txt('Sold On: ${data.soldOn}', 24.2, 427.7, 175, 11, lineInk),
+      if (data.subjectGenotype.isNotEmpty)
+        txt('Genotype: ${data.subjectGenotype}', 24.2, 441.0, 175, 11, lineInk),
+      if (SettingsService.instance.pedigreeShowPhoto)
         Positioned(
-          left: W * PedigreeLayout.subjectBoxLeft,
-          top: H * PedigreeLayout.subjectBoxTop,
-          width: W * PedigreeLayout.subjectBoxWidth,
-          height: H * PedigreeLayout.subjectBoxHeight,
+          left: 216.3 * s,
+          top: 236.0 * s,
+          width: 178.3 * s,
+          height: 134.6 * s,
           child: Container(
-            decoration: BoxDecoration(
-              color: PedigreeLayout.colorSubjectBoxBg,
-              borderRadius: BorderRadius.circular(W * PedigreeLayout.subjectBoxRadius),
+            decoration: ShapeDecoration(
+              shape: OvalBorder(side: BorderSide(color: LandscapeLayout.photoBorder, width: 1.0 * s)),
+              color: hasPhoto ? null : Colors.black.withValues(alpha: 0.05),
             ),
-          ),
-        ),
-
-        // Subject Box Rows
-        ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectNameCenterY, 'Name:', data.subjectName),
-        ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectColorCenterY, 'Color:', data.subjectColor),
-        ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectBreedCenterY, 'Breed:', data.subjectBreed),
-        ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectSexCenterY, 'Sex:', data.subjectSex),
-        ..._buildSubjectSingleRow(W, H, PedigreeLayout.subjectDobCenterY, 'DOB:', data.subjectDob),
-        ..._buildSubjectDualRow(W, H, PedigreeLayout.subjectEarWtCenterY, 'Ear No.:', data.subjectEarNo, 'Wt:', data.subjectWeight),
-        ..._buildSubjectDualRow(W, H, PedigreeLayout.subjectRegLegsCenterY, 'Reg No.:', data.subjectRegNo, 'Legs:', data.subjectLegs),
-
-        // Genotype & Sale Details (below Subject Box)
-        if (data.subjectGenotype.isNotEmpty || data.soldTo.isNotEmpty || data.soldOn.isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.subjectBoxLeft,
-            top: H * 0.658,
-            width: W * PedigreeLayout.subjectBoxWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (data.subjectGenotype.isNotEmpty)
-                  _buildMetadataLine(W, 'Genotype:', data.subjectGenotype),
-                if (data.soldTo.isNotEmpty)
-                  _buildMetadataLine(W, 'Sold To:', data.soldTo),
-                if (data.soldOn.isNotEmpty)
-                  _buildMetadataLine(W, 'Sold On:', data.soldOn),
-              ],
-            ),
-          ),
-
-        // Subject Photo Ellipse
-        if (SettingsService.instance.pedigreeShowPhoto)
-          Positioned(
-            left: W * PedigreeLayout.photoLeft,
-            top: H * PedigreeLayout.photoTop,
-            width: W * PedigreeLayout.photoWidth,
-            height: H * PedigreeLayout.photoHeight,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: PedigreeLayout.colorSubjectPhotoOutline,
-                  width: 1.5,
-                ),
-                color: hasPhoto ? null : Colors.black.withValues(alpha: 0.05),
-              ),
-              child: hasPhoto
-                  ? ClipOval(
-                      child: Container(
-                        color: const Color(0xFFE6E6E6),
-                        child: Image.file(
-                          File(data.subjectPhotoPath!),
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
+            child: hasPhoto
+                ? ClipOval(
+                    child: Container(
+                      color: const Color(0xFFE6E6E6),
+                      child: Image.file(
+                        File(data.subjectPhotoPath!),
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
-                    )
-                  : const SizedBox(),
-            ),
-          ),
-
-        // Gen 1 (Parents)
-        ..._buildAncestorCard(W, H, 1, 'Sire', true, PedigreeLayout.sireLeft, PedigreeLayout.sireTop, tree?.sire),
-        ..._buildAncestorCard(W, H, 1, 'Dam', false, PedigreeLayout.damLeft, PedigreeLayout.damTop, tree?.dam),
-
-        // Gen 2 (Grandparents)
-        ..._buildAncestorCard(W, H, 2, 'G.Sire', true, PedigreeLayout.ssLeft, PedigreeLayout.ssTop, tree?.sire?.sire),
-        ..._buildAncestorCard(W, H, 2, 'G.Dam', false, PedigreeLayout.sdLeft, PedigreeLayout.sdTop, tree?.sire?.dam),
-        ..._buildAncestorCard(W, H, 2, 'G.Sire', true, PedigreeLayout.dsLeft, PedigreeLayout.dsTop, tree?.dam?.sire),
-        ..._buildAncestorCard(W, H, 2, 'G.Dam', false, PedigreeLayout.ddLeft, PedigreeLayout.ddTop, tree?.dam?.dam),
-
-        // Gen 3 (Great-Grandparents)
-        ..._buildAncestorCard(W, H, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.sssTop, tree?.sire?.sire?.sire),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.ssdTop, tree?.sire?.sire?.dam),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.sdsTop, tree?.sire?.dam?.sire),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.sddTop, tree?.sire?.dam?.dam),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.dssTop, tree?.dam?.sire?.sire),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.dsdTop, tree?.dam?.sire?.dam),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.ddsTop, tree?.dam?.dam?.sire),
-        ..._buildAncestorCard(W, H, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.dddTop, tree?.dam?.dam?.dam),
-
-        // Footer (Certification & Signature)
-        Positioned(
-          left: W * PedigreeLayout.certifyLeft,
-          top: H * PedigreeLayout.certifyLine1CenterY - (H * PedigreeLayout.certifyBoxHeight / 2),
-          height: H * PedigreeLayout.certifyBoxHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'I hereby certify this pedigree is correct',
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: W * PedigreeLayout.fontRatioCertify,
-                color: PedigreeLayout.colorFooterCertify,
-              ),
-            ),
+                    ),
+                  )
+                : const SizedBox(),
           ),
         ),
-        Positioned(
-          left: W * PedigreeLayout.certifyLeft,
-          top: H * PedigreeLayout.certifyLine2CenterY - (H * PedigreeLayout.certifyBoxHeight / 2),
-          height: H * PedigreeLayout.certifyBoxHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'to the best of my knowledge',
-              style: TextStyle(
-                fontFamily: PedigreeLayout.fontFamilyDetails,
-                fontSize: W * PedigreeLayout.fontRatioCertify,
-                color: PedigreeLayout.colorFooterCertify,
-              ),
-            ),
+    ];
+
+    for (final c in LandscapeLayout.specs) {
+      final r = LandscapeLayout.resolve(tree, c.path);
+      children.add(Positioned(
+        left: c.left * s,
+        top: c.top * s,
+        width: c.width * s,
+        height: c.height * s,
+        child: Container(
+          decoration: BoxDecoration(
+            color: c.isSire ? LandscapeLayout.sireCard : LandscapeLayout.damCard,
+            borderRadius: BorderRadius.circular(LandscapeLayout.cardRadius * s),
           ),
         ),
-        if (data.ownerName.trim().isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.signatureLeft,
-            top: H * PedigreeLayout.signatureCenterY - (H * PedigreeLayout.signatureBoxHeight / 2),
-            height: H * PedigreeLayout.signatureBoxHeight,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                data.ownerName.trim(),
-                style: TextStyle(
-                  fontFamily: 'TheDecember',
-                  fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
-                  fontSize: W * PedigreeLayout.fontRatioSignature,
-                  color: PedigreeLayout.colorFooterSignature,
-                ),
-              ),
-            ),
-          ),
-        Positioned(
-          left: W * PedigreeLayout.signatureUnderlineX0,
-          top: H * PedigreeLayout.signatureUnderlineY,
-          width: W * (PedigreeLayout.signatureUnderlineX1 - PedigreeLayout.signatureUnderlineX0),
-          height: 0.75,
-          child: Container(color: PedigreeLayout.colorHeaderUnderline),
-        ),
-        if (data.farmPhone.trim().isNotEmpty)
-          Positioned(
-            left: W * PedigreeLayout.phoneLeft,
-            top: H * PedigreeLayout.phoneCenterY - (H * PedigreeLayout.phoneBoxHeight / 2),
-            height: H * PedigreeLayout.phoneBoxHeight,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                data.farmPhone.trim(),
-                style: TextStyle(
-                  fontFamily: PedigreeLayout.fontFamilyDetails,
-                  fontSize: W * PedigreeLayout.fontRatioPhone,
-                  color: PedigreeLayout.colorFooterPhone,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+      ));
+      for (final cell in LandscapeLayout.cardCells(c, r, _formatCardWeight(r?.weight))) {
+        children.add(txt(cell.text, c.left + cell.x, c.top + cell.y, cell.w, c.fontSize, Colors.white));
+      }
+      final win = (r?.winnings ?? '').trim();
+      if (win.isNotEmpty && c.gen < 3) {
+        children.add(txt(win, c.left, c.top + c.height + 0.5, c.width, c.fontSize - 1, lineInk));
+      }
+    }
+
+    children.addAll([
+      txt('I hereby certify this pedigree is correct', 20.6, 523.0, 250, 12, certInk),
+      txt('to the best of my knowledge', 20.6, 537.4, 250, 12, certInk),
+      if (data.ownerName.trim().isNotEmpty)
+        txt(data.ownerName.trim(), 22.3, 548.0, 190, 20, lineInk,
+            family: 'TheDecember', fallback: const [PedigreeLayout.fontFamilySignature]),
+      Positioned(
+        left: 20.6 * s,
+        top: 580.4 * s,
+        width: 119.6 * s,
+        height: 1.0 * s,
+        child: Container(color: rule),
+      ),
+      if (data.farmPhone.trim().isNotEmpty) txt(data.farmPhone.trim(), 20.6, 586.8, 150, 12, lineInk),
+      if (data.farmWebsite.trim().isNotEmpty) txt(data.farmWebsite.trim(), 130.0, 588.0, 80, 10, lineInk),
+    ]);
+
+    return Stack(children: children);
   }
 
   static Widget _buildMetadataLine(double W, String label, String value) {
@@ -1419,6 +1301,11 @@ class PedigreePreviewWidget extends StatelessWidget {
     final String winnings = (rabbit?.winnings ?? '').trim();
 
     final double rowHeight = H * (generation == 3 ? 0.0240 : 0.0280);
+    final String regNo = rabbit?.registrationNumber ?? '';
+    final String gcNo = rabbit?.grandChampionNumber ?? '';
+    // 5 evenly spaced rows: Name, Color, DOB/Wt, Ear/Reg, GC/Legs
+    final List<double> rd = List<double>.generate(
+        5, (i) => rowDy[0] + i * (cardH - 2 * rowDy[0]) / 4);
 
     return [
       // Container
@@ -1438,7 +1325,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       // Row 0: Role & Name
       Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[0]) - (rowHeight / 2),
+        top: H * (top + rd[0]) - (rowHeight / 2),
         width: W * (cardW - textDx - 0.005),
         height: rowHeight,
         child: Align(
@@ -1478,7 +1365,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       // Row 1: Color
       Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[1]) - (rowHeight / 2),
+        top: H * (top + rd[1]) - (rowHeight / 2),
         width: W * (cardW - textDx - 0.005),
         height: rowHeight,
         child: Align(
@@ -1515,7 +1402,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       // Row 2: DOB & Wt
       Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[2]) - (rowHeight / 2),
+        top: H * (top + rd[2]) - (rowHeight / 2),
         width: W * (secondColDx - textDx),
         height: rowHeight,
         child: Align(
@@ -1550,7 +1437,7 @@ class PedigreePreviewWidget extends StatelessWidget {
       ),
       Positioned(
         left: W * (left + secondColDx),
-        top: H * (top + rowDy[2]) - (rowHeight / 2),
+        top: H * (top + rd[2]) - (rowHeight / 2),
         width: W * (cardW - secondColDx - 0.004),
         height: rowHeight,
         child: Align(
@@ -1584,10 +1471,10 @@ class PedigreePreviewWidget extends StatelessWidget {
         ),
       ),
 
-      // Row 3: Ear No. & Legs
+      // Row 3: Ear No. & Reg #
       Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[3]) - (rowHeight / 2),
+        top: H * (top + rd[3]) - (rowHeight / 2),
         width: W * (secondColDx - textDx),
         height: rowHeight,
         child: Align(
@@ -1622,7 +1509,78 @@ class PedigreePreviewWidget extends StatelessWidget {
       ),
       Positioned(
         left: W * (left + secondColDx),
-        top: H * (top + rowDy[3]) - (rowHeight / 2),
+        top: H * (top + rd[3]) - (rowHeight / 2),
+        width: W * (cardW - secondColDx - 0.004),
+        height: rowHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Reg #: ',
+                  style: TextStyle(
+                    fontFamily: PedigreeLayout.fontFamilyDetails,
+                    fontWeight: FontWeight.w400,
+                    fontSize: baseFontSize,
+                    color: PedigreeLayout.colorCardText,
+                  ),
+                ),
+                TextSpan(
+                  text: regNo,
+                  style: TextStyle(
+                    fontFamily: PedigreeLayout.fontFamilyDetails,
+                    fontWeight: FontWeight.w400,
+                    fontSize: baseFontSize,
+                    color: PedigreeLayout.colorCardText,
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+      // Row 4: GC# & Legs
+      Positioned(
+        left: W * (left + textDx),
+        top: H * (top + rd[4]) - (rowHeight / 2),
+        width: W * (secondColDx - textDx),
+        height: rowHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'GC#: ',
+                  style: TextStyle(
+                    fontFamily: PedigreeLayout.fontFamilyDetails,
+                    fontWeight: FontWeight.w400,
+                    fontSize: baseFontSize,
+                    color: PedigreeLayout.colorCardText,
+                  ),
+                ),
+                TextSpan(
+                  text: gcNo,
+                  style: TextStyle(
+                    fontFamily: PedigreeLayout.fontFamilyDetails,
+                    fontWeight: FontWeight.w400,
+                    fontSize: baseFontSize,
+                    color: PedigreeLayout.colorCardText,
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+      Positioned(
+        left: W * (left + secondColDx),
+        top: H * (top + rd[4]) - (rowHeight / 2),
         width: W * (cardW - secondColDx - 0.004),
         height: rowHeight,
         child: Align(
@@ -1664,7 +1622,7 @@ class PedigreePreviewWidget extends StatelessWidget {
             winnings,
             style: TextStyle(
               fontFamily: PedigreeLayout.fontFamilyDetails,
-              fontSize: baseFontSize * 0.55,
+              fontSize: baseFontSize * 0.55 + 2.5,
               color: PedigreeLayout.colorCardText,
             ),
           ),

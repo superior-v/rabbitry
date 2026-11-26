@@ -1,3 +1,4 @@
+import '../purple_dialog.dart';
 import 'package:flutter/material.dart';
 import '../../services/appearance_service.dart';
 import '../../models/barn.dart';
@@ -23,6 +24,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
   final DatabaseService _db = DatabaseService();
   final TextEditingController _cageController = TextEditingController();
   String? _selectedLocation;
+  String? _selectedCage;
   bool _isSaving = false;
   bool _isLoading = true;
 
@@ -32,7 +34,7 @@ class _MoveCageModalState extends State<MoveCageModal> {
   @override
   void initState() {
     super.initState();
-    _cageController.text = widget.rabbit.cage ?? '';
+    _selectedCage = (widget.rabbit.cage ?? '').isEmpty ? null : widget.rabbit.cage;
     _loadBarns();
   }
 
@@ -57,7 +59,8 @@ class _MoveCageModalState extends State<MoveCageModal> {
       setState(() {
         _barns = barns;
         _rowToBarn = rowToBarn;
-        _selectedLocation = rowToBarn.containsKey(widget.rabbit.location) ? widget.rabbit.location : widget.rabbit.location;
+        final loc = widget.rabbit.location;
+        _selectedLocation = (loc == null || loc.isEmpty) ? null : (rowToBarn[loc] ?? loc);
         _isLoading = false;
       });
     }
@@ -207,86 +210,27 @@ class _MoveCageModalState extends State<MoveCageModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Location Dropdown field matching New Task InputDecorator
-                  InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Location / Barn',
-                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: kLilacLight),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
-                      ),
-                      filled: true,
-                      fillColor: kAppCardWhite,
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedLocation,
-                        hint: Text(
-                          'Select Location',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400),
-                        ),
-                        isExpanded: true,
-                        icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
-                        items: [
-                          ..._buildLocationDropdownItems(),
-                          DropdownMenuItem<String>(
-                            value: '__add_new__',
-                            child: Text(
-                              '+ Add New Location',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: appColor(0xFF8B5CF6),
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val == '__add_new__') {
-                            _showAddLocationDialog();
-                          } else {
-                            setState(() {
-                              _selectedLocation = val;
-                            });
-                          }
-                        },
-                      ),
-                    ),
+                  _buildPickerField(
+                    label: 'Location',
+                    hint: 'Select Location',
+                    value: _selectedLocation,
+                    options: _locationOptions(),
+                    onChanged: (val) => setState(() {
+                      _selectedLocation = val;
+                      _selectedCage = null;
+                    }),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Cage / Hutch ID text field matching New Task modal
-                  TextField(
-                    controller: _cageController,
-                    decoration: InputDecoration(
-                      labelText: 'Cage / Hutch ID',
-                      hintText: 'e.g., A-01, Row 1 Cage 3',
-                      hintStyle: TextStyle(color: kNeutral400, fontSize: 15, fontWeight: FontWeight.w400),
-                      labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: kLilacLight),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
-                      ),
-                      filled: true,
-                      fillColor: kAppCardWhite,
-                    ),
-                    style: TextStyle(fontSize: 15, color: appColor(0xFF2C2C2E)),
+                  _buildPickerField(
+                    label: 'Cage',
+                    hint: _selectedLocation == null
+                        ? 'Select Location first'
+                        : (_cageOptions().isEmpty ? 'No cages in this location' : 'Select Cage'),
+                    value: _selectedCage,
+                    options: _cageOptions(),
+                    onChanged: (val) => setState(() => _selectedCage = val),
                   ),
 
                   const SizedBox(height: 24),
@@ -326,6 +270,87 @@ class _MoveCageModalState extends State<MoveCageModal> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  List<String> _locationOptions() {
+    final names = _barns.map((b) => b.name).toList();
+    if (_selectedLocation != null && !names.contains(_selectedLocation)) {
+      names.add(_selectedLocation!);
+    }
+    return names;
+  }
+
+  List<String> _cageOptions() {
+    final cages = <String>[];
+    if (_selectedLocation != null) {
+      for (final barn in _barns.where((b) => b.name == _selectedLocation)) {
+        for (final row in barn.rows) {
+          cages.addAll(row.cages);
+        }
+      }
+    }
+    if (_selectedCage != null && !cages.contains(_selectedCage)) {
+      cages.add(_selectedCage!);
+    }
+    return cages;
+  }
+
+  Widget _buildPickerField({
+    required String label,
+    required String hint,
+    required String? value,
+    required List<String> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelStyle: TextStyle(color: appColor(0xFF4F4F56), fontWeight: FontWeight.w600, fontSize: 16),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: kLilacLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: appSurface(0xFF7B6BA0), width: 1.5),
+        ),
+        filled: true,
+        fillColor: kAppCardWhite,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          key: ValueKey('$label-$value-${options.length}'),
+          value: options.contains(value) ? value : null,
+          hint: Text(hint, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: kNeutral400)),
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down, color: appColor(0xFF4A3E6D)),
+          menuMaxHeight: 320,
+          items: options
+              .asMap()
+              .entries
+              .map((e) => DropdownMenuItem<String>(
+                    value: e.value,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: e.key % 2 == 1 ? appSurface(0xFFF6F0FD) : kAppCardWhite,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        e.value,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: appColor(0xFF3A3A3C)),
+                      ),
+                    ),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -536,10 +561,37 @@ class _MoveCageModalState extends State<MoveCageModal> {
       return;
     }
 
+    if (_selectedCage == null || _selectedCage!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select a cage'), backgroundColor: appSurface(0xFFD44C47)),
+      );
+      return;
+    }
+
+    // Same Location + Cage cannot hold two bunnies
+    final all = await _db.getAllRabbits();
+    for (final r in all) {
+      if (r.id == widget.rabbit.id || r.type == RabbitType.pedigree) continue;
+      if (r.isArchived || r.status == RabbitStatus.archived) continue;
+      if ((r.location ?? '') == _selectedLocation && (r.cage ?? '') == _selectedCage) {
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => BrightPurpleDialog(
+            title: 'Cage already in use',
+            content: '$_selectedLocation cage $_selectedCage is already assigned to ${r.name}.\n\nPlease choose a different cage.',
+            confirmText: 'OK',
+            onConfirm: () => Navigator.pop(ctx),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      final cage = _cageController.text.trim();
+      final cage = _selectedCage!;
       await _db.moveCage(widget.rabbit.id, _selectedLocation!, cage);
 
       if (mounted) {

@@ -1728,7 +1728,8 @@ class DatabaseService {
       'deadBorn': totalBorn - aliveBorn,
       'currentAlive': aliveBorn,
       'weanDate': weanDate.toIso8601String(),
-      'status': isMissed ? 'archived' : 'nursing',
+      // All kits born dead -> 'Litter Died' (goes to Litter History)
+      'status': isMissed ? 'archived' : (aliveBorn <= 0 && totalBorn > 0 ? 'Died' : 'nursing'),
       'location': rabbit.location ?? '',
       'cage': rabbit.cage ?? '',
       'breed': rabbit.breed,
@@ -2637,6 +2638,9 @@ class DatabaseService {
         print('✅ Updated litter: ${litter.id} with ${litter.kits.length} kits');
       }
       if (litter.doeId.isNotEmpty) {
+        if (litter.missedLitter == true) {
+          await _resetDoeAfterMissedLitter(litter.doeId, litter.breedDate);
+        }
         await checkAndUpdateDoeStatusIfLitterEmpty(litter.doeId);
       }
       notifyDataChanged();
@@ -2906,6 +2910,47 @@ class DatabaseService {
 
   /// Checks if a doe has any remaining active (non-dead, non-fostered) nursing kits.
   /// If all kits are dead or fostered across her active litters, changes the doe's status to OPEN.
+  /// When a litter is marked "Missed", the doe's current breeding did not
+  /// take: clear the Bred/Pregnant state so she shows under OPEN in the Herd.
+  /// Skipped when she has since been rebred (different breed date).
+  Future<void> _resetDoeAfterMissedLitter(String doeId, DateTime? litterBreedDate) async {
+    final db = await database;
+    final rows = await db.query('rabbits', where: 'id = ?', whereArgs: [doeId]);
+    if (rows.isEmpty) return;
+    final status = (rows.first['status'] as String? ?? '').toLowerCase();
+    if (status.contains('quarantine') || status.contains('archived')) return;
+    final isBredState = status.contains('pregnant') ||
+        status.contains('palpatedue') ||
+        status.contains('nursing');
+    final dueStr = rows.first['dueDate'] as String?;
+    if (!isBredState && dueStr == null) return;
+
+    final lastBreed = DateTime.tryParse((rows.first['lastBreedDate'] as String?) ?? '');
+    if (lastBreed != null && litterBreedDate != null) {
+      final sameDay = lastBreed.year == litterBreedDate.year &&
+          lastBreed.month == litterBreedDate.month &&
+          lastBreed.day == litterBreedDate.day;
+      if (!sameDay) return; // doe was rebred since; leave her state alone
+    }
+
+    // A doe still nursing another live litter stays Nursing (handled by sync)
+    await db.update(
+      'rabbits',
+      {
+        'status': RabbitStatus.open.toString(),
+        'dueDate': null,
+        'kindleDate': null,
+        'lastBreedDate': null,
+        'lastBreedBuckId': null,
+        'currentLitterSize': 0,
+        'weanDate': null,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [doeId],
+    );
+  }
+
   Future<void> checkAndUpdateDoeStatusIfLitterEmpty(String doeId) async {
     try {
       if (doeId.trim().isEmpty) return;
@@ -4336,6 +4381,19 @@ class DatabaseService {
     await db.insert('barns', barnData,
         conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ Inserted barn: ${barn['name']}');
+  }
+
+  /// Renames a barn/location WITHOUT touching its rows/cages, and keeps every
+  /// rabbit / litter that points at the old name attached to the new one.
+  Future<void> renameBarn(String id, String oldName, String newName) async {
+    final db = await database;
+    await db.update('barns', {'name': newName}, where: 'id = ?', whereArgs: [id]);
+    await db.update('rabbits', {'location': newName}, where: 'location = ?', whereArgs: [oldName]);
+    try {
+      await db.update('litters', {'location': newName}, where: 'location = ?', whereArgs: [oldName]);
+    } catch (_) {}
+    notifyDataChanged();
+    print('✅ Renamed barn $oldName -> $newName');
   }
 
   Future<void> updateBarn(Map<String, dynamic> barn) async {

@@ -1,3 +1,4 @@
+import '../widgets/purple_dialog.dart';
 import '../services/appearance_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -186,7 +187,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       _activeInRabbitry = true;
       _selectedStatus = _selectedType == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
     } else {
-      _activeInRabbitry = true;
+      _activeInRabbitry = false;
       _selectedStatus = RabbitStatus.growout;
     }
 
@@ -287,7 +288,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     _broken = r.broken ?? false;
     _viennaMarked = r.viennaMarked ?? false;
     _viennaCarrier = r.viennaCarrier ?? false;
-    _activeInRabbitry = r.activeInRabbitry;
+    _activeInRabbitry = r.activeInRabbitry && !_isOutOfRabbitryStatus(r.status);
     _selectedSireId = r.sireId;
     _selectedDamId = r.damId;
     if (r.photos != null && r.photos!.isNotEmpty) {
@@ -647,9 +648,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
               child: _buildToggleRow('Active in Rabbitry', _activeInRabbitry, (val) {
                 setState(() {
                   _activeInRabbitry = val;
-                  if (!_activeInRabbitry) {
-                    _selectedStatus = RabbitStatus.quarantine;
-                  } else if (_selectedStatus == RabbitStatus.quarantine || _selectedStatus == RabbitStatus.growout) {
+                  if (!val) {
+                    // Toggle OFF: Grow-Out / Resting / Quarantine
+                    if (!_isOutOfRabbitryStatus(_selectedStatus)) {
+                      _selectedStatus = RabbitStatus.growout;
+                    }
+                  } else if (_isOutOfRabbitryStatus(_selectedStatus)) {
+                    // Toggle ON: Open / Bred / Nursing
                     _selectedStatus = _selectedType == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
                   }
                 });
@@ -1781,24 +1786,27 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     }
   }
 
+  bool _isOutOfRabbitryStatus(RabbitStatus st) =>
+      st == RabbitStatus.growout || st == RabbitStatus.resting || st == RabbitStatus.quarantine;
+
   Widget _buildStatusDropdown() {
-    final List<RabbitStatus> statusOptions = _selectedType == RabbitType.buck
+    // "Active in Rabbitry" ON  -> Open, Bred, Nursing
+    // "Active in Rabbitry" OFF -> Grow-Out, Resting, Quarantine
+    final List<RabbitStatus> statusOptions = !_activeInRabbitry
         ? [
-            RabbitStatus.active,
             RabbitStatus.growout,
             RabbitStatus.resting,
             RabbitStatus.quarantine,
           ]
-        : [
-            RabbitStatus.open,
-            RabbitStatus.pregnant,
-            RabbitStatus.nursing,
-            RabbitStatus.growout,
-            RabbitStatus.resting,
-            RabbitStatus.quarantine,
-          ];
+        : (_selectedType == RabbitType.buck
+            ? [RabbitStatus.active]
+            : [
+                RabbitStatus.open,
+                RabbitStatus.pregnant,
+                RabbitStatus.nursing,
+              ]);
     if (!statusOptions.contains(_selectedStatus)) {
-      statusOptions.add(_selectedStatus);
+      _selectedStatus = statusOptions.first;
     }
 
     return Column(
@@ -1867,11 +1875,7 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                 if (value != null) {
                   setState(() {
                     _selectedStatus = value;
-                    if (value == RabbitStatus.quarantine) {
-                      _activeInRabbitry = false;
-                    } else {
-                      _activeInRabbitry = true;
-                    }
+                    _activeInRabbitry = !_isOutOfRabbitryStatus(value);
                   });
                 }
               },
@@ -1882,10 +1886,41 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
     );
   }
 
+  /// Another (non-archived) rabbit already in this Location + Cage?
+  Future<Rabbit?> _findCageOccupant(String? location, String? cage) async {
+    if (location == null || location.isEmpty || cage == null || cage.isEmpty) return null;
+    final all = await _db.getAllRabbits();
+    for (final r in all) {
+      if (_isEditing && r.id == widget.editRabbit!.id) continue;
+      if (r.type == RabbitType.pedigree || r.isArchived || r.status == RabbitStatus.archived) continue;
+      if ((r.location ?? '') == location && (r.cage ?? '') == cage) return r;
+    }
+    return null;
+  }
+
+  Future<void> _showCageTakenDialog(Rabbit occupant, String cage) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => BrightPurpleDialog(
+        title: 'Cage already in use',
+        content: '${_selectedLocation ?? ''} cage $cage is already assigned to ${occupant.name}.\n\nPlease choose a different cage.',
+        confirmText: 'OK',
+        onConfirm: () => Navigator.pop(ctx),
+      ),
+    );
+  }
+
   Widget _buildLocationDropdown() {
     final locationNames = _barns.map((b) => b.name).toList();
 
-    if (_selectedLocation != null && !locationNames.contains(_selectedLocation)) {
+    // Keep a saved location visible even if barns haven't loaded yet
+    if (_selectedLocation != null &&
+        _selectedLocation!.isNotEmpty &&
+        !locationNames.contains(_selectedLocation)) {
+      locationNames.add(_selectedLocation!);
+    }
+    if (_selectedLocation != null && _selectedLocation!.isEmpty) {
       _selectedLocation = null;
     }
 
@@ -1976,7 +2011,13 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       }
     }
 
-    if (_selectedCage != null && !cageNames.contains(_selectedCage)) {
+    // Keep a saved cage visible even if barns haven't loaded yet
+    if (_selectedCage != null &&
+        _selectedCage!.isNotEmpty &&
+        !cageNames.contains(_selectedCage)) {
+      cageNames.add(_selectedCage!);
+    }
+    if (_selectedCage != null && _selectedCage!.isEmpty) {
       _selectedCage = null;
     }
 
@@ -2048,7 +2089,15 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
                   ),
                 );
               }).toList(),
-              onChanged: (value) => setState(() => _selectedCage = value),
+              onChanged: (value) async {
+                if (value == null) return;
+                final occupant = await _findCageOccupant(_selectedLocation, value);
+                if (occupant != null) {
+                  await _showCageTakenDialog(occupant, value);
+                  return; // keep the previous selection
+                }
+                if (mounted) setState(() => _selectedCage = value);
+              },
             ),
           ),
         ),
@@ -2768,6 +2817,12 @@ class _AddRabbitScreenState extends State<AddRabbitScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter a breed', style: TextStyle(fontSize: 16)), backgroundColor: appSurface(0xFFD44C47), duration: Duration(milliseconds: 800)),
       );
+      return;
+    }
+
+    final cageOccupant = await _findCageOccupant(_selectedLocation, _selectedCage);
+    if (cageOccupant != null) {
+      await _showCageTakenDialog(cageOccupant, _selectedCage ?? '');
       return;
     }
 

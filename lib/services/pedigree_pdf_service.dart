@@ -44,6 +44,7 @@ class PedigreePdfService {
         'assets/fonts/Overthink-Regular.ttf',
         'assets/fonts/Overthink.ttf',
         'assets/fonts/Overthink.otf',
+        'assets/fonts/OvertheRainbow-Regular.ttf',
       ],
       PedigreeLayout.fontTitleAsset,
     );
@@ -55,6 +56,7 @@ class PedigreePdfService {
         'assets/fonts/TheDecember.ttf',
         'assets/fonts/The December.ttf',
         'assets/fonts/TheDecember.otf',
+        'assets/fonts/Birthstone-Regular.ttf',
       ],
       PedigreeLayout.fontSignatureAsset,
     );
@@ -65,6 +67,7 @@ class PedigreePdfService {
         'assets/fonts/Overthink-Regular.ttf',
         'assets/fonts/Overthink.ttf',
         'assets/fonts/Overthink.otf',
+        'assets/fonts/OvertheRainbow-Regular.ttf',
       ],
       'assets/fonts/Shakies-OpenType-TT.ttf',
     );
@@ -88,6 +91,7 @@ class PedigreePdfService {
         'assets/fonts/TheDecember.ttf',
         'assets/fonts/The December.ttf',
         'assets/fonts/TheDecember.otf',
+        'assets/fonts/Birthstone-Regular.ttf',
       ],
       'assets/fonts/MrsSaintDelafield-Regular.ttf',
     );
@@ -115,341 +119,191 @@ class PedigreePdfService {
       );
     } else {
       pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.letter.landscape,
-          margin: pw.EdgeInsets.zero,
-          build: (pw.Context context) {
-          final double W = PdfPageFormat.letter.landscape.width;
-          final double H = PdfPageFormat.letter.landscape.height;
-
-          // Auto-scale farm title font size
-          double farmTitleSize = W * PedigreeLayout.fontRatioFarmTitle;
-          if (data.farmName.length > 18) {
-            farmTitleSize = (farmTitleSize * 18 / data.farmName.length)
-                .clamp(W * 0.025, W * PedigreeLayout.fontRatioFarmTitle);
-          }
-
-          final tree = data.tree;
-
-          return pw.Stack(
-            children: [
-              // Plain White Page Background
-              pw.Positioned.fill(
-                child: pw.Container(color: PdfColors.white),
-              ),
-
-              // ─── Top Left: Farm Header ──────────────────────────────────────
-              pw.Positioned(
-                left: W * PedigreeLayout.pedigreeHeaderLeft,
-                top: H * PedigreeLayout.farmTitleCenterY - (H * PedigreeLayout.farmTitleBoxHeight / 2),
-                child: pw.SizedBox(
-                  width: W * PedigreeLayout.farmTitleMaxWidth,
-                  height: H * PedigreeLayout.farmTitleBoxHeight,
-                  child: pw.Align(
-                    alignment: pw.Alignment.centerLeft,
-                    child: pw.Text(
-                      data.farmName,
-                      style: pw.TextStyle(
-                        font: fontTitle,
-                        fontSize: farmTitleSize,
-                        color: PedigreeLayout.pdfColorHeaderTitle,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Address + Email on one line, grey underline, breed subtitle
-              if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.addressLeft,
-                  top: H * (PedigreeLayout.contactCenterY - PedigreeLayout.contactBoxHeight / 2),
-                  child: pw.Row(
-                    children: [
-                      if (data.farmAddress.isNotEmpty)
-                        pw.Text(
-                          data.farmAddress,
-                          style: pw.TextStyle(
-                            font: fontDetails,
-                            fontSize: W * PedigreeLayout.fontRatioHeaderContact,
-                            color: PedigreeLayout.pdfColorHeaderContact,
-                          ),
-                        ),
-                      if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
-                        pw.SizedBox(width: 14),
-                      if (data.farmEmail.isNotEmpty)
-                        pw.Text(
-                          data.farmEmail,
-                          style: pw.TextStyle(
-                            font: fontDetails,
-                            fontSize: W * PedigreeLayout.fontRatioHeaderContact,
-                            color: PedigreeLayout.pdfColorHeaderContact,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              pw.Positioned(
-                left: W * PedigreeLayout.underlineX0,
-                top: H * PedigreeLayout.underlineY,
-                child: pw.Container(
-                  width: W * (PedigreeLayout.underlineX1 - PedigreeLayout.underlineX0),
-                  height: 1.0,
-                  color: PedigreeLayout.pdfColorHeaderUnderline,
-                ),
-              ),
-              if (data.subjectBreed.trim().isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.breedSubtitleLeft,
-                  top: H * PedigreeLayout.breedSubtitleTop,
-                  child: pw.Text(
-                    '${data.subjectBreed.trim()} Pedigree',
-                    style: pw.TextStyle(
-                      font: fontDetails,
-                      fontSize: W * PedigreeLayout.fontRatioSubject,
-                      color: PedigreeLayout.pdfColorSubjectText,
-                    ),
-                    maxLines: 1,
-                  ),
-                ),
-              if (data.farmWebsite.isNotEmpty || data.farmSocialLink.isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.addressLeft,
-                  top: H * PedigreeLayout.websiteTop,
-                  child: pw.SizedBox(
-                    width: W * 0.30,
-                    child: pw.Text(
-                      [
-                        if (data.farmWebsite.isNotEmpty) data.farmWebsite,
-                        if (data.farmSocialLink.isNotEmpty) data.farmSocialLink,
-                      ].join('  •  '),
-                      style: pw.TextStyle(
-                        font: fontDetails,
-                        fontSize: W * (PedigreeLayout.fontRatioHeaderContact * 0.9),
-                        color: PedigreeLayout.pdfColorHeaderContact,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-
-              // ─── "Bunny Pedigree" Logo ──────────────────────────────────────
-              pw.Positioned(
-                left: W * PedigreeLayout.logoLeft,
-                top: H * PedigreeLayout.logoTop,
-                child: pw.SizedBox(
-                  width: W * PedigreeLayout.logoWidth,
-                  height: H * PedigreeLayout.logoHeight,
-                  child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                ),
-              ),
-
-              // ─── Left: Subject Details Box ──────────────────────────────────
-              pw.Positioned(
-                left: W * PedigreeLayout.subjectBoxLeft,
-                top: H * PedigreeLayout.subjectBoxTop,
-                child: pw.Container(
-                  width: W * PedigreeLayout.subjectBoxWidth,
-                  height: H * PedigreeLayout.subjectBoxHeight,
-                  decoration: pw.BoxDecoration(
-                    color: PedigreeLayout.pdfColorSubjectBoxBg,
-                    borderRadius: pw.BorderRadius.all(
-                      pw.Radius.circular(W * PedigreeLayout.subjectBoxRadius),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Subject Details Rows
-              ..._buildSubjectSingleRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectNameCenterY, 'Name:', data.subjectName),
-              ..._buildSubjectSingleRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectColorCenterY, 'Color:', data.subjectColor),
-              ..._buildSubjectSingleRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectBreedCenterY, 'Breed:', data.subjectBreed),
-              ..._buildSubjectSingleRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectSexCenterY, 'Sex:', data.subjectSex),
-              ..._buildSubjectSingleRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectDobCenterY, 'DOB:', data.subjectDob),
-              ..._buildSubjectDualRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectEarWtCenterY, 'Ear No.:', data.subjectEarNo, 'Wt:', data.subjectWeight),
-              ..._buildSubjectDualRow(W, H, fontDetails, fontDetailsBold, PedigreeLayout.subjectRegLegsCenterY, 'Reg No.:', data.subjectRegNo, 'Legs:', data.subjectLegs),
-
-              // Genotype & Sale Details (below Subject Box)
-              if (data.subjectGenotype.isNotEmpty || data.soldTo.isNotEmpty || data.soldOn.isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.subjectBoxLeft,
-                  top: H * 0.658,
-                  child: pw.SizedBox(
-                    width: W * PedigreeLayout.subjectBoxWidth,
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        if (data.subjectGenotype.isNotEmpty)
-                          _buildPdfMetadataLine(W, fontDetails, fontDetailsBold, 'Genotype:', data.subjectGenotype),
-                        if (data.soldTo.isNotEmpty)
-                          _buildPdfMetadataLine(W, fontDetails, fontDetailsBold, 'Sold To:', data.soldTo),
-                        if (data.soldOn.isNotEmpty)
-                          _buildPdfMetadataLine(W, fontDetails, fontDetailsBold, 'Sold On:', data.soldOn),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // ─── Subject Photo Ellipse ──────────────────────────────────────
-              if (SettingsService.instance.pedigreeShowPhoto)
-                pw.Positioned(
-                  left: W * PedigreeLayout.photoLeft,
-                  top: H * PedigreeLayout.photoTop,
-                  child: pw.Container(
-                    width: W * PedigreeLayout.photoWidth,
-                    height: H * PedigreeLayout.photoHeight,
-                    decoration: pw.BoxDecoration(
-                      borderRadius: pw.BorderRadius.all(
-                        pw.Radius.elliptical(
-                          W * PedigreeLayout.photoWidth / 2,
-                          H * PedigreeLayout.photoHeight / 2,
-                        ),
-                      ),
-                      border: pw.Border.all(
-                        color: PedigreeLayout.pdfColorSubjectPhotoOutline,
-                        width: PedigreeLayout.photoOutlineWidthPt,
-                      ),
-                      color: subjectPhoto == null ? const PdfColor(0.92, 0.92, 0.92) : null,
-                    ),
-                    child: subjectPhoto != null
-                        ? pw.ClipOval(
-                            child: pw.Container(
-                              color: const PdfColor(0.90, 0.90, 0.90),
-                              width: double.infinity,
-                              height: double.infinity,
-                              child: pw.Image(subjectPhoto, fit: pw.BoxFit.contain),
-                            ),
-                          )
-                        : pw.SizedBox(),
-                  ),
-                ),
-
-              // ─── Generation 1 (Parents) ─────────────────────────────────────
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 1, 'Sire', true, PedigreeLayout.sireLeft, PedigreeLayout.sireTop, tree?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 1, 'Dam', false, PedigreeLayout.damLeft, PedigreeLayout.damTop, tree?.dam),
-
-              // ─── Generation 2 (Grandparents) ────────────────────────────────
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 2, 'G.Sire', true, PedigreeLayout.ssLeft, PedigreeLayout.ssTop, tree?.sire?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 2, 'G.Dam', false, PedigreeLayout.sdLeft, PedigreeLayout.sdTop, tree?.sire?.dam),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 2, 'G.Sire', true, PedigreeLayout.dsLeft, PedigreeLayout.dsTop, tree?.dam?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 2, 'G.Dam', false, PedigreeLayout.ddLeft, PedigreeLayout.ddTop, tree?.dam?.dam),
-
-              // ─── Generation 3 (Great-Grandparents) ───────────────────────────
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.sssTop, tree?.sire?.sire?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.ssdTop, tree?.sire?.sire?.dam),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.sdsTop, tree?.sire?.dam?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.sddTop, tree?.sire?.dam?.dam),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.dssTop, tree?.dam?.sire?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.dsdTop, tree?.dam?.sire?.dam),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Sire', true, PedigreeLayout.gen3Left, PedigreeLayout.ddsTop, tree?.dam?.dam?.sire),
-              ..._buildAncestorCard(W, H, fontDetails, fontDetailsBold, 3, 'G.G.Dam', false, PedigreeLayout.gen3Left, PedigreeLayout.dddTop, tree?.dam?.dam?.dam),
-
-              // ─── Bottom Left: Certification & Footer ────────────────────────
-              // Line 1: "I hereby certify this pedigree is correct"
-              pw.Positioned(
-                left: W * PedigreeLayout.certifyLeft,
-                top: H * PedigreeLayout.certifyLine1CenterY - (H * PedigreeLayout.certifyBoxHeight / 2),
-                child: pw.SizedBox(
-                  height: H * PedigreeLayout.certifyBoxHeight,
-                  child: pw.Align(
-                    alignment: pw.Alignment.centerLeft,
-                    child: pw.Text(
-                      'I hereby certify this pedigree is correct',
-                      style: pw.TextStyle(
-                        font: fontDetails,
-                        fontSize: W * PedigreeLayout.fontRatioCertify,
-                        color: PedigreeLayout.pdfColorFooterCertify,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Line 2: "to the best of my knowledge"
-              pw.Positioned(
-                left: W * PedigreeLayout.certifyLeft,
-                top: H * PedigreeLayout.certifyLine2CenterY - (H * PedigreeLayout.certifyBoxHeight / 2),
-                child: pw.SizedBox(
-                  height: H * PedigreeLayout.certifyBoxHeight,
-                  child: pw.Align(
-                    alignment: pw.Alignment.centerLeft,
-                    child: pw.Text(
-                      'to the best of my knowledge',
-                      style: pw.TextStyle(
-                        font: fontDetails,
-                        fontSize: W * PedigreeLayout.fontRatioCertify,
-                        color: PedigreeLayout.pdfColorFooterCertify,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Breeder Signature
-              if (data.ownerName.trim().isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.signatureLeft,
-                  top: H * PedigreeLayout.signatureCenterY - (H * PedigreeLayout.signatureBoxHeight / 2),
-                  child: pw.SizedBox(
-                    height: H * PedigreeLayout.signatureBoxHeight,
-                    child: pw.Align(
-                      alignment: pw.Alignment.centerLeft,
-                      child: pw.Text(
-                        data.ownerName.trim(),
-                        style: pw.TextStyle(
-                          font: fontSignature,
-                          fontSize: W * PedigreeLayout.fontRatioSignature,
-                          color: PedigreeLayout.pdfColorFooterSignature,
-                        ),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Signature Underline
-              pw.Positioned(
-                left: W * PedigreeLayout.signatureUnderlineX0,
-                top: H * PedigreeLayout.signatureUnderlineY,
-                child: pw.Container(
-                  width: W * (PedigreeLayout.signatureUnderlineX1 - PedigreeLayout.signatureUnderlineX0),
-                  height: 0.75,
-                  color: PedigreeLayout.pdfColorHeaderUnderline,
-                ),
-              ),
-
-              // Phone Number
-              if (data.farmPhone.trim().isNotEmpty)
-                pw.Positioned(
-                  left: W * PedigreeLayout.phoneLeft,
-                  top: H * PedigreeLayout.phoneCenterY - (H * PedigreeLayout.phoneBoxHeight / 2),
-                  child: pw.SizedBox(
-                    height: H * PedigreeLayout.phoneBoxHeight,
-                    child: pw.Align(
-                      alignment: pw.Alignment.centerLeft,
-                      child: pw.Text(
-                        data.farmPhone.trim(),
-                        style: pw.TextStyle(
-                          font: fontDetails,
-                          fontSize: W * PedigreeLayout.fontRatioPhone,
-                          color: PedigreeLayout.pdfColorFooterPhone,
-                        ),
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
+        _buildLandscapePdfPage(
+          data: data,
+          fontTitle: fontTitle,
+          fontRegular: fontPortraitRegular,
+          fontSignature: fontSignature,
+          logo: logoImage,
+          subjectPhoto: subjectPhoto,
+        ),
+      );
     }
 
     return pdf.save();
+  }
+
+  // ─── LANDSCAPE PDF PAGE BUILDER (matches Landscape.pdf design) ─────────────
+  static pw.Page _buildLandscapePdfPage({
+    required PedigreeData data,
+    required pw.Font fontTitle,
+    required pw.Font fontRegular,
+    required pw.Font fontSignature,
+    required pw.MemoryImage logo,
+    pw.MemoryImage? subjectPhoto,
+  }) {
+    const grey = PdfColor(0.577, 0.586, 0.596);
+    const headGrey = PdfColor(0.655, 0.663, 0.675);
+    const subjInk = PdfColor(0.439, 0.447, 0.451);
+    const lineInk = PdfColor(0.427, 0.431, 0.443);
+    const certInk = PdfColor(0.502, 0.510, 0.522);
+
+    pw.Widget txt(String t, double x, double y, double w, double fs, PdfColor c,
+        {pw.Font? font}) {
+      return pw.Positioned(
+        left: x,
+        top: y,
+        child: pw.SizedBox(
+          width: w,
+          height: fs * 1.3,
+          child: pw.FittedBox(
+            fit: pw.BoxFit.scaleDown,
+            alignment: pw.Alignment.centerLeft,
+            child: pw.Text(
+              t,
+              style: pw.TextStyle(font: font ?? fontRegular, fontSize: fs, color: c),
+              maxLines: 1,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return pw.Page(
+      pageFormat: PdfPageFormat.letter.landscape,
+      margin: pw.EdgeInsets.zero,
+      build: (pw.Context context) {
+        final tree = data.tree;
+        final widgets = <pw.Widget>[
+          pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
+
+          // Header
+          txt(data.farmName, 20.8, 14.5, 330, 33.2, headGrey, font: fontTitle),
+          if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
+            pw.Positioned(
+              left: 23.9,
+              top: 56.8,
+              child: pw.Row(children: [
+                if (data.farmAddress.isNotEmpty)
+                  pw.Text(data.farmAddress,
+                      style: pw.TextStyle(font: fontRegular, fontSize: 11, color: headGrey)),
+                if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
+                  pw.SizedBox(width: 14),
+                if (data.farmEmail.isNotEmpty)
+                  pw.Text(data.farmEmail,
+                      style: pw.TextStyle(font: fontRegular, fontSize: 11, color: headGrey)),
+              ]),
+            ),
+          pw.Positioned(
+            left: 22.4,
+            top: 71.2,
+            child: pw.Container(width: 253.0, height: 1.0, color: grey),
+          ),
+          if (data.subjectBreed.trim().isNotEmpty)
+            txt('${data.subjectBreed.trim()} Pedigree', 23.6, 75.8, 300, 14, lineInk),
+
+          // Logo
+          pw.Positioned(
+            left: 52.7,
+            top: 121.0,
+            child: pw.SizedBox(width: 110.0, height: 112.0, child: pw.Image(logo, fit: pw.BoxFit.contain)),
+          ),
+
+          // Subject box
+          pw.Positioned(
+            left: 21.8,
+            top: 216.2,
+            child: pw.Container(
+              width: 173.7,
+              height: 178.8,
+              decoration: pw.BoxDecoration(
+                color: LandscapeLayout.pdfSubjectBox,
+                borderRadius: pw.BorderRadius.circular(18),
+              ),
+            ),
+          ),
+          for (final c in LandscapeLayout.subjectCells(data))
+            txt(c.text, c.x, c.y, c.w, 12, subjInk),
+
+          // Sold To / Sold On / Genotype
+          if (data.showSoldTo)
+            txt('Sold To: ${data.soldTo}', 24.2, 414.5, 175, 11, lineInk),
+          if (data.showSoldOn)
+            txt('Sold On: ${data.soldOn}', 24.2, 427.7, 175, 11, lineInk),
+          if (data.subjectGenotype.isNotEmpty)
+            txt('Genotype: ${data.subjectGenotype}', 24.2, 441.0, 175, 11, lineInk),
+
+          // Photo ellipse
+          if (SettingsService.instance.pedigreeShowPhoto)
+            pw.Positioned(
+              left: 216.3,
+              top: 236.0,
+              child: pw.Container(
+                width: 178.3,
+                height: 134.6,
+                decoration: pw.BoxDecoration(
+                  borderRadius: pw.BorderRadius.all(pw.Radius.elliptical(89.15, 67.3)),
+                  border: pw.Border.all(color: LandscapeLayout.pdfPhotoBorder, width: 1.0),
+                  color: subjectPhoto == null ? const PdfColor(0.92, 0.92, 0.92) : null,
+                ),
+                child: subjectPhoto != null
+                    ? pw.ClipOval(
+                        child: pw.Container(
+                          color: const PdfColor(0.90, 0.90, 0.90),
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: pw.Image(subjectPhoto, fit: pw.BoxFit.contain),
+                        ),
+                      )
+                    : pw.SizedBox(),
+              ),
+            ),
+        ];
+
+        // Ancestor cards
+        for (final c in LandscapeLayout.specs) {
+          final r = LandscapeLayout.resolve(tree, c.path);
+          widgets.add(pw.Positioned(
+            left: c.left,
+            top: c.top,
+            child: pw.Container(
+              width: c.width,
+              height: c.height,
+              decoration: pw.BoxDecoration(
+                color: c.isSire ? LandscapeLayout.pdfSireCard : LandscapeLayout.pdfDamCard,
+                borderRadius: pw.BorderRadius.circular(LandscapeLayout.cardRadius),
+              ),
+            ),
+          ));
+          for (final cell in LandscapeLayout.cardCells(c, r, _formatCardWeight(r?.weight))) {
+            widgets.add(txt(cell.text, c.left + cell.x, c.top + cell.y, cell.w, c.fontSize, PdfColors.white));
+          }
+          final win = (r?.winnings ?? '').trim();
+          if (win.isNotEmpty && c.gen < 3) {
+            widgets.add(txt(win, c.left, c.top + c.height + 0.5, c.width, c.fontSize - 1, lineInk));
+          }
+        }
+
+        // Footer
+        widgets.addAll([
+          txt('I hereby certify this pedigree is correct', 20.6, 523.0, 250, 12, certInk),
+          txt('to the best of my knowledge', 20.6, 537.4, 250, 12, certInk),
+          if (data.ownerName.trim().isNotEmpty)
+            txt(data.ownerName.trim(), 22.3, 548.0, 190, 20, lineInk, font: fontSignature),
+          pw.Positioned(
+            left: 20.6,
+            top: 580.4,
+            child: pw.Container(width: 119.6, height: 1.0, color: grey),
+          ),
+          if (data.farmPhone.trim().isNotEmpty)
+            txt(data.farmPhone.trim(), 20.6, 586.8, 150, 12, lineInk),
+          if (data.farmWebsite.trim().isNotEmpty)
+            txt(data.farmWebsite.trim(), 130.0, 588.0, 80, 10, lineInk),
+        ]);
+
+        return pw.Stack(children: widgets);
+      },
+    );
   }
 
   // ─── PORTRAIT PDF PAGE BUILDER (Matches PortraitPedigree.pdf 1:1) ──────────
@@ -558,7 +412,7 @@ class PedigreePdfService {
             // ─── Subject Details: Column 1 (Name, Ear #, Reg #, Sold to) ──────
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 66.5,
+              top: 65.0,
               width: 195.0,
               label: 'Name:  ',
               value: data.subjectName,
@@ -567,7 +421,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 80.9,
+              top: 78.5,
               width: 195.0,
               label: 'Ear #: ',
               value: data.subjectEarNo,
@@ -576,29 +430,28 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 95.3,
+              top: 92.0,
               width: 195.0,
               label: 'Reg #: ',
               value: data.subjectRegNo,
               fontLabel: fontRegular,
               fontValue: fontRegular,
             ),
-            if (data.soldTo.trim().isNotEmpty)
+            if (data.showSoldTo)
               _buildPortraitPdfSubjectField(
-                left: 28.9,
-                top: 530.0,
-                width: 160.0,
+                left: 21.875,
+                top: 105.5,
+                width: 195.0,
                 label: 'Sold to: ',
                 value: data.soldTo,
                 fontLabel: fontRegular,
                 fontValue: fontRegular,
-                fontSize: 10.5,
               ),
 
             // ─── Subject Details: Column 2 (Breed, Sex, Color, Sold on) ───────
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 66.5,
+              top: 65.0,
               width: 195.0,
               label: 'Breed: ',
               value: data.subjectBreed,
@@ -607,7 +460,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 80.9,
+              top: 78.5,
               width: 195.0,
               label: 'Sex:  ',
               value: data.subjectSex,
@@ -616,29 +469,28 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 95.3,
+              top: 92.0,
               width: 195.0,
               label: 'Color: ',
               value: data.subjectColor,
               fontLabel: fontRegular,
               fontValue: fontRegular,
             ),
-            if (data.soldOn.trim().isNotEmpty)
+            if (data.showSoldOn)
               _buildPortraitPdfSubjectField(
-                left: 28.9,
-                top: 544.0,
-                width: 160.0,
+                left: 220.87,
+                top: 105.5,
+                width: 195.0,
                 label: 'Sold on: ',
                 value: data.soldOn,
                 fontLabel: fontRegular,
                 fontValue: fontRegular,
-                fontSize: 10.5,
               ),
 
             // ─── Subject Details: Column 3 (Born, Weight, Legs) ───────────────
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 66.5,
+              top: 65.0,
               width: 180.0,
               label: 'Born:  ',
               value: data.subjectDob,
@@ -647,7 +499,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 80.9,
+              top: 78.5,
               width: 180.0,
               label: 'Weight:  ',
               value: data.subjectWeight,
@@ -656,7 +508,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 95.3,
+              top: 92.0,
               width: 180.0,
               label: 'Legs: ',
               value: data.subjectLegs,
@@ -667,7 +519,7 @@ class PedigreePdfService {
             // ─── Bottom Double Horizontal Rule ────────────────────────────────
             pw.Positioned(
               left: 4.875,
-              top: 116.55,
+              top: 121.0,
               child: pw.Container(
                 width: 602.25,
                 height: 0.5,
@@ -676,7 +528,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 4.875,
-              top: 119.4,
+              top: 123.85,
               child: pw.Container(
                 width: 602.25,
                 height: 0.5,
@@ -687,7 +539,7 @@ class PedigreePdfService {
             // ─── Generation Column Headers ────────────────────────────────────
             pw.Positioned(
               left: 20.99,
-              top: 125.0,
+              top: 128.5,
               child: pw.Text(
                 'PARENTS',
                 style: pw.TextStyle(
@@ -699,7 +551,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 220.28,
-              top: 125.0,
+              top: 128.5,
               child: pw.Text(
                 'GRANDPARENTS',
                 style: pw.TextStyle(
@@ -711,7 +563,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 420.05,
-              top: 125.0,
+              top: 128.5,
               child: pw.Text(
                 'GREAT-GRAND PARENTS',
                 style: pw.TextStyle(
@@ -834,7 +686,7 @@ class PedigreePdfService {
                       data.ownerName.trim(),
                       style: pw.TextStyle(
                         font: fontSignature,
-                        fontSize: 11.0,
+                        fontSize: 16.0,
                         color: PdfColors.black,
                       ),
                     ),
@@ -1002,11 +854,10 @@ class PedigreePdfService {
               width: 0.5,
             ),
           ),
-          padding: const pw.EdgeInsets.fromLTRB(4.2, 1.5, 4.0, 1.5),
+          padding: const pw.EdgeInsets.fromLTRB(4.2, 0.6, 4.0, 0),
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
+            children: <pw.Widget>[
               // Row 1: Sire/Dam + Name (Myriad Pro Semi Bold, 10pt)
               pw.Text(
                 '$role:  $name',
@@ -1114,21 +965,24 @@ class PedigreePdfService {
                   ),
                 ],
               ),
-            ],
+            ].map((w) => pw.SizedBox(
+                  height: 12.15,
+                  child: pw.Align(alignment: pw.Alignment.centerLeft, child: w),
+                )).toList(),
           ),
         ),
       ),
       if (winnings.isNotEmpty)
         pw.Positioned(
           left: left,
-          top: top + height + 1.0,
+          top: top + height + 0.3,
           child: pw.SizedBox(
             width: width,
             child: pw.Text(
               winnings,
               style: pw.TextStyle(
                 font: fontRegular,
-                fontSize: 7.0,
+                fontSize: 9.5,
                 color: PdfColors.black,
               ),
             ),
@@ -1320,6 +1174,11 @@ class PedigreePdfService {
     }
 
     final double rowHeight = H * (generation == 3 ? 0.0240 : 0.0280);
+    final String regNo = rabbit?.registrationNumber ?? '';
+    final String gcNo = rabbit?.grandChampionNumber ?? '';
+    // 5 evenly spaced rows: Name, Color, DOB/Wt, Ear/Reg, GC/Legs
+    final List<double> rd = List<double>.generate(
+        5, (i) => rowDy[0] + i * (cardH - 2 * rowDy[0]) / 4);
 
     return [
       // Card Container Background
@@ -1341,7 +1200,7 @@ class PedigreePdfService {
       // Row 0: Role & Name
       pw.Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[0]) - (rowHeight / 2),
+        top: H * (top + rd[0]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (cardW - textDx - 0.005),
           height: rowHeight,
@@ -1377,7 +1236,7 @@ class PedigreePdfService {
       // Row 1: Color
       pw.Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[1]) - (rowHeight / 2),
+        top: H * (top + rd[1]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (cardW - textDx - 0.005),
           height: rowHeight,
@@ -1414,7 +1273,7 @@ class PedigreePdfService {
       // Col 1: DOB
       pw.Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[2]) - (rowHeight / 2),
+        top: H * (top + rd[2]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (secondColDx - textDx),
           height: rowHeight,
@@ -1449,7 +1308,7 @@ class PedigreePdfService {
       // Col 2: Wt
       pw.Positioned(
         left: W * (left + secondColDx),
-        top: H * (top + rowDy[2]) - (rowHeight / 2),
+        top: H * (top + rd[2]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (cardW - secondColDx - 0.004),
           height: rowHeight,
@@ -1482,11 +1341,11 @@ class PedigreePdfService {
         ),
       ),
 
-      // Row 3: Ear No. & Legs
+      // Row 3: Ear No. & Reg #
       // Col 1: Ear No.
       pw.Positioned(
         left: W * (left + textDx),
-        top: H * (top + rowDy[3]) - (rowHeight / 2),
+        top: H * (top + rd[3]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (secondColDx - textDx),
           height: rowHeight,
@@ -1521,7 +1380,78 @@ class PedigreePdfService {
       // Col 2: Legs
       pw.Positioned(
         left: W * (left + secondColDx),
-        top: H * (top + rowDy[3]) - (rowHeight / 2),
+        top: H * (top + rd[3]) - (rowHeight / 2),
+        child: pw.SizedBox(
+          width: W * (cardW - secondColDx - 0.004),
+          height: rowHeight,
+          child: pw.Align(
+            alignment: pw.Alignment.centerLeft,
+            child: pw.RichText(
+              text: pw.TextSpan(
+                children: [
+                  pw.TextSpan(
+                    text: 'Reg #: ',
+                    style: pw.TextStyle(
+                      font: fontBold,
+                      fontSize: baseFontSize,
+                      color: PedigreeLayout.pdfColorCardText,
+                    ),
+                  ),
+                  pw.TextSpan(
+                    text: regNo,
+                    style: pw.TextStyle(
+                      font: font,
+                      fontSize: baseFontSize,
+                      color: PedigreeLayout.pdfColorCardText,
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+            ),
+          ),
+        ),
+      ),
+      // Row 4: GC# & Legs
+      // Col 1: Ear No.
+      pw.Positioned(
+        left: W * (left + textDx),
+        top: H * (top + rd[4]) - (rowHeight / 2),
+        child: pw.SizedBox(
+          width: W * (secondColDx - textDx),
+          height: rowHeight,
+          child: pw.Align(
+            alignment: pw.Alignment.centerLeft,
+            child: pw.RichText(
+              text: pw.TextSpan(
+                children: [
+                  pw.TextSpan(
+                    text: 'GC#: ',
+                    style: pw.TextStyle(
+                      font: fontBold,
+                      fontSize: baseFontSize,
+                      color: PedigreeLayout.pdfColorCardText,
+                    ),
+                  ),
+                  pw.TextSpan(
+                    text: gcNo,
+                    style: pw.TextStyle(
+                      font: font,
+                      fontSize: baseFontSize,
+                      color: PedigreeLayout.pdfColorCardText,
+                    ),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+            ),
+          ),
+        ),
+      ),
+      // Col 2: Legs
+      pw.Positioned(
+        left: W * (left + secondColDx),
+        top: H * (top + rd[4]) - (rowHeight / 2),
         child: pw.SizedBox(
           width: W * (cardW - secondColDx - 0.004),
           height: rowHeight,
@@ -1563,7 +1493,7 @@ class PedigreePdfService {
               winnings,
               style: pw.TextStyle(
                 font: font,
-                fontSize: baseFontSize * 0.55,
+                fontSize: baseFontSize * 0.55 + 2.5,
                 color: PedigreeLayout.pdfColorCardText,
               ),
             ),

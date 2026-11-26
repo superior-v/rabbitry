@@ -3722,7 +3722,7 @@ class TaskScreenState extends State<TaskScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Name (full width)
-                          _buildWaitlistField('Name', nameController),
+                          _buildWaitlistField('Name', nameController, capitalizeWords: true),
                           const SizedBox(height: 14),
 
                           // Phone (full width)
@@ -3745,7 +3745,7 @@ class TaskScreenState extends State<TaskScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(child: _buildWaitlistField('User Name', userNameController)),
+                              Expanded(child: _buildWaitlistField('User Name', userNameController, capitalizeWords: true)),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -4169,6 +4169,7 @@ class TaskScreenState extends State<TaskScreen> {
     List<TextInputFormatter>? inputFormatters,
     String? hintText,
     int maxLines = 1,
+    bool capitalizeWords = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4186,7 +4187,10 @@ class TaskScreenState extends State<TaskScreen> {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
+          textCapitalization: capitalizeWords ? TextCapitalization.words : TextCapitalization.none,
+          inputFormatters: capitalizeWords
+              ? [...?inputFormatters, _CapitalizeWordsFormatter()]
+              : inputFormatters,
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appColor(0xFF4F4F56)),
           decoration: InputDecoration(
             hintText: hintText,
@@ -5947,4 +5951,19 @@ class _CuteGlossyHeartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Upper-cases the first letter of every word as the user types
+/// ("kijiji brandon" -> "Kijiji Brandon"); the rest is left as typed.
+class _CapitalizeWordsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final t = newValue.text;
+    final b = StringBuffer();
+    for (var i = 0; i < t.length; i++) {
+      final startOfWord = i == 0 || t[i - 1] == ' ';
+      b.write(startOfWord ? t[i].toUpperCase() : t[i]);
+    }
+    return newValue.copyWith(text: b.toString());
+  }
 }

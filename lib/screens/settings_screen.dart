@@ -1425,6 +1425,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ...barns.map((b) => _buildSimpleTaskItem(
                     b['name'] as String,
                     () => _deleteLocationItem(b['id'] as String),
+                    onEdit: () => _renameLocationItem(b),
                     onTap: () => _showCages(b),
                   )),
             _buildAddListItem(_addLocation),
@@ -3007,7 +3008,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   Widget _buildSimpleTaskItem(String title, VoidCallback onDelete, {VoidCallback? onEdit, VoidCallback? onTap}) {
-    final handleTap = onEdit ?? onTap;
+    final handleTap = onTap ?? onEdit;
     return InkWell(
       onTap: handleTap,
       child: Container(
@@ -5437,6 +5438,59 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
+  void _renameLocationItem(Map<String, dynamic> barn) async {
+    final oldName = (barn['name'] ?? '').toString();
+    final ctrl = TextEditingController(text: oldName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => BrightPurpleDialog(
+        title: 'Rename Location',
+        contentWidget: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            labelText: 'Location name',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: kLilacDeep, width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: Text('Cancel', style: TextStyle(color: kNeutral600, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dCtx, ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appSurface(0xFFE6BEFE),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: Text('Save', style: TextStyle(color: kLilacText, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (newName == null || newName.isEmpty || newName == oldName) return;
+    final exists = barns.any((b) =>
+        b['id'] != barn['id'] &&
+        (b['name'] ?? '').toString().toLowerCase() == newName.toLowerCase());
+    if (exists) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('A location named "$newName" already exists')),
+        );
+      }
+      return;
+    }
+    await _db.renameBarn(barn['id'] as String, oldName, newName);
+    await _loadBarns();
+  }
+
   void _deleteLocationItem(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -5531,7 +5585,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
               labelText: 'Cage Number(s)',
-              hintText: 'e.g. A1 or A1, A2, A3',
+              hintText: 'e.g. 1-25, A-J, A1-A10 or 1, 2, 3',
               hintStyle: TextStyle(color: appColor(0xFFA0A0A8)),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               focusedBorder: OutlineInputBorder(
@@ -5558,11 +5612,42 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
       );
       if (input != null && input.isNotEmpty) {
-        final newCages = input
-            .split(',')
-            .map((c) => c.trim())
-            .where((c) => c.isNotEmpty)
-            .toList();
+        final newCages = <String>[];
+        for (final raw in input.split(RegExp(r'[,;]'))) {
+          final t = raw.trim().toUpperCase();
+          if (t.isEmpty) continue;
+          // Numeric range with optional prefix: 1-25, A1-A10, A1-10
+          final num = RegExp(r'^([A-Z]*)\s*(\d+)\s*[-–]\s*[A-Z]*\s*(\d+)$').firstMatch(t);
+          // Letter range: A-J
+          final letters = RegExp(r'^([A-Z])\s*[-–]\s*([A-Z])$').firstMatch(t);
+          if (num != null) {
+            final prefix = num.group(1)!;
+            int a = int.parse(num.group(2)!);
+            int b = int.parse(num.group(3)!);
+            if (a > b) {
+              final tmp = a;
+              a = b;
+              b = tmp;
+            }
+            if (b - a > 500) b = a + 500;
+            for (int i = a; i <= b; i++) {
+              newCages.add('$prefix$i');
+            }
+          } else if (letters != null) {
+            int a = letters.group(1)!.codeUnitAt(0);
+            int b = letters.group(2)!.codeUnitAt(0);
+            if (a > b) {
+              final tmp = a;
+              a = b;
+              b = tmp;
+            }
+            for (int i = a; i <= b; i++) {
+              newCages.add(String.fromCharCode(i));
+            }
+          } else {
+            newCages.add(t);
+          }
+        }
         final List<String> cages = rows[rowIndex]['cages'] as List<String>;
         for (final c in newCages) {
           if (!cages.contains(c)) cages.add(c);

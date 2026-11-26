@@ -46,6 +46,27 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
   final ScrollController _buckScrollController = ScrollController();
   final ScrollController _archiveScrollController = ScrollController();
 
+  /// setState that bumps the list keys but keeps each list where the user was
+  /// scrolled (otherwise closing a bunny's menu jumps back to the first bunny).
+  void _setStateKeepScroll(VoidCallback fn) {
+    final controllers = [_doeScrollController, _buckScrollController, _archiveScrollController];
+    final offsets = controllers.map((c) => c.hasClients ? c.offset : 0.0).toList();
+    setState(fn);
+    void restore() {
+      for (var i = 0; i < controllers.length; i++) {
+        final c = controllers[i];
+        if (offsets[i] > 0 && c.hasClients) {
+          final max = c.position.maxScrollExtent;
+          c.jumpTo(offsets[i] > max ? max : offsets[i]);
+        }
+      }
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      restore();
+      WidgetsBinding.instance.addPostFrameCallback((_) => restore());
+    });
+  }
+
   void scrollToTop() {
     if (_doeScrollController.hasClients) _doeScrollController.jumpTo(0.0);
     if (_buckScrollController.hasClients) _buckScrollController.jumpTo(0.0);
@@ -181,11 +202,21 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
       for (int i = 0; i < rabbits.length; i++) {
         final r = rabbits[i];
-        if (r.status == RabbitStatus.growout && r.dateOfBirth != null) {
-          final fiveMonthsDate = DateTime(r.dateOfBirth!.year, r.dateOfBirth!.month + 5, r.dateOfBirth!.day);
-          if (!DateTime.now().isBefore(fiveMonthsDate)) {
+        if (r.dateOfBirth != null &&
+            r.type != RabbitType.pedigree &&
+            !r.id.startsWith('PED-') &&
+            !r.id.startsWith('ped_')) {
+          if (r.status == RabbitStatus.growout && _isMatureByAge(r)) {
+            // Reached the "Active in Rabbitry" age from Settings -> Open/Active
             final newStatus = r.type == RabbitType.buck ? RabbitStatus.active : RabbitStatus.open;
             final updatedRabbit = r.copyWith(status: newStatus, activeInRabbitry: true);
+            rabbits[i] = updatedRabbit;
+            _rabbitCache[r.id] = updatedRabbit;
+            await _db.updateRabbit(updatedRabbit);
+          } else if ((r.status == RabbitStatus.open || r.status == RabbitStatus.active) &&
+              !_isMatureByAge(r)) {
+            // Younger than the Settings age -> belongs in Grow-Out
+            final updatedRabbit = r.copyWith(status: RabbitStatus.growout, activeInRabbitry: false);
             rabbits[i] = updatedRabbit;
             _rabbitCache[r.id] = updatedRabbit;
             await _db.updateRabbit(updatedRabbit);
@@ -278,7 +309,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       for (final r in pedigreeRabbits) _rabbitCache[r.id] = r;
 
       if (mounted) {
-        setState(() {
+        _setStateKeepScroll(() {
           _allRabbits = rabbits;
           _archivedList = archivedRabbits;
           _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
@@ -338,7 +369,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
     for (final r in pedigreeRabbits) _rabbitCache[r.id] = r;
 
     if (mounted) {
-      setState(() {
+      _setStateKeepScroll(() {
         _allRabbits = rabbits;
         _archivedList = archivedRabbits;
         _barns = barnsData.map((b) => Barn.fromMap(b)).toList();
@@ -658,6 +689,11 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   Icon(PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular), color: kNeutral400, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
+                    // Allow focus the instant the finger touches down, so the
+                    // text field's own tap handling places the cursor on the FIRST tap.
+                    child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _searchFocusNode.canRequestFocus = true,
                     child: TextField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
@@ -688,6 +724,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
+                    ),
                     ),
                   ),
                   if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty)
@@ -1446,15 +1483,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
       }
 
       final statusName = r.status.toString().split('.').last.toLowerCase();
-      final isQuarantined = statusName == 'quarantine' || !r.activeInRabbitry || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
+      final isQuarantined = statusName == 'quarantine' || (r.quarantineEndDate != null && DateTime.now().isBefore(r.quarantineEndDate!));
 
-      bool isAge5MonthsOrMore = false;
-      if (r.dateOfBirth != null) {
-        final fiveMonthsDate = DateTime(r.dateOfBirth!.year, r.dateOfBirth!.month + 5, r.dateOfBirth!.day);
-        isAge5MonthsOrMore = !DateTime.now().isBefore(fiveMonthsDate);
-      }
+      final bool isAge5MonthsOrMore = r.dateOfBirth == null ? false : _isMatureByAge(r);
 
-      final isGrowOut = (statusName == 'growout' || statusName == 'weaned') && !isAge5MonthsOrMore;
+      final isGrowOut = (statusName == 'growout' ||
+              statusName == 'weaned' ||
+              (statusName == 'open' && r.dateOfBirth != null)) &&
+          !isAge5MonthsOrMore;
 
       if (_currentFilter != 'Quarantine' && isQuarantined) return false;
 
@@ -1716,6 +1752,17 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         });
       }
     }).catchError((_) {});
+  }
+
+  /// True once the rabbit has reached the "Active in Rabbitry" age (weeks)
+  /// configured in Settings -> Timeline.
+  bool _isMatureByAge(Rabbit r) {
+    final dob = r.dateOfBirth;
+    if (dob == null) return true;
+    final weeks = SettingsService.instance.matureAge;
+    final matureDate = DateTime(dob.year, dob.month, dob.day).add(Duration(days: weeks * 7));
+    final now = DateTime.now();
+    return !DateTime(now.year, now.month, now.day).isBefore(matureDate);
   }
 
   bool _isMissedLitter(Litter l) {
@@ -1988,7 +2035,7 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
                   _buildStatsRow(
                     'Ear No.:',
                     rabbit.earNumber?.isNotEmpty == true ? rabbit.earNumber! : (rabbit.id.length >= 6 ? rabbit.id.substring(0, 6) : rabbit.id).toUpperCase(),
-                    'Cage No.:',
+                    'Cage:',
                     [
                       if (rabbit.location != null && rabbit.location!.isNotEmpty) rabbit.location!,
                       if (rabbit.cage != null && rabbit.cage!.isNotEmpty) rabbit.cage!,
@@ -2074,10 +2121,14 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
         });
         final aliveCount = litter.aliveKits ?? 0;
         final totalCount = litter.totalKits ?? 0;
+        // Only nursing if kits are actually alive. A litter where every kit
+        // was born dead (Born 5 / Alive 0) must NOT keep the doe in Nursing.
         if ((litter.kits.isNotEmpty && hasActiveKits) ||
-            aliveCount > 0 ||
-            totalCount > 0 ||
-            litter.status.toLowerCase().trim() == 'nursing') {
+            (litter.kits.isEmpty && aliveCount > 0) ||
+            (litter.kits.isEmpty &&
+                aliveCount == 0 &&
+                totalCount == 0 &&
+                litter.status.toLowerCase().trim() == 'nursing')) {
           return true;
         }
       }
@@ -2127,7 +2178,6 @@ class HerdScreenState extends State<HerdScreen> with AutomaticKeepAliveClientMix
 
   String _getStatusLetter(Rabbit rabbit) {
     if (rabbit.status == RabbitStatus.quarantine ||
-        !rabbit.activeInRabbitry ||
         (rabbit.quarantineEndDate != null && DateTime.now().isBefore(rabbit.quarantineEndDate!))) {
       return 'Q';
     }

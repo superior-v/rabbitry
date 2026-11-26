@@ -33,7 +33,6 @@ class RabbitActionSheet extends StatelessWidget {
     final isDoe = rabbit.type == RabbitType.doe;
     final earNum = rabbit.earNumber?.trim().isNotEmpty == true ? rabbit.earNumber!.trim() : rabbit.id.trim();
     final bool isQuarantined = rabbit.status == RabbitStatus.quarantine ||
-        !rabbit.activeInRabbitry ||
         (rabbit.quarantineEndDate != null && DateTime.now().isBefore(rabbit.quarantineEndDate!));
 
     return Container(

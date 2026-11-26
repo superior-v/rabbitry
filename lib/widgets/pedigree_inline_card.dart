@@ -1,3 +1,4 @@
+import '../models/pedigree.dart' show possessivePrefix;
 import 'package:flutter/material.dart';
 import '../services/appearance_service.dart';
 import 'package:flutter/services.dart';
@@ -870,7 +871,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
               children: [
                 if ((widget.rabbit.breederPrefix ?? '').isNotEmpty)
                   TextSpan(
-                    text: '${widget.rabbit.breederPrefix} ',
+                    text: '${possessivePrefix(widget.rabbit.breederPrefix)} ',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
@@ -1004,7 +1005,7 @@ class _PedigreeInlineCardState extends State<PedigreeInlineCard> {
                   children: [
                     if ((rabbit.breederPrefix ?? '').isNotEmpty)
                       TextSpan(
-                        text: '${rabbit.breederPrefix} ',
+                        text: '${possessivePrefix(rabbit.breederPrefix)} ',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
@@ -1719,6 +1720,8 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
                         'Prefix',
                         _prefixController,
                         isUpperCase: true,
+                        suffixText: "'s",
+                        suffixColor: appColor(0xFFB5B5BC),
                         onTap: _onPrefixTap,
                         textColor: _prefixIsSuggestion ? appColor(0xFFB5B5BC) : null,
                         onChanged: (_) {
@@ -1911,6 +1914,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
     VoidCallback? onTap,
     ValueChanged<String>? onChanged,
     Color? textColor,
+    Color? suffixColor,
   }) {
     final List<TextInputFormatter>? formatters = isNumber
         ? null
@@ -1940,7 +1944,7 @@ class _PedigreeEntryModalState extends State<PedigreeEntryModal> with SingleTick
         floatingLabelBehavior: FloatingLabelBehavior.always,
         hintText: hintText,
         suffixText: suffixText,
-        suffixStyle: TextStyle(color: appColor(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
+        suffixStyle: TextStyle(color: suffixColor ?? appColor(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         hintStyle: TextStyle(color: appColor(0xFF8E8E93), fontWeight: FontWeight.w500, fontSize: 13),
         filled: true,
         fillColor: kAppCardWhite,

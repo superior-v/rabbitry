@@ -91,6 +91,8 @@ class LittersScreenState extends State<LittersScreen> {
   Map<String, bool> _expandedLitters = {};
   String? _expandedStethoscopeLitterId;
   final Map<String, Set<String>> _litterMedChecks = {};
+  // litterId -> medKey -> date it was ticked
+  final Map<String, Map<String, DateTime>> _litterMedCheckDates = {};
   Map<String, Rabbit> _rabbitMap = {};
 
   List<Litter> litters = [];
@@ -157,14 +159,29 @@ class LittersScreenState extends State<LittersScreen> {
   Future<void> _loadLitterMedChecks(List<Litter> targetLitters) async {
     final prefs = await SharedPreferences.getInstance();
     final Map<String, Set<String>> loaded = {};
+    final Map<String, Map<String, DateTime>> loadedDates = {};
     for (final l in targetLitters) {
       final list = prefs.getStringList('litter_med_checks_${l.id}');
       if (list != null) {
         loaded[l.id] = list.toSet();
       }
+      final dates = prefs.getStringList('litter_med_check_dates_${l.id}');
+      if (dates != null) {
+        final m = <String, DateTime>{};
+        for (final e in dates) {
+          final i = e.indexOf('|');
+          if (i <= 0) continue;
+          final d = DateTime.tryParse(e.substring(i + 1));
+          if (d != null) m[e.substring(0, i)] = d;
+        }
+        loadedDates[l.id] = m;
+      }
     }
     if (mounted) {
       setState(() {
+        _litterMedCheckDates
+          ..clear()
+          ..addAll(loadedDates);
         _litterMedChecks
           ..clear()
           ..addAll(loaded);
@@ -174,16 +191,25 @@ class LittersScreenState extends State<LittersScreen> {
 
   Future<void> _toggleLitterMedCheck(String litterId, String medKey) async {
     final current = Set<String>.from(_litterMedChecks[litterId] ?? const <String>{});
+    final dates = Map<String, DateTime>.from(
+        _litterMedCheckDates[litterId] ?? const <String, DateTime>{});
     if (current.contains(medKey)) {
       current.remove(medKey);
+      dates.remove(medKey);
     } else {
       current.add(medKey);
+      dates[medKey] = DateTime.now();
     }
     setState(() {
       _litterMedChecks[litterId] = current;
+      _litterMedCheckDates[litterId] = dates;
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('litter_med_checks_$litterId', current.toList());
+    await prefs.setStringList(
+      'litter_med_check_dates_$litterId',
+      dates.entries.map((e) => '${e.key}|${e.value.toIso8601String()}').toList(),
+    );
   }
 
   Future<void> _refreshLitters() async {
@@ -1259,6 +1285,137 @@ class LittersScreenState extends State<LittersScreen> {
     );
   }
 
+  /// "Deworming: Nov 26, 2026" lines for each medication ticked on the litter's
+  /// health checklist. Not shown for peanuts; litter-box cleaning is excluded.
+  List<String> _kitMedLines(Litter litter, Kit kit) {
+    if (_isPeanutKit(litter, kit)) return const [];
+    final keys = _litterMedChecks[litter.id];
+    if (keys == null || keys.isEmpty) return const [];
+    final dates = _litterMedCheckDates[litter.id] ?? const <String, DateTime>{};
+    const order = [
+      'deworming_4w', 'coccidiosis_4w', 'mites_4w',
+      'deworming_8w', 'coccidiosis_8w', 'mites_8w',
+    ];
+    const names = {'deworming': 'Deworming', 'coccidiosis': 'Coccidiosis', 'mites': 'Mites'};
+    final lines = <String>[];
+    for (final k in order) {
+      if (!keys.contains(k)) continue;
+      final name = names[k.split('_').first]!;
+      DateTime? d = dates[k];
+      if (d == null) {
+        // Ticked before dates were recorded: fall back to the scheduled date
+        final dob = litter.kindleDate ?? litter.dob;
+        d = dob.add(Duration(days: k.endsWith('8w') ? 56 : 28));
+      }
+      lines.add('$name: ${FormatUtils.formatDate(d)}');
+    }
+    return lines;
+  }
+
+  static const Set<String> _nonHealthPrefixes = {
+    'reserved', 'buyer', 'sold to', 'fostered to', 'fostered from', 'peanut',
+  };
+
+  /// Health entries stored in a kit's details, e.g. "Deworming: Fenben (Nov 10, 2026)".
+  List<String> _kitHealthParts(String? details) {
+    if (details == null || details.trim().isEmpty) return const [];
+    return details
+        .split('•')
+        .map((p) => p.trim())
+        .where((p) {
+          final i = p.indexOf(':');
+          if (i <= 0) return false;
+          return !_nonHealthPrefixes.contains(p.substring(0, i).trim().toLowerCase());
+        })
+        .toList();
+  }
+
+  String _removeDetailPart(String? details, String part) {
+    final parts = (details ?? '')
+        .split('•')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    parts.remove(part);
+    return parts.join(' • ');
+  }
+
+  /// Applies [change] to one kit of [litter] and saves the litter.
+  Future<void> _updateKit(Litter litter, Kit kit, Kit Function(Kit k) change,
+      {int? peanutsProduced}) async {
+    final litterIndex = litters.indexWhere((l) => l.id == litter.id);
+    if (litterIndex == -1) return;
+    final currentLitter = litters[litterIndex];
+    final kitsList = _getOrGenerateLitterKits(currentLitter);
+    final targetNum = kit.id.replaceAll(RegExp(r'[^0-9]'), '');
+    bool updated = false;
+    final updatedKits = kitsList.map((k) {
+      final kNum = k.id.replaceAll(RegExp(r'[^0-9]'), '');
+      final bool isExactId = k.id == kit.id;
+      final bool isNumericMatch = (k.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(k.id)) &&
+          (kit.id.startsWith('K-') || RegExp(r'^\d+$').hasMatch(kit.id)) &&
+          kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
+      if ((isExactId || isNumericMatch) && !updated) {
+        updated = true;
+        return change(k);
+      }
+      return k;
+    }).toList();
+    await _db.updateLitter(currentLitter.copyWith(
+      kits: updatedKits,
+      peanutsProduced: peanutsProduced ?? currentLitter.peanutsProduced,
+    ));
+    await _refreshLitters();
+  }
+
+  /// "Not Peanut": turn a peanut back into a regular live kit.
+  Future<void> _markKitNotPeanut(Litter litter, Kit kit) async {
+    final current = (litter.peanutsProduced ?? 0);
+    await _updateKit(
+      litter,
+      kit,
+      (k) {
+        final remaining = (k.details ?? '')
+            .split('•')
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty && !p.toLowerCase().contains('peanut'))
+            .join(' • ');
+        return k.copyWith(
+          color: k.color.trim().toLowerCase() == 'peanut' ? 'Unknown' : k.color,
+          details: remaining.isEmpty ? null : remaining,
+        );
+      },
+      peanutsProduced: current > 0 ? current - 1 : 0,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Kit ${_getKitDisplayTag(litter, kit)} is no longer a peanut'),
+          backgroundColor: appSurface(0xFF7B6BA0),
+          duration: const Duration(milliseconds: 1200),
+        ),
+      );
+    }
+  }
+
+  /// Kit display order: regular kits by number (K-1, K-2, ...), peanuts last.
+  List<Kit> _orderedKits(Litter litter, List<Kit> kits) {
+    int num(Kit k) => int.tryParse(k.id.replaceAll(RegExp(r'[^0-9]'), '')) ?? 9999;
+    bool foster(Kit k) => k.id.startsWith('F-') || k.id.startsWith('foster_') ||
+        (k.details ?? '').toLowerCase().contains('fostered from');
+    final list = List<Kit>.from(kits);
+    final original = {for (var i = 0; i < kits.length; i++) kits[i]: i};
+    list.sort((a, b) {
+      final pa = _isPeanutKit(litter, a) ? 1 : 0, pb = _isPeanutKit(litter, b) ? 1 : 0;
+      if (pa != pb) return pa - pb;
+      final fa = foster(a) ? 1 : 0, fb = foster(b) ? 1 : 0;
+      if (fa != fb) return fa - fb;
+      final c = num(a).compareTo(num(b));
+      return c != 0 ? c : (original[a]! - original[b]!);
+    });
+    return list;
+  }
+
   bool _isPeanutKit(Litter litter, Kit kit) {
     final detailsLower = (kit.details ?? '').toLowerCase();
     final colorLower = kit.color.trim().toLowerCase();
@@ -1765,7 +1922,11 @@ class LittersScreenState extends State<LittersScreen> {
                         child: Text('No kits in this litter', style: TextStyle(color: kNeutral500, fontSize: 12)),
                       )
                     else
-                      ...displayKits.map((kit) => _buildKitRow(litter, kit)).toList(),
+                      ..._orderedKits(litter, displayKits)
+                          .asMap()
+                          .entries
+                          .map((e) => _buildKitRow(litter, e.value, index: e.key))
+                          .toList(),
                     const SizedBox(height: 8),
                   ],
                   _buildLitterNotesBox(litter),
@@ -1783,6 +1944,7 @@ class LittersScreenState extends State<LittersScreen> {
     final DateTime dob = litter.kindleDate ?? litter.dob;
     final Set<String> checkedKeys = _litterMedChecks[litter.id] ?? const <String>{};
     const items = <({String key, String label, int offsetDays})>[
+      (key: 'clean_litter_1w', label: 'Clean Litter box 1 wk', offsetDays: 7),
       (key: 'deworming_4w', label: 'Deworming 4 Wks', offsetDays: 28),
       (key: 'coccidiosis_4w', label: 'Coccidiosis 4 Wks', offsetDays: 28),
       (key: 'mites_4w', label: 'Mites 4 Wks', offsetDays: 28),
@@ -1815,12 +1977,17 @@ class LittersScreenState extends State<LittersScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
           ...items.map((item) {
             final bool isDone = checkedKeys.contains(item.key);
             final String scheduledDate = FormatUtils.formatDate(dob.add(Duration(days: item.offsetDays)));
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => _toggleLitterMedCheck(litter.id, item.key),
+              // Long press to tick / untick so it can't be changed by accident
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                _toggleLitterMedCheck(litter.id, item.key);
+              },
               child: Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -2403,7 +2570,7 @@ class LittersScreenState extends State<LittersScreen> {
     }
   }
 
-  Widget _buildKitRow(Litter litter, Kit kit) {
+  Widget _buildKitRow(Litter litter, Kit kit, {int index = 0}) {
     final String kStatus = kit.status.toLowerCase().trim();
     final bool isFosteredIn = kit.id.startsWith('F-') ||
         kit.id.startsWith('foster_') ||
@@ -2449,10 +2616,12 @@ class LittersScreenState extends State<LittersScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: kNeutral200)),
-          color: isOutcome ? kNeutral100 : kAppCardWhite,
+          // Alternate rows: white / light grey
+          color: index.isOdd ? appSurface(0xFFF4F4F7) : kAppCardWhite,
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          // Kit tag lines up with the kit name (first line), not the middle
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Clean kit label: NO border box, moved to the left
             SizedBox(
@@ -2481,7 +2650,7 @@ class LittersScreenState extends State<LittersScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          isDeadPeanut
+                          (isPeanut && (isDeadPeanut || kit.color.trim().isEmpty || kit.color.trim().toLowerCase() == 'unknown'))
                               ? 'Peanut'
                               : (kit.color.isNotEmpty ? kit.color : 'Unknown'),
                           style: TextStyle(
@@ -2504,10 +2673,26 @@ class LittersScreenState extends State<LittersScreen> {
                     ],
                   ),
                   if (kit.weight > 0)
-                    Text(
-                      'Weight: ',
-                      style: TextStyle(fontSize: 11, color: kNeutral500, fontWeight: FontWeight.w500),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '• Weight: ${FormatUtils.formatWeight(kit.weight)}',
+                        style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                  if (!isDead)
+                    for (final line in _kitMedLines(litter, kit))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '• $line',
+                          style: TextStyle(fontSize: 11, color: appColor(0xFF7B6BA0), fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                   if ((kit.details != null && kit.details!.isNotEmpty) || (isPeanut && !isDeadPeanut)) ...[
                     Builder(
                       builder: (context) {
@@ -2522,15 +2707,20 @@ class LittersScreenState extends State<LittersScreen> {
                             .map((p) => p.trim())
                             .where((p) => p.isNotEmpty)
                             .toList();
-                        if (isPeanut && !isDeadPeanut) {
-                          if (!detailParts.any((p) => p.toLowerCase().contains('peanut'))) {
-                            detailParts.add('Peanut');
+                        if (isPeanut) {
+                          // The name already says "Peanut": drop the word from the
+                          // detail lines and keep only the date, e.g. "Nov 22, 2026".
+                          final cleaned = <String>[];
+                          for (final part in detailParts) {
+                            var t = part.replaceAll(RegExp(r'peanut', caseSensitive: false), '').trim();
+                            t = t.replaceAllMapped(RegExp(r'^\((.*)\)$'), (m) => m.group(1) ?? '').trim();
+                            final lower = t.toLowerCase();
+                            if (t.isEmpty || lower == 'deceased' || lower == 'dead' || lower == 'died') continue;
+                            cleaned.add(t);
                           }
-                        } else if (isDeadPeanut) {
-                          detailParts.removeWhere((p) {
-                            final lower = p.toLowerCase();
-                            return lower == 'peanut' || lower == 'deceased' || lower == 'dead' || lower == 'died';
-                          });
+                          detailParts
+                            ..clear()
+                            ..addAll(cleaned);
                         }
                         if (detailParts.isEmpty) {
                           return const SizedBox.shrink();
@@ -4601,7 +4791,14 @@ class LittersScreenState extends State<LittersScreen> {
     final List<Widget> actions = [];
     final bool isPeanut = _isPeanutKit(litter, kit);
 
-    if (isPeanut) {
+    if (isPeanut && !isDeadOrCulled) {
+      actions.add(_buildLitterActionPill(
+        label: 'Not Peanut',
+        onTap: () {
+          Navigator.pop(context);
+          _markKitNotPeanut(litter, kit);
+        },
+      ));
       actions.add(_buildLitterActionPill(
         label: 'Cull',
         onTap: () {
@@ -7494,6 +7691,7 @@ class LittersScreenState extends State<LittersScreen> {
     final treatmentController = TextEditingController();
     final notesController = TextEditingController();
     bool isSaving = false;
+    String currentDetails = kit.details ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -7820,6 +8018,38 @@ class LittersScreenState extends State<LittersScreen> {
                             fillColor: kAppCardWhite,
                           ),
                         ),
+                        // Treatments already recorded for this kit (trash to delete)
+                        for (final part in _kitHealthParts(currentDetails))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8, left: 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '• $part',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: appColor(0xFF7B6BA0),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () async {
+                                    final nd = _removeDetailPart(currentDetails, part);
+                                    setModalState(() => currentDetails = nd);
+                                    await _updateKit(litter, kit,
+                                        (k) => k.copyWith(details: nd.isEmpty ? null : nd));
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Icon(Icons.delete_outline, size: 20, color: appColor(0xFFD44C47)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 16),
 
                         // NOTES
@@ -7835,7 +8065,8 @@ class LittersScreenState extends State<LittersScreen> {
                         const SizedBox(height: 6),
                         TextField(
                           controller: notesController,
-                          maxLines: 3,
+                          minLines: 1,
+                          maxLines: 2,
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -7900,14 +8131,10 @@ class LittersScreenState extends State<LittersScreen> {
                                         kNum.isNotEmpty && targetNum.isNotEmpty && kNum == targetNum;
                                     if ((isExactId || isNumericMatch) && !updated) {
                                       updated = true;
-                                      String newDetails = healthSummary;
-                                      final existingDetails = k.details;
-                                      if (existingDetails != null && existingDetails.isNotEmpty) {
-                                        if (existingDetails.toLowerCase().contains('fostered')) {
-                                          final fosterPart = existingDetails.split('•').first.trim();
-                                          newDetails = '$fosterPart • $healthSummary';
-                                        }
-                                      }
+                                      // Keep earlier treatments; add this one with its date
+                                      final entry = '$healthSummary (${FormatUtils.formatDate(selectedDate)})';
+                                      final existingDetails = (k.details ?? '').trim();
+                                      final newDetails = existingDetails.isEmpty ? entry : '$existingDetails • $entry';
                                       return k.copyWith(details: newDetails);
                                     }
                                     return k;
@@ -9381,6 +9608,7 @@ class LittersScreenState extends State<LittersScreen> {
     final TextEditingController reasonController = TextEditingController();
     final kitTag = _getKitDisplayTag(litter, kit);
     DateTime selectedDate = DateTime.now();
+    final bool isPeanutKit = (kit.details ?? '').toLowerCase().contains('peanut');
 
     showDialog(
       context: context,
@@ -9393,7 +9621,7 @@ class LittersScreenState extends State<LittersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Record cause of death for Kit $kitTag:',
+                isPeanutKit ? 'Peanut Kit $kitTag died on:' : 'Record cause of death for Kit $kitTag:',
                 style: TextStyle(fontSize: 15, color: appColor(0xFF3A3A3C), height: 1.4),
               ),
               const SizedBox(height: 12),
@@ -9428,7 +9656,8 @@ class LittersScreenState extends State<LittersScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              if (!isPeanutKit) const SizedBox(height: 12),
+              if (!isPeanutKit)
               TextField(
                 controller: reasonController,
                 decoration: InputDecoration(
@@ -9473,9 +9702,8 @@ class LittersScreenState extends State<LittersScreen> {
                   final String reasonText = reasonController.text.trim();
                   String newDetails;
                   if (wasPeanut) {
-                    newDetails = reasonText.isNotEmpty
-                        ? (reasonText.toLowerCase().contains('peanut') ? '$reasonText ($dateStr)' : 'Peanut • $reasonText ($dateStr)')
-                        : 'Peanut ($dateStr)';
+                    // Peanuts: record only the date of death
+                    newDetails = 'Peanut ($dateStr)';
                   } else {
                     newDetails = reasonText.isNotEmpty ? '$reasonText ($dateStr)' : 'Deceased ($dateStr)';
                   }
