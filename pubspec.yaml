@@ -48,9 +48,6 @@ flutter:
     - assets/fonts/
 
   fonts:
-    - family: Overthink
-      fonts:
-        - asset: assets/fonts/OvertheRainbow-Regular.ttf
     - family: TheDecember
       fonts:
         - asset: assets/fonts/Birthstone-Regular.ttf

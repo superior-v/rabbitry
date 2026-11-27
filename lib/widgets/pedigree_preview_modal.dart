@@ -268,6 +268,12 @@ class PedigreePreviewWidget extends StatelessWidget {
         ? '${data.subjectBreed.trim()} Pedigree'
         : 'Pedigree';
 
+    final contactLine = [
+      data.farmEmail.trim(),
+      data.farmWebsite.trim(),
+      data.farmSocialLink.trim(),
+    ].where((e) => e.isNotEmpty).join('          ');
+
     return Stack(
       children: [
         // Purple header band
@@ -283,15 +289,15 @@ class PedigreePreviewWidget extends StatelessWidget {
         Positioned(
           left: 0,
           right: 0,
-          top: 8.0 * scaleH,
-          height: 26.0 * scaleH,
+          top: 3.0 * scaleH,
+          height: 30.0 * scaleH,
           child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 data.farmName,
                 style: TextStyle(
-                  fontFamily: 'Overthink',
+                  fontFamily: 'Shakies',
                   fontFamilyFallback: const ['Shakies', PedigreeLayout.fontFamilyTitle],
                   fontSize: farmTitleSize,
                   color: Colors.white,
@@ -302,29 +308,51 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // ─── Header: Breed Pedigree Subtitle (Myriad Pro, 18pt, centered) ───
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 34.0 * scaleH,
-          height: 22.0 * scaleH,
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                breedSubtitle,
-                style: TextStyle(
-                  fontFamily: 'Myriad Pro',
-                  fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-                  fontWeight: FontWeight.w400,
-                  fontSize: 18.0 * scaleW,
-                  color: Colors.white,
+        // ─── Header: Address, then Email / Website / Social (Settings toggles)
+        if (data.farmAddress.trim().isNotEmpty)
+          Positioned(
+            left: 30 * scaleW,
+            right: 30 * scaleW,
+            top: 32.0 * scaleH,
+            height: 13.0 * scaleH,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  data.farmAddress.trim(),
+                  style: TextStyle(
+                    fontFamily: 'Myriad Pro',
+                    fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                    fontSize: 10.0 * scaleW,
+                    color: const Color(0xFFF2F2F3),
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
               ),
             ),
           ),
-        ),
+        if (contactLine.isNotEmpty)
+          Positioned(
+            left: 30 * scaleW,
+            right: 30 * scaleW,
+            top: 46.2 * scaleH,
+            height: 13.0 * scaleH,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  contactLine,
+                  style: TextStyle(
+                    fontFamily: 'Myriad Pro',
+                    fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
+                    fontSize: 10.0 * scaleW,
+                    color: const Color(0xFFF2F2F3),
+                  ),
+                  maxLines: 1,
+                ),
+              ),
+            ),
+          ),
 
         // ─── Top Double Horizontal Rule ───────────────────────────────────
         Positioned(
@@ -347,7 +375,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 65.0,
+          topPt: 66.5,
           widthPt: 195.0,
           label: 'Name:  ',
           value: data.subjectName,
@@ -357,7 +385,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 78.5,
+          topPt: 80.9,
           widthPt: 195.0,
           label: 'Ear #: ',
           value: data.subjectEarNo,
@@ -366,7 +394,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 21.875,
-          topPt: 92.0,
+          topPt: 95.3,
           widthPt: 195.0,
           label: 'Reg #: ',
           value: data.subjectRegNo,
@@ -375,10 +403,10 @@ class PedigreePreviewWidget extends StatelessWidget {
         _buildPortraitSubjectField(
           scaleW: scaleW,
           scaleH: scaleH,
-          leftPt: 21.875,
-          topPt: 105.5,
-          widthPt: 195.0,
-          label: 'Sold to: ',
+          leftPt: 22.0,
+          topPt: 167.5,
+          widthPt: 190.0,
+          label: 'Sold To: ',
           value: data.soldTo,
         ),
 
@@ -387,7 +415,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 65.0,
+          topPt: 66.5,
           widthPt: 195.0,
           label: 'Breed: ',
           value: data.subjectBreed,
@@ -396,7 +424,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 78.5,
+          topPt: 80.9,
           widthPt: 195.0,
           label: 'Sex:  ',
           value: data.subjectSex,
@@ -405,7 +433,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 220.87,
-          topPt: 92.0,
+          topPt: 95.3,
           widthPt: 195.0,
           label: 'Color: ',
           value: data.subjectColor,
@@ -414,10 +442,10 @@ class PedigreePreviewWidget extends StatelessWidget {
         _buildPortraitSubjectField(
           scaleW: scaleW,
           scaleH: scaleH,
-          leftPt: 220.87,
-          topPt: 105.5,
-          widthPt: 195.0,
-          label: 'Sold on: ',
+          leftPt: 22.0,
+          topPt: 184.4,
+          widthPt: 190.0,
+          label: 'Sold On: ',
           value: data.soldOn,
         ),
 
@@ -426,7 +454,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 65.0,
+          topPt: 66.5,
           widthPt: 180.0,
           label: 'Born:  ',
           value: data.subjectDob,
@@ -435,7 +463,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 78.5,
+          topPt: 80.9,
           widthPt: 180.0,
           label: 'Weight:  ',
           value: data.subjectWeight,
@@ -444,7 +472,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           scaleW: scaleW,
           scaleH: scaleH,
           leftPt: 420.89,
-          topPt: 92.0,
+          topPt: 95.3,
           widthPt: 180.0,
           label: 'Legs: ',
           value: data.subjectLegs,
@@ -453,14 +481,14 @@ class PedigreePreviewWidget extends StatelessWidget {
         // ─── Bottom Double Horizontal Rule ────────────────────────────────
         Positioned(
           left: 4.875 * scaleW,
-          top: 121.0 * scaleH,
+          top: 111.6 * scaleH,
           width: 602.25 * scaleW,
           height: (0.5 * scaleH).clamp(0.5, 1.5),
           child: Container(color: Colors.black),
         ),
         Positioned(
           left: 4.875 * scaleW,
-          top: 123.85 * scaleH,
+          top: 114.45 * scaleH,
           width: 602.25 * scaleW,
           height: (0.5 * scaleH).clamp(0.5, 1.5),
           child: Container(color: Colors.black),
@@ -469,7 +497,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         // ─── Generation Column Headers ────────────────────────────────────
         Positioned(
           left: 20.99 * scaleW,
-          top: 128.5 * scaleH,
+          top: 120.0 * scaleH,
           child: Text(
             'PARENTS',
             style: TextStyle(
@@ -483,7 +511,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         ),
         Positioned(
           left: 220.28 * scaleW,
-          top: 128.5 * scaleH,
+          top: 120.0 * scaleH,
           child: Text(
             'GRANDPARENTS',
             style: TextStyle(
@@ -497,7 +525,7 @@ class PedigreePreviewWidget extends StatelessWidget {
         ),
         Positioned(
           left: 420.05 * scaleW,
-          top: 128.5 * scaleH,
+          top: 120.0 * scaleH,
           child: Text(
             'GREAT-GRAND PARENTS',
             style: TextStyle(
@@ -605,54 +633,40 @@ class PedigreePreviewWidget extends StatelessWidget {
           ),
         ),
 
-        // ─── Bottom Left: Signature (Overthink) + Email + Website ─────────
+        // ─── Bottom Left: only Name (signature) + Phone ─────────────────
         Positioned(
-          left: 25.74 * scaleW,
-          top: 710.0 * scaleH,
-          width: 190.0 * scaleW,
+          left: 24.9 * scaleW,
+          top: 708.0 * scaleH,
+          width: 185.0 * scaleW,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (data.ownerName.trim().isNotEmpty)
-                Text(
-                  data.ownerName.trim(),
-                  style: TextStyle(
-                    fontFamily: 'TheDecember',
-                    fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
-                    fontSize: 16.0 * scaleW,
-                    color: Colors.black,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    data.ownerName.trim(),
+                    style: TextStyle(
+                      fontFamily: 'TheDecember',
+                      fontFamilyFallback: const [PedigreeLayout.fontFamilySignature],
+                      fontSize: 16.0 * scaleW,
+                      color: Colors.black,
+                    ),
+                    maxLines: 1,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              if (data.farmEmail.trim().isNotEmpty) ...[
-                SizedBox(height: 2.0 * scaleH),
+              if (data.farmPhone.trim().isNotEmpty) ...[
+                SizedBox(height: 4.0 * scaleH),
                 Text(
-                  data.farmEmail.trim(),
+                  data.farmPhone.trim(),
                   style: TextStyle(
                     fontFamily: 'Myriad Pro',
                     fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-                    fontSize: 11.0 * scaleW,
+                    fontSize: 10.0 * scaleW,
                     color: Colors.black,
                   ),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              if (data.farmWebsite.trim().isNotEmpty || data.farmSocialLink.trim().isNotEmpty) ...[
-                SizedBox(height: 1.5 * scaleH),
-                Text(
-                  data.farmWebsite.trim().isNotEmpty
-                      ? data.farmWebsite.trim()
-                      : data.farmSocialLink.trim(),
-                  style: TextStyle(
-                    fontFamily: 'Myriad Pro',
-                    fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-                    fontSize: 11.0 * scaleW,
-                    color: Colors.black,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ],
@@ -972,42 +986,25 @@ class PedigreePreviewWidget extends StatelessWidget {
       );
     }
 
+    final contactLine = [
+      data.farmEmail.trim(),
+      data.farmWebsite.trim(),
+      data.farmSocialLink.trim(),
+    ].where((e) => e.isNotEmpty).join('          ');
+
     final children = <Widget>[
-      txt(data.farmName, 20.8, 14.5, 330, 33.2, headGrey,
-          family: 'Overthink', fallback: const [PedigreeLayout.fontFamilyTitle]),
-      if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
-        Positioned(
-          left: 23.9 * s,
-          top: 56.8 * s,
-          child: Row(children: [
-            if (data.farmAddress.isNotEmpty)
-              Text(data.farmAddress,
-                  style: TextStyle(
-                      fontFamily: 'Myriad Pro',
-                      fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-                      fontSize: 11 * s,
-                      height: 1.2,
-                      color: headGrey)),
-            if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty) SizedBox(width: 14 * s),
-            if (data.farmEmail.isNotEmpty)
-              Text(data.farmEmail,
-                  style: TextStyle(
-                      fontFamily: 'Myriad Pro',
-                      fontFamilyFallback: const [PedigreeLayout.fontFamilyDetails],
-                      fontSize: 11 * s,
-                      height: 1.2,
-                      color: headGrey)),
-          ]),
-        ),
+      txt(data.farmName, 16.3, 11.0, 370, 33.2, headGrey,
+          family: 'Shakies', fallback: const [PedigreeLayout.fontFamilyTitle]),
+      if (data.farmAddress.trim().isNotEmpty)
+        txt(data.farmAddress.trim(), 19.4, 55.1, 375, 10, headGrey),
+      if (contactLine.isNotEmpty) txt(contactLine, 19.9, 69.3, 375, 10, headGrey),
       Positioned(
-        left: 22.4 * s,
-        top: 71.2 * s,
-        width: 253.0 * s,
+        left: 19.4 * s,
+        top: 83.0 * s,
+        width: 232.0 * s,
         height: 1.0 * s,
         child: Container(color: rule),
       ),
-      if (data.subjectBreed.trim().isNotEmpty)
-        txt('${data.subjectBreed.trim()} Pedigree', 23.6, 75.8, 300, 14, lineInk),
       Positioned(
         left: 52.7 * s,
         top: 121.0 * s,
@@ -1040,7 +1037,7 @@ class PedigreePreviewWidget extends StatelessWidget {
           height: 134.6 * s,
           child: Container(
             decoration: ShapeDecoration(
-              shape: OvalBorder(side: BorderSide(color: LandscapeLayout.photoBorder, width: 1.0 * s)),
+              shape: const OvalBorder(),
               color: hasPhoto ? null : Colors.black.withValues(alpha: 0.05),
             ),
             child: hasPhoto
@@ -1084,20 +1081,13 @@ class PedigreePreviewWidget extends StatelessWidget {
     }
 
     children.addAll([
-      txt('I hereby certify this pedigree is correct', 20.6, 523.0, 250, 12, certInk),
-      txt('to the best of my knowledge', 20.6, 537.4, 250, 12, certInk),
+      txt('I hereby certify this pedigree is correct', 22.1, 495.3, 250, 10, certInk),
+      txt('to the best of my knowledge', 22.1, 507.3, 250, 10, certInk),
+      // Bottom: only the owner's name (signature) and phone number
       if (data.ownerName.trim().isNotEmpty)
-        txt(data.ownerName.trim(), 22.3, 548.0, 190, 20, lineInk,
+        txt(data.ownerName.trim(), 20.5, 543.0, 185, 20, lineInk,
             family: 'TheDecember', fallback: const [PedigreeLayout.fontFamilySignature]),
-      Positioned(
-        left: 20.6 * s,
-        top: 580.4 * s,
-        width: 119.6 * s,
-        height: 1.0 * s,
-        child: Container(color: rule),
-      ),
-      if (data.farmPhone.trim().isNotEmpty) txt(data.farmPhone.trim(), 20.6, 586.8, 150, 12, lineInk),
-      if (data.farmWebsite.trim().isNotEmpty) txt(data.farmWebsite.trim(), 130.0, 588.0, 80, 10, lineInk),
+      if (data.farmPhone.trim().isNotEmpty) txt(data.farmPhone.trim(), 24.1, 578.2, 185, 12, lineInk),
     ]);
 
     return Stack(children: children);

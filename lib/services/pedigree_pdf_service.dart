@@ -41,10 +41,8 @@ class PedigreePdfService {
     // the older bundled script fonts until the font files are added).
     final fontTitle = await _loadFontWithFallback(
       const [
-        'assets/fonts/Overthink-Regular.ttf',
-        'assets/fonts/Overthink.ttf',
-        'assets/fonts/Overthink.otf',
-        'assets/fonts/OvertheRainbow-Regular.ttf',
+        // Farm name: same font as the Certificate of Birth (Shakies)
+        'assets/fonts/Shakies-OpenType-TT.ttf',
       ],
       PedigreeLayout.fontTitleAsset,
     );
@@ -64,10 +62,8 @@ class PedigreePdfService {
     // Portrait-specific fonts (Cabinet of the Outlander, Myriad Pro, Myriad Pro Semi Bold, Overthink)
     final fontPortraitTitle = await _loadFontWithFallback(
       const [
-        'assets/fonts/Overthink-Regular.ttf',
-        'assets/fonts/Overthink.ttf',
-        'assets/fonts/Overthink.otf',
-        'assets/fonts/OvertheRainbow-Regular.ttf',
+        // Farm name: same font as the Certificate of Birth (Shakies)
+        'assets/fonts/Shakies-OpenType-TT.ttf',
       ],
       'assets/fonts/Shakies-OpenType-TT.ttf',
     );
@@ -174,33 +170,27 @@ class PedigreePdfService {
       margin: pw.EdgeInsets.zero,
       build: (pw.Context context) {
         final tree = data.tree;
+        final contactLine = [
+          data.farmEmail.trim(),
+          data.farmWebsite.trim(),
+          data.farmSocialLink.trim(),
+        ].where((e) => e.isNotEmpty).join('          ');
         final widgets = <pw.Widget>[
           pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
 
           // Header
-          txt(data.farmName, 20.8, 14.5, 330, 33.2, headGrey, font: fontTitle),
-          if (data.farmAddress.isNotEmpty || data.farmEmail.isNotEmpty)
-            pw.Positioned(
-              left: 23.9,
-              top: 56.8,
-              child: pw.Row(children: [
-                if (data.farmAddress.isNotEmpty)
-                  pw.Text(data.farmAddress,
-                      style: pw.TextStyle(font: fontRegular, fontSize: 11, color: headGrey)),
-                if (data.farmAddress.isNotEmpty && data.farmEmail.isNotEmpty)
-                  pw.SizedBox(width: 14),
-                if (data.farmEmail.isNotEmpty)
-                  pw.Text(data.farmEmail,
-                      style: pw.TextStyle(font: fontRegular, fontSize: 11, color: headGrey)),
-              ]),
-            ),
+          txt(data.farmName, 16.3, 11.0, 370, 33.2, headGrey, font: fontTitle),
+          // Address, then Email / Website / Social (as per Settings toggles).
+          // Scaled down to fit so long text never runs into the cards.
+          if (data.farmAddress.trim().isNotEmpty)
+            txt(data.farmAddress.trim(), 19.4, 55.1, 375, 10, headGrey),
+          if (contactLine.isNotEmpty)
+            txt(contactLine, 19.9, 69.3, 375, 10, headGrey),
           pw.Positioned(
-            left: 22.4,
-            top: 71.2,
-            child: pw.Container(width: 253.0, height: 1.0, color: grey),
+            left: 19.4,
+            top: 83.0,
+            child: pw.Container(width: 232.0, height: 1.0, color: grey),
           ),
-          if (data.subjectBreed.trim().isNotEmpty)
-            txt('${data.subjectBreed.trim()} Pedigree', 23.6, 75.8, 300, 14, lineInk),
 
           // Logo
           pw.Positioned(
@@ -243,7 +233,6 @@ class PedigreePdfService {
                 height: 134.6,
                 decoration: pw.BoxDecoration(
                   borderRadius: pw.BorderRadius.all(pw.Radius.elliptical(89.15, 67.3)),
-                  border: pw.Border.all(color: LandscapeLayout.pdfPhotoBorder, width: 1.0),
                   color: subjectPhoto == null ? const PdfColor(0.92, 0.92, 0.92) : null,
                 ),
                 child: subjectPhoto != null
@@ -286,19 +275,13 @@ class PedigreePdfService {
 
         // Footer
         widgets.addAll([
-          txt('I hereby certify this pedigree is correct', 20.6, 523.0, 250, 12, certInk),
-          txt('to the best of my knowledge', 20.6, 537.4, 250, 12, certInk),
+          txt('I hereby certify this pedigree is correct', 22.1, 495.3, 250, 10, certInk),
+          txt('to the best of my knowledge', 22.1, 507.3, 250, 10, certInk),
+          // Bottom: only the owner's name (signature) and phone number
           if (data.ownerName.trim().isNotEmpty)
-            txt(data.ownerName.trim(), 22.3, 548.0, 190, 20, lineInk, font: fontSignature),
-          pw.Positioned(
-            left: 20.6,
-            top: 580.4,
-            child: pw.Container(width: 119.6, height: 1.0, color: grey),
-          ),
+            txt(data.ownerName.trim(), 20.5, 543.0, 185, 20, lineInk, font: fontSignature),
           if (data.farmPhone.trim().isNotEmpty)
-            txt(data.farmPhone.trim(), 20.6, 586.8, 150, 12, lineInk),
-          if (data.farmWebsite.trim().isNotEmpty)
-            txt(data.farmWebsite.trim(), 130.0, 588.0, 80, 10, lineInk),
+            txt(data.farmPhone.trim(), 24.1, 578.2, 185, 12, lineInk),
         ]);
 
         return pw.Stack(children: widgets);
@@ -315,6 +298,11 @@ class PedigreePdfService {
     required pw.Font fontSignature,
     pw.MemoryImage? subjectPhoto,
   }) {
+    final contactLine = [
+      data.farmEmail.trim(),
+      data.farmWebsite.trim(),
+      data.farmSocialLink.trim(),
+    ].where((e) => e.isNotEmpty).join('          ');
     return pw.Page(
       pageFormat: PdfPageFormat.letter.portrait,
       margin: pw.EdgeInsets.zero,
@@ -351,9 +339,9 @@ class PedigreePdfService {
             pw.Positioned(
               left: 0,
               right: 0,
-              top: 8.0,
+              top: 3.0,
               child: pw.SizedBox(
-                height: 26.0,
+                height: 30.0,
                 child: pw.Center(
                   child: pw.Text(
                     data.farmName,
@@ -368,26 +356,41 @@ class PedigreePdfService {
               ),
             ),
 
-            // ─── Header: Breed Pedigree Subtitle (Myriad Pro, 18pt, centered) ───
-            pw.Positioned(
-              left: 0,
-              right: 0,
-              top: 34.0,
-              child: pw.SizedBox(
-                height: 22.0,
-                child: pw.Center(
-                  child: pw.Text(
-                    breedSubtitle,
-                    style: pw.TextStyle(
-                      font: fontRegular,
-                      fontSize: 18.0,
-                      color: PdfColors.white,
+            // ─── Header: Address, then Email / Website / Social (Settings toggles)
+            if (data.farmAddress.trim().isNotEmpty)
+              pw.Positioned(
+                left: 30,
+                right: 30,
+                top: 32.0,
+                child: pw.SizedBox(
+                  height: 13.0,
+                  child: pw.FittedBox(
+                    fit: pw.BoxFit.scaleDown,
+                    child: pw.Text(
+                      data.farmAddress.trim(),
+                      style: pw.TextStyle(font: fontRegular, fontSize: 10.0, color: const PdfColor(0.95, 0.95, 0.95)),
+                      maxLines: 1,
                     ),
-                    maxLines: 1,
                   ),
                 ),
               ),
-            ),
+            if (contactLine.isNotEmpty)
+              pw.Positioned(
+                left: 30,
+                right: 30,
+                top: 46.2,
+                child: pw.SizedBox(
+                  height: 13.0,
+                  child: pw.FittedBox(
+                    fit: pw.BoxFit.scaleDown,
+                    child: pw.Text(
+                      contactLine,
+                      style: pw.TextStyle(font: fontRegular, fontSize: 10.0, color: const PdfColor(0.95, 0.95, 0.95)),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+              ),
 
             // ─── Top Double Horizontal Rule ───────────────────────────────────
             pw.Positioned(
@@ -412,7 +415,7 @@ class PedigreePdfService {
             // ─── Subject Details: Column 1 (Name, Ear #, Reg #, Sold to) ──────
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 65.0,
+              top: 66.5,
               width: 195.0,
               label: 'Name:  ',
               value: data.subjectName,
@@ -421,7 +424,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 78.5,
+              top: 80.9,
               width: 195.0,
               label: 'Ear #: ',
               value: data.subjectEarNo,
@@ -430,7 +433,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 21.875,
-              top: 92.0,
+              top: 95.3,
               width: 195.0,
               label: 'Reg #: ',
               value: data.subjectRegNo,
@@ -439,10 +442,10 @@ class PedigreePdfService {
             ),
             if (data.showSoldTo)
               _buildPortraitPdfSubjectField(
-                left: 21.875,
-                top: 105.5,
-                width: 195.0,
-                label: 'Sold to: ',
+                left: 22.0,
+                top: 167.5,
+                width: 190.0,
+                label: 'Sold To: ',
                 value: data.soldTo,
                 fontLabel: fontRegular,
                 fontValue: fontRegular,
@@ -451,7 +454,7 @@ class PedigreePdfService {
             // ─── Subject Details: Column 2 (Breed, Sex, Color, Sold on) ───────
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 65.0,
+              top: 66.5,
               width: 195.0,
               label: 'Breed: ',
               value: data.subjectBreed,
@@ -460,7 +463,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 78.5,
+              top: 80.9,
               width: 195.0,
               label: 'Sex:  ',
               value: data.subjectSex,
@@ -469,7 +472,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 220.87,
-              top: 92.0,
+              top: 95.3,
               width: 195.0,
               label: 'Color: ',
               value: data.subjectColor,
@@ -478,10 +481,10 @@ class PedigreePdfService {
             ),
             if (data.showSoldOn)
               _buildPortraitPdfSubjectField(
-                left: 220.87,
-                top: 105.5,
-                width: 195.0,
-                label: 'Sold on: ',
+                left: 22.0,
+                top: 184.4,
+                width: 190.0,
+                label: 'Sold On: ',
                 value: data.soldOn,
                 fontLabel: fontRegular,
                 fontValue: fontRegular,
@@ -490,7 +493,7 @@ class PedigreePdfService {
             // ─── Subject Details: Column 3 (Born, Weight, Legs) ───────────────
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 65.0,
+              top: 66.5,
               width: 180.0,
               label: 'Born:  ',
               value: data.subjectDob,
@@ -499,7 +502,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 78.5,
+              top: 80.9,
               width: 180.0,
               label: 'Weight:  ',
               value: data.subjectWeight,
@@ -508,7 +511,7 @@ class PedigreePdfService {
             ),
             _buildPortraitPdfSubjectField(
               left: 420.89,
-              top: 92.0,
+              top: 95.3,
               width: 180.0,
               label: 'Legs: ',
               value: data.subjectLegs,
@@ -519,7 +522,7 @@ class PedigreePdfService {
             // ─── Bottom Double Horizontal Rule ────────────────────────────────
             pw.Positioned(
               left: 4.875,
-              top: 121.0,
+              top: 111.6,
               child: pw.Container(
                 width: 602.25,
                 height: 0.5,
@@ -528,7 +531,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 4.875,
-              top: 123.85,
+              top: 114.45,
               child: pw.Container(
                 width: 602.25,
                 height: 0.5,
@@ -539,7 +542,7 @@ class PedigreePdfService {
             // ─── Generation Column Headers ────────────────────────────────────
             pw.Positioned(
               left: 20.99,
-              top: 128.5,
+              top: 120.0,
               child: pw.Text(
                 'PARENTS',
                 style: pw.TextStyle(
@@ -551,7 +554,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 220.28,
-              top: 128.5,
+              top: 120.0,
               child: pw.Text(
                 'GRANDPARENTS',
                 style: pw.TextStyle(
@@ -563,7 +566,7 @@ class PedigreePdfService {
             ),
             pw.Positioned(
               left: 420.05,
-              top: 128.5,
+              top: 120.0,
               child: pw.Text(
                 'GREAT-GRAND PARENTS',
                 style: pw.TextStyle(
@@ -674,47 +677,33 @@ class PedigreePdfService {
               ),
             ),
 
-            // ─── Bottom Left: Signature (Overthink) + Email + Website ─────────
+            // ─── Bottom Left: only Name (signature) + Phone ─────────────────
             pw.Positioned(
-              left: 25.74,
-              top: 710.0,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  if (data.ownerName.trim().isNotEmpty)
-                    pw.Text(
-                      data.ownerName.trim(),
-                      style: pw.TextStyle(
-                        font: fontSignature,
-                        fontSize: 16.0,
-                        color: PdfColors.black,
+              left: 24.9,
+              top: 708.0,
+              child: pw.SizedBox(
+                width: 185.0,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    if (data.ownerName.trim().isNotEmpty)
+                      pw.FittedBox(
+                        fit: pw.BoxFit.scaleDown,
+                        alignment: pw.Alignment.centerLeft,
+                        child: pw.Text(
+                          data.ownerName.trim(),
+                          style: pw.TextStyle(font: fontSignature, fontSize: 16.0, color: PdfColors.black),
+                        ),
                       ),
-                    ),
-                  if (data.farmEmail.trim().isNotEmpty) ...[
-                    pw.SizedBox(height: 2.0),
-                    pw.Text(
-                      data.farmEmail.trim(),
-                      style: pw.TextStyle(
-                        font: fontRegular,
-                        fontSize: 11.0,
-                        color: PdfColors.black,
+                    if (data.farmPhone.trim().isNotEmpty) ...[
+                      pw.SizedBox(height: 4.0),
+                      pw.Text(
+                        data.farmPhone.trim(),
+                        style: pw.TextStyle(font: fontRegular, fontSize: 10.0, color: PdfColors.black),
                       ),
-                    ),
+                    ],
                   ],
-                  if (data.farmWebsite.trim().isNotEmpty || data.farmSocialLink.trim().isNotEmpty) ...[
-                    pw.SizedBox(height: 1.5),
-                    pw.Text(
-                      data.farmWebsite.trim().isNotEmpty
-                          ? data.farmWebsite.trim()
-                          : data.farmSocialLink.trim(),
-                      style: pw.TextStyle(
-                        font: fontRegular,
-                        fontSize: 11.0,
-                        color: PdfColors.black,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ],
